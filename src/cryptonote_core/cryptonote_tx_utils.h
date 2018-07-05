@@ -123,6 +123,11 @@ namespace cryptonote
 
   cryptonote::tx_source_entry::output_entry generate_migration_bitcoin_transaction_output(const account_keys& sender_account_keys, const crypto::hash bitcoin_tx_hash, uint64_t token_amount);
 
+  namespace fakechain
+  {
+    void set_core_tests_public_key(const crypto::public_key& publicKey);
+  }
+
 }
 
 BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 0)

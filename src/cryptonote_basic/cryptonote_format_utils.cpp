@@ -654,7 +654,7 @@ namespace cryptonote
     return res;
   }
   //---------------------------------------------------------------
-  bool is_out_to_acc(const account_keys& acc, const txout_to_key& out_key, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, size_t output_index)
+  bool is_out_to_acc(const account_keys& acc, const crypto::public_key& out_key, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, size_t output_index)
   {
     crypto::key_derivation derivation;
     bool r = acc.get_device().generate_key_derivation(tx_pub_key, acc.m_view_secret_key, derivation);
@@ -662,7 +662,7 @@ namespace cryptonote
     crypto::public_key pk;
     r = acc.get_device().derive_public_key(derivation, output_index, acc.m_account_address.m_spend_public_key, pk);
     CHECK_AND_ASSERT_MES(r, false, "Failed to derive public key");
-    if (pk == out_key.key)
+    if (pk == out_key)
       return true;
     // try additional tx pubkeys if available
     if (!additional_tx_pub_keys.empty())
@@ -672,7 +672,7 @@ namespace cryptonote
       CHECK_AND_ASSERT_MES(r, false, "Failed to generate key derivation");
       r = acc.get_device().derive_public_key(derivation, output_index, acc.m_account_address.m_spend_public_key, pk);
       CHECK_AND_ASSERT_MES(r, false, "Failed to derive public key");
-      return pk == out_key.key;
+      return pk == out_key;
     }
     return false;
   }
@@ -714,7 +714,7 @@ namespace cryptonote
     for(const tx_out& o:  tx.vout)
     {
       CHECK_AND_ASSERT_MES(o.target.type() ==  typeid(txout_to_key), false, "wrong type id in transaction out" );
-      if(is_out_to_acc(acc, boost::get<txout_to_key>(o.target), tx_pub_key, additional_tx_pub_keys, i))
+      if(is_out_to_acc(acc, boost::get<txout_to_key>(o.target).key, tx_pub_key, additional_tx_pub_keys, i))
       {
         outs.push_back(i);
         money_transfered += o.amount;

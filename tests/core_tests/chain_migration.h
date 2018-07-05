@@ -31,46 +31,38 @@
 
 #pragma once
 
-#include "cryptonote_basic/account.h"
-#include "cryptonote_basic/cryptonote_basic.h"
-#include "cryptonote_core/cryptonote_tx_utils.h"
-
-#include "single_tx_test_base.h"
-
-class test_is_out_to_acc : public single_tx_test_base
+#include "chaingen.h"
+#include "block_reward.h"
+#include "block_validation.h"
+#include "chain_split_1.h"
+#include "chain_switch_1.h"
+#include "double_spend.h"
+#include "integer_overflow.h"
+#include "ring_signature_1.h"
+#include "tx_validation.h"
+#include "v2_tests.h"
+#include "rct.h"
+#include "multisig.h"
+/************************************************************************/
+/*                                                                      */
+/************************************************************************/
+class gen_simple_chain_migration_001: public test_chain_unit_base
 {
 public:
-  static const size_t loop_count = 1000;
+  gen_simple_chain_migration_001();
 
-  bool test()
-  {
-    const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), m_tx.vout[0].target);
-    return cryptonote::is_out_to_acc(m_bob.get_keys(), out_key, m_tx_pub_key, m_additional_tx_pub_keys, 0);
-  }
+  const std::string bitcoin_tx_hashes_str[5] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c", "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182", "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55"};
+
+  bool generate(std::vector<test_event_entry> &events);
+  bool verify_migration_transactions(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  crypto::hash get_hash_from_string(const std::string hashstr);
+
+  static const size_t expected_blockchain_total_transactions = 189;
+  static const size_t expected_blockchain_height = 185;
+  static const uint64_t expected_bob_token_balance = 50 * COIN;
+  static const uint64_t expected_alice_token_balance = 7 * COIN;
+  static const uint64_t expected_bob_cash_balance = 100 * SAFEX_CASH_COIN;
+  static const uint64_t expected_alice_cash_balance = 14 * SAFEX_CASH_COIN;
+
 };
 
-class test_is_out_to_acc_precomp : public single_tx_test_base
-{
-public:
-  static const size_t loop_count = 1000;
-
-  bool init()
-  {
-    if (!single_tx_test_base::init())
-      return false;
-    crypto::generate_key_derivation(m_tx_pub_key, m_bob.get_keys().m_view_secret_key, m_derivation);
-    return true;
-  }
-  bool test()
-  {
-    const cryptonote::txout_to_key& tx_out = boost::get<cryptonote::txout_to_key>(m_tx.vout[0].target);
-    std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
-    subaddresses[m_bob.get_keys().m_account_address.m_spend_public_key] = {0,0};
-    std::vector<crypto::key_derivation> additional_derivations;
-    boost::optional<cryptonote::subaddress_receive_info> info = cryptonote::is_out_to_acc_precomp(subaddresses, tx_out.key, m_derivation, additional_derivations, 0, hw::get_device("default"));
-    return (bool)info;
-  }
-
-private:
-  crypto::key_derivation m_derivation;
-};
