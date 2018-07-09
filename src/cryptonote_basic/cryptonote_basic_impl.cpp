@@ -163,7 +163,7 @@ namespace cryptonote {
     return 21;
   }
 
-  inline uint64_t get_base_reward(uint64_t already_generated_coins)
+  uint64_t get_base_reward(uint64_t already_generated_coins)
   {
     const auto current_window = get_current_reward_window(already_generated_coins);
     auto reward = get_reward_for_reward_window(current_window);
