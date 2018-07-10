@@ -31,6 +31,7 @@
 #define __WINH_OBJ_H__
 
 #include <boost/chrono/duration.hpp>
+#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
