@@ -407,7 +407,10 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
                 const transaction& tx = *tx_pair.second;
                 BOOST_FOREACH(const txin_v &in, tx.vin)
                 {
-                  const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+                  auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);
+                  if (!k_image_opt)
+                    continue;
+                  const crypto::key_image &k_image = *k_image_opt;
                   if (k_image == img)
                   {
                     oi.spent = true;
