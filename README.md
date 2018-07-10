@@ -1,8 +1,8 @@
 # SAFEX
 
-##Build Instructions
+## Build Instructions
 
-###MacOS
+### MacOS
 
 Check if you have Developer Tools Installed
 ```
