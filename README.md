@@ -2,8 +2,6 @@
 
 ## Build Instructions
 
-
-
 ### MacOS
 
 Check if you have Developer Tools Installed
@@ -54,10 +52,25 @@ $ make -j<Your number of cores> debug-all
 A one liner for installing all dependencies on Ubuntu 18.04 is
 
 ```
-sudo apt update && sudo apt install build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpcsclite-dev
+$ sudo apt update && sudo apt install build-essential cmake pkg-config \
+    libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libminiupnpc-dev \
+    libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev \
+    doxygen graphviz libpcsclite-dev
 ```
 
-To build, just run `make debug-all`. (or `make -j <Your number of cores> debug-all` to utilize all cores).
+To build a debug version, just run `$ make debug-all` (or `make -j <Your number of cores> debug-all` to use all cores).
+
+To build a release version, just run `$ make release-all` (or `make -j <Your number of cores> release-all` to use all cores).
+
+## Running
+
+Built binaries are located in the `build/debug/bin` and/or `build/release/bin` (depending upon which build was used).
+
+To run the node: `$ /path/to/binaries/safexd --testnet`
+
+To run the wallet: `$ /path/to/binaries/safex-wallet-cli --testnet <other wallet parameters>`
+
+For a list/reference of all wallet parameters use `$ /path/to/binaries/safex-wallet-cli --testnet --help`
 
 Copyright (c) 2018 The Safex Project.
 
