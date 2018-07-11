@@ -2,6 +2,8 @@
 
 ## Build Instructions
 
+
+
 ### MacOS
 
 Check if you have Developer Tools Installed
@@ -47,6 +49,15 @@ Build it and insert the number of cores you have
 $ make -j<Your number of cores> debug-all
 ```
 
+### Ubuntu 18.04
+
+A one liner for installing all dependencies on Ubuntu 18.04 is
+
+```
+sudo apt update && sudo apt install build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpcsclite-dev
+```
+
+To build, just run `make debug-all`. (or `make -j <Your number of cores> debug-all` to utilize all cores).
 
 Copyright (c) 2018 The Safex Project.
 
