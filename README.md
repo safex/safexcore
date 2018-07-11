@@ -6,40 +6,45 @@
 
 Check if you have Developer Tools Installed
 ```
-xcode-select -p
+$ xcode-select -p
 ```
 If you don't have Developer Tools, install it. If you do, skip this step
 ```
-xcode-select --install
+$ xcode-select --install
 ```
 Clone the git repository with recursive
 ```
-git clone https://github.com/safex/safexcore.git --recursive
+$ git clone https://github.com/safex/safexcore.git --recursive
 ```
 Go into safexcore folder
 ```
-cd safexcore
+$ cd safexcore
 ```
 Check if brew is installed
 ```
-which brew
+$ which brew
 ```
 If you don't have brew installed, install it. If you have it, skip this step
 ```
-brew install wget
+$ brew install wget
 ```
 Install all libraries
 ```
-brew tap jmuncaster/homebrew-header-only
-brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq libzmq openssl pkg-config
+$ brew tap jmuncaster/homebrew-header-only
+$ brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq openssl pkg-config
+$ brew install libzmq
 ```
-You will need to have MacPorts installed. If you don't have it install it from here https://www.macports.org/install.php. Then install readline using MacPorts
+You will need to have MacPorts installed. If you don't have it install it from here https://guide.macports.org/. Download the package for your OS version from the website. Open **new** terminal window and check if MacPorts are installed
 ```
-sudo port install readline
+$ port version
+```
+If the installation was successful, install readline using MacPorts
+```
+$ sudo port install readline
 ```
 Build it and insert the number of cores you have
 ```
-make -j<Your number of cores> debug-all
+$ make -j<Your number of cores> debug-all
 ```
 
 
