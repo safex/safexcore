@@ -265,6 +265,7 @@ bool test_generator::construct_block_manually_tx(cryptonote::block& blk, const c
 struct output_index {
     const cryptonote::txout_target_v out;
     uint64_t amount;
+    uint64_t token_amount;
     size_t blk_height; // block height
     size_t tx_no; // index of transaction in block
     size_t out_no; // index of out in transaction
@@ -273,11 +274,11 @@ struct output_index {
     const cryptonote::block *p_blk;
     const cryptonote::transaction *p_tx;
 
-    output_index(const cryptonote::txout_target_v &_out, uint64_t _a, size_t _h, size_t tno, size_t ono, const cryptonote::block *_pb, const cryptonote::transaction *_pt)
-        : out(_out), amount(_a), blk_height(_h), tx_no(tno), out_no(ono), idx(0), spent(false), p_blk(_pb), p_tx(_pt) { }
+    output_index(const cryptonote::txout_target_v &_out, uint64_t _a, uint64_t _t_a, size_t _h, size_t tno, size_t ono, const cryptonote::block *_pb, const cryptonote::transaction *_pt)
+        : out(_out), amount(_a), token_amount(_t_a), blk_height(_h), tx_no(tno), out_no(ono), idx(0), spent(false), p_blk(_pb), p_tx(_pt) { }
 
     output_index(const output_index &other)
-        : out(other.out), amount(other.amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx), spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx) {  }
+        : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx), spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx) {  }
 
     const std::string toString() const {
         std::stringstream ss;
@@ -286,6 +287,7 @@ struct output_index {
            << " tx_no=" << tx_no
            << " out_no=" << out_no
            << " amount=" << amount
+           << " token_amount=" << token_amount
            << " idx=" << idx
            << " spent=" << spent
            << "}";
@@ -318,7 +320,8 @@ namespace
   }
 }
 
-bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<size_t> >& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, const cryptonote::account_base& from) {
+bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<size_t> >& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx,
+                         const cryptonote::account_base& from, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) {
 
     BOOST_FOREACH (const block& blk, blockchain) {
         vector<const transaction*> vtx;
@@ -334,23 +337,49 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
 
         //vtx.insert(vtx.end(), blk.);
         // TODO: add all other txes
-        for (size_t i = 0; i < vtx.size(); i++) {
+        for (size_t i = 0; i < vtx.size(); i++)
+        {
             const transaction &tx = *vtx[i];
 
-            for (size_t j = 0; j < tx.vout.size(); ++j) {
-                const tx_out &out = tx.vout[j];
+          for (size_t j = 0; j < tx.vout.size(); ++j)
+          {
+            const tx_out &out = tx.vout[j];
+            const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
-                output_index oi(out.target, out.amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
-
-                if (2 == out.target.which()) { // out_to_key
-                    outs[out.amount].push_back(oi);
-                    size_t tx_global_idx = outs[out.amount].size() - 1;
-                    outs[out.amount][tx_global_idx].idx = tx_global_idx;
-                    // Is out to me?
-                    if (is_out_to_acc(from.get_keys(), boost::get<txout_to_key>(out.target), get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j)) {
-                        outs_mine[out.amount].push_back(tx_global_idx);
-                    }
+            if (out_type == cryptonote::tx_out_type::out_token)
+            {
+              if (out.target.type() == typeid(cryptonote::txout_token_to_key))
+              {
+                output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
+                outs[out.token_amount].push_back(oi);
+                size_t tx_global_idx = outs[out.token_amount].size() - 1;
+                outs[out.token_amount][tx_global_idx].idx = tx_global_idx;
+                // Is out to me?
+                if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
+                {
+                  outs_mine[out.token_amount].push_back(tx_global_idx);
                 }
+              }
+
+            }
+            else if (out_type == cryptonote::tx_out_type::out_cash)
+            {
+              if (out.target.type() == typeid(cryptonote::txout_to_key))
+              { // out_to_key
+                output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
+                outs[out.amount].push_back(oi);
+                size_t tx_global_idx = outs[out.amount].size() - 1;
+                outs[out.amount][tx_global_idx].idx = tx_global_idx;
+                // Is out to me?
+                if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
+                {
+                  outs_mine[out.amount].push_back(tx_global_idx);
+                }
+              }
+
+            }
+
+
             }
         }
     }
@@ -358,7 +387,8 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
     return true;
 }
 
-bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, const cryptonote::account_base& from) {
+bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, const cryptonote::account_base& from)
+{
 
     BOOST_FOREACH (const map_output_t::value_type &o, outs_mine) {
         for (size_t i = 0; i < o.second.size(); ++i) {
@@ -367,7 +397,7 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
             // construct key image for this output
             crypto::key_image img;
             keypair in_ephemeral;
-            crypto::public_key out_key = boost::get<txout_to_key>(oi.out).key;
+            const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
             std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
             subaddresses[from.get_keys().m_account_address.m_spend_public_key] = {0,0};
             generate_key_image_helper(from.get_keys(), subaddresses, out_key, get_tx_pub_key_from_extra(*oi.p_tx), get_additional_tx_pub_keys_from_extra(*oi.p_tx), oi.out_no, in_ephemeral, img, hw::get_device(("default")));
@@ -375,13 +405,16 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
             // lookup for this key image in the events vector
             BOOST_FOREACH(auto& tx_pair, mtx) {
                 const transaction& tx = *tx_pair.second;
-                BOOST_FOREACH(const txin_v &in, tx.vin) {
-                    if (typeid(txin_to_key) == in.type()) {
-                        const txin_to_key &itk = boost::get<txin_to_key>(in);
-                        if (itk.k_image == img) {
-                            oi.spent = true;
-                        }
-                    }
+                BOOST_FOREACH(const txin_v &in, tx.vin)
+                {
+                  auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);
+                  if (!k_image_opt)
+                    continue;
+                  const crypto::key_image &k_image = *k_image_opt;
+                  if (k_image == img)
+                  {
+                    oi.spent = true;
+                  }
                 }
             }
         }
@@ -479,11 +512,87 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     return sources_found;
 }
 
+bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<test_event_entry>& events,
+                     const block& blk_head, const cryptonote::account_base& from, uint64_t token_amount, uint64_t cash_airdrop_amount,
+                     const crypto::hash &bitcoin_transaction_hash)
+{
+  map_output_idx_t outs;
+  map_output_t outs_mine;
+
+  std::vector<cryptonote::block> blockchain;
+  map_hash2tx_t mtx;
+  if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
+    return false;
+
+  if (!init_output_indices(outs, outs_mine, blockchain, mtx, from))
+    return false;
+
+  if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from))
+    return false;
+
+  // Iterate in reverse is more efficiency to get cash for migration transaction
+  uint64_t sources_cash_amount = 0;
+  bool sources_found = false;
+  BOOST_REVERSE_FOREACH(const map_output_t::value_type o, outs_mine)
+        {
+          for (size_t i = 0; i < o.second.size() && !sources_found; ++i)
+          {
+            size_t sender_out = o.second[i];
+            const output_index& oi = outs[o.first][sender_out];
+            if (oi.spent)
+              continue;
+
+            cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
+            ts.amount = oi.amount;
+            ts.real_output_in_tx_index = oi.out_no;
+            ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
+            size_t realOutput;
+            if (!fill_output_entries(outs[o.first], sender_out, 0 /*nmix*/, realOutput, ts.outputs))
+              continue;
+
+            ts.real_output = realOutput;
+            ts.rct = false;
+
+            sources.push_back(ts);
+
+            sources_cash_amount += ts.amount;
+            sources_found = cash_airdrop_amount <= sources_cash_amount;
+          }
+
+          if (sources_found)
+            break;
+        }
+
+  //add one migration input
+  sources.resize(sources.size() + 1);
+  cryptonote::tx_source_entry &src = sources.back();
+  src = boost::value_initialized<cryptonote::tx_source_entry>();
+  //Only migration account could sign txin_token_migration
+  auto output = cryptonote::generate_migration_bitcoin_transaction_output(from.get_keys(), bitcoin_transaction_hash, token_amount);
+  src.outputs.push_back(output);
+  src.token_amount = token_amount;
+  src.rct = false;
+  src.token_transaction = true;
+  src.migration = true;
+
+
+  return sources_found;
+}
+
+
 bool fill_tx_destination(tx_destination_entry &de, const cryptonote::account_base &to, uint64_t amount) {
     de.addr = to.get_keys().m_account_address;
     de.amount = amount;
     return true;
 }
+
+bool fill_token_tx_destination(tx_destination_entry &de, const cryptonote::account_base &to, uint64_t token_amount) {
+  de.addr = to.get_keys().m_account_address;
+  de.token_amount = token_amount;
+  de.token_transaction = true;
+  return true;
+}
+
 
 void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
                                       const cryptonote::account_base& from, const cryptonote::account_base& to,
@@ -509,6 +618,40 @@ void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& event
       throw std::runtime_error("couldn't fill transaction cache back destination");
     destinations.push_back(de_change);
   }
+}
+
+void fill_migration_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+                                      const cryptonote::account_base& from, const cryptonote::account_base& to,
+                                      uint64_t token_amount, uint64_t fee, std::vector<tx_source_entry>& sources,
+                                      std::vector<tx_destination_entry>& destinations, const crypto::hash &bitcoin_transaction_hash)
+{
+  sources.clear();
+  destinations.clear();
+
+  const uint64_t cash_airdrop_amount = cryptonote::get_airdrop_cash(token_amount);
+
+  if (!fill_migration_tx_sources(sources, events, blk_head, from, token_amount, cash_airdrop_amount + fee, bitcoin_transaction_hash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  tx_destination_entry de_cash = AUTO_VAL_INIT(de_cash);
+  if (!fill_tx_destination(de_cash, to, cash_airdrop_amount))
+    throw std::runtime_error("couldn't fill transaction destination");
+  destinations.push_back(de_cash);
+
+  tx_destination_entry de_change = AUTO_VAL_INIT(de_change);
+  uint64_t cache_back = get_inputs_amount(sources) - (cash_airdrop_amount + fee);
+  if (0 < cache_back)
+  {
+    if (!fill_tx_destination(de_change, from, cache_back))
+      throw std::runtime_error("couldn't fill transaction cache back destination");
+    destinations.push_back(de_change);
+  }
+
+  tx_destination_entry de_token = AUTO_VAL_INIT(de_token);
+  if (!fill_token_tx_destination(de_token, to, token_amount))
+    throw std::runtime_error("couldn't fill transaction destination");
+  destinations.push_back(de_token);
+
 }
 
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
@@ -569,6 +712,20 @@ bool construct_tx_to_key(const std::vector<test_event_entry>& events, cryptonote
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
 
+bool construct_migration_tx_to_key(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const block& blk_head,
+                         const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
+                         uint64_t fee, const crypto::hash& bitcoin_hash)
+{
+  vector<tx_source_entry> sources;
+  vector<tx_destination_entry> destinations;
+  fill_migration_tx_sources_and_destinations(events, blk_head, from, to, token_amount, fee, sources, destinations, bitcoin_hash);
+
+  std::vector<uint8_t> extra;
+  add_bitcoin_hash_to_extra(extra, bitcoin_hash);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, extra, tx, 0);
+}
+
 transaction construct_tx_with_fee(std::vector<test_event_entry>& events, const block& blk_head,
                                   const account_base& acc_from, const account_base& acc_to, uint64_t amount, uint64_t fee)
 {
@@ -602,6 +759,32 @@ uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cry
     }
 
     return res;
+}
+
+uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx) {
+  uint64_t res = 0;
+  std::map<uint64_t, std::vector<output_index> > token_outs;
+  std::map<uint64_t, std::vector<size_t> > token_outs_mine;
+
+  map_hash2tx_t confirmed_txs;
+  get_confirmed_txs(blockchain, mtx, confirmed_txs);
+
+  if (!init_output_indices(token_outs, token_outs_mine, blockchain, confirmed_txs, addr, cryptonote::tx_out_type::out_token))
+    return false;
+
+  if (!init_spent_output_indices(token_outs, token_outs_mine, blockchain, confirmed_txs, addr))
+    return false;
+
+  BOOST_FOREACH (const map_output_t::value_type &o, token_outs_mine) {
+          for (size_t i = 0; i < o.second.size(); ++i) {
+            if (token_outs[o.first][o.second[i]].spent)
+              continue;
+
+            res += token_outs[o.first][o.second[i]].token_amount;
+          }
+        }
+
+  return res;
 }
 
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs)

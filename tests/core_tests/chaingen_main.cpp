@@ -100,6 +100,9 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_ring_signature_2);
     //GENERATE_AND_PLAY(gen_ring_signature_big); // Takes up to XXX hours (if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10)
 
+    //test tokens
+    GENERATE_AND_PLAY(gen_simple_chain_migration_001);
+
     // Block verification tests
     GENERATE_AND_PLAY(gen_block_big_major_version);
     GENERATE_AND_PLAY(gen_block_big_minor_version);

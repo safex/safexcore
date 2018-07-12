@@ -760,6 +760,22 @@ namespace cryptonote
     return true;
   }
 
+  namespace fakechain //for token core tests. Not nice, but only possible without much refactoring 
+  {
+    static crypto::public_key MIGRATION_FAKECHAIN_VALIDATION_PUBLIC_KEY;
+
+    void set_core_tests_public_key(const crypto::public_key& publicKey)
+    {
+      MIGRATION_FAKECHAIN_VALIDATION_PUBLIC_KEY = publicKey;
+    }
+
+    const crypto::public_key& get_core_tests_public_key()
+    {
+      return MIGRATION_FAKECHAIN_VALIDATION_PUBLIC_KEY;
+    }
+  }
+
+
   bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &publicKey)
   {
     switch (nettype) {
@@ -771,6 +787,9 @@ namespace cryptonote
         break;
       case network_type::MAINNET:
         epee::string_tools::hex_to_pod(config::MIGRATION_VALIDATION_PUBLIC_KEY, publicKey);
+        break;
+      case network_type::FAKECHAIN:
+        publicKey = cryptonote::fakechain::get_core_tests_public_key();
         break;
       default:
         LOG_ERROR("Invalid network type");
