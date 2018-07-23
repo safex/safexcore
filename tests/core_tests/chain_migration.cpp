@@ -92,11 +92,21 @@ bool gen_simple_chain_migration_001::generate(std::vector<test_event_entry> &eve
     MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(1), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
     MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(2), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
     MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(4), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(6), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(6), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner2, bob, MK_TOKENS(16), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[4]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_3r, blk_3, miner);
     MAKE_MIGRATION_TX(events, tx_1, miner, bob, MK_TOKENS(50), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[3]));
     MAKE_NEXT_BLOCK_TX1(events, blk_4, blk_3r, miner, tx_1);
     REWIND_BLOCKS(events, blk_4r, blk_4, miner);
+    MAKE_INVALID_MIGRATION_TX(events, tx_2, miner2, bob, MK_TOKENS(70), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[5]));
+    if (tx_2.vin.size() > 0)
+    {
+      MAKE_NEXT_BLOCK_TX1(events, blk_5, blk_4r, miner2, tx_2);
+      REWIND_BLOCKS(events, blk_5r, blk_5, miner);
+    }
+
 
     DO_CALLBACK(events, "verify_migration_transactions");
 

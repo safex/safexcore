@@ -644,6 +644,13 @@ inline bool do_replay_file(const std::string& filename)
   construct_migration_tx_to_key(VEC_EVENTS, TX_NAME, HEAD, FROM, TO, AMOUNT, TESTS_DEFAULT_FEE, BITCOIN_HASH); \
   VEC_EVENTS.push_back(TX_NAME);
 
+#define MAKE_INVALID_MIGRATION_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)                       \
+  cryptonote::transaction TX_NAME;                                                             \
+  try {                                                                                        \
+    if (construct_migration_tx_to_key(VEC_EVENTS, TX_NAME, HEAD, FROM, TO, AMOUNT, TESTS_DEFAULT_FEE, BITCOIN_HASH)) return false; \
+  }                                                                                            \
+  catch (std::runtime_error &err) { std::cout << "Failed construction of migration transaction:" << err.what() << std::endl; } /*construction should fail and throw error with provided parameters*/
+
 #define MAKE_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, NMIX, HEAD)             \
   {                                                                                      \
     cryptonote::transaction t;                                                             \
@@ -665,6 +672,16 @@ inline bool do_replay_file(const std::string& filename)
     SET_NAME.push_back(t);                                                               \
     VEC_EVENTS.push_back(t);                                                             \
   }
+
+#define MAKE_INVALID_MIGRATION_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)             \
+  {                                                                                      \
+    cryptonote::transaction t;                                                           \
+    try {                                                                                \
+    if (construct_migration_tx_to_key(VEC_EVENTS, t, HEAD, FROM, TO, AMOUNT, TESTS_DEFAULT_FEE, BITCOIN_HASH)) return false; \
+    }                                                                                    \
+    catch (std::runtime_error &err) { std::cout << "Failed construction of migration transaction:" << err.what() << std::endl; } /*construction of migration tx should fail and throw error with provided parameters*/ \
+  }
+
 
 #define MAKE_TX_MIGRATION_LIST_START(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH) \
     std::list<cryptonote::transaction> SET_NAME; \
