@@ -236,7 +236,9 @@ bool construct_migration_tx_to_key(const std::vector<test_event_entry>& events, 
                                    const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
                                    uint64_t fee, const crypto::hash& bitcoin_hash);
 
-
+bool construct_token_tx_to_key(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const cryptonote::block& blk_head,
+                               const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
+                               uint64_t fee, size_t nmix);
 
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs);
 bool find_block_chain(const std::vector<test_event_entry>& events, std::vector<cryptonote::block>& blockchain, map_hash2tx_t& mtx, const crypto::hash& head);
@@ -249,6 +251,11 @@ void fill_migration_tx_sources_and_destinations(const std::vector<test_event_ent
                                                 const cryptonote::account_base& from, const cryptonote::account_base& to,
                                                 uint64_t amount, uint64_t fee, std::vector<cryptonote::tx_source_entry>& sources,
                                                 std::vector<cryptonote::tx_destination_entry>& destinations, const crypto::hash &bitcoin_transaction_hash);
+void fill_token_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
+                                      const cryptonote::account_base& from, const cryptonote::account_base& to,
+                                      uint64_t token_amount, uint64_t fee, size_t nmix,
+                                      std::vector<cryptonote::tx_source_entry>& sources,
+                                      std::vector<cryptonote::tx_destination_entry>& destinations);
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
 uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
 
@@ -639,10 +646,18 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD) MAKE_TX_MIX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, 0, HEAD)
 
 
+#define MAKE_TOKEN_TX_MIX(VEC_EVENTS, TX_NAME, FROM, TO, TOKEN_AMOUNT, NMIX, HEAD)                       \
+  cryptonote::transaction TX_NAME;                                                             \
+  construct_token_tx_to_key(VEC_EVENTS, TX_NAME, HEAD, FROM, TO, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+  VEC_EVENTS.push_back(TX_NAME);
+
+#define MAKE_TOKEN_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD) MAKE_TOKEN_TX_MIX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, 0, HEAD)
+
 #define MAKE_MIGRATION_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)                       \
   cryptonote::transaction TX_NAME;                                                             \
   construct_migration_tx_to_key(VEC_EVENTS, TX_NAME, HEAD, FROM, TO, AMOUNT, TESTS_DEFAULT_FEE, BITCOIN_HASH); \
   VEC_EVENTS.push_back(TX_NAME);
+
 
 #define MAKE_INVALID_MIGRATION_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)                       \
   cryptonote::transaction TX_NAME;                                                             \
@@ -664,6 +679,23 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TX_LIST_START(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD) \
     std::list<cryptonote::transaction> SET_NAME; \
     MAKE_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD);
+
+
+#define MAKE_TOKEN_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, NMIX, HEAD)             \
+  {                                                                                      \
+    cryptonote::transaction t;                                                             \
+    construct_token_tx_to_key(VEC_EVENTS, t, HEAD, FROM, TO, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+    SET_NAME.push_back(t);                                                               \
+    VEC_EVENTS.push_back(t);                                                             \
+  }
+
+#define MAKE_TOKEN_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, HEAD) MAKE_TOKEN_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, 0, HEAD)
+
+#define MAKE_TOKEN_TX_LIST_START(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, HEAD) \
+    std::list<cryptonote::transaction> SET_NAME; \
+    MAKE_TOKEN_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, HEAD);
+
+
 
 #define MAKE_MIGRATION_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)             \
   {                                                                                      \

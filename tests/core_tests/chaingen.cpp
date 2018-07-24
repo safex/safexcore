@@ -318,6 +318,17 @@ namespace
 
     return r;
   }
+
+  uint64_t get_inputs_token_amount(const vector<tx_source_entry> &s)
+  {
+    uint64_t r = 0;
+    BOOST_FOREACH(const tx_source_entry &e, s)
+          {
+            r += e.token_amount;
+          }
+
+    return r;
+  }
 }
 
 bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<size_t> >& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx,
@@ -451,8 +462,8 @@ bool fill_output_entries(std::vector<output_index>& out_indices, size_t sender_o
 
     if (append)
     {
-      const txout_to_key& otk = boost::get<txout_to_key>(oi.out);
-      output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(otk.key), rct::identity()})));
+      const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
+      output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
     }
   }
 
@@ -460,7 +471,8 @@ bool fill_output_entries(std::vector<output_index>& out_indices, size_t sender_o
 }
 
 bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<test_event_entry>& events,
-                     const block& blk_head, const cryptonote::account_base& from, uint64_t amount, size_t nmix)
+                     const block& blk_head, const cryptonote::account_base& from, uint64_t value_amount, size_t nmix,
+                     cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash)
 {
     map_output_idx_t outs;
     map_output_t outs_mine;
@@ -470,14 +482,15 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
         return false;
 
-    if (!init_output_indices(outs, outs_mine, blockchain, mtx, from))
+    if (!init_output_indices(outs, outs_mine, blockchain, mtx, from, out_type))
         return false;
 
     if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from))
         return false;
 
     // Iterate in reverse is more efficiency
-    uint64_t sources_amount = 0;
+    uint64_t sources_cash_amount = 0;
+    uint64_t sources_token_amount = 0;
     bool sources_found = false;
     BOOST_REVERSE_FOREACH(const map_output_t::value_type o, outs_mine)
     {
@@ -485,11 +498,18 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
         {
             size_t sender_out = o.second[i];
             const output_index& oi = outs[o.first][sender_out];
-            if (oi.spent)
+            if ((oi.spent) || (oi.token_amount > 0 && out_type == cryptonote::tx_out_type::out_cash) ||
+                              (oi.amount > 0 && out_type == cryptonote::tx_out_type::out_token))
                 continue;
 
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
-            ts.amount = oi.amount;
+            if (out_type == cryptonote::tx_out_type::out_cash)
+               ts.amount = oi.amount;
+            else if (out_type == cryptonote::tx_out_type::out_token)
+            {
+              ts.token_amount = oi.token_amount;
+              ts.token_transaction = true;
+            }
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
             size_t realOutput;
@@ -501,8 +521,18 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
 
             sources.push_back(ts);
 
-            sources_amount += ts.amount;
-            sources_found = amount <= sources_amount;
+          if (out_type == cryptonote::tx_out_type::out_cash)
+          {
+            sources_cash_amount += ts.amount;
+            sources_found = value_amount <= sources_cash_amount;
+          }
+          else if (out_type == cryptonote::tx_out_type::out_token)
+          {
+            sources_token_amount += ts.token_amount;
+            sources_found = value_amount <= sources_token_amount;
+          }
+
+
         }
 
         if (sources_found)
@@ -654,6 +684,50 @@ void fill_migration_tx_sources_and_destinations(const std::vector<test_event_ent
 
 }
 
+void fill_token_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+                                      const cryptonote::account_base& from, const cryptonote::account_base& to,
+                                      uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry>& sources,
+                                      std::vector<tx_destination_entry>& destinations)
+{
+  sources.clear();
+  destinations.clear();
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(sources, events, blk_head, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //token source
+  if (!fill_tx_sources(sources, events, blk_head, from, token_amount, nmix, cryptonote::tx_out_type::out_token))
+    throw std::runtime_error("couldn't fill token transaction sources");
+
+  //token destination
+  tx_destination_entry de = AUTO_VAL_INIT(de);
+  if (!fill_token_tx_destination(de, to, token_amount))
+    throw std::runtime_error("couldn't fill token transaction destination");
+  destinations.push_back(de);
+
+  //destination token change
+  tx_destination_entry de_token_change  = AUTO_VAL_INIT(de_token_change);
+  uint64_t token_back = get_inputs_token_amount(sources) - token_amount;
+  if (0 < token_back)
+  {
+    if (!fill_token_tx_destination(de_token_change, from, token_back))
+      throw std::runtime_error("couldn't fill transaction token back destination");
+    destinations.push_back(de_token_change);
+  }
+
+  //sender change for fee
+  tx_destination_entry de_change  = AUTO_VAL_INIT(de);
+  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    if (!fill_tx_destination(de_change, from, cache_back))
+      throw std::runtime_error("couldn't fill transaction cache back destination");
+    destinations.push_back(de_change);
+  }
+}
+
+
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
 {
   blk.nonce = 0;
@@ -724,6 +798,17 @@ bool construct_migration_tx_to_key(const std::vector<test_event_entry>& events, 
   add_bitcoin_hash_to_extra(extra, bitcoin_hash);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, extra, tx, 0);
+}
+
+bool construct_token_tx_to_key(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const block& blk_head,
+                         const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
+                         uint64_t fee, size_t nmix)
+{
+  vector<tx_source_entry> sources;
+  vector<tx_destination_entry> destinations;
+  fill_token_tx_sources_and_destinations(events, blk_head, from, to, token_amount, fee, nmix, sources, destinations);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
 
 transaction construct_tx_with_fee(std::vector<test_event_entry>& events, const block& blk_head,
