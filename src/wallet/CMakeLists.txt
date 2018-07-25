@@ -106,7 +106,7 @@ if (BUILD_WALLET_RPC)
 
     set_property(TARGET wallet_rpc_server
             PROPERTY
-            OUTPUT_NAME "pc")
+            OUTPUT_NAME "safex-wallet-rpc")
     install(TARGETS wallet_rpc_server DESTINATION bin)
 endif()
 
