@@ -40,7 +40,7 @@
 #include "cryptonote_basic/cryptonote_format_utils.h"
 
 #include "chaingen.h"
-#include "chain_migration.h"
+#include "token_transactions.h"
 
 using namespace std;
 
@@ -48,11 +48,9 @@ using namespace epee;
 using namespace cryptonote;
 
 
+// class token_transactions_001;
 
-////////
-// class gen_simple_chain_migration_001;
-
-crypto::hash gen_simple_chain_migration_001::get_hash_from_string(const std::string hashstr) {
+crypto::hash token_transactions_001::get_hash_from_string(const std::string hashstr) {
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;
     if (!epee::string_tools::parse_hexstr_to_binbuff(std::string(hashstr), expected_bitcoin_hash_data) || expected_bitcoin_hash_data.size() != sizeof(crypto::hash))
@@ -64,12 +62,12 @@ crypto::hash gen_simple_chain_migration_001::get_hash_from_string(const std::str
     return bitcoin_transaction_hash;
 }
 
-gen_simple_chain_migration_001::gen_simple_chain_migration_001()
+token_transactions_001::token_transactions_001()
 {
-  REGISTER_CALLBACK("verify_migration_transactions", gen_simple_chain_migration_001::verify_migration_transactions);
+  REGISTER_CALLBACK("verify_token_transactions", token_transactions_001::verify_token_transactions);
 }
 
-bool gen_simple_chain_migration_001::generate(std::vector<test_event_entry> &events)
+bool token_transactions_001::generate(std::vector<test_event_entry> &events)
 {
     uint64_t ts_start = 1530720632;
 
@@ -77,54 +75,59 @@ bool gen_simple_chain_migration_001::generate(std::vector<test_event_entry> &eve
     crypto::public_key miner_public_key = AUTO_VAL_INIT(miner_public_key);
     crypto::secret_key_to_public_key(miner.get_keys().m_spend_secret_key, miner_public_key);
     cryptonote::fakechain::set_core_tests_public_key(miner_public_key);
+
     GENERATE_ACCOUNT(miner2);
 
     MAKE_GENESIS_BLOCK(events, blk_0, miner, ts_start);
 
     MAKE_ACCOUNT(events, alice);
     MAKE_ACCOUNT(events, bob);
+    MAKE_ACCOUNT(events, daniel);
+    MAKE_ACCOUNT(events, jack);
 
     MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
     MAKE_NEXT_BLOCK(events, blk_1_side, blk_0, miner2);
     MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
 
     REWIND_BLOCKS(events, blk_2r, blk_2, miner);
-    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(1), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(2), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(4), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
-    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(6), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
-    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(6), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
-    MAKE_INVALID_MIGRATION_TX_LIST(events, txlist_0, miner2, bob, MK_TOKENS(16), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[4]));
+    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(1000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(10), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(2), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_3r, blk_3, miner);
-    MAKE_MIGRATION_TX(events, tx_1, miner, bob, MK_TOKENS(50), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[3]));
-    MAKE_NEXT_BLOCK_TX1(events, blk_4, blk_3r, miner, tx_1);
+    MAKE_TOKEN_TX_LIST_START(events, txlist_1, alice, daniel, MK_TOKENS(20), blk_3);
+    MAKE_TOKEN_TX_LIST(events, txlist_1, bob, jack, MK_TOKENS(2), blk_3);
+    MAKE_TOKEN_TX_LIST(events, txlist_1, alice, daniel, MK_TOKENS(2), blk_3);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, miner, txlist_1);
     REWIND_BLOCKS(events, blk_4r, blk_4, miner);
-    MAKE_INVALID_MIGRATION_TX(events, tx_2, miner2, bob, MK_TOKENS(70), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[5]));
-    if (tx_2.vin.size() > 0)
-    {
-      MAKE_NEXT_BLOCK_TX1(events, blk_5, blk_4r, miner2, tx_2);
-      REWIND_BLOCKS(events, blk_5r, blk_5, miner);
-    }
+    MAKE_TX(events, tx_1, alice, daniel, MK_COINS(10), blk_4);
+    MAKE_NEXT_BLOCK_TX1(events, blk_5, blk_4r, miner, tx_1);
+    REWIND_BLOCKS(events, blk_5r, blk_5, miner);
+    MAKE_TOKEN_TX(events, tx_2, daniel, jack, MK_TOKENS(10), blk_5);
+    MAKE_NEXT_BLOCK_TX1(events, blk_6, blk_5r, miner, tx_2);
+    REWIND_BLOCKS(events, blk_6r, blk_6, miner);
 
 
-    DO_CALLBACK(events, "verify_migration_transactions");
+    DO_CALLBACK(events, "verify_token_transactions");
 
     return true;
 }
 
-bool gen_simple_chain_migration_001::verify_migration_transactions(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool token_transactions_001::verify_token_transactions(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_migration_001::check_migration_transactions");
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_simple_chain_migration_001::expected_blockchain_height);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == gen_simple_chain_migration_001::expected_blockchain_total_transactions);
+  DEFINE_TESTS_ERROR_CONTEXT("token_transactions_001::verify_token_transactions");
+  std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << "get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == token_transactions_001::expected_blockchain_height);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == token_transactions_001::expected_blockchain_total_transactions);
 
   std::list<cryptonote::block> block_list;
-  bool r = c.get_blocks((uint64_t)0, gen_simple_chain_migration_001::expected_blockchain_height-1, block_list);
+  bool r = c.get_blocks((uint64_t)0, token_transactions_001::expected_blockchain_height-1, block_list);
   CHECK_TEST_CONDITION(r);
 
   cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
   cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
+  cryptonote::account_base daniel_account = boost::get<cryptonote::account_base>(events[3]);
+  cryptonote::account_base jack_account = boost::get<cryptonote::account_base>(events[4]);
 
 
   std::vector<cryptonote::block> chain;
@@ -135,10 +138,17 @@ bool gen_simple_chain_migration_001::verify_migration_transactions(cryptonote::c
 
   cout << "check_migration_transactions: alice = " << get_balance(alice_account, blocks, mtx) << " token balance= " << get_token_balance(alice_account, blocks, mtx)  << endl;
   cout << "check_migration_transactions: bob = " << get_balance(bob_account, blocks, mtx) << " token balance= " << get_token_balance(bob_account, blocks, mtx)  << endl;
+  cout << "check_migration_transactions: daniel = " << get_balance(daniel_account, blocks, mtx) << " token balance= " << get_token_balance(daniel_account, blocks, mtx)  << endl;
+  cout << "check_migration_transactions: jack = " << get_balance(jack_account, blocks, mtx) << " token balance= " << get_token_balance(jack_account, blocks, mtx)  << endl;
 
-  CHECK_EQ(gen_simple_chain_migration_001::expected_bob_cash_balance, get_balance(bob_account, blocks, mtx));
-  CHECK_EQ(gen_simple_chain_migration_001::expected_alice_cash_balance, get_balance(alice_account, blocks, mtx));
-  CHECK_EQ(gen_simple_chain_migration_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
-  CHECK_EQ(gen_simple_chain_migration_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_alice_cash_balance, get_balance(alice_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_bob_cash_balance, get_balance(bob_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_daniel_cash_balance, get_balance(daniel_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_jack_cash_balance, get_balance(jack_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
+  CHECK_EQ(token_transactions_001::expected_jack_token_balance, get_token_balance(jack_account, blocks, mtx));
+
   return true;
 }

@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
 
     //test tokens
     GENERATE_AND_PLAY(gen_simple_chain_migration_001);
+    GENERATE_AND_PLAY(token_transactions_001);
 
     // Block verification tests
     GENERATE_AND_PLAY(gen_block_big_major_version);

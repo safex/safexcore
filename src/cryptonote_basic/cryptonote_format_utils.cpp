@@ -302,7 +302,7 @@ namespace cryptonote
     for(auto& o: tx.vout)
       amount_out += o.amount;
 
-    CHECK_AND_ASSERT_MES(amount_in >= amount_out, false, "transaction spend (" <<amount_in << ") more than it has (" << amount_out << ")");
+    CHECK_AND_ASSERT_MES(amount_in >= amount_out, false, "transaction spend (" << amount_out << ") more than it has inputed (" << amount_in << ")");
     fee = amount_in - amount_out;
     return true;
   }

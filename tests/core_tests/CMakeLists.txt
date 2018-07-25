@@ -36,6 +36,7 @@ set(core_tests_sources
   chaingen.cpp
   chaingen001.cpp
   chaingen_main.cpp
+  token_transactions.cpp
   double_spend.cpp
   integer_overflow.cpp
   multisig.cpp
@@ -62,7 +63,8 @@ set(core_tests_headers
   tx_validation.h
   v2_tests.h
   rct.h
-  chain_migration.h)
+  chain_migration.h
+  token_transactions.h)
 
 add_executable(core_tests
   ${core_tests_sources}
