@@ -42,7 +42,7 @@ namespace cryptonote
 
   bool generate_migration_key_image(const crypto::hash &bitcoin_transaction_hash, crypto::key_image &key_image);
 
-  bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &publicKey);
+  bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &public_key);
 
 
   struct tx_source_entry

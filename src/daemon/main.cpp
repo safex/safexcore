@@ -77,41 +77,67 @@ namespace {
     account_base miner_acc1;
     miner_acc1.generate();
 
-    std::cout << "Gennerating miner wallet..." << std::endl;
-    std::cout << "Miner account address:" << std::endl;
-    std::cout << cryptonote::get_account_address_as_str((network_type)nettype, false, miner_acc1.get_keys().m_account_address);
-    std::cout << std::endl << "Miner spend secret key:"  << std::endl;
-    epee::to_hex::formatted(std::cout, epee::as_byte_span(miner_acc1.get_keys().m_spend_secret_key));
-    std::cout << std::endl << "Miner view secret key:" << std::endl;
-    epee::to_hex::formatted(std::cout, epee::as_byte_span(miner_acc1.get_keys().m_view_secret_key));
-    std::cout << std::endl << std::endl;
+    account_base miner_acc2;
+    miner_acc2.generate();
 
+    account_base miner_acc3;
+    miner_acc3.generate();
 
+    std::vector<const cryptonote::account_base *> migration_accounts = {&miner_acc1, &miner_acc2, &miner_acc3};
+
+    int counter = 0;
+    for (auto account:  migration_accounts)
+    {
+      std::cout << "Generating miner " << ++counter << " wallet..." << std::endl;
+      std::cout << "Migration account 01 address:" << std::endl;
+      std::cout << cryptonote::get_account_address_as_str((network_type)nettype, false, account->get_keys().m_account_address);
+      std::cout << std::endl << "Miner spend secret key:"  << std::endl;
+      epee::to_hex::formatted(std::cout, epee::as_byte_span(account->get_keys().m_spend_secret_key));
+      std::cout << std::endl << "Miner view secret key:" << std::endl;
+      epee::to_hex::formatted(std::cout, epee::as_byte_span(account->get_keys().m_view_secret_key));
+      std::cout << std::endl << "Miner spend public key:" << std::endl;
+      epee::to_hex::formatted(std::cout, epee::as_byte_span(account->get_keys().m_account_address.m_spend_public_key));
+      std::cout << std::endl << std::endl;
+    }
+
+    //Create file with miner keys information
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
     std::stringstream key_fine_name_ss;
-    key_fine_name_ss << "./miner01_keys" << std::put_time(&tm, "%Y%m%d%H%M%S") << ".dat";
+    key_fine_name_ss << "./migration_keys" << std::put_time(&tm, "%Y%m%d%H%M%S") << ".dat";
     std::string key_file_name = key_fine_name_ss.str();
     std::ofstream miner_key_file;
     miner_key_file.open (key_file_name);
-    miner_key_file << "Miner account address:" << std::endl;
-    miner_key_file << cryptonote::get_account_address_as_str((network_type)nettype, false, miner_acc1.get_keys().m_account_address);
-    miner_key_file << std::endl<< "Miner spend secret key:"  << std::endl;
-    epee::to_hex::formatted(miner_key_file, epee::as_byte_span(miner_acc1.get_keys().m_spend_secret_key));
-    miner_key_file << std::endl << "Miner view secret key:" << std::endl;
-    epee::to_hex::formatted(miner_key_file, epee::as_byte_span(miner_acc1.get_keys().m_view_secret_key));
-    miner_key_file << std::endl << std::endl;
+    counter = 0;
+    for (auto account:  migration_accounts)
+    {
+      miner_key_file << "Migration account " << ++counter << " address:" << std::endl;
+      miner_key_file << cryptonote::get_account_address_as_str((network_type)nettype, false, account->get_keys().m_account_address);
+      miner_key_file << std::endl<< "Miner spend secret key:"  << std::endl;
+      epee::to_hex::formatted(miner_key_file, epee::as_byte_span(account->get_keys().m_spend_secret_key));
+      miner_key_file << std::endl << "Miner view secret key:" << std::endl;
+      epee::to_hex::formatted(miner_key_file, epee::as_byte_span(account->get_keys().m_view_secret_key));
+      miner_key_file << std::endl << std::endl;
+
+    }
     miner_key_file.close();
 
 
-    //Create file with miner keys information
+    //Prepare genesis_tx
     cryptonote::transaction tx_genesis;
     cryptonote::construct_miner_tx(0, 0, 0, 10, 0, miner_acc1.get_keys().m_account_address, tx_genesis);
+
+    std::vector<crypto::public_key> migration_keys;
+    migration_keys.push_back(miner_acc1.get_keys().m_account_address.m_spend_public_key);
+    migration_keys.push_back(miner_acc2.get_keys().m_account_address.m_spend_public_key);
+    migration_keys.push_back(miner_acc3.get_keys().m_account_address.m_spend_public_key);
+    add_migration_pub_keys_to_extra(tx_genesis.extra, migration_keys);
 
     std::cout << "Object:" << std::endl;
     std::cout << obj_to_json_str(tx_genesis) << std::endl << std::endl;
 
-    //Prepare genesis_tx
+
+    //Printout genesis transaction binary representation
     std::stringstream ss;
     binary_archive<true> ba(ss);
     ::serialization::serialize(ba, tx_genesis);
