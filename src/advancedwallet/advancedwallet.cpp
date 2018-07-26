@@ -6943,7 +6943,7 @@ void advanced_wallet::print_accounts(const std::string& tag)
     total_balance += m_wallet->balance(account_index);
     total_unlocked_balance += m_wallet->unlocked_balance(account_index);
   }
-  success_msg_writer() << tr("----------------------------------------------------------------------------------");
+  success_msg_writer() << tr("----------------------------------------------------------------------------------------------------------------------------------------");
   success_msg_writer() << boost::format(tr("%15s %21s %21s %21s %21s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance) % print_money(total_token_balance) % print_money(total_unlocked_token_balance);
 }
 //----------------------------------------------------------------------------------------------------
