@@ -65,7 +65,7 @@
 
 
 #define AIRDROP_SAFES_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
-#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (2) //todo calculate rate
+#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.0023) //todo calculate rate
 
 #define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)

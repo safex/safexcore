@@ -88,7 +88,7 @@ namespace cryptonote {
 
 
   uint64_t get_airdrop_cash(uint64_t token_amount) {
-    return token_amount * AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    return llround(token_amount * AIRDROP_TOKEN_TO_CASH_REWARD_RATE);
   }
 
 
