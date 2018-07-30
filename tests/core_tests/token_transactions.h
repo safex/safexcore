@@ -65,9 +65,9 @@ public:
   static const uint64_t expected_daniel_token_balance = 12 * COIN;
   static const uint64_t expected_jack_token_balance = 12 * COIN;
 
-  static const uint64_t expected_alice_cash_balance = 1992.5 * SAFEX_CASH_COIN;
-  static const uint64_t expected_bob_cash_balance = 19.5 * SAFEX_CASH_COIN;
-  static const uint64_t expected_daniel_cash_balance = 9.5 * SAFEX_CASH_COIN;
+  static const uint64_t expected_alice_cash_balance = 1994*SAFEX_CASH_COIN - 3*TESTS_DEFAULT_FEE;
+  static const uint64_t expected_bob_cash_balance = 20*SAFEX_CASH_COIN - TESTS_DEFAULT_FEE;
+  static const uint64_t expected_daniel_cash_balance = 10*SAFEX_CASH_COIN - TESTS_DEFAULT_FEE;
   static const uint64_t expected_jack_cash_balance = 0 * SAFEX_CASH_COIN;
 
 };
