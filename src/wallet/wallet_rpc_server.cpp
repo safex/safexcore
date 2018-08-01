@@ -332,9 +332,13 @@ namespace tools
     {
       res.balance = m_wallet->balance(req.account_index);
       res.unlocked_balance = m_wallet->unlocked_balance(req.account_index);
+      res.token_balance = m_wallet->token_balance(req.account_index);
+      res.unlocked_token_balance = m_wallet->unlocked_token_balance(req.account_index);
       res.multisig_import_needed = m_wallet->multisig() && m_wallet->has_multisig_partial_key_images();
       std::map<uint32_t, uint64_t> balance_per_subaddress = m_wallet->balance_per_subaddress(req.account_index);
+      std::map<uint32_t, uint64_t> token_balance_per_subaddress = m_wallet->token_balance_per_subaddress(req.account_index);
       std::map<uint32_t, uint64_t> unlocked_balance_per_subaddress = m_wallet->unlocked_balance_per_subaddress(req.account_index);
+      std::map<uint32_t, uint64_t> unlocked_token_balance_per_subaddress = m_wallet->unlocked_token_balance_per_subaddress(req.account_index);
       std::vector<tools::wallet::transfer_details> transfers;
       m_wallet->get_transfers(transfers);
       for (const auto& i : balance_per_subaddress)
@@ -345,8 +349,23 @@ namespace tools
         info.address = m_wallet->get_subaddress_as_str(index);
         info.balance = i.second;
         info.unlocked_balance = unlocked_balance_per_subaddress[i.first];
+        info.token_balance = token_balance_per_subaddress[i.first];
+        info.unlocked_token_balance = unlocked_token_balance_per_subaddress[i.first];
         info.label = m_wallet->get_subaddress_label(index);
-        info.num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&](const tools::wallet::transfer_details& td) { return !td.m_spent && td.m_subaddr_index == index; });
+        info.num_unspent_outputs = static_cast<uint64_t>(std::count_if(
+          transfers.begin(), transfers.end(),
+          [&](const tools::wallet::transfer_details& td) {
+            return !td.m_spent && td.m_subaddr_index == index && !td.m_token_transfer;
+
+          }
+        ));
+        info.num_unspent_token_outputs = static_cast<uint64_t>(std::count_if(
+            transfers.begin(), transfers.end(),
+            [&](const tools::wallet::transfer_details& td) {
+              return !td.m_spent && td.m_subaddr_index == index && td.m_token_transfer;
+
+            }
+        ));
         res.per_subaddress.push_back(info);
       }
     }
@@ -452,11 +471,15 @@ namespace tools
         info.base_address = m_wallet->get_subaddress_as_str(subaddr_index);
         info.balance = m_wallet->balance(subaddr_index.major);
         info.unlocked_balance = m_wallet->unlocked_balance(subaddr_index.major);
+        info.token_balance = m_wallet->token_balance(subaddr_index.major);
+        info.unlocked_token_balance = m_wallet->unlocked_token_balance(subaddr_index.major);
         info.label = m_wallet->get_subaddress_label(subaddr_index);
         info.tag = account_tags.second[subaddr_index.major];
         res.subaddress_accounts.push_back(info);
         res.total_balance += info.balance;
         res.total_unlocked_balance += info.unlocked_balance;
+        res.total_token_balance += info.token_balance;
+        res.total_unlocked_token_balance += info.unlocked_token_balance;
       }
     }
     catch (const std::exception& e)
@@ -1236,8 +1259,8 @@ namespace tools
   bool wallet_rpc_server::on_get_payments(const wallet_rpc::COMMAND_RPC_GET_PAYMENTS::request& req, wallet_rpc::COMMAND_RPC_GET_PAYMENTS::response& res, epee::json_rpc::error& er)
   {
     if (!m_wallet) return not_open(er);
-    crypto::hash payment_id;
-    crypto::hash8 payment_id8;
+    crypto::hash payment_id{};
+    crypto::hash8 payment_id8{};
     cryptonote::blobdata payment_id_blob;
     if(!epee::string_tools::parse_hexstr_to_binbuff(req.payment_id, payment_id_blob))
     {
@@ -1269,13 +1292,15 @@ namespace tools
     for (auto & payment : payment_list)
     {
       wallet_rpc::payment_details rpc_payment;
-      rpc_payment.payment_id   = req.payment_id;
-      rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.m_tx_hash);
-      rpc_payment.amount       = payment.m_amount;
+      rpc_payment.payment_id = req.payment_id;
+      rpc_payment.tx_hash = epee::string_tools::pod_to_hex(payment.m_tx_hash);
+      rpc_payment.amount = payment.m_amount;
+      rpc_payment.token_amount = payment.m_token_amount;
+      rpc_payment.token_transaction = payment.m_token_transaction;
       rpc_payment.block_height = payment.m_block_height;
-      rpc_payment.unlock_time  = payment.m_unlock_time;
+      rpc_payment.unlock_time = payment.m_unlock_time;
       rpc_payment.subaddr_index = payment.m_subaddr_index;
-      rpc_payment.address      = m_wallet->get_subaddress_as_str(payment.m_subaddr_index);
+      rpc_payment.address = m_wallet->get_subaddress_as_str(payment.m_subaddr_index);
       res.payments.push_back(rpc_payment);
     }
 
@@ -1299,6 +1324,8 @@ namespace tools
         rpc_payment.payment_id   = epee::string_tools::pod_to_hex(payment.first);
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.second.m_tx_hash);
         rpc_payment.amount       = payment.second.m_amount;
+        rpc_payment.token_amount = payment.second.m_token_amount;
+        rpc_payment.token_transaction = payment.second.m_token_transaction;
         rpc_payment.block_height = payment.second.m_block_height;
         rpc_payment.unlock_time  = payment.second.m_unlock_time;
         rpc_payment.subaddr_index = payment.second.m_subaddr_index;
@@ -1350,6 +1377,8 @@ namespace tools
         rpc_payment.payment_id   = payment_id_str;
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.m_tx_hash);
         rpc_payment.amount       = payment.m_amount;
+        rpc_payment.token_amount = payment.m_token_amount;
+        rpc_payment.token_transaction = payment.m_token_transaction;
         rpc_payment.block_height = payment.m_block_height;
         rpc_payment.unlock_time  = payment.m_unlock_time;
         rpc_payment.subaddr_index = payment.m_subaddr_index;

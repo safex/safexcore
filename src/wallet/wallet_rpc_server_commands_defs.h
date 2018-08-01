@@ -63,29 +63,39 @@ namespace wallet_rpc
       std::string address;
       uint64_t balance;
       uint64_t unlocked_balance;
+      uint64_t token_balance;
+      uint64_t unlocked_token_balance;
       std::string label;
       uint64_t num_unspent_outputs;
+      uint64_t num_unspent_token_outputs;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(address_index)
         KV_SERIALIZE(address)
         KV_SERIALIZE(balance)
         KV_SERIALIZE(unlocked_balance)
+        KV_SERIALIZE(token_balance)
+        KV_SERIALIZE(unlocked_token_balance)
         KV_SERIALIZE(label)
         KV_SERIALIZE(num_unspent_outputs)
+        KV_SERIALIZE(num_unspent_token_outputs)
       END_KV_SERIALIZE_MAP()
     };
 
     struct response
     {
-      uint64_t 	 balance;
-      uint64_t 	 unlocked_balance;
-      bool       multisig_import_needed;
+      uint64_t balance;
+      uint64_t unlocked_balance;
+      uint64_t token_balance;
+      uint64_t unlocked_token_balance;
+      bool multisig_import_needed;
       std::vector<per_subaddress_info> per_subaddress;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(balance)
         KV_SERIALIZE(unlocked_balance)
+        KV_SERIALIZE(token_balance)
+        KV_SERIALIZE(unlocked_token_balance)
         KV_SERIALIZE(multisig_import_needed)
         KV_SERIALIZE(per_subaddress)
       END_KV_SERIALIZE_MAP()
@@ -193,6 +203,8 @@ namespace wallet_rpc
       std::string base_address;
       uint64_t balance;
       uint64_t unlocked_balance;
+      uint64_t token_balance;
+      uint64_t unlocked_token_balance;
       std::string label;
       std::string tag;
 
@@ -201,6 +213,8 @@ namespace wallet_rpc
         KV_SERIALIZE(base_address)
         KV_SERIALIZE(balance)
         KV_SERIALIZE(unlocked_balance)
+        KV_SERIALIZE(token_balance)
+        KV_SERIALIZE(unlocked_token_balance)
         KV_SERIALIZE(label)
         KV_SERIALIZE(tag)
       END_KV_SERIALIZE_MAP()
@@ -210,11 +224,15 @@ namespace wallet_rpc
     {
       uint64_t total_balance;
       uint64_t total_unlocked_balance;
+      uint64_t total_token_balance;
+      uint64_t total_unlocked_token_balance;
       std::vector<subaddress_account_info> subaddress_accounts;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(total_balance)
         KV_SERIALIZE(total_unlocked_balance)
+        KV_SERIALIZE(total_token_balance)
+        KV_SERIALIZE(total_unlocked_token_balance)
         KV_SERIALIZE(subaddress_accounts)
       END_KV_SERIALIZE_MAP()
     };
@@ -771,6 +789,8 @@ namespace wallet_rpc
     std::string payment_id;
     std::string tx_hash;
     uint64_t amount;
+    uint64_t token_amount;
+    bool token_transaction;
     uint64_t block_height;
     uint64_t unlock_time;
     cryptonote::subaddress_index subaddr_index;
@@ -780,6 +800,8 @@ namespace wallet_rpc
       KV_SERIALIZE(payment_id)
       KV_SERIALIZE(tx_hash)
       KV_SERIALIZE(amount)
+      KV_SERIALIZE(token_amount)
+      KV_SERIALIZE(token_transaction)
       KV_SERIALIZE(block_height)
       KV_SERIALIZE(unlock_time)
       KV_SERIALIZE(subaddr_index)
