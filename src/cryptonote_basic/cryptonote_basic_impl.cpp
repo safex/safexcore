@@ -88,7 +88,7 @@ namespace cryptonote {
 
 
   uint64_t get_airdrop_cash(uint64_t token_amount) {
-    return token_amount * AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    return llround(token_amount * AIRDROP_TOKEN_TO_CASH_REWARD_RATE);
   }
 
 
@@ -98,45 +98,45 @@ namespace cryptonote {
       case 0:
         return AIRDROP_SAFES_CASH_AMOUNT; //airdrop do reserve account
       case 1:
-        return 30 * SAFEX_CASH_COIN;
-      case 2:
-        return 65 * SAFEX_CASH_COIN;
-      case 3:
-        return 100 * SAFEX_CASH_COIN;
-      case 4:
-        return 135 * SAFEX_CASH_COIN;
-      case 5:
-        return 170 * SAFEX_CASH_COIN;
-      case 6:
-        return 205 * SAFEX_CASH_COIN;
-      case 7:
-        return 240 * SAFEX_CASH_COIN;
-      case 8:
-        return 200 * SAFEX_CASH_COIN;
-      case 9:
-        return 160 * SAFEX_CASH_COIN;
-      case 10:
-        return 130 * SAFEX_CASH_COIN;
-      case 11:
-        return 130 * SAFEX_CASH_COIN;
-      case 12:
-        return 80 * SAFEX_CASH_COIN;
-      case 13:
         return 60 * SAFEX_CASH_COIN;
+      case 2:
+        return 130 * SAFEX_CASH_COIN;
+      case 3:
+        return 200 * SAFEX_CASH_COIN;
+      case 4:
+        return 270 * SAFEX_CASH_COIN;
+      case 5:
+        return 340 * SAFEX_CASH_COIN;
+      case 6:
+        return 410 * SAFEX_CASH_COIN;
+      case 7:
+        return 480 * SAFEX_CASH_COIN;
+      case 8:
+        return 400 * SAFEX_CASH_COIN;
+      case 9:
+        return 320 * SAFEX_CASH_COIN;
+      case 10:
+        return 260 * SAFEX_CASH_COIN;
+      case 11:
+        return 260 * SAFEX_CASH_COIN;
+      case 12:
+        return 160 * SAFEX_CASH_COIN;
+      case 13:
+        return 120 * SAFEX_CASH_COIN;
       case 14:
-        return 50 * SAFEX_CASH_COIN;
+        return 100 * SAFEX_CASH_COIN;
       case 15:
-        return 40 * SAFEX_CASH_COIN;
+        return 80 * SAFEX_CASH_COIN;
       case 16:
-        return 32 * SAFEX_CASH_COIN;
+        return 64 * SAFEX_CASH_COIN;
       case 17:
-        return 26 * SAFEX_CASH_COIN;
+        return 52 * SAFEX_CASH_COIN;
       case 18:
-        return 22 * SAFEX_CASH_COIN;
+        return 44 * SAFEX_CASH_COIN;
       case 19:
-        return 20 * SAFEX_CASH_COIN;
+        return 40 * SAFEX_CASH_COIN;
       case 20:
-        return 20 * SAFEX_CASH_COIN;
+        return 40 * SAFEX_CASH_COIN;
       default:
         break;
     }
@@ -177,11 +177,6 @@ namespace cryptonote {
   bool get_block_reward_safex(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
 
     uint64_t base_reward = get_base_reward(already_generated_coins);
-
-    // todo igor: this is probably not right if we want to keep giving out coins
-//    if (already_generated_coins + base_reward > MONEY_SUPPLY) {
-//      base_reward = (MONEY_SUPPLY - already_generated_coins) > 0 ? MONEY_SUPPLY - already_generated_coins : 0;
-//    }
 
     uint64_t full_reward_zone = get_min_block_size(version);
 

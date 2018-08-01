@@ -61,8 +61,8 @@ public:
   static const size_t expected_blockchain_height = 185;
   static const uint64_t expected_bob_token_balance = 50 * COIN;
   static const uint64_t expected_alice_token_balance = 7 * COIN;
-  static const uint64_t expected_bob_cash_balance = 100 * SAFEX_CASH_COIN;
-  static const uint64_t expected_alice_cash_balance = 14 * SAFEX_CASH_COIN;
+  static const uint64_t expected_bob_cash_balance = expected_bob_token_balance * AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+  static const uint64_t expected_alice_cash_balance = expected_alice_token_balance * AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
 
 };
 

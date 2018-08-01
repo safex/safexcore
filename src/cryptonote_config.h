@@ -56,30 +56,26 @@
 
 // MONEY_SUPPLY - total number coins to be generated
 #define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash total supply
-#define EMISSION_SPEED_FACTOR_PER_MINUTE                (20) //Not used in Safex Blockchain
-#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, no more safex cash
+#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    60000 //size of block (bytes) after which reward for block is calculated using block size
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    20000 //size of block (bytes) after which reward for block is calculated using block size
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
 
 #define AIRDROP_SAFES_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
-#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (2) //todo calculate rate
+#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.0023) //todo calculate rate
 
-#define FEE_PER_KB_OLD                                  ((uint64_t)10000000000) // pow(10, 10)
-#define FEE_PER_KB                                      ((uint64_t)2000000000) // 2 * pow(10, 9)
-#define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
-#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)300000000000) // 30 * pow(10,10)
+#define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
+#define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)
+#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 30 * pow(10,10)
 
 #define ORPHANED_BLOCKS_MAX_COUNT                       100
 
 
 //Difficulaty related constants
-#define DIFFICULTY_TARGET                               60  // seconds for 1 block
-#define DIFFICULTY_TARGET_V1                            DIFFICULTY_TARGET
-#define DIFFICULTY_TARGET_V2                            DIFFICULTY_TARGET
+#define DIFFICULTY_TARGET                               120  // seconds for 1 block
 #define DIFFICULTY_WINDOW                               720 // blocks
 #define DIFFICULTY_LAG                                  15  // !!!
 #define DIFFICULTY_CUT                                  60  // timestamps to cut after sorting
