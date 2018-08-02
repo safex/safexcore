@@ -176,13 +176,11 @@ namespace cryptonote
     uint64_t token_amount = 0;
     crypto::hash bitcoin_burn_transaction = AUTO_VAL_INIT(bitcoin_burn_transaction); // transaction hash of bitcoin transaction that burn Safex tokens on bitcoin network
     crypto::key_image k_image = AUTO_VAL_INIT(k_image); //special key image. should be calculated using bitcoin burn transaction and special unique airdrop account key
-    crypto::public_key pubkey = AUTO_VAL_INIT(pubkey); //bitcoin transaction "destination public key", signature of bitcoin transaction or similar, to determine
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(token_amount)
       FIELD(bitcoin_burn_transaction)
       FIELD(k_image)
-      FIELD(pubkey)
     END_SERIALIZE()
   };
 

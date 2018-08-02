@@ -4370,14 +4370,10 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
           its->second.emplace(k_image, outputs);
 
         } else if (txin.type() == typeid(txin_token_migration)) {
-          //todo ATANA refactor this, check public key to be migration key
           const txin_token_migration &in_token_migration = boost::get < txin_token_migration > (txin);
           std::vector<output_data_t> outputs;
 
           output_data_t output = AUTO_VAL_INIT(output);
-          output.height = 0;
-          output.unlock_time = 0;
-          output.pubkey = in_token_migration.pubkey; //destination key
           output.commitment = rct::zeroCommit(in_token_migration.token_amount);
           outputs.push_back(output);
           its->second.emplace(in_token_migration.k_image, outputs);

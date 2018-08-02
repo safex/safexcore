@@ -302,7 +302,6 @@ namespace cryptonote
       {
         txin_token_migration input_token_migration = AUTO_VAL_INIT(input_token_migration);
         input_token_migration.token_amount = src_entr.token_amount;
-        input_token_migration.pubkey = sender_account_keys.m_account_address.m_spend_public_key;
         CHECK_AND_ASSERT_MES(bitcoin_transaction_hash, false, "no bitcoin transaction hash for token migration input");
         generate_migration_key_image(*bitcoin_transaction_hash, input_token_migration.k_image);
         summary_inputs_tokens += src_entr.token_amount;
