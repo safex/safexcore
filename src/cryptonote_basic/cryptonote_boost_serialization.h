@@ -153,7 +153,6 @@ namespace boost
     a & x.token_amount;
     a & x.bitcoin_burn_transaction;
     a & x.k_image;
-    a & x.pubkey;
   }
 
   template <class Archive>
