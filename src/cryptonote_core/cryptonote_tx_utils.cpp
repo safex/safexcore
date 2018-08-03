@@ -303,6 +303,7 @@ namespace cryptonote
         txin_token_migration input_token_migration = AUTO_VAL_INIT(input_token_migration);
         input_token_migration.token_amount = src_entr.token_amount;
         CHECK_AND_ASSERT_MES(bitcoin_transaction_hash, false, "no bitcoin transaction hash for token migration input");
+        memcpy(input_token_migration.bitcoin_burn_transaction.data, bitcoin_transaction_hash->data, sizeof(crypto::hash));
         generate_migration_key_image(*bitcoin_transaction_hash, input_token_migration.k_image);
         summary_inputs_tokens += src_entr.token_amount;
         tx.vin.emplace_back(input_token_migration);
@@ -755,7 +756,7 @@ namespace cryptonote
   {
     // todo igor for now just place the transaction hash into key_image it should be enough
     CHECK_AND_ASSERT_MES(sizeof(key_image.data) == sizeof(bitcoin_transaction_hash.data), false, "key_image and bitcoin_hash do not have the same size.");
-    memcpy(key_image.data, bitcoin_transaction_hash.data, sizeof(key_image.data) / sizeof(key_image.data[0]));
+    memcpy(key_image.data, bitcoin_transaction_hash.data, sizeof(key_image.data));
     return true;
   }
 
