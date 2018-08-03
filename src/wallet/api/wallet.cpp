@@ -80,7 +80,7 @@ namespace {
     }
 }
 
-struct WalletCallbackImpl : public tools::i_wallet2_callback
+struct WalletCallbackImpl : public tools::i_wallet_callback
 {
 
     WalletCallbackImpl(WalletImpl * wallet)
@@ -1320,11 +1320,11 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
     vector<cryptonote::tx_destination_entry> dsts;
     cryptonote::tx_destination_entry de;
 
-    PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
+    auto * transaction = new PendingTransactionImpl(*this);
 
     do {
         try {
-            transaction->m_pending_tx = m_wallet->create_unmixable_sweep_transactions(m_trustedDaemon);
+            transaction->m_pending_tx = m_wallet->create_unmixable_sweep_transactions(m_trustedDaemon, tx_out_type::out_cash);
 
         } catch (const tools::error::daemon_busy&) {
             // TODO: make it translatable with "tr"?
