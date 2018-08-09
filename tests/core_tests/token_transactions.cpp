@@ -144,11 +144,15 @@ bool token_transactions_001::verify_token_transactions(cryptonote::core& c, size
   cout << "check_migration_transactions: bob = " << get_balance(bob_account, blocks, mtx) << " token balance= " << get_token_balance(bob_account, blocks, mtx)  << endl;
   cout << "check_migration_transactions: daniel = " << get_balance(daniel_account, blocks, mtx) << " token balance= " << get_token_balance(daniel_account, blocks, mtx)  << endl;
   cout << "check_migration_transactions: jack = " << get_balance(jack_account, blocks, mtx) << " token balance= " << get_token_balance(jack_account, blocks, mtx)  << endl;
+  cout << "check_migration_transactions: expected_alice_cash_balance = " << token_transactions_001::expected_alice_cash_balance  << endl;
+  cout << "check_migration_transactions: expected_bob_cash_balance = " << token_transactions_001::expected_bob_cash_balance  << endl;
+  cout << "check_migration_transactions: expected_daniel_cash_balance = " << token_transactions_001::expected_daniel_cash_balance  << endl;
+  cout << "check_migration_transactions: expected_jack_cash_balance = " << token_transactions_001::expected_jack_cash_balance  << endl;
 
-  CHECK_EQ(token_transactions_001::expected_alice_cash_balance, get_balance(alice_account, blocks, mtx));
-  CHECK_EQ(token_transactions_001::expected_bob_cash_balance, get_balance(bob_account, blocks, mtx));
-  CHECK_EQ(token_transactions_001::expected_daniel_cash_balance, get_balance(daniel_account, blocks, mtx));
-  CHECK_EQ(token_transactions_001::expected_jack_cash_balance, get_balance(jack_account, blocks, mtx));
+  CHECK_TEST_CONDITION(std::abs(token_transactions_001::expected_alice_cash_balance - (int64_t)get_balance(alice_account, blocks, mtx)) < token_transactions_001::CASH_THRESHOLD);
+  CHECK_TEST_CONDITION(std::abs(token_transactions_001::expected_bob_cash_balance - (int64_t)get_balance(bob_account, blocks, mtx)) < token_transactions_001::CASH_THRESHOLD);
+  CHECK_TEST_CONDITION(std::abs(token_transactions_001::expected_daniel_cash_balance - (int64_t)get_balance(daniel_account, blocks, mtx)) < token_transactions_001::CASH_THRESHOLD);
+  CHECK_TEST_CONDITION(std::abs(token_transactions_001::expected_jack_cash_balance - (int64_t)get_balance(jack_account, blocks, mtx)) < token_transactions_001::CASH_THRESHOLD);
   CHECK_EQ(token_transactions_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
   CHECK_EQ(token_transactions_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
   CHECK_EQ(token_transactions_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
