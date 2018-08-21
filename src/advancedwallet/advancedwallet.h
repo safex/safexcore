@@ -144,6 +144,7 @@ namespace cryptonote
     bool refresh(const std::vector<std::string> &args);
     bool show_balance_unlocked(bool detailed = false);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
+    bool show_cash_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_token_balance_unlocked(bool detailed = false);
     bool show_token_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_incoming_transfers(const std::vector<std::string> &args);
@@ -153,7 +154,6 @@ namespace cryptonote
     bool transfer(const std::vector<std::string> &args);
     bool transfer_new(const std::vector<std::string> &args);
     bool transfer_token(const std::vector<std::string> &args_);
-
     bool migrate(const std::vector<std::string> &args);
     bool locked_transfer(const std::vector<std::string> &args);
     bool sweep_main(uint64_t below, const std::vector<std::string> &args);
