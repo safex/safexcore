@@ -69,7 +69,7 @@ Setup configuration for monero-startum to target local Safex node. Also set addr
 		{
 			"name": "Testnet",
 			"host": "127.0.0.1",
-			"port": 29183,
+			"port": 29193,
 			"timeout": "10s"
 		}
 ```
