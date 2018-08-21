@@ -2050,8 +2050,12 @@ advanced_wallet::advanced_wallet()
   m_cmd_binder.set_handler("refresh",
                            boost::bind(&advanced_wallet::refresh, this, _1),
                            tr("Synchronize the transactions and balance."));
-  m_cmd_binder.set_handler("balance_cash",
+  m_cmd_binder.set_handler("balance",
                            boost::bind(&advanced_wallet::show_balance, this, _1),
+                           tr("balance [detail]"),
+                           tr("Show balance summary."));
+  m_cmd_binder.set_handler("balance_cash",
+                           boost::bind(&advanced_wallet::show_cash_balance, this, _1),
                            tr("balance_cash [detail]"),
                            tr("Show the wallet's Safex cash balance of the currently selected account."));
   m_cmd_binder.set_handler("balance_token",
@@ -4009,7 +4013,20 @@ bool advanced_wallet::show_balance_unlocked(bool detailed)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-bool advanced_wallet::show_balance(const std::vector<std::string>& args/* = std::vector<std::string>()*/)
+bool advanced_wallet::show_balance(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+{
+  if (args.size() > 1 || (args.size() == 1 && args[0] != "detail"))
+  {
+    fail_msg_writer() << tr("usage: balance [detail]");
+    return true;
+  }
+  LOCK_IDLE_SCOPE();
+  show_balance_unlocked(args.size() == 1);
+  show_token_balance_unlocked(args.size() == 1);
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool advanced_wallet::show_cash_balance(const std::vector<std::string>& args/* = std::vector<std::string>()*/)
 {
   if (args.size() > 1 || (args.size() == 1 && args[0] != "detail"))
   {
