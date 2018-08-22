@@ -302,8 +302,8 @@ namespace cryptonote
       {
         txin_token_migration input_token_migration = AUTO_VAL_INIT(input_token_migration);
         input_token_migration.token_amount = src_entr.token_amount;
-        input_token_migration.pubkey = sender_account_keys.m_account_address.m_spend_public_key;
         CHECK_AND_ASSERT_MES(bitcoin_transaction_hash, false, "no bitcoin transaction hash for token migration input");
+        memcpy(input_token_migration.bitcoin_burn_transaction.data, bitcoin_transaction_hash->data, sizeof(crypto::hash));
         generate_migration_key_image(*bitcoin_transaction_hash, input_token_migration.k_image);
         summary_inputs_tokens += src_entr.token_amount;
         tx.vin.emplace_back(input_token_migration);
@@ -756,7 +756,7 @@ namespace cryptonote
   {
     // todo igor for now just place the transaction hash into key_image it should be enough
     CHECK_AND_ASSERT_MES(sizeof(key_image.data) == sizeof(bitcoin_transaction_hash.data), false, "key_image and bitcoin_hash do not have the same size.");
-    memcpy(key_image.data, bitcoin_transaction_hash.data, sizeof(key_image.data) / sizeof(key_image.data[0]));
+    memcpy(key_image.data, bitcoin_transaction_hash.data, sizeof(key_image.data));
     return true;
   }
 
@@ -775,21 +775,54 @@ namespace cryptonote
     }
   }
 
+  const std::string get_genesis_tx_as_str(cryptonote::network_type nettype)
+  {
+    switch (nettype)
+    {
+      case cryptonote::network_type::MAINNET: return config::GENESIS_TX;break;
+      case cryptonote::network_type::STAGENET: return config::stagenet::GENESIS_TX;break;
+      case cryptonote::network_type::TESTNET: return config::testnet::GENESIS_TX;break;
+      default:
+        return "";
+    }
+  }
 
-  bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &publicKey)
+  bool extract_migration_pubkey_from_genesis_transaction(cryptonote::network_type nettype, crypto::public_key& migration_key)
+  {
+    //genesis block
+    cryptonote::transaction genesis_tx;
+    std::string const & genesis_tx_str = get_genesis_tx_as_str(nettype);
+    blobdata tx_bl;
+
+    bool r = string_tools::parse_hexstr_to_binbuff(genesis_tx_str, tx_bl);
+    CHECK_AND_ASSERT_MES(r, false, "failed to parse genesis tx from hard coded blob");
+
+    r = parse_and_validate_tx_from_blob(tx_bl, genesis_tx);
+    CHECK_AND_ASSERT_MES(r, false, "failed to parse genesis tx from hard coded blob");
+
+    int migration_key_index = 0;
+    switch (nettype)
+    {
+      case cryptonote::network_type::MAINNET: migration_key_index = config::MIGRATION_GENESIS_PUBKEY_INDEX; break;
+      case cryptonote::network_type::STAGENET: migration_key_index = config::stagenet::MIGRATION_GENESIS_PUBKEY_INDEX; break;
+      case cryptonote::network_type::TESTNET: migration_key_index = config::testnet::MIGRATION_GENESIS_PUBKEY_INDEX; break;
+      default: migration_key_index = 0; break;
+    }
+    migration_key = get_migration_pub_key_from_extra(genesis_tx.extra, migration_key_index);
+    return true;
+  }
+
+
+  bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &public_key)
   {
     switch (nettype) {
       case network_type::TESTNET:
-        epee::string_tools::hex_to_pod(config::testnet::MIGRATION_VALIDATION_PUBLIC_KEY, publicKey);
-        break;
       case network_type::STAGENET:
-        epee::string_tools::hex_to_pod(config::stagenet::MIGRATION_VALIDATION_PUBLIC_KEY, publicKey);
-        break;
       case network_type::MAINNET:
-        epee::string_tools::hex_to_pod(config::MIGRATION_VALIDATION_PUBLIC_KEY, publicKey);
+        return extract_migration_pubkey_from_genesis_transaction(nettype, public_key);
         break;
       case network_type::FAKECHAIN:
-        publicKey = cryptonote::fakechain::get_core_tests_public_key();
+        public_key = cryptonote::fakechain::get_core_tests_public_key();
         break;
       default:
         LOG_ERROR("Invalid network type");

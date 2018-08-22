@@ -452,7 +452,6 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_token_migratio
   INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txin.token_amount);
   INSERT_INTO_JSON_OBJECT(val, doc, bitcoin_burn_transaction, txin.bitcoin_burn_transaction);
   INSERT_INTO_JSON_OBJECT(val, doc, k_image, txin.k_image);
-  INSERT_INTO_JSON_OBJECT(val, doc, pubkey, txin.pubkey);
 }
 
 
@@ -466,7 +465,6 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_token_migration
   GET_FROM_JSON_OBJECT(val, txin.token_amount, token_amount);
   GET_FROM_JSON_OBJECT(val, txin.bitcoin_burn_transaction, bitcoin_burn_transaction);
   GET_FROM_JSON_OBJECT(val, txin.k_image, k_image);
-  GET_FROM_JSON_OBJECT(val, txin.pubkey, pubkey);
 }
 
 

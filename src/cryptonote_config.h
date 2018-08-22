@@ -56,30 +56,26 @@
 
 // MONEY_SUPPLY - total number coins to be generated
 #define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash total supply
-#define EMISSION_SPEED_FACTOR_PER_MINUTE                (20) //Not used in Safex Blockchain
-#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, no more safex cash
+#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    60000 //size of block (bytes) after which reward for block is calculated using block size
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    20000 //size of block (bytes) after which reward for block is calculated using block size
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
 
 #define AIRDROP_SAFES_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
-#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (2) //todo calculate rate
+#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //todo calculate rate
 
-#define FEE_PER_KB_OLD                                  ((uint64_t)10000000000) // pow(10, 10)
-#define FEE_PER_KB                                      ((uint64_t)2000000000) // 2 * pow(10, 9)
-#define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
-#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)300000000000) // 30 * pow(10,10)
+#define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
+#define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)
+#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 30 * pow(10,10)
 
 #define ORPHANED_BLOCKS_MAX_COUNT                       100
 
 
 //Difficulaty related constants
-#define DIFFICULTY_TARGET                               60  // seconds for 1 block
-#define DIFFICULTY_TARGET_V1                            DIFFICULTY_TARGET
-#define DIFFICULTY_TARGET_V2                            DIFFICULTY_TARGET
+#define DIFFICULTY_TARGET                               120  // seconds for 1 block
 #define DIFFICULTY_WINDOW                               720 // blocks
 #define DIFFICULTY_LAG                                  15  // !!!
 #define DIFFICULTY_CUT                                  60  // timestamps to cut after sorting
@@ -163,7 +159,7 @@ namespace config
   uint64_t const BASE_REWARD_DECOMPOSITION_OFFSET = 0; //((uint64_t)1000000); // pow(10, 6) force decomposition of reward amount into multiple outputs
   std::string const P2P_REMOTE_DEBUG_TRUSTED_PUB_KEY = "0000000000000000000000000000000000000000000000000000000000000000";
 
-  std::string const MIGRATION_VALIDATION_PUBLIC_KEY = "";
+  uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
   uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x23fb16; // SFXp
   uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xd03fb16; // SFXpi
   uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x17e3fb16; // SFXps
@@ -178,23 +174,23 @@ namespace config
 
   namespace testnet
   {
-    std::string const MIGRATION_VALIDATION_PUBLIC_KEY = "39fcf99714d84dd5eda08334f86b591c873f505367f821e53a3791de094c52d7";
+    uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x263b16; // SFXt
     uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xe05fb16; // SFXti
     uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x1905fb16; // SFXts
-    uint16_t const P2P_DEFAULT_PORT = 29182;
-    uint16_t const RPC_DEFAULT_PORT = 29183;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 29184;
-    boost::uuids::uuid const NETWORK_ID = {{
-      0x12, 0x30, 0xF1, 0x71, 0x61, 0x04, 0x41, 0x61, 0x17, 0x31, 0x00, 0x73, 0x61, 0x66, 0x65, 0x80
-    }}; // Bender's daydream
-    std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100020a3e1d5a90815f0495cca581e31e938fda419819c7c3a2ff4b1d75e9b6a0966b2101a7c1fae8d6214c1232f03a4ad7b994f7a6cd495c72433c74c20a92aae5a6ce66";
+    uint16_t const P2P_DEFAULT_PORT = 29192;
+    uint16_t const RPC_DEFAULT_PORT = 29193;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 29194;
+    boost::uuids::uuid const NETWORK_ID = { {
+        0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x47, 0x65, 0x37, 0x31, 0x00, 0x73, 0x61, 0x66, 0x65, 0x81
+      } };
+    std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b101000236a7e5d941256537ea4c065660202e72dc764a34c28947120ef00e70cc6887af830101e2f9ef713eb332f0136867606977db87ce36a9ca66f606b9a937aa489432e4cb110337b4b7f94b4e10da907a3595c5473ae4caa6c23fe2eacd63f7b980751dc67fdbab41993246f448adc57fd40c9847f0dfefc5177754100c726a647e92104bcb0f754841f7dd27ab5e8efe27e36f18dbbc7499c6d49bab4bdd500059062a20b7e8";
     uint32_t const GENESIS_NONCE = 10001;
   }
 
   namespace stagenet
   {
-    std::string const MIGRATION_VALIDATION_PUBLIC_KEY = "";
+    uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x25bb16; // SFXs
     uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xdc57b16; // SFXsi
     uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x18c57b16; // SFXss

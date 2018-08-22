@@ -144,6 +144,7 @@ namespace cryptonote
     bool refresh(const std::vector<std::string> &args);
     bool show_balance_unlocked(bool detailed = false);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
+    bool show_cash_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_token_balance_unlocked(bool detailed = false);
     bool show_token_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_incoming_transfers(const std::vector<std::string> &args);

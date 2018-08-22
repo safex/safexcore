@@ -1388,11 +1388,15 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("balance",
                            boost::bind(&simple_wallet::show_balance, this, _1),
                            tr("balance [detail]"),
-                           tr("Show the wallet's balance of the currently selected account."));
+                           tr("Show balance summary."));
+  m_cmd_binder.set_handler("balance_cash",
+                           boost::bind(&simple_wallet::show_cash_balance, this, _1),
+                           tr("balance_cash [detail]"),
+                           tr("Show the wallet's Safex cash balance of the currently selected account."));
   m_cmd_binder.set_handler("balance_token",
                              boost::bind(&simple_wallet::show_token_balance, this, _1),
                              tr("balance_token [detail]"),
-                             tr("Show the wallet's safex token balance of the currently selected account."));
+                             tr("Show the wallet's Safex Token balance of the currently selected account."));
   m_cmd_binder.set_handler("incoming_transfers",
                            boost::bind(&simple_wallet::show_incoming_transfers, this, _1),
                            tr("incoming_transfers [available|unavailable] [verbose] [index=<N1>[,<N2>[,...]]]"),
@@ -1410,9 +1414,9 @@ simple_wallet::simple_wallet()
                            tr("transfer_original [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <amount> [<payment_id>]"),
                            tr("Transfer <amount> to <address> using an older transaction building algorithm. If the parameter \"index=<N1>[,<N2>,...]\" is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. <priority> is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command \"set priority\") is used. <ring_size> is the number of inputs to include for untraceability. Multiple payments can be made at once by adding <address_2> <amount_2> etcetera (before the payment ID, if it's included)"));
 #endif
-  m_cmd_binder.set_handler("transfer", boost::bind(&simple_wallet::transfer_new, this, _1),
-                           tr("transfer [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <amount> [<payment_id>]"),
-                           tr("Transfer <amount> to <address>. If the parameter \"index=<N1>[,<N2>,...]\" is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. <priority> is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command \"set priority\") is used. <ring_size> is the number of inputs to include for untraceability. Multiple payments can be made at once by adding <address_2> <amount_2> etcetera (before the payment ID, if it's included)"));
+  m_cmd_binder.set_handler("transfer_cash", boost::bind(&simple_wallet::transfer_new, this, _1),
+                           tr("transfer_cash [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <amount> [<payment_id>]"),
+                           tr("Transfer cash <amount> to <address>. If the parameter \"index=<N1>[,<N2>,...]\" is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. <priority> is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command \"set priority\") is used. <ring_size> is the number of inputs to include for untraceability. Multiple payments can be made at once by adding <address_2> <amount_2> etcetera (before the payment ID, if it's included)"));
   m_cmd_binder.set_handler("transfer_token", boost::bind(&simple_wallet::transfer_token, this, _1),
                            tr("transfer_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <amount> [<payment_id>]"),
                            tr("Transfer <token_amount> to <address>. If the parameter \"index=<N1>[,<N2>,...]\" is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. <priority> is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command \"set priority\") is used. <ring_size> is the number of inputs to include for untraceability. Multiple payments can be made at once by adding <address_2> <amount_2> etcetera (before the payment ID, if it's included)"));
@@ -1573,10 +1577,10 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::show_transfers, this, _1),
                            tr("show_transfers [in|out|pending|failed|pool] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]"),
                            tr("Show the incoming/outgoing transfers within an optional height range."));
-  m_cmd_binder.set_handler("unspent_outputs",
+  m_cmd_binder.set_handler("unspent_cash_outputs",
                            boost::bind(&simple_wallet::unspent_outputs, this, _1, false),
-                           tr("unspent_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
-                           tr("Show the unspent outputs of a specified address within an optional amount range."));
+                           tr("unspent_cash_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
+                           tr("Show the unspent Safex cash outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("unspent_token_outputs",
                              boost::bind(&simple_wallet::unspent_outputs, this, _1, true),
                              tr("unspent_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
@@ -3085,8 +3089,8 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
   success_msg_writer() << tr("Currently selected account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
   const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
   success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
-  success_msg_writer() << tr("Balance: ") << print_money(m_wallet->balance(m_current_subaddress_account)) << ", "
-    << tr("unlocked balance: ") << print_money(m_wallet->unlocked_balance(m_current_subaddress_account)) << extra;
+  success_msg_writer() << tr("Cash balance: ") << print_money(m_wallet->balance(m_current_subaddress_account)) << ", "
+    << tr("unlocked cash balance: ") << print_money(m_wallet->unlocked_balance(m_current_subaddress_account)) << extra;
   std::map<uint32_t, uint64_t> balance_per_subaddress = m_wallet->balance_per_subaddress(m_current_subaddress_account);
   std::map<uint32_t, uint64_t> unlocked_balance_per_subaddress = m_wallet->unlocked_balance_per_subaddress(m_current_subaddress_account);
   if (!detailed || balance_per_subaddress.empty())
@@ -3105,11 +3109,24 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-bool simple_wallet::show_balance(const std::vector<std::string>& args/* = std::vector<std::string>()*/)
+bool simple_wallet::show_balance(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
   if (args.size() > 1 || (args.size() == 1 && args[0] != "detail"))
   {
     fail_msg_writer() << tr("usage: balance [detail]");
+    return true;
+  }
+  LOCK_IDLE_SCOPE();
+  show_balance_unlocked(args.size() == 1);
+  show_token_balance_unlocked(args.size() == 1);
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool simple_wallet::show_cash_balance(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+{
+  if (args.size() > 1 || (args.size() == 1 && args[0] != "detail"))
+  {
+    fail_msg_writer() << tr("usage: balance_cash [detail]");
     return true;
   }
   LOCK_IDLE_SCOPE();
@@ -5613,7 +5630,10 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, bool 
 
   if(args_.size() > 3)
   {
-    fail_msg_writer() << tr("usage: unspent_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
+    if (token_outputs)
+      fail_msg_writer() << tr("usage: unspent_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
+    else
+      fail_msg_writer() << tr("usage: unspent_cash_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
     return true;
   }
   auto local_args = args_;
@@ -5997,7 +6017,10 @@ void simple_wallet::print_accounts()
     print_accounts("");
 
   if (num_untagged_accounts < m_wallet->get_num_subaddress_accounts())
-    success_msg_writer() << tr("\nGrand total:\n  Balance: ") << print_money(m_wallet->balance_all()) << tr(", unlocked balance: ") << print_money(m_wallet->unlocked_balance_all());
+  {
+    success_msg_writer() << tr("\nGrand total:\n  Cash balance: ") << print_money(m_wallet->balance_all()) << tr(", unlocked cash balance: ") << print_money(m_wallet->unlocked_balance_all());
+    success_msg_writer() << tr("\n  Token balance: ") << print_money(m_wallet->token_balance_all()) << tr(", unlocked token balance: ") << print_money(m_wallet->unlocked_token_balance_all());
+  }
 }
 //----------------------------------------------------------------------------------------------------
 void simple_wallet::print_accounts(const std::string& tag)
@@ -6017,13 +6040,13 @@ void simple_wallet::print_accounts(const std::string& tag)
     success_msg_writer() << tr("Accounts with tag: ") << tag;
     success_msg_writer() << tr("Tag's description: ") << account_tags.first.find(tag)->second;
   }
-  success_msg_writer() << boost::format("  %15s %21s %21s %21s %21s %21s") % tr("Account") % tr("Balance") % tr("Unlocked balance") % tr("Token balance") % tr("Unlocked token balance") % tr("Label");
+  success_msg_writer() << boost::format("  %15s %21s %23s %21s %25s %21s") % tr("Account") % tr("Cash balance") % tr("Unlocked cash balance") % tr("Token balance") % tr("Unlocked token balance") % tr("Label");
   uint64_t total_balance = 0, total_unlocked_balance = 0, total_token_balance = 0, total_unlocked_token_balance = 0;
   for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index)
   {
     if (account_tags.second[account_index] != tag)
       continue;
-    success_msg_writer() << boost::format(tr(" %c%8u %6s %21s %21s %21s %21s %21s"))
+    success_msg_writer() << boost::format(tr(" %c%8u %6s %23s %21s %21s %25s %21s"))
       % (m_current_subaddress_account == account_index ? '*' : ' ')
       % account_index
       % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
@@ -6037,8 +6060,8 @@ void simple_wallet::print_accounts(const std::string& tag)
     total_token_balance += m_wallet->token_balance(account_index);
     total_unlocked_token_balance += m_wallet->unlocked_token_balance(account_index);
   }
-  success_msg_writer() << tr("----------------------------------------------------------------------------------");
-  success_msg_writer() << boost::format(tr("%15s %21s %21s %21s %21s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance) % print_money(total_token_balance) % print_money(total_unlocked_token_balance);
+  success_msg_writer() << tr("----------------------------------------------------------------------------------------------------------------------------------------");
+  success_msg_writer() << boost::format(tr("%17s %23s %21s %21s %25s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance) % print_money(total_token_balance) % print_money(total_unlocked_token_balance);
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::print_address(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
