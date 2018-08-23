@@ -54,8 +54,8 @@
 #define COIN                                            ((uint64_t)10000000000) // pow(10, 10)
 #define SAFEX_CASH_COIN                                 COIN
 
-// MONEY_SUPPLY - total number coins to be generated
-#define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash total supply
+// MONEY_SUPPLY - number coins to be generated
+#define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash supply in 20 years
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
@@ -64,12 +64,12 @@
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
 
-#define AIRDROP_SAFES_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
-#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //todo calculate rate
+#define AIRDROP_SAFEX_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
+#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //migration token to cash rate
 
 #define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)
-#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 30 * pow(10,10)
+#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 60 * pow(10,10)
 
 #define ORPHANED_BLOCKS_MAX_COUNT                       100
 
