@@ -1,7 +1,7 @@
 # Multistage docker build, requires docker 17.05
 
 # builder stage
-FROM ubuntu:16.04 as builder
+FROM ubuntu:18.04 as builder
 
 RUN apt-get update && \
     apt-get --no-install-recommends --yes install \
@@ -16,6 +16,7 @@ RUN apt-get update && \
         curl \
         libtool-bin \
         autoconf \
+        libgtest-dev \
         automake
 
 WORKDIR /usr/local
@@ -91,10 +92,10 @@ COPY . .
 
 ARG NPROC
 RUN rm -rf build && \
-    if [ -z "$NPROC" ];then make -j$(nproc) release-static;else make -j$NPROC release-static;fi
+    if [ -z "$NPROC" ];then make -j$(nproc) debug-all;else make -j$NPROC debug-all;fi
 
 # runtime stage
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 RUN apt-get update && \
     apt-get --no-install-recommends --yes install ca-certificates && \
