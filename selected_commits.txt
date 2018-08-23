@@ -105,15 +105,15 @@ cd22cb807aec2691c9038dbb068467ef40ccdc6b Merge pull request #3709
 5bca8c6998c3f5d4674b428dbfc223b0510faeb4 Merge pull request #3667
 66e18cc92f41d7e4206b75063fdd4d0f24a12241 Merge pull request #3703
 26cae8f4f150594b6c14fe56be08365dae1b1c50 Merge pull request #3695
-8c27f127ec8b934d1e15c72f3418fb1f4a3db102 Merge pull request #3692
-2ab5b1a21f373d19d7d526164a9796e0c5210dad Merge pull request #3683
-93e76e14a205a84cbea8ab0a3e35f37bf9d08b42 Merge pull request #3685
-35299644b20048264329bb36a235eb7c28fa1718 Merge pull request #3650
+[IN BRANCH] 8c27f127ec8b934d1e15c72f3418fb1f4a3db102 Merge pull request #3692
+[REJECTED] 2ab5b1a21f373d19d7d526164a9796e0c5210dad Merge pull request #3683
+[REJECTED] 93e76e14a205a84cbea8ab0a3e35f37bf9d08b42 Merge pull request #3685
+[IN BRANCH] 35299644b20048264329bb36a235eb7c28fa1718 Merge pull request #3650
 [IN BRANCH] 3880bf396adb457572bdb668aa156530e2ceea33 cryptonote_protocol_handler.inl: remove span read just now that failed to pass some basic tests
 [IN BRANCH] da249fd5ba16bda5de021c5523bd6a45edb14949 cryptonote_protocol_handler.inl: fix return type mismatches (int vs bool)
 [INTEGRATED] b1a9e97b2dab7a843571c674b242926d51362a6e slow-hash: fix memory leak for Windows /karbowanec#41
-9670c917d1708660ecdbabd4040511b89ebf7a28 import_multisig_info: fix sanity check crash in detach_blockchain
-5bd7f760e9318452f662bcbdb1b8ab7d393055d2 import_multisig_info: fix sanity check crash in detach_blockchain
+[IN BRANCH] 9670c917d1708660ecdbabd4040511b89ebf7a28 import_multisig_info: fix sanity check crash in detach_blockchain
+[IN BRANCH] 5bd7f760e9318452f662bcbdb1b8ab7d393055d2 import_multisig_info: fix sanity check crash in detach_blockchain
 [FORK COMMIT] 8fdf645397654956b74d6ddcd79f94bfa7bf2c5f Merge pull request #3670
 [INTEGRATED] a429f06b18c812ccc4a8b17428c73588f87da8a1 Merge pull request #3579
 [INTEGRATED] a3a617f35fea5bac01f78e5cb0e13fc8b093f6bb Merge pull request #3576
