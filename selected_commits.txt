@@ -1,7 +1,19 @@
+d96c181d01d7a81b1edc112f49ee782ac7af7396 Merge pull request #32 from atanmarko/network_tweaks
+d166ca80677ef81e4016dc26ebdf9888fac726e5 Merge pull request #31 from safex/develop
+78dba5284cc33bf35104dee0e49584e2a320a89a Merge pull request #30 from atanmarko/version_rename
+c181ec0ef881a93fb4c90157aff79333187dade9 Merge pull request #29 from atanmarko/test_network_id_update
+07765ce4da0364c9af63f2ba826031a3814542b4 Merge remote-tracking branch 'safexoriginal/master' into test_network_id_update
+3f68ba030aa704c9da5360bbce1e3bbf22cad657 Merge pull request #28 from atanmarko/wallet_commands_update
+9f75bdb4dec92b2f08d5f4e0a55e75c15efb53c3 Merge pull request #27 from atanmarko/monero-upstream-crypto-update
+6d5bc7d5a66cbfe80a7ae7d081d5032e5c8dce7a Merge pull request #26 from atanmarko/mining01
+[INTEGRATED] fa37fdd3a1204bcd8e1ba9833ab00a34611f37e2 malloc scratchpad for all supported android archs
+[INTEGRATED] 81f3651d17953216e4154484dd02c48edf65860e crypto: more places needing fixing for GCC 8.1
+3fc8b18d1e4b0b6d3ec994a8e378b8cfd309e454 slow-hash: fix memory leak for Windows /karbowanec#41
 30cf0f50f237227f4015f228f96a1f0543c3d010 Merge pull request #25 from atanmarko/safex_rate_fix
 f6a214d2e6b4f486715fd9e1bc4be44fe0697641 Merge pull request #24 from atanmarko/migration_input_fix
 db11dc16184cd7cc6f28ff2892098653e74a6dd5 Fix bitcoin hash data field
 65d9688fea52b99d179653e79de95dccb582179f Merge pull request #22 from atanmarko/config_updates
+518cf8cc1d649251c1cacbc550b1f037b5479646 Merge pull request #23 from hitripekac/json-messaging-updates
 54f357bb8cdcd6844af664d85f8bfc1a1544c42e Merge pull request #21 from atanmarko/config_updates
 a70cead60e69b186954145695c2f0ef81f087a3d Merge pull request #20 from atanmarko/migration_genesis_keys
 457e36c9728f9a46a6ad476b35fb45d8b8fb92de Merge pull request #19 from atanmarko/core_tests_updates01
@@ -97,16 +109,16 @@ cd22cb807aec2691c9038dbb068467ef40ccdc6b Merge pull request #3709
 2ab5b1a21f373d19d7d526164a9796e0c5210dad Merge pull request #3683
 93e76e14a205a84cbea8ab0a3e35f37bf9d08b42 Merge pull request #3685
 35299644b20048264329bb36a235eb7c28fa1718 Merge pull request #3650
-3880bf396adb457572bdb668aa156530e2ceea33 cryptonote_protocol_handler.inl: remove span read just now that failed to pass some basic tests
-da249fd5ba16bda5de021c5523bd6a45edb14949 cryptonote_protocol_handler.inl: fix return type mismatches (int vs bool)
-b1a9e97b2dab7a843571c674b242926d51362a6e slow-hash: fix memory leak for Windows /karbowanec#41
+[IN BRANCH] 3880bf396adb457572bdb668aa156530e2ceea33 cryptonote_protocol_handler.inl: remove span read just now that failed to pass some basic tests
+[IN BRANCH] da249fd5ba16bda5de021c5523bd6a45edb14949 cryptonote_protocol_handler.inl: fix return type mismatches (int vs bool)
+[INTEGRATED] b1a9e97b2dab7a843571c674b242926d51362a6e slow-hash: fix memory leak for Windows /karbowanec#41
 9670c917d1708660ecdbabd4040511b89ebf7a28 import_multisig_info: fix sanity check crash in detach_blockchain
 5bd7f760e9318452f662bcbdb1b8ab7d393055d2 import_multisig_info: fix sanity check crash in detach_blockchain
-8fdf645397654956b74d6ddcd79f94bfa7bf2c5f Merge pull request #3670
-a429f06b18c812ccc4a8b17428c73588f87da8a1 Merge pull request #3579
-a3a617f35fea5bac01f78e5cb0e13fc8b093f6bb Merge pull request #3576
-6189a775b0baf7820df6cd78063e807f8fb9770b Merge pull request #3636
-bcb71797c8bdfc78ab910bcba8f1456a62d626cd Merge pull request #3633
-7e98e9d7ce0766a046505f750decad2387a315ec Merge pull request #3630
-e6cf9c06fc63c6d4cbcfee5633a990e8fbd76ed1 Merge pull request #3624
-[REJECTED] 03ff3be10ef092aa6129722e99ffd75a7779c1f1 Merge pull request #3672
+[FORK COMMIT] 8fdf645397654956b74d6ddcd79f94bfa7bf2c5f Merge pull request #3670
+[INTEGRATED] a429f06b18c812ccc4a8b17428c73588f87da8a1 Merge pull request #3579
+[INTEGRATED] a3a617f35fea5bac01f78e5cb0e13fc8b093f6bb Merge pull request #3576
+[INTEGRATED] 6189a775b0baf7820df6cd78063e807f8fb9770b Merge pull request #3636
+[INTEGRATED] bcb71797c8bdfc78ab910bcba8f1456a62d626cd Merge pull request #3633
+[INTEGRATED] 7e98e9d7ce0766a046505f750decad2387a315ec Merge pull request #3630
+[INTEGRATED] e6cf9c06fc63c6d4cbcfee5633a990e8fbd76ed1 Merge pull request #3624
+[INTEGRATED] 03ff3be10ef092aa6129722e99ffd75a7779c1f1 Merge pull request #3672
