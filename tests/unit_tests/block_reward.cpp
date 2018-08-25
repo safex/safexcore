@@ -58,13 +58,13 @@ namespace
     TEST_ALREADY_GENERATED_COINS(0, (10000000 * SAFEX_CASH_COIN));
     // First year
     TEST_ALREADY_GENERATED_COINS(m_block_reward, (60 * SAFEX_CASH_COIN));
-    TEST_ALREADY_GENERATED_COINS(AIRDROP_SAFES_CASH_AMOUNT + 60 * SAFEX_CASH_COIN, (60 * SAFEX_CASH_COIN));
+    TEST_ALREADY_GENERATED_COINS(AIRDROP_SAFEX_CASH_AMOUNT + 60 * SAFEX_CASH_COIN, (60 * SAFEX_CASH_COIN));
   }
 
   TEST_F(block_reward_and_already_generated_coins, correctly_steps_from_year_1_to_year_2)
   {
     //todo make calculations, for block number/generated coin amount and fix the test
-    size_t ALREADY_MINED_COINS = AIRDROP_SAFES_CASH_AMOUNT + DIFFICULTY_BLOCKS_PER_YEAR * 60 * SAFEX_CASH_COIN;
+    size_t ALREADY_MINED_COINS = AIRDROP_SAFEX_CASH_AMOUNT + DIFFICULTY_BLOCKS_PER_YEAR * 60 * SAFEX_CASH_COIN;
 
     // At the end of year one
     TEST_ALREADY_GENERATED_COINS(ALREADY_MINED_COINS - 1, 60 * SAFEX_CASH_COIN);

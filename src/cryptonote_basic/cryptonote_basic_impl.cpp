@@ -96,7 +96,7 @@ namespace cryptonote {
   {
     switch (window) {
       case 0:
-        return AIRDROP_SAFES_CASH_AMOUNT; //airdrop do reserve account
+        return AIRDROP_SAFEX_CASH_AMOUNT; //airdrop do reserve account
       case 1:
         return 60 * SAFEX_CASH_COIN;
       case 2:
@@ -146,7 +146,7 @@ namespace cryptonote {
   uint64_t get_expected_mined_coins_for_window(uint64_t window)
   {
     if (window == 0) {
-      return AIRDROP_SAFES_CASH_AMOUNT;
+      return AIRDROP_SAFEX_CASH_AMOUNT;
     }
     return get_reward_for_reward_window(window) * DIFFICULTY_BLOCKS_PER_YEAR;
   }
