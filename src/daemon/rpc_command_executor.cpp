@@ -1655,7 +1655,7 @@ bool t_rpc_command_executor::print_migrated_token_sum(uint64_t height, uint64_t 
 
   tools::msg_writer() << "Sum of migrated tokens between block heights ["
                       << height << ", " << (height + count) << ") is "
-                      << cryptonote::print_money(res.migrated_token_amount);
+                      << cryptonote::print_money(res.migrated_token_amount, 0);
   return true;
 }
 

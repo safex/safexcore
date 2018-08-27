@@ -1997,6 +1997,7 @@ uint64_t BlockchainLMDB::get_block_already_generated_coins(const uint64_t& heigh
   return ret;
 }
 
+/* Important: returns whole number of tokens, without decimals */
   uint64_t BlockchainLMDB::get_block_already_migrated_tokens(const uint64_t& height) const
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
