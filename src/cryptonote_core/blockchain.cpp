@@ -3645,7 +3645,7 @@ leave:
   {
     try
     {
-      already_migrated_tokens += count_new_migration_tokens(txs)/SAFEX_TOKEN; //remove token decimals, they are zero anyway
+      already_migrated_tokens += count_new_migration_tokens(txs);
       new_height = m_db->add_block(bl, block_size, cumulative_difficulty, already_generated_coins, already_migrated_tokens, txs);
     }
     catch (const KEY_IMAGE_EXISTS& e)
@@ -4675,6 +4675,7 @@ bool Blockchain::is_valid_txin_key_offsets(const txin_v& txin) const
   return boost::apply_visitor(key_offsets_visitor(), txin);
 }
 
+/* Returns whole number of tokens without decimals */
 uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& txs) const
 {
   uint64_t ret = 0;
@@ -4685,7 +4686,7 @@ uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& 
       if (txin.type() == typeid(txin_token_migration))
       {
         const txin_token_migration &in_token_migration = boost::get<txin_token_migration>(txin);
-        ret += in_token_migration.token_amount;
+        ret += in_token_migration.token_amount / SAFEX_TOKEN;
       }
     }
 
