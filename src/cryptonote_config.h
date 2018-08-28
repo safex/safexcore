@@ -53,6 +53,7 @@
 // COIN - number of smallest units in one coin
 #define COIN                                            ((uint64_t)10000000000) // pow(10, 10)
 #define SAFEX_CASH_COIN                                 COIN
+#define SAFEX_TOKEN                                     COIN
 
 // MONEY_SUPPLY - number coins to be generated
 #define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash supply in 20 years
@@ -66,6 +67,8 @@
 
 #define AIRDROP_SAFEX_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
 #define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //migration token to cash rate
+
+#define TOKEN_TOTAL_SUPPLY                              ((uint64_t)2147483647) //Token total supply, without decimals
 
 #define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)

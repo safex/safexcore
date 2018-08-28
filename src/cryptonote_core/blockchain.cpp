@@ -2599,9 +2599,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     const size_t min_mixin = hf_version >= HF_VERSION_MIN_MIXIN_6 ? 6 : hf_version >= HF_VERSION_MIN_MIXIN_4 ? 4 : 2;
     for (const auto& txin : tx.vin)
     {
-      // non txin_to_key inputs will be rejected below
-
-      //todo ATANA refactor this to check ALL txin types
       const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
 
       if (txin.type() == typeid(txin_to_key))
@@ -2670,7 +2667,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     if (is_valid_transaction_input_type(txin))
     {
       const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
-      //todo ATANA optimize with pointers after changing visitor return value to references
       if ((last_key_image != boost::value_initialized<crypto::key_image>()) && (memcmp(&k_image, &last_key_image, sizeof(last_key_image)) >= 0))
       {
         MERROR_VER("transaction has unsorted inputs");
@@ -2698,6 +2694,16 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   int threads = tpool.get_max_concurrency();
   size_t sig_index = 0;
 
+  uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0;  //whole number of tokens, without decimals
+  CHECK_AND_ASSERT_MES((already_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "wrong number of migrated tokens, please purge and rebuild database");
+
+  MDEBUG("already_migrated_tokens: " << already_migrated_tokens);
+  uint64_t newly_migrated_tokens = 0;
+
+
+
+
+
   for (const auto& txin : tx.vin)
   {
 
@@ -2705,10 +2711,21 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     CHECK_AND_ASSERT_MES(is_valid_transaction_input_type(txin), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
 
     // make sure that the input amount is a while number
-    if (tx.version == 1 && ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration)))) {
+    if (tx.version == 1 && ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration))))
+    {
       auto amount = boost::apply_visitor(amount_visitor(), txin);
       CHECK_AND_ASSERT_MES(tools::is_whole_coin_amount(*amount), false, "token amount not a whole number");
+
+      //Check for maximum of migrated tokens
+      if (txin.type() == typeid(txin_token_migration))
+      {
+        newly_migrated_tokens += *amount/SAFEX_TOKEN; //don't keep decimals
+        //note: we are duing calculations with whole number of tokens. Database keeps whole number of tokens
+        CHECK_AND_ASSERT_MES((already_migrated_tokens+newly_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "max number of migrated tokens exceeded");
+
+      }
     }
+
     // make sure tx output has key offset(s) (is signed to be used)
     CHECK_AND_ASSERT_MES(is_valid_txin_key_offsets(txin), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
@@ -3622,16 +3639,13 @@ leave:
   m_db->block_txn_stop();
   TIME_MEASURE_START(addblock);
   uint64_t new_height = 0;
-  uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0;
-  //todo ATANA calculate number of migrated tokens
-  already_migrated_tokens += count_new_migration_tokens(txs);
-
-
 
   if (!bvc.m_verifivation_failed)
   {
     try
     {
+      uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0; //whole number of tokens, without decimals
+      already_migrated_tokens += count_new_migration_tokens(txs);
       new_height = m_db->add_block(bl, block_size, cumulative_difficulty, already_generated_coins, already_migrated_tokens, txs);
     }
     catch (const KEY_IMAGE_EXISTS& e)
@@ -4661,6 +4675,7 @@ bool Blockchain::is_valid_txin_key_offsets(const txin_v& txin) const
   return boost::apply_visitor(key_offsets_visitor(), txin);
 }
 
+/* Returns whole number of tokens without decimals */
 uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& txs) const
 {
   uint64_t ret = 0;
@@ -4671,7 +4686,7 @@ uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& 
       if (txin.type() == typeid(txin_token_migration))
       {
         const txin_token_migration &in_token_migration = boost::get<txin_token_migration>(txin);
-        ret += in_token_migration.token_amount;
+        ret += in_token_migration.token_amount / SAFEX_TOKEN;
       }
     }
 
