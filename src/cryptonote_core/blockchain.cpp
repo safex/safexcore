@@ -3639,12 +3639,12 @@ leave:
   m_db->block_txn_stop();
   TIME_MEASURE_START(addblock);
   uint64_t new_height = 0;
-  uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0; //whole number of tokens, without decimals
 
   if (!bvc.m_verifivation_failed)
   {
     try
     {
+      uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0; //whole number of tokens, without decimals
       already_migrated_tokens += count_new_migration_tokens(txs);
       new_height = m_db->add_block(bl, block_size, cumulative_difficulty, already_generated_coins, already_migrated_tokens, txs);
     }
