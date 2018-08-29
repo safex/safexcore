@@ -50,6 +50,9 @@ using namespace cryptonote;
 
 // class token_transactions_001;
 
+const int64_t token_transactions_001::expected_alice_cash_balance = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
+const int64_t token_transactions_001::expected_bob_cash_balance = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;
+
 crypto::hash token_transactions_001::get_hash_from_string(const std::string hashstr) {
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;

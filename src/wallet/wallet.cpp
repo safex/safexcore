@@ -8447,6 +8447,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
     const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon)
 {
   //ensure device is let in NONE mode in any case
+
   hw::device &hwdev = m_account.get_device();
   boost::unique_lock<hw::device> hwdev_lock (hwdev);
   hw::reset_mode rst(hwdev);

@@ -65,8 +65,8 @@ public:
   static const uint64_t expected_daniel_token_balance = 12 * COIN;
   static const uint64_t expected_jack_token_balance = 12 * COIN;
 
-  static const int64_t expected_alice_cash_balance = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
-  static const int64_t expected_bob_cash_balance = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;
+  static const int64_t expected_alice_cash_balance;// = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
+  static const int64_t expected_bob_cash_balance;// = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;
   static const int64_t expected_daniel_cash_balance = 5*SAFEX_CASH_COIN - TESTS_DEFAULT_FEE;
   static const int64_t expected_jack_cash_balance = 0 * SAFEX_CASH_COIN;
   static const int64_t CASH_THRESHOLD = SAFEX_CASH_COIN/1000000;
