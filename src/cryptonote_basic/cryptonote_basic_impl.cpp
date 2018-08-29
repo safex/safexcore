@@ -280,17 +280,6 @@ namespace cryptonote {
     return true;
   }
   //-----------------------------------------------------------------------
-  bool is_migration_transaction(const transaction& tx)
-  {
-    if(tx.vin.size() != 1)
-      return false;
-
-    if(tx.vin[0].type() != typeid(txin_token_migration))
-      return false;
-
-    return true;
-  }
-  //-----------------------------------------------------------------------
   bool get_account_address_from_str(
       address_parse_info& info
     , network_type nettype
