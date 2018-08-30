@@ -46,6 +46,8 @@
 //Custom difficulty introduced
 #define TEST_SIMULATION_DIFFICULTY 1
 #define SAFEX_DIFFICULTY 2
+#define DIFFICULTY_TYPE SAFEX_DIFFICULTY
+
 
 
 namespace cryptonote {
@@ -133,9 +135,6 @@ difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vect
 	 //hardcode small difficulty for easier simulation
 	return 1;
 #elif (DIFFICULTY_TYPE == SAFEX_DIFFICULTY)
-	//todo
-	return 1;
-#else
 	//use original Monero difficulty calculation
     if(timestamps.size() > DIFFICULTY_WINDOW)
     {
