@@ -13,16 +13,16 @@ See also each utility's "--help" option.
 
 ### Export an existing blockchain database
 
-`$ monero-blockchain-export`
+`$ safex-blockchain-export`
 
 This loads the existing blockchain and exports it to `$SAFEX_DATA_DIR/export/blockchain.raw`
 
 ### Import the exported file
 
-`$ monero-blockchain-import`
+`$ safex-blockchain-import`
 
 This imports blocks from `$SAFEX_DATA_DIR/export/blockchain.raw` (exported using the
-`monero-blockchain-export` tool as described above) into the current database.
+`safex-blockchain-export` tool as described above) into the current database.
 
 Defaults: `--batch on`, `--batch size 20000`, `--verify on`
 
@@ -31,14 +31,14 @@ Batch size refers to number of blocks and can be adjusted for performance based 
 Verification should only be turned off if importing from a trusted blockchain.
 
 If you encounter an error like "resizing not supported in batch mode", you can just re-run
-the `monero-blockchain-import` command again, and it will restart from where it left off.
+the `safex-blockchain-import` command again, and it will restart from where it left off.
 
 ```bash
 ## use default settings to import blockchain.raw into database
-$ monero-blockchain-import
+$ safex-blockchain-import
 
 ## fast import with large batch size, database mode "fastest", verification off
-$ monero-blockchain-import --batch-size 20000 --database lmdb#fastest --verify off
+$ safex-blockchain-import --batch-size 20000 --database lmdb#fastest --verify off
 
 ```
 
@@ -81,9 +81,9 @@ LMDB flags (more than one may be specified):
 ## Examples:
 
 ```
-$ monero-blockchain-import --database lmdb#fastest
+$ safex-blockchain-import --database lmdb#fastest
 
-$ monero-blockchain-import --database lmdb#nosync
+$ safex-blockchain-import --database lmdb#nosync
 
-$ monero-blockchain-import --database lmdb#nosync,nometasync
+$ safex-blockchain-import --database lmdb#nosync,nometasync
 ```
