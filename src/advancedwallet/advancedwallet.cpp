@@ -5009,7 +5009,13 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
     }
     else if (m_wallet->watch_only())
     {
+      // ugly hack... used bitcoin_hash noy saved in sources
+      for (auto &ptx : ptx_vector) {
+        add_bitcoin_hash_to_extra(ptx.construction_data.extra, bitcoin_burn_transaction);
+      }
+
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
+
       if (!r)
       {
         fail_msg_writer() << tr("Failed to write transaction(s) to file");

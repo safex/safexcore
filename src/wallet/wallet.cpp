@@ -5302,7 +5302,7 @@ bool wallet::sign_tx(unsigned_tx_set &exported_txs, const std::string &signed_fi
     std::string key_images;
     bool all_are_valid_input = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const txin_v& s_e) -> bool
     {
-      if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key)))
+      if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key)) || (s_e.type() == typeid(txin_token_migration)))
       {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), s_e);
         key_images += boost::to_string(k_image) + " ";
