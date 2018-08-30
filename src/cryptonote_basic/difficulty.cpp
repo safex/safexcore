@@ -46,8 +46,6 @@
 //Custom difficulty introduced
 #define TEST_SIMULATION_DIFFICULTY 1
 #define SAFEX_DIFFICULTY 2
-#define MONERO_DIFFICULTY 3
-#define DIFFICULTY_TYPE MONERO_DIFFICULTY
 
 
 namespace cryptonote {
