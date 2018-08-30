@@ -91,7 +91,7 @@ To test the code, run:
 
 ```
 $ cd build/debug/tests
-$ ctest -j <Your number of cores> -vv > tests.log
+$ ctest -j <Your number of cores> -VV > tests.log
 ```
 
 ## Running

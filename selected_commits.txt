@@ -1,58 +1,32 @@
-d96c181d01d7a81b1edc112f49ee782ac7af7396 Merge pull request #32 from atanmarko/network_tweaks
-d166ca80677ef81e4016dc26ebdf9888fac726e5 Merge pull request #31 from safex/develop
-78dba5284cc33bf35104dee0e49584e2a320a89a Merge pull request #30 from atanmarko/version_rename
-c181ec0ef881a93fb4c90157aff79333187dade9 Merge pull request #29 from atanmarko/test_network_id_update
-07765ce4da0364c9af63f2ba826031a3814542b4 Merge remote-tracking branch 'safexoriginal/master' into test_network_id_update
-3f68ba030aa704c9da5360bbce1e3bbf22cad657 Merge pull request #28 from atanmarko/wallet_commands_update
-9f75bdb4dec92b2f08d5f4e0a55e75c15efb53c3 Merge pull request #27 from atanmarko/monero-upstream-crypto-update
-6d5bc7d5a66cbfe80a7ae7d081d5032e5c8dce7a Merge pull request #26 from atanmarko/mining01
-[INTEGRATED] fa37fdd3a1204bcd8e1ba9833ab00a34611f37e2 malloc scratchpad for all supported android archs
-[INTEGRATED] 81f3651d17953216e4154484dd02c48edf65860e crypto: more places needing fixing for GCC 8.1
-3fc8b18d1e4b0b6d3ec994a8e378b8cfd309e454 slow-hash: fix memory leak for Windows /karbowanec#41
-30cf0f50f237227f4015f228f96a1f0543c3d010 Merge pull request #25 from atanmarko/safex_rate_fix
-f6a214d2e6b4f486715fd9e1bc4be44fe0697641 Merge pull request #24 from atanmarko/migration_input_fix
-db11dc16184cd7cc6f28ff2892098653e74a6dd5 Fix bitcoin hash data field
-65d9688fea52b99d179653e79de95dccb582179f Merge pull request #22 from atanmarko/config_updates
-518cf8cc1d649251c1cacbc550b1f037b5479646 Merge pull request #23 from hitripekac/json-messaging-updates
-54f357bb8cdcd6844af664d85f8bfc1a1544c42e Merge pull request #21 from atanmarko/config_updates
-a70cead60e69b186954145695c2f0ef81f087a3d Merge pull request #20 from atanmarko/migration_genesis_keys
-457e36c9728f9a46a6ad476b35fb45d8b8fb92de Merge pull request #19 from atanmarko/core_tests_updates01
-6576373d0e2a8234fcb770084eeb0dadc84a2da9 Merge pull request #7 from atanmarko/core_tests_verify_migration_transaction
-d9f5727bd477a8da9085a45cee743ac9792a2a1d Merge pull request #15 from hitripekac/ubuntu-build-instructions
-b541aae77e50f599d64786b1fbfbf918cce636fd Merge pull request #14 from Kiu0612/master
-374b06ea95bba76a446579d66ccde79ec4f0092b Merge pull request #12 from Kiu0612/master
-2299888dd9bd1b9ddc39034d18bb7f800b6e75c5 Merge pull request #10 from hitripekac/gcc-82-fixes
-f37db623ddfc1101da1ef13bfe5cdb7d608fc7e1 Merge pull request #11 from hitripekac/final-boost167-fix
-d45eb3115a6f4e235c6b8f38c9c1c71da1610c1f Merge pull request #9 from hitripekac/boost-library-fix-build
-b703b33b269872f68c749bf41f55846ce1626651 Fix build error with boost 1.67 and remove a warning from cryptonote_basic
-a486cae407b109a7a95060daa85e4efed2046c01 Merge pull request #4120
-9a4f1f0134034fd46991c5cf41722256713a8df2 Merge pull request #4118
-42b4bc74f0a4530383d80cf16bff5c0cce28bfa3 Merge pull request #4 from atanmarko/test_release_build_fix
-40530b294e6074dffb0d3de25d0442d3b85467b8 Merge pull request #4102
-1ce04b75747c78a7cd2b5d003bf0887ce5d314dc Merge pull request #4092
-009feaca798162593bb5d9038d16e69d70a2f66a wallet2: fix get_approximate_blockchain_height for stagenet
-233a1ead224bbfc2acbeec3c505c051e01eca98f blockchain: pop forked blocks only when DB is not read-only
-8e64b616636e99c7911434289ad2df2d9506ac11 blockchain: return error when requesting non existent output
-06b0f9e87068ef1d5a329b5147906ec5f3cd3265 Merge pull request #3976
-0a7efa45f708fa3e0aa055e228c0621883fd8f7a Merge pull request #3928
-db26776a35f628f788dde684d98c1a2ed719ac50 Merge pull request #3526
-e2c39f6b59fcf5c623c814dfefc518ab0b7eca32 Merge pull request #3914
-f12b277d20b72315bcdfb642772d4d75d887fb7b Merge pull request #3912
-107eec4dca5a0d8be24fbece12fdbc060629c50a protocol: drop (and increase fails) if most blocks hashes are invalid
-de742b5c8257c445729d107b0f9fe5700f5ecba3 blockchain: demote a hash-of-hashes validation warning to debug
-0d219ccdcda36e1ce620a5a5e7ab820f85cba379 Merge pull request #3906
-95568639e046312ccd7de4618eb3a0a10b8d1576 Merge pull request #3900
-bd567719966e528ae17e2b4c447f2552ef1f8b75 Merge pull request #3858
-a87a19c570d8150ff77e444f655716711791f8a1 Merge pull request #3893
-3380458d2e5b11d42f2e45d618f02f1ae5edf7b9 Merge pull request #3891
-0dac3afc229f96d6b32921fb739d054cbc3164d6 Merge pull request #3883
-dca353c574fdd80d343971be6b5ce72229fa00c8 Merge pull request #3886
-8195a444ee2b7d89860f99838f987c36eb6ff768 Merge pull request #3889
-b2dd94bcc06406bd5a7edb19746659b5ba37f3c5 Merge pull request #3802
-65c69fb67ef88f31ac0cbb2335d09bb06376e16e Merge pull request #3884
-5e2e003cfba9f41fb739d15641d015d9689eb0d5 http_protocol_handler: limit the number of starting newlines
-ccaa666cf9dbef3e865c2109ae619215b86805c6 http_protocol_handler: speedup newline discarding
-49cf41a61d578e5307768164342c9427a9cbece7 protocol: do not switch to unsafe sync mode for just a few blocks
+
+-----------------------IN PULL REQUEST, XMR CHANGES BATCH  3-----------------------
+[REJECTED]	a486cae407b109a7a95060daa85e4efed2046c01 Merge pull request #4120
+[REJECTED]	9a4f1f0134034fd46991c5cf41722256713a8df2 Merge pull request #4118
+[REJECTED]	40530b294e6074dffb0d3de25d0442d3b85467b8 Merge pull request #4102
+[REJECTED]	1ce04b75747c78a7cd2b5d003bf0887ce5d314dc Merge pull request #4092
+[REJECTED]	009feaca798162593bb5d9038d16e69d70a2f66a wallet2: fix get_approximate_blockchain_height for stagenet
+[IN BRANCH]	233a1ead224bbfc2acbeec3c505c051e01eca98f blockchain: pop forked blocks only when DB is not read-only
+[REJECTED]	8e64b616636e99c7911434289ad2df2d9506ac11 blockchain: return error when requesting non existent output
+[REJECTED]	06b0f9e87068ef1d5a329b5147906ec5f3cd3265 Merge pull request #3976
+[REJECTED]	0a7efa45f708fa3e0aa055e228c0621883fd8f7a Merge pull request #3928
+[INTEGRATED]	db26776a35f628f788dde684d98c1a2ed719ac50 Merge pull request #3526
+[IN BRANCH]	e2c39f6b59fcf5c623c814dfefc518ab0b7eca32 Merge pull request #3914
+[IN BRANCH]	f12b277d20b72315bcdfb642772d4d75d887fb7b Merge pull request #3912
+[IN BRANCH]	107eec4dca5a0d8be24fbece12fdbc060629c50a protocol: drop (and increase fails) if most blocks hashes are invalid
+[IN BRANCH]	de742b5c8257c445729d107b0f9fe5700f5ecba3 blockchain: demote a hash-of-hashes validation warning to debug
+[REJECTED]	0d219ccdcda36e1ce620a5a5e7ab820f85cba379 Merge pull request #3906
+[REJECTED]	95568639e046312ccd7de4618eb3a0a10b8d1576 Merge pull request #3900
+[REJECTED]	bd567719966e528ae17e2b4c447f2552ef1f8b75 Merge pull request #3858
+[REJECTED]	a87a19c570d8150ff77e444f655716711791f8a1 Merge pull request #3893
+[REJECTED]	3380458d2e5b11d42f2e45d618f02f1ae5edf7b9 Merge pull request #3891
+[REJECTED]	0dac3afc229f96d6b32921fb739d054cbc3164d6 Merge pull request #3883
+[REJECTED]	dca353c574fdd80d343971be6b5ce72229fa00c8 Merge pull request #3886
+[REJECTED]	8195a444ee2b7d89860f99838f987c36eb6ff768 Merge pull request #3889
+[REJECTED]	b2dd94bcc06406bd5a7edb19746659b5ba37f3c5 Merge pull request #3802
+[IN BRANCH]	65c69fb67ef88f31ac0cbb2335d09bb06376e16e Merge pull request #3884
+[REJECTED]	5e2e003cfba9f41fb739d15641d015d9689eb0d5 http_protocol_handler: limit the number of starting newlines
+[IN BRANCH]	ccaa666cf9dbef3e865c2109ae619215b86805c6 http_protocol_handler: speedup newline discarding
+[IN BRANCH]	49cf41a61d578e5307768164342c9427a9cbece7 protocol: do not switch to unsafe sync mode for just a few blocks
 [REJECTED]	aa6850c71d2269bd0728ee503ff07f1d52ce5e58 Merge pull request #3846
 [REJECTED]	c79fe98b714bb14e7c6a9a0e87598028f4399a4e Merge pull request #3843
 [IN BRANCH]	9205bba38ac1cb5235a3dbf6651e57d1350f1dd8 Merge pull request #3801
@@ -77,7 +51,7 @@ ccaa666cf9dbef3e865c2109ae619215b86805c6 http_protocol_handler: speedup newline 
 [IN BRANCH]	6f859e4328dca30e37dc70d2ea0c0eee869f478c cryptonote: make sure outPk setup always happens
 [IN BRANCH]	4980d3c0c90d3cab5d519e33e7751ce2f66df0bc blockchain: pop top if block version disagrees with the ideal fork version
 [REJECTED]	e8e2bd5212e1a5471d3b0db18ae0067e0f178461 Merge pull request #3751
------------------------PULL REQUEST, BATCH 1-----------------------
+-----------------------IN PULL REQUEST, XMR CHANGES BATCH  2-----------------------
 [IN PULL REQ]	6b9d9f56a1c7405a68ab5871d7db02e9d98836d5 Merge pull request #3719
 [REJECTED]	88c78d16833f6652be855be12ad9d8ea16759e4a Merge pull request #3729
 [REJECTED]	af6febaa832981ec6f9473ed9cd17e40da71188d Merge pull request #3730
