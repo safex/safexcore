@@ -382,8 +382,10 @@ namespace nodetool
     }
     else
     {
-      full_addrs.insert("107.152.130.98:19183");
-      full_addrs.insert("212.83.175.67:19183");
+      full_addrs.insert("seed.safex.io:19110");
+      full_addrs.insert("seed.safenetwork.io:19110");
+      full_addrs.insert("seed.safex.services:19110");
+      full_addrs.insert("seed.safex.link:19110");
     }
     return full_addrs;
   }
