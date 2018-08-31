@@ -172,7 +172,7 @@ namespace cryptonote
       return true;
     }
 
-    ADD_CHECKPOINT(0,     "3238e3870cd4e461e35878c53b5e283011ebe6bd9e23b04080982085de0b0670");
+    ADD_CHECKPOINT(0,     "579eeaa9573f39aea70d5c403b2f9d9dce0b22d4b741fc81e8cf6997c80d9756");
 
 
 
