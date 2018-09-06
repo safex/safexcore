@@ -5302,7 +5302,7 @@ bool wallet::sign_tx(unsigned_tx_set &exported_txs, const std::string &signed_fi
     std::string key_images;
     bool all_are_valid_input = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const txin_v& s_e) -> bool
     {
-      if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key)))
+      if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key)) || (s_e.type() == typeid(txin_token_migration)))
       {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), s_e);
         key_images += boost::to_string(k_image) + " ";
@@ -7948,7 +7948,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_transfers_indices_per_subaddr;
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_dust_indices_per_subaddr;
   uint64_t needed_money;
-  uint64_t accumulated_fee, accumulated_outputs, accumulated_change;
   struct TX {
     std::vector<size_t> selected_transfers;
     std::vector<cryptonote::tx_destination_entry> dsts;
@@ -7980,13 +7979,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
       }
     }
   };
-  std::vector<TX> txes;
-  bool adding_fee; // true if new outputs go towards fee, rather than destinations
-  uint64_t needed_fee, available_for_fee = 0;
+
   uint64_t upper_transaction_size_limit = get_upper_transaction_size_limit();
   const bool use_rct = use_fork_rules(HF_VERSION_ENFORCE_RCT, 0);
   const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
-
   const uint64_t fee_per_kb  = get_per_kb_fee();
   const uint64_t fee_multiplier = get_fee_multiplier(priority, get_fee_algorithm());
 
@@ -8099,14 +8095,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
   if (unused_transfers_indices_per_subaddr.empty())
     unused_transfers_indices_per_subaddr.push_back({});
 
-  // start with an empty tx
-  txes.push_back(TX());
-  accumulated_fee = 0;
-  accumulated_outputs = 0;
-  accumulated_change = 0;
-  adding_fee = false;
-  needed_fee = 0;
-  std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
 
   // for rct, since we don't see the amounts, we will try to make all transactions
   // look the same, with 1 or 2 inputs, and 2 outputs. One input is preferable, as
@@ -8150,6 +8138,18 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
     }
   }
   LOG_PRINT_L2("done checking preferred");
+
+
+  std::vector<TX> txes;
+  txes.push_back(TX()); // start with an empty tx
+
+  bool adding_fee = false; // true if new outputs go towards fee, rather than destinations
+  uint64_t needed_fee = 0;
+  uint64_t available_for_fee = 0;
+  uint64_t accumulated_fee = 0, accumulated_outputs = 0, accumulated_change = 0;
+
+  std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
+
 
   // while:
   // - we have something to send
@@ -8400,7 +8400,7 @@ skip_tx:
                             fake_outs_count,            /* CONST size_t fake_outputs_count, */
                             tx.outs,                    /* MOD   std::vector<std::vector<tools::wallet::get_outs_entry>> &outs, */
                             unlock_time,                /* CONST uint64_t unlock_time,  */
-                            needed_fee,                 /* CONST uint64_t fee, */
+                            tx.ptx.fee,                 /* CONST uint64_t fee, */
                             extra,                      /* const std::vector<uint8_t>& extra, */
                             test_tx,                    /* OUT   cryptonote::transaction& tx, */
                             test_ptx,                   /* OUT   cryptonote::transaction& tx, */
@@ -8411,7 +8411,7 @@ skip_tx:
                         fake_outs_count,
                         tx.outs,
                         unlock_time,
-                        needed_fee,
+                        tx.ptx.fee,
                         extra,
                         detail::digit_split_strategy,
                         tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD),
@@ -8447,6 +8447,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
     const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon)
 {
   //ensure device is let in NONE mode in any case
+
   hw::device &hwdev = m_account.get_device();
   boost::unique_lock<hw::device> hwdev_lock (hwdev);
   hw::reset_mode rst(hwdev);
@@ -8460,10 +8461,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_transfers_indices_per_subaddr; //for fee payment
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_dust_indices_per_subaddr; // for fee payment
 
-  uint64_t needed_money = 0; //this is for transaction fee
-  uint64_t needed_tokens = 0;
-  uint64_t accumulated_fee = 0, accumulated_outputs = 0, accumulated_change = 0;
-  uint64_t accumulated_token_outputs = 0, accumulated_token_change = 0;
   struct TOKEN_TX {
     std::vector<size_t> selected_transfers;
     std::vector<cryptonote::tx_destination_entry> dsts;
@@ -8511,9 +8508,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
       }
     }
   };
-  std::vector<TOKEN_TX> txes;
-  bool adding_fee = false; // true if new outputs go towards fee, rather than destinations
-  uint64_t needed_fee = 0, available_for_fee = 0; //this is safex cash
+
   uint64_t upper_transaction_size_limit = get_upper_transaction_size_limit();
   const bool use_rct = use_fork_rules(HF_VERSION_ENFORCE_RCT, 0);
   const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
@@ -8526,8 +8521,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
 
   // calculate total amount being sent to all destinations
   // throw if total amount overflows uint64_t
-  needed_money = 0;
-  needed_tokens = 0;
+  uint64_t needed_money = 0; //this is for transaction fee
+  uint64_t needed_tokens = 0;
   for(auto& dt: dsts)
   {
     THROW_WALLET_EXCEPTION_IF(0 == dt.token_amount, error::zero_destination);
@@ -8691,13 +8686,13 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
     unused_transfers_indices_per_subaddr.push_back({});
 
   // start with an empty tx
+  std::vector<TOKEN_TX> txes;
   txes.push_back(TOKEN_TX());
-  accumulated_fee = 0;
-  needed_fee = 0;
-  adding_fee = false;
-  accumulated_change = 0;
-  accumulated_token_outputs = 0;
-  accumulated_token_change = 0;
+
+  uint64_t needed_fee = 0, available_for_fee = 0; //this is safex cash
+  uint64_t accumulated_fee = 0, accumulated_outputs = 0, accumulated_change = 0;
+  uint64_t accumulated_token_outputs = 0, accumulated_token_change = 0;
+  bool adding_fee = false; // true if new outputs go towards fee, rather than destinations
 
   std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
 
@@ -8976,11 +8971,11 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         accumulated_change += test_ptx.change_dts.amount;
         accumulated_token_change += test_ptx.change_token_dts.token_amount;
         adding_fee = false;
-        if (!dsts.empty())
-        {
+        if (!dsts.empty()) {
           LOG_PRINT_L2("We have more to pay, starting another tx");
           txes.push_back(TOKEN_TX());
           original_output_index = 0;
+          needed_fee = 0;
         }
       }
     }
@@ -9039,7 +9034,7 @@ skip_tx:
                             fake_outs_count,            /* CONST size_t fake_outputs_count, */
                             tx.outs,                    /* MOD   std::vector<std::vector<tools::wallet::get_outs_entry>> &outs, */
                             unlock_time,                /* CONST uint64_t unlock_time,  */
-                            needed_fee,                 /* CONST uint64_t fee, */
+                            tx.ptx.fee,                 /* CONST uint64_t fee, */
                             extra,                      /* const std::vector<uint8_t>& extra, */
                             test_tx,                    /* OUT   cryptonote::transaction& tx, */
                             test_ptx,                   /* OUT   cryptonote::transaction& tx, */
@@ -9050,7 +9045,7 @@ skip_tx:
                         fake_outs_count,
                         tx.outs,
                         unlock_time,
-                        needed_fee,
+                        tx.ptx.fee,
                         extra,
                         detail::digit_split_strategy,
                         tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD),
@@ -9440,8 +9435,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
   boost::unique_lock<hw::device> hwdev_lock(hwdev);
   hw::reset_mode rst(hwdev);
 
-  uint64_t accumulated_fee = 0, accumulated_change = 0, accumulated_outputs = 0;
-  uint64_t accumulated_token_outputs = 0, accumulated_token_change = 0;
   struct TOKEN_TX
   {
     std::vector<size_t> selected_transfers;
@@ -9451,8 +9444,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
     size_t bytes = 0;
     std::vector<std::vector<get_outs_entry>> outs;
   };
-  std::vector<TOKEN_TX> txes;
-  uint64_t needed_fee = 0, available_for_fee = 0;
   uint64_t upper_transaction_size_limit = get_upper_transaction_size_limit();
   std::vector<std::vector<get_outs_entry>> outs;
 
@@ -9470,14 +9461,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
     return std::vector<wallet::pending_tx>();
 
   // start with an empty tx
+  std::vector<TOKEN_TX> txes;
   txes.push_back(TOKEN_TX());
-  accumulated_fee = 0;
-  accumulated_outputs = 0; //cash outputs for fee
-  accumulated_change = 0;
-  accumulated_token_outputs = 0;
-  accumulated_token_change = 0;
-  needed_fee = 0;
 
+  uint64_t needed_fee = 0, available_for_fee = 0;
+  uint64_t accumulated_fee = 0, accumulated_change = 0, accumulated_outputs = 0 /* cash outputs for fee*/;
+  uint64_t accumulated_token_outputs = 0, accumulated_token_change = 0;
   bool adding_fee = false;
 
   // while we have something to send
@@ -9593,6 +9582,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
       {
         LOG_PRINT_L2("We have more to pay, starting another token tx");
         txes.push_back(TOKEN_TX());
+        needed_fee = 0;
       }
       adding_fee = false;
     }
@@ -9609,11 +9599,11 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
     pending_tx test_ptx = AUTO_VAL_INIT(test_ptx);
     if (use_rct)
     {
-      transfer_selected_rct(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, needed_fee, extra,
+      transfer_selected_rct(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, tx.ptx.fee, extra,
                             test_tx, test_ptx, bulletproof);
     } else
     {
-      transfer_selected<detail::split_strategy_function, cryptonote::tx_out_type::out_token>(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, needed_fee, extra,
+      transfer_selected<detail::split_strategy_function, cryptonote::tx_out_type::out_token>(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, tx.ptx.fee, extra,
                                                                                              detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD), test_tx, test_ptx);
     }
     auto txBlob = t_serializable_object_to_blob(test_ptx.tx);

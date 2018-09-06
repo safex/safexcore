@@ -53,9 +53,10 @@
 // COIN - number of smallest units in one coin
 #define COIN                                            ((uint64_t)10000000000) // pow(10, 10)
 #define SAFEX_CASH_COIN                                 COIN
+#define SAFEX_TOKEN                                     COIN
 
-// MONEY_SUPPLY - total number coins to be generated
-#define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash total supply
+// MONEY_SUPPLY - number coins to be generated
+#define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash supply in 20 years
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
@@ -64,12 +65,14 @@
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
 
-#define AIRDROP_SAFES_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
-#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //todo calculate rate
+#define AIRDROP_SAFEX_CASH_AMOUNT                       (10000000 * SAFEX_CASH_COIN) //10 million coins
+#define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //migration token to cash rate
+
+#define TOKEN_TOTAL_SUPPLY                              ((uint64_t)2147483647) //Token total supply, without decimals
 
 #define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)
-#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 30 * pow(10,10)
+#define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)600000000000) // 60 * pow(10,10)
 
 #define ORPHANED_BLOCKS_MAX_COUNT                       100
 
@@ -160,17 +163,17 @@ namespace config
   std::string const P2P_REMOTE_DEBUG_TRUSTED_PUB_KEY = "0000000000000000000000000000000000000000000000000000000000000000";
 
   uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
-  uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x23fb16; // SFXp
-  uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xd03fb16; // SFXpi
-  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x17e3fb16; // SFXps
-  uint16_t const P2P_DEFAULT_PORT = 19183;
-  uint16_t const RPC_DEFAULT_PORT = 19184;
-  uint16_t const ZMQ_RPC_DEFAULT_PORT = 19185;
-  boost::uuids::uuid const NETWORK_ID = { {
-      0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x61, 0x17, 0x31, 0x00, 0x73, 0x61, 0x66, 0x65, 0x78
-    } };
-  std::string const GENESIS_TX = "";
-  uint32_t const GENESIS_NONCE = 10000;
+  uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x10003798; // Safex
+  uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xa90a03798; // Safexi
+  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x10e03798; // Safexs
+    uint16_t const P2P_DEFAULT_PORT = 17401;
+    uint16_t const RPC_DEFAULT_PORT = 17402;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 17403;
+    boost::uuids::uuid const NETWORK_ID = { {
+        0x73, 0x61, 0x66, 0x65 , 0x78, 0x6d , 0x6F, 0x6F, 0x6E, 0x6C, 0x61, 0x6D, 0x62, 0x6F, 0x34, 0x78
+                                            } };
+    std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100028ff33b5dc7640ad6333405a875f9a92cd69e99fc15d208ea2eb990203d1348dc8301011d22a19d7aa99b11c1143fd40e200760de6caa90eab16bd12d0188d6db8537611103c23aed713351b8b88e15bb213983aa03f26aca95da4e77384654153d50a55fc78dcc65a751789b60e816e3710d448b05f56777e66aff4c6228472e6a41e122dc9ab470e5997573adea910e70c4c3a04e3957e33c099848f0fd2d12dc6b84eca3";
+    uint32_t const GENESIS_NONCE = 10000;
 
   namespace testnet
   {
@@ -178,13 +181,13 @@ namespace config
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x263b16; // SFXt
     uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0xe05fb16; // SFXti
     uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x1905fb16; // SFXts
-    uint16_t const P2P_DEFAULT_PORT = 29292;
-    uint16_t const RPC_DEFAULT_PORT = 29293;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 29294;
+    uint16_t const P2P_DEFAULT_PORT = 29392;
+    uint16_t const RPC_DEFAULT_PORT = 29393;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 29394;
     boost::uuids::uuid const NETWORK_ID = { {
-        0x13 ,0x31, 0xF1, 0x71 , 0x61, 0x04 , 0x47, 0x65, 0x37, 0x31, 0x00, 0x73, 0x61, 0x66, 0x65, 0x81
+        0x13 ,0x31, 0xF1, 0x71 , 0x61, 0x04 , 0x47, 0x65, 0x37, 0x31, 0x00, 0x73, 0x61, 0x61, 0x2A, 0x31
       } };
-    std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b101000236a7e5d941256537ea4c065660202e72dc764a34c28947120ef00e70cc6887af830101e2f9ef713eb332f0136867606977db87ce36a9ca66f606b9a937aa489432e4cb110337b4b7f94b4e10da907a3595c5473ae4caa6c23fe2eacd63f7b980751dc67fdbab41993246f448adc57fd40c9847f0dfefc5177754100c726a647e92104bcb0f754841f7dd27ab5e8efe27e36f18dbbc7499c6d49bab4bdd500059062a20b7e8";
+    std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002fa3bae5e74bf76fcf29d4e8f660ee4ecbdab4b963689aafaad59e17be0c2b9b7830101471b3a2ba776939f535f7707f09fb0cf26e25b72f2d798b40566172b67b44d9e1103e978d2034df59407b5ed4eda3cb61fc4e79d69c0c439ed946e1e4487a4a5e3dd79dc7aecb3037b7384b845e14744aa073a5c08a5c638a60ecdf066830a1d58fcf5311e51d018930503facd4abe04f25ccb80e644c8a44ee0c97a34ef9dc96cd9";
     uint32_t const GENESIS_NONCE = 10003;
   }
 

@@ -144,11 +144,15 @@ namespace boost
       a & x.real_output;
       a & x.real_out_tx_key;
       a & x.real_output_in_tx_index;
+      a & x.real_out_additional_tx_keys;
       a & x.amount;
       a & x.rct;
       a & x.mask;
       a & x.multisig_kLRki;
-      a & x.real_out_additional_tx_keys;
+      a & x.token_amount;
+      a & x.token_transaction;
+      a & x.migration;
+
     }
 
     template <class Archive>
@@ -157,6 +161,8 @@ namespace boost
       a & x.amount;
       a & x.addr;
       a & x.is_subaddress;
+      a & x.token_amount;
+      a & x.token_transaction;
     }
   }
 }

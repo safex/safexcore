@@ -995,7 +995,7 @@ namespace cryptonote
                                               this->get_transactions(b.tx_hashes, txs, missed_txs);
                                               for(const auto& tx: txs)
                                               {
-                                                total_migrated_tokens_amount += get_input_token_migration_amount(tx);
+                                                total_migrated_tokens_amount += get_input_token_migration_amount(tx)/SAFEX_TOKEN; //remove decimals
                                               }
 
                                               return true;
