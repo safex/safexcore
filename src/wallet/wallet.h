@@ -64,6 +64,7 @@
 #define SAFEX_DEFAULT_LOG_CATEGORY "wallet.wallet"
 
 class Serialization_portability_wallet_Test;
+class Serialization_serialize_wallet_Test;
 
 namespace tools
 {
@@ -145,6 +146,7 @@ namespace tools
   class wallet
   {
     friend class ::Serialization_portability_wallet_Test;
+    friend class ::Serialization_serialize_wallet_Test;
   public:
     static constexpr const std::chrono::seconds rpc_timeout = std::chrono::minutes(3) + std::chrono::seconds(30);
 
