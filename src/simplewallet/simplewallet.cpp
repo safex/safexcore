@@ -88,8 +88,6 @@ typedef cryptonote::simple_wallet sw;
 
 #define ENABLE_ADVANCED_OPTIONS 0 //some aditional features
 
-#define DEFAULT_MIX 6
-
 #define MIN_RING_SIZE 7 // Used to inform user about min ring size -- does not track actual protocol
 
 #define OUTPUT_EXPORT_FILE_MAGIC "Safex output export\003"
