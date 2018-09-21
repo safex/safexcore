@@ -2,7 +2,7 @@
 
 
 
-## CPU solo mining (Testnet)
+## CPU solo mining
 
 
 Download and build safex core blockchain client:
@@ -19,7 +19,7 @@ $ make -j<CPUNUM>
 Start safex blockchain node, wait for it to sync:
 
 ```
-$ /path/to/directory/safexcore/build/release/bin/safexd --testnet
+$ /path/to/directory/safexcore/build/release/bin/safexd
 ```
 
 Start mining to the target address:
@@ -29,7 +29,7 @@ start_mining <addr> [<threads>]
 ```
 
 
-## GPU solo mining (Testnet)
+## GPU solo mining
 
 ### Ubuntu 18.04
 
@@ -42,10 +42,10 @@ $ cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_SHARED_LIBS=ON .
 $ make
 ```
 
-Sync Safex blockchain (in this case, we are using test network)
+Sync Safex blockchain
 
 ```
-$ /path/to/directory/safexcore/bin/safexd --testnet
+$ /path/to/directory/safexcore/bin/safexd
 ```
 
 
@@ -63,13 +63,13 @@ $ cp -v ./config.example.json ./build/bin/config.json
 Setup configuration for monero-startum to target local Safex node. Also set address that will receive block reward.
 
 ```
-"address": "SFXtzRzqWR2J3ytgxg1AxBfM8ZFgZmywoXHtqeqwsk3Gi63B2c3mvLNct35m268Pg2eGqHLmJubC7GPdvb1KxhTvHeVd4WKD9RQ",
+"address": "Safex5zN1S4dFF6LP2zzxy3BtFsKJZ2Q8jLpqNEr46ENhVLtxasf6rahe3hpjWXiVFWNdues5z22x8U69AC7WZqZDgu3rnQjJmQ2K",
 ...
 "upstream": [
 		{
-			"name": "Testnet",
+			"name": "Mainnet",
 			"host": "127.0.0.1",
-			"port": 29293,
+			"port": 17402,
 			"timeout": "10s"
 		}
 ```
@@ -109,7 +109,7 @@ $ cp -v ./src/config.json ./build/
 Configure xmrig-nvidia by editing xmrig-nvidia/build/config.json
 
 ```
-"algo": "cryptonight/0",
+"algo": "cryptonight/1",
 "donate-level": 1,
 ...
 "pools": [
@@ -139,14 +139,14 @@ $ ./xmrig-nvidia
    * VERSIONS     XMRig/2.7.0-beta libuv/1.18.0 CUDA/9.10 gcc/6.4.0
    * CPU          Intel(R) Celeron(R) CPU G3930 @ 2.90GHz x64 AES
    * GPU #0       PCI:0000:03:00 GeForce GTX 1070 Ti @ 1683/4004 MHz 34x57 0x0 arch:61 SMX:19
-   * ALGO         cryptonight/0, donate=1%
-   * POOL #1      127.0.0.1:1111 variant 0
+   * ALGO         cryptonight/1, donate=1%
+   * POOL #1      127.0.0.1:1111 variant 1
    * COMMANDS     hashrate, health, pause, resume
   [2018-08-15 17:39:32] use pool 127.0.0.1:1111 127.0.0.1
-  [2018-08-15 17:39:32] new job from 127.0.0.1:1111 diff 8000 algo cn/0
-  [2018-08-15 17:39:40] new job from 127.0.0.1:1111 diff 8000 algo cn/0
+  [2018-08-15 17:39:32] new job from 127.0.0.1:1111 diff 8000 algo cn/1
+  [2018-08-15 17:39:40] new job from 127.0.0.1:1111 diff 8000 algo cn/1
   [2018-08-15 17:39:45] accepted (1/0) diff 8000 (81 ms)
-  [2018-08-15 17:39:45] new job from 127.0.0.1:1111 diff 8000 algo cn/0
+  [2018-08-15 17:39:45] new job from 127.0.0.1:1111 diff 8000 algo cn/1
   [2018-08-15 17:40:06] accepted (2/0) diff 8000 (0 ms)
 
 ```

@@ -72,6 +72,7 @@ To run the wallet: `$ /path/to/binaries/safex-wallet-cli --testnet <other wallet
 
 For a list/reference of all wallet parameters use `$ /path/to/binaries/safex-wallet-cli --testnet --help`
 
+<br/><br/><br/>
 Copyright (c) 2018 The Safex Project.
 
 Portions Copyright (c) 2014-2018 The Monero Project.
