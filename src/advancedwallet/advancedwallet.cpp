@@ -91,8 +91,6 @@ typedef cryptonote::advanced_wallet sw;
 #define MULTISIG_ACTIVE 0 //multisig is not yet implemented for tokens
 #define BLACKBALL_ACTIVE 0 //blackball is not yet needed, we are starting blokcchain from scratch
 
-#define DEFAULT_MIX 6
-
 #define MIN_RING_SIZE 7 // Used to inform user about min ring size -- does not track actual protocol
 
 #define OUTPUT_EXPORT_FILE_MAGIC "Safex output export\003"

@@ -145,6 +145,8 @@
 #define HF_VERSION_MIN_MIXIN_6                  HF_VERSION_TBD
 #define HF_VERSION_ENFORCE_RCT                  HF_VERSION_TBD //enforce RingCT transactions
 
+#define DEFAULT_MIX                             6 //default wallet mix for transactions
+
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        6
 
 #define HASH_OF_HASHES_STEP                     256

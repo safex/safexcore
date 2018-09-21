@@ -9782,15 +9782,15 @@ const wallet::transfer_details &wallet::get_transfer_details(size_t idx) const
 //----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet::select_available_unmixable_outputs(bool trusted_daemon, cryptonote::tx_out_type out_type)
 {
-  // request all outputs with less than 3 instances
-  const size_t min_mixin = 2;
+  // request all outputs with less than 7 instances
+  const size_t min_mixin = DEFAULT_MIX;
   return select_available_outputs_from_histogram(min_mixin + 1, false, true, false, trusted_daemon, out_type);
 }
 //----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet::select_available_mixable_outputs(bool trusted_daemon, cryptonote::tx_out_type out_type)
 {
-  // request all outputs with at least 3 instances, so we can use mixin 2 with
-  const size_t min_mixin = 2;
+  // request all outputs with at least 7 instances, so we can use mixin 6 with
+  const size_t min_mixin = DEFAULT_MIX;
   return select_available_outputs_from_histogram(min_mixin + 1, true, true, true, trusted_daemon, out_type);
 }
 //----------------------------------------------------------------------------------------------------
