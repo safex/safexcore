@@ -6585,6 +6585,8 @@ bool simple_wallet::import_key_images(const std::vector<std::string> &args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+/// @warning Please change Serialization.portability_outputs test if you change way of serialization
+///          of outputs.
 bool simple_wallet::export_outputs(const std::vector<std::string> &args)
 {
   if (m_wallet->key_on_device())
