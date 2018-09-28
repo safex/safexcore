@@ -1131,6 +1131,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   // Don't try to extract tx public key if tx has no ouputs
   size_t pk_index = 0;
   std::vector<tx_scan_info_t> tx_scan_info(tx.vout.size());
+  uint64_t total_received_1 = 0;
+  uint64_t total_token_received_1 = 0;
   while (!tx.vout.empty())
   {
     // if tx.vout is not empty, we loop through all tx pubkeys
@@ -1273,6 +1275,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         + ", m_transfers.size() is " + boost::lexical_cast<std::string>(m_transfers.size()));
         if (kit == m_pub_keys.end())
         {
+          uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
+          uint64_t token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
           if (!pool)
           {
             m_transfers.push_back(boost::value_initialized<transfer_details>());
@@ -1285,13 +1289,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             td.m_key_image = tx_scan_info[o].ki;
             td.m_key_image_known = !m_watch_only && !m_multisig;
             td.m_key_image_partial = m_multisig;
-            td.m_amount = tx.vout[o].amount;
-            td.m_token_amount = tx.vout[o].token_amount;
+            td.m_amount = amount;
+            td.m_token_amount = token_amount;
             td.m_token_transfer = td.m_token_amount > 0;
             td.m_pk_index = pk_index - 1;
             td.m_subaddr_index = tx_scan_info[o].received->index;
             expand_subaddresses(tx_scan_info[o].received->index);
-            if ((td.m_amount == 0) && (td.m_token_amount == 0))
+            if ((tx.vout[o].amount == 0) && (tx.vout[o].token_amount == 0))
             {
               //ring ct
               td.m_mask = tx_scan_info[o].mask;
@@ -1332,6 +1336,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
+          total_received_1 += amount;
+          total_token_received_1 += token_amount;
         }
         else if (m_transfers[kit->second].m_spent || m_transfers[kit->second].amount() >= tx.vout[o].amount || m_transfers[kit->second].token_amount() >= tx.vout[o].token_amount)
         {
@@ -1340,29 +1346,54 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             << " from received " << print_money(tx.vout[o].token_amount) << " token output already exists with "
             << (m_transfers[kit->second].m_spent ? "spent" : "unspent") << " "
             << print_money(m_transfers[kit->second].token_amount()) << ", received token output ignored");
+            THROW_WALLET_EXCEPTION_IF(tx_tokens_got_in_outs[tx_scan_info[o].received->index] < tx_scan_info[o].token_amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old token outputs");
+            tx_tokens_got_in_outs[tx_scan_info[o].received->index] -= tx_scan_info[o].token_amount;
           } else {
             LOG_ERROR("Public key " << epee::string_tools::pod_to_hex(kit->first)
             << " from received " << print_money(tx.vout[o].amount) << " output already exists with "
             << (m_transfers[kit->second].m_spent ? "spent" : "unspent") << " "
             << print_money(m_transfers[kit->second].amount()) << ", received output ignored");
+            THROW_WALLET_EXCEPTION_IF(tx_money_got_in_outs[tx_scan_info[o].received->index] < tx_scan_info[o].amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old outputs");
+            tx_money_got_in_outs[tx_scan_info[o].received->index] -= tx_scan_info[o].amount;
+
           }
         }
         else
         {
+          uint64_t token_amount = 0;
+          uint64_t extra_token_amount = 0;
+          uint64_t amount = 0;
+          uint64_t extra_amount = 0;
+
           if (m_transfers[kit->second].m_token_transfer) {
             LOG_ERROR("Public key " << epee::string_tools::pod_to_hex(kit->first)
             << " from received " << print_money(tx.vout[o].token_amount) << " token output already exists with "
             << print_money(m_transfers[kit->second].token_amount()) << ", replacing with new token output");
 
             // The new larger output replaced a previous smaller one
-            tx_tokens_got_in_outs[tx_scan_info[o].received->index] -= tx.vout[o].token_amount;
+            THROW_WALLET_EXCEPTION_IF(tx_tokens_got_in_outs[tx_scan_info[o].received->index] < tx_scan_info[o].token_amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old token outputs");
+            THROW_WALLET_EXCEPTION_IF(m_transfers[kit->second].token_amount() > tx_scan_info[o].token_amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old token outputs");
+            tx_tokens_got_in_outs[tx_scan_info[o].received->index] -= m_transfers[kit->second].token_amount();
+            token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
+            extra_token_amount = token_amount - m_transfers[kit->second].token_amount();
+
           } else {
             LOG_ERROR("Public key " << epee::string_tools::pod_to_hex(kit->first)
             << " from received " << print_money(tx.vout[o].amount) << " output already exists with "
             << print_money(m_transfers[kit->second].amount()) << ", replacing with new output");
 
             // The new larger output replaced a previous smaller one
-            tx_money_got_in_outs[tx_scan_info[o].received->index] -= tx.vout[o].amount;
+            THROW_WALLET_EXCEPTION_IF(tx_money_got_in_outs[tx_scan_info[o].received->index] < tx_scan_info[o].amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old outputs");
+            THROW_WALLET_EXCEPTION_IF(m_transfers[kit->second].amount() > tx_scan_info[o].amount,
+                                      error::wallet_internal_error, "Unexpected values of new and old outputs");
+            tx_money_got_in_outs[tx_scan_info[o].received->index] -= m_transfers[kit->second].amount();
+            amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
+            extra_amount = amount - m_transfers[kit->second].amount();
           }
 
           if (!pool)
@@ -1373,13 +1404,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             td.m_global_output_index = o_indices[o];
             td.m_tx = (const cryptonote::transaction_prefix&)tx;
             td.m_txid = txid;
-            td.m_amount = tx.vout[o].amount;
-            td.m_token_amount = tx.vout[o].token_amount;
+            td.m_amount = amount;
+            td.m_token_amount = token_amount;
             td.m_token_transfer = td.m_token_amount > 0;
             td.m_pk_index = pk_index - 1;
             td.m_subaddr_index = tx_scan_info[o].received->index;
             expand_subaddresses(tx_scan_info[o].received->index);
-            if ((td.m_amount == 0) && (td.m_token_amount == 0))
+            if ((tx.vout[o].amount == 0) && (tx.vout[o].token_amount == 0))
             {
               td.m_mask = tx_scan_info[o].mask;
               td.m_amount = tx_scan_info[o].amount;
@@ -1417,6 +1448,9 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
+
+            total_received_1 += extra_amount;
+            total_token_received_1 += extra_token_amount;
           }
         }
       }
@@ -1588,6 +1622,24 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     {
       LOG_PRINT_L2("Found unencrypted payment ID: " << payment_id);
     }
+
+    uint64_t total_received_2 = 0;
+    uint64_t total_token_received_2 = 0;
+    for (const auto& i : tx_money_got_in_outs)
+      total_received_2 += i.second;
+    for (const auto& i : tx_tokens_got_in_outs)
+      total_token_received_2 += i.second;
+    if ((total_received_1 != total_received_2) || (total_token_received_1 != total_token_received_2))
+    {
+      const el::Level level = el::Level::Warning;
+      MCLOG_RED(level, "global", "**********************************************************************");
+      MCLOG_RED(level, "global", "Consistency failure in amounts/token amounts received");
+      MCLOG_RED(level, "global", "Check transaction " << txid);
+      MCLOG_RED(level, "global", "**********************************************************************");
+      exit(1);
+      return;
+    }
+
 
     for (const auto& i : tx_money_got_in_outs)
     {
