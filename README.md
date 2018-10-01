@@ -1,10 +1,10 @@
 # SAFEX
 
-## Release info
 
-Repo Master branch is targeting **Testnet**
 
-**MAINNET IS IMMINENT** follow [SAFEX Twitter](https://twitter.com/safe_exchange) for the live update
+
+
+
 
 ## Build Instructions
 
