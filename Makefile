@@ -70,6 +70,10 @@ release-static:
 	mkdir -p build/release
 	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
 
+dist-static:
+	mkdir -p build/dist
+	cd build/dist && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
+
 coverage:
 	mkdir -p build/debug
 	cd build/debug && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=Debug -D COVERAGE=ON ../.. && $(MAKE) && $(MAKE) test
