@@ -2108,6 +2108,10 @@ advanced_wallet::advanced_wallet()
                            boost::bind(&advanced_wallet::sign_transfer, this, _1),
                            tr("sign_transfer [export]"),
                            tr("Sign a transaction from a file."));
+  m_cmd_binder.set_handler("sign_migration",
+                           boost::bind(&advanced_wallet::sign_migration, this, _1),
+                           tr("sign_migration <input_file> <output_file>"),
+                           tr("Sign a migration from a file."));
   m_cmd_binder.set_handler("submit_transfer",
                            boost::bind(&advanced_wallet::submit_transfer, this, _1),
                            tr("Submit a signed transaction from a file."));
@@ -4846,16 +4850,17 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
   std::vector<std::string> local_args = args_;
 
   uint32_t priority = 0;
-  if (local_args.size() > 0 && parse_priority(local_args[0], priority))
+  if (!local_args.empty() && parse_priority(local_args[0], priority))
     local_args.erase(local_args.begin());
 
   priority = m_wallet->adjust_priority(priority);
 
-  const size_t expexted_num_of_args = 3; //for TransferMigration
-  if(local_args.size() != expexted_num_of_args)
+  const size_t num_required_args = 3; //for TransferMigration
+  const size_t num_optional_args = 1;
+  if(local_args.size() < num_required_args || local_args.size() > num_required_args + num_optional_args)
   {
      fail_msg_writer() << tr("wrong number of arguments");
-     fail_msg_writer() << tr("migration command expected parameters: migrate [<priority>] <address> <bitcoin_hash> <amount>");
+     fail_msg_writer() << tr("migration command expected parameters: migrate [<priority>] <address> <bitcoin_hash> <amount> [<unsigned_file_name>]");
      return true;
   }
 
@@ -5012,7 +5017,8 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
         add_bitcoin_hash_to_extra(ptx.construction_data.extra, bitcoin_burn_transaction);
       }
 
-      bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
+      std::string path = local_args.size() == 4 ? local_args[3] : "unsigned_safex_tx";
+      bool r = m_wallet->save_tx(ptx_vector, path);
 
       if (!r)
       {
@@ -5020,7 +5026,7 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
       }
       else
       {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_safex_tx";
+        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << path;
       }
     }
     else
@@ -5829,6 +5835,57 @@ bool advanced_wallet::sign_transfer(const std::vector<std::string> &args_)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+bool advanced_wallet::sign_migration(const std::vector<std::string> &args_)
+{
+    if (m_wallet->key_on_device())
+    {
+        fail_msg_writer() << tr("command not supported by HW wallet");
+        return true;
+    }
+    if(m_wallet->multisig())
+    {
+        fail_msg_writer() << tr("This is a multisig wallet, it can only sign with sign_multisig");
+        return true;
+    }
+    if(m_wallet->watch_only())
+    {
+        fail_msg_writer() << tr("This is a watch only wallet");
+        return true;
+    }
+    if (args_.size() != 2)
+    {
+        fail_msg_writer() << tr("usage: sign_transfer <input_file> <export_file>");
+        return true;
+    }
+    if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }
+
+    std::vector<tools::wallet::pending_tx> ptx;
+    try
+    {
+        bool r = m_wallet->sign_tx(args_[0], args_[1], ptx, [&](const tools::wallet::unsigned_tx_set &tx){ return accept_loaded_tx(tx); }, false);
+        if (!r)
+        {
+            fail_msg_writer() << tr("Failed to sign transaction");
+            return true;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        fail_msg_writer() << tr("Failed to sign transaction: ") << e.what();
+        return true;
+    }
+
+    std::string txids_as_text;
+    for (const auto &t: ptx)
+    {
+        if (!txids_as_text.empty())
+            txids_as_text += (", ");
+        txids_as_text += epee::string_tools::pod_to_hex(get_transaction_hash(t.tx));
+    }
+    success_msg_writer(true) << tr("Transaction successfully signed to file ") << "signed_safex_tx" << ", txid " << txids_as_text;
+    return true;
+}
+//----------------------------------------------------------------------------------------------------
 bool advanced_wallet::submit_transfer(const std::vector<std::string> &args_)
 {
   if (m_wallet->key_on_device())
@@ -5841,8 +5898,13 @@ bool advanced_wallet::submit_transfer(const std::vector<std::string> &args_)
 
   try
   {
+    std::string path = args_.size() == 1 ? args_[0] : "signed_safex_tx";
+
     std::vector<tools::wallet::pending_tx> ptx_vector;
-    bool r = m_wallet->load_tx("signed_safex_tx", ptx_vector, [&](const tools::wallet::signed_tx_set &tx){ return accept_loaded_tx(tx); });
+    bool r = m_wallet->load_tx(path, ptx_vector, [&](const tools::wallet::signed_tx_set &tx){
+      return accept_loaded_tx(tx);
+    });
+
     if (!r)
     {
       fail_msg_writer() << tr("Failed to load transaction from file");
