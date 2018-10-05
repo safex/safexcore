@@ -1565,6 +1565,9 @@ namespace cryptonote
     res.top_block_hash = string_tools::pod_to_hex(top_hash);
     res.target_height = m_core.get_target_blockchain_height();
     res.difficulty = m_core.get_blockchain_storage().get_difficulty_for_next_block();
+    const auto height = m_core.get_blockchain_storage().get_current_blockchain_height();
+    res.migrated_tokens = m_core.get_blockchain_storage().get_db().get_block_already_migrated_tokens(height - 1);
+    res.issued_coins = m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height - 1);
     res.target = DIFFICULTY_TARGET;
     res.tx_count = m_core.get_blockchain_storage().get_total_transactions() - res.height; //without coinbase
     res.tx_pool_size = m_core.get_pool_transactions_count();
