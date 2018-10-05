@@ -68,6 +68,67 @@ To build a debug version, just run `$ make debug-all` (or `make -j <Your number 
 
 To build a release version, just run `$ make release-all` (or `make -j <Your number of cores> release-all` to use all cores).
 
+### On Windows:
+
+Binaries for Windows are built on Windows using the MinGW toolchain within
+[MSYS2 environment](https://www.msys2.org). The MSYS2 environment emulates a
+POSIX system. The toolchain runs within the environment and *cross-compiles*
+binaries that can run outside of the environment as a regular Windows
+application.
+
+**Preparing the build environment**
+
+* Download and install the [MSYS2 installer](https://www.msys2.org), either the 64-bit or the 32-bit package, depending on your system.
+* Open the MSYS shell via the `MSYS2 MSYS` shortcut
+* Update packages using pacman:
+
+        pacman -Syuu
+
+* Exit the MSYS shell using Alt+F4
+* Start `MSYS2 MinGW 64-bit` shell and update packages again using pacman:
+
+        pacman -Syuu
+
+* Install dependencies:
+
+    To build for 64-bit Windows:
+
+        pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium
+
+    To build for 32-bit Windows:
+
+        pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-zeromq mingw-w64-i686-libsodium
+
+* Open the MingW shell via `MSYS2 MinGW 64-bit` shortcut on 64-bit Windows
+  or `MSYS2 MinGW 32-bit` shortcut on 32-bit Windows. Note that if you are
+  running 64-bit Windows, you will have both 64-bit and 32-bit MinGW shells.
+
+**Cloning**
+
+* To git clone, run:
+
+        git clone --recursive https://github.com/safex/safexcore.git
+
+**Building**
+
+* Change to the cloned directory, run:
+
+        cd monero
+
+* If you would like a specific [version/tag](https://github.com/safex/safexcore/tags), do a git checkout for that version. eg. 'v0.1.0'. If you don't care about the version and just want binaries from master, skip this step:
+
+        git checkout
+
+* If you are on a 64-bit system, run:
+
+        make release-static-win64
+
+* If you are on a 32-bit system, run:
+
+        make release-static-win32
+
+* The resulting executables can be found in `build/release/bin`
+
 ## Running
 
 Built binaries are located in the `build/debug/bin` and/or `build/release/bin` (depending upon which build was used).
