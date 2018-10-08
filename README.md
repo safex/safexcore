@@ -1,10 +1,9 @@
 # SAFEX
 
 
+## Releases
 
-
-
-
+Current active release branch with up to date hotfixes is [release-v0.1](https://github.com/safex/safexcore/tree/release-v0.1). Official releases are available [here](https://github.com/safex/safexcore/releases).
 
 ## Build Instructions
 
@@ -139,6 +138,7 @@ To run the wallet: `$ /path/to/binaries/safex-wallet-cli --testnet <other wallet
 
 For a list/reference of all wallet parameters use `$ /path/to/binaries/safex-wallet-cli --testnet --help`
 
+<br/><br/><br/>
 Copyright (c) 2018 The Safex Project.
 
 Portions Copyright (c) 2014-2018 The Monero Project.
