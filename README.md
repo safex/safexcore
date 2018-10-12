@@ -1,5 +1,10 @@
 # SAFEX
 
+
+## Releases
+
+Current active release branch with up to date hotfixes is [release-v0.1](https://github.com/safex/safexcore/tree/release-v0.1). Official releases are available [here](https://github.com/safex/safexcore/releases).
+
 ## Build Instructions
 
 ### MacOS
