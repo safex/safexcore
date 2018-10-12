@@ -84,8 +84,8 @@ TEST(AddressFromTXT, Failure)
   ASSERT_STREQ("", res.c_str());
 }
 
-//TEST(AddressFromURL, Success)
-//{
+// TEST(AddressFromURL, Success)
+// {
 //  const std::string addr = SAFEX_DONATION_ADDR;
 //
 //  bool dnssec_result = false;
@@ -105,13 +105,13 @@ TEST(AddressFromTXT, Failure)
 //  {
 //    EXPECT_STREQ(addr.c_str(), addresses[0].c_str());
 //  }
-//}
+// }
 
 TEST(AddressFromURL, Failure)
 {
   bool dnssec_result = false;
 
-  std::vector<std::string> addresses = tools::dns_utils::addresses_from_url("example.invalid", dnssec_result);
+  std::vector<std::string> addresses = tools::dns_utils::addresses_from_url("example.veryinvalid", dnssec_result);
 
   // for a non-existing domain such as "example.invalid", the non-existence is proved with NSEC records
   ASSERT_TRUE(dnssec_result);
