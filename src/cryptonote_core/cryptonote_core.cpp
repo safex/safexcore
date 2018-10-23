@@ -439,6 +439,7 @@ namespace cryptonote
       std::vector<std::string> options;
       boost::trim(db_sync_mode);
       boost::split(options, db_sync_mode, boost::is_any_of(" :"));
+      const bool db_sync_mode_is_default = command_line::is_arg_defaulted(vm, cryptonote::arg_db_sync_mode);
 
       for(const auto &option : options)
         MDEBUG("option: " << option);
@@ -459,18 +460,18 @@ namespace cryptonote
         {
           safemode = true;
           db_flags = DBF_SAFE;
-          sync_mode = db_nosync;
+          sync_mode = db_sync_mode_is_default ? db_defaultsync : db_nosync;
         }
         else if(options[0] == "fast")
         {
           db_flags = DBF_FAST;
-          sync_mode = db_async;
+          sync_mode = db_sync_mode_is_default ? db_defaultsync : db_async;
         }
         else if(options[0] == "fastest")
         {
           db_flags = DBF_FASTEST;
           blocks_per_sync = 1000; // default to fastest:async:1000
-          sync_mode = db_async;
+          sync_mode = db_sync_mode_is_default ? db_defaultsync : db_async;
         }
         else
           db_flags = DEFAULT_FLAGS;
@@ -479,9 +480,9 @@ namespace cryptonote
       if(options.size() >= 2 && !safemode)
       {
         if(options[1] == "sync")
-          sync_mode = db_sync;
+          sync_mode = db_sync_mode_is_default ? db_defaultsync : db_sync;
         else if(options[1] == "async")
-          sync_mode = db_async;
+          sync_mode = db_sync_mode_is_default ? db_defaultsync : db_async;
       }
 
       if(options.size() >= 3 && !safemode)
@@ -649,39 +650,6 @@ namespace cryptonote
       LOG_PRINT_L1("WRONG TRANSACTION BLOB, Failed to check tx " << tx_hash << " syntax, rejected");
       tvc.m_verifivation_failed = true;
       return false;
-    }
-
-    // resolve outPk references in rct txes
-    // outPk aren't the only thing that need resolving for a fully resolved tx,
-    // but outPk (1) are needed now to check range proof semantics, and
-    // (2) do not need access to the blockchain to find data
-    if (tx.version >= 2)
-    {
-      rct::rctSig &rv = tx.rct_signatures;
-      if (rv.outPk.size() != tx.vout.size())
-      {
-        LOG_PRINT_L1("WRONG TRANSACTION BLOB, Bad outPk size in tx " << tx_hash << ", rejected");
-        tvc.m_verifivation_failed = true;
-        return false;
-      }
-      for (size_t n = 0; n < tx.rct_signatures.outPk.size(); ++n)
-        rv.outPk[n].dest = rct::pk2rct(boost::get<txout_to_key>(tx.vout[n].target).key);
-
-      const bool bulletproof = rv.type == rct::RCTTypeFullBulletproof || rv.type == rct::RCTTypeSimpleBulletproof;
-      if (bulletproof)
-      {
-        if (rv.p.bulletproofs.size() != tx.vout.size())
-        {
-          LOG_PRINT_L1("WRONG TRANSACTION BLOB, Bad bulletproofs size in tx " << tx_hash << ", rejected");
-          tvc.m_verifivation_failed = true;
-          return false;
-        }
-        for (size_t n = 0; n < rv.outPk.size(); ++n)
-        {
-          rv.p.bulletproofs[n].V.resize(1);
-          rv.p.bulletproofs[n].V[0] = rv.outPk[n].mask;
-        }
-      }
     }
 
     if (keeped_by_block && get_blockchain_storage().is_within_compiled_block_hash_area())

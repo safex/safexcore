@@ -3,6 +3,7 @@
 /build
 /tags
 log/
+.vscode/
 
 # vim swap files
 *.swp
