@@ -88,8 +88,6 @@ typedef cryptonote::simple_wallet sw;
 
 #define ENABLE_ADVANCED_OPTIONS 0 //some aditional features
 
-#define DEFAULT_MIX 6
-
 #define MIN_RING_SIZE 7 // Used to inform user about min ring size -- does not track actual protocol
 
 #define OUTPUT_EXPORT_FILE_MAGIC "Safex output export\003"
@@ -1435,6 +1433,7 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("submit_transfer",
                            boost::bind(&simple_wallet::submit_transfer, this, _1),
                            tr("Submit a signed transaction from a file."));
+
 #endif
   m_cmd_binder.set_handler("set_log",
                            boost::bind(&simple_wallet::set_log, this, _1),
@@ -6587,6 +6586,8 @@ bool simple_wallet::import_key_images(const std::vector<std::string> &args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+/// @warning Please change Serialization.portability_outputs test if you change way of serialization
+///          of outputs.
 bool simple_wallet::export_outputs(const std::vector<std::string> &args)
 {
   if (m_wallet->key_on_device())

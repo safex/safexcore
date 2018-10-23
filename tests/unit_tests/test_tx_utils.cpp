@@ -35,6 +35,7 @@
 
 #include "common/util.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "cryptonote_basic/cryptonote_format_utils.h"
 
 namespace
 {
@@ -203,4 +204,18 @@ TEST(validate_parse_amount_case, validate_parse_amount)
 
   r = cryptonote::parse_amount(res, "1 00.00 00");
   ASSERT_FALSE(r);
+}
+
+TEST(parse_tx_extra, bitcoin_hash)
+{
+  crypto::hash btc_hash = crypto::null_hash;
+  std::vector<uint8_t> extra;
+  std::vector<cryptonote::tx_extra_field> tx_extra_fields;
+  cryptonote::add_bitcoin_hash_to_extra(extra, btc_hash);
+
+  ASSERT_TRUE(cryptonote::parse_tx_extra(extra, tx_extra_fields));
+  ASSERT_EQ(1, tx_extra_fields.size());
+  ASSERT_EQ(typeid(cryptonote::tx_extra_bitcoin_hash), tx_extra_fields[0].type());
+  ASSERT_EQ(btc_hash,  boost::get<cryptonote::tx_extra_bitcoin_hash>(tx_extra_fields[0]).bitcoin_hash);
+
 }

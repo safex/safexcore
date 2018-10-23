@@ -118,7 +118,7 @@ namespace cryptonote {
       case 10:
         return 260 * SAFEX_CASH_COIN;
       case 11:
-        return 260 * SAFEX_CASH_COIN;
+        return 200 * SAFEX_CASH_COIN;
       case 12:
         return 160 * SAFEX_CASH_COIN;
       case 13:
