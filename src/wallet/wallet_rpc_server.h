@@ -1,21 +1,21 @@
 // Copyright (c) 2018, The Safex Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
@@ -137,6 +137,10 @@ namespace tools
         MAP_JON_RPC_WE("finalize_multisig",  on_finalize_multisig,  wallet_rpc::COMMAND_RPC_FINALIZE_MULTISIG)
         MAP_JON_RPC_WE("sign_multisig",      on_sign_multisig,      wallet_rpc::COMMAND_RPC_SIGN_MULTISIG)
         MAP_JON_RPC_WE("submit_multisig",    on_submit_multisig,    wallet_rpc::COMMAND_RPC_SUBMIT_MULTISIG)
+        MAP_JON_RPC_WE("migrate_view_only",  on_migrate_view_only,  wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY)
+        MAP_JON_RPC_WE("sign_migration",     on_sign_migration,     wallet_rpc::COMMAND_RPC_SIGN_MIGRATION)
+        MAP_JON_RPC_WE("submit_migration",   on_submit_migration,   wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION)
+
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
@@ -207,6 +211,10 @@ namespace tools
       bool on_sign_multisig(const wallet_rpc::COMMAND_RPC_SIGN_MULTISIG::request& req, wallet_rpc::COMMAND_RPC_SIGN_MULTISIG::response& res, epee::json_rpc::error& er);
       bool on_submit_multisig(const wallet_rpc::COMMAND_RPC_SUBMIT_MULTISIG::request& req, wallet_rpc::COMMAND_RPC_SUBMIT_MULTISIG::response& res, epee::json_rpc::error& er);
 
+      // migration rpc
+      bool on_migrate_view_only(const wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request& req, wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response& res, epee::json_rpc::error& er);
+      bool on_sign_migration(const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res, epee::json_rpc::error &er);
+      bool on_submit_migration(const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res, epee::json_rpc::error &er);
       //json rpc v2
       bool on_query_key(const wallet_rpc::COMMAND_RPC_QUERY_KEY::request& req, wallet_rpc::COMMAND_RPC_QUERY_KEY::response& res, epee::json_rpc::error& er);
 
