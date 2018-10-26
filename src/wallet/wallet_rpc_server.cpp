@@ -3054,7 +3054,7 @@ namespace tools
 
       ptx_vector = m_wallet->create_transactions_migration(
           dsts, bitcoin_burn_transaction, 0 /* unlock_time */, 0 /* priority, 0 == default */,
-          extra, m_trusted_daemon);
+          extra, m_trusted_daemon, true);
 
       if (ptx_vector.empty()) {
         er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
@@ -3194,12 +3194,12 @@ int main(int argc, char** argv) {
 
   const auto vm = wallet_args::main(
     argc, argv,
-    "monero-wallet-rpc [--wallet-file=<file>|--generate-from-json=<file>|--wallet-dir=<directory>] [--rpc-bind-port=<port>]",
-    tools::wallet_rpc_server::tr("This is the RPC safex wallet. It needs to connect to a safex\ndaemon to work correctly."),
+    "safex-wallet-rpc [--wallet-file=<file>|--generate-from-json=<file>|--wallet-dir=<directory>] [--rpc-bind-port=<port>][--cold-wallet]",
+    tools::wallet_rpc_server::tr("This is the RPC safex wallet. It needs to connect to a safex\ndaemon to work correctly unless --cold-wallet is enabled"),
     desc_params,
     po::positional_options_description(),
     [](const std::string &s, bool emphasis){ epee::set_console_color(emphasis ? epee::console_color_white : epee::console_color_default, true); std::cout << s << std::endl; if (emphasis) epee::reset_console_color(); },
-    "monero-wallet-rpc.log",
+    "safex-wallet-rpc.log",
     true
   );
   if (!vm)
