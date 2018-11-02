@@ -141,7 +141,7 @@
 #define HF_VERSION_TBD                          100 //some hard fork version in the future, to be determined
 
 #define HF_VERSION_DYNAMIC_FEE                  1
-#define HF_VERSION_MIN_MIXIN_REQUIRED           2
+#define HF_VERSION_MIN_MIXIN_REQUIRED           HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_4                  HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_6                  HF_VERSION_TBD
 #define HF_VERSION_ENFORCE_RCT                  HF_VERSION_TBD //enforce RingCT transactions
