@@ -2460,7 +2460,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   const uint8_t hf_version = m_hardfork->get_current_version();
 
   //From some hard fork version in the future, forbid dust and compound outputs
-  if (hf_version >= HF_VERSION_TBD)
+  if (hf_version >= HF_VERSION_FORBID_DUST)
   {
     for (auto &o: tx.vout)
     {
@@ -2515,11 +2515,11 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   }
 
   // allow bulletproofs
-  if (hf_version < HF_VERSION_TBD) {
+  if (hf_version < HF_VERSION_ALLOW_BULLETPROOFS) {
     const bool bulletproof = tx.rct_signatures.type == rct::RCTTypeFullBulletproof || tx.rct_signatures.type == rct::RCTTypeSimpleBulletproof;
     if (bulletproof || !tx.rct_signatures.p.bulletproofs.empty())
     {
-      MERROR("Bulletproofs are not allowed before hard fork " << HF_VERSION_TBD);
+      MERROR("Bulletproofs are not allowed before hard fork " << HF_VERSION_ALLOW_BULLETPROOFS);
       tvc.m_invalid_output = true;
       return false;
     }
