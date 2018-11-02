@@ -1119,7 +1119,15 @@ namespace cryptonote
     //baseline empty block
     get_block_reward(median_size, total_size, already_generated_coins, best_coinbase, version, height);
 
-    size_t max_total_size = 2 * median_size - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;;
+    size_t max_total_size = 0;
+    if(version >= 2)
+    {
+      max_total_size = 2 * median_size - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
+    }
+    else {
+      max_total_size = (130 * median_size) / 100 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
+    }
+
     std::unordered_set<crypto::key_image> k_images;
 
     LOG_PRINT_L2("Filling block template, median size " << median_size << ", " << m_txs_by_fee_and_receive_time.size() << " txes in the pool");
@@ -1145,22 +1153,35 @@ namespace cryptonote
         continue;
       }
 
-
-      // If we're getting lower coinbase tx,
-      // stop including more tx
-      uint64_t block_reward;
-      if(!get_block_reward(median_size, total_size + meta.blob_size, already_generated_coins, block_reward, version, height))
+      // start using the optimal filling algorithm from v5
+      if (version >= 2)
       {
-        LOG_PRINT_L2("  would exceed maximum block size");
-        sorted_it++;
-        continue;
+        // If we're getting lower coinbase tx,
+        // stop including more tx
+        uint64_t block_reward;
+        if(!get_block_reward(median_size, total_size + meta.blob_size, already_generated_coins, block_reward, version, height))
+        {
+          LOG_PRINT_L2("  would exceed maximum block size");
+          sorted_it++;
+          continue;
+        }
+        coinbase = block_reward + fee + meta.fee;
+        if (coinbase < template_accept_threshold(best_coinbase))
+        {
+          LOG_PRINT_L2("  would decrease coinbase to " << print_money(coinbase));
+          sorted_it++;
+          continue;
+        }
       }
-      coinbase = block_reward + fee + meta.fee;
-      if (coinbase < template_accept_threshold(best_coinbase))
+      else
       {
-        LOG_PRINT_L2("  would decrease coinbase to " << print_money(coinbase));
-        sorted_it++;
-        continue;
+        // If we've exceeded the penalty free size,
+        // stop including more tx
+        if (total_size > median_size)
+        {
+          LOG_PRINT_L2("  would exceed median block size");
+          break;
+        }
       }
 
       cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(sorted_it->second);

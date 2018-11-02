@@ -60,7 +60,8 @@
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    60000 //size of block (bytes) after which reward for block is calculated using block size
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    20000 //size of block (bytes) after which reward for block is calculated using block size
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2    60000
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
@@ -140,7 +141,7 @@
 #define HF_VERSION_TBD                          100 //some hard fork version in the future, to be determined
 
 #define HF_VERSION_DYNAMIC_FEE                  1
-#define HF_VERSION_MIN_MIXIN_REQUIRED           2
+#define HF_VERSION_MIN_MIXIN_REQUIRED           HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_4                  HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_6                  HF_VERSION_TBD
 #define HF_VERSION_ENFORCE_RCT                  HF_VERSION_TBD //enforce RingCT transactions
