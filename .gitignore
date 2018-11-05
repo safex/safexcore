@@ -105,3 +105,14 @@ local.properties
 .idea/
 
 /testnet
+
+
+tests/data/outputs
+tests/data/signed_safex_tx
+tests/data/unsigned_safex_tx
+
+tests/data/.shared-ringdb-unittest/
+tests/data/wallet_9svHk1a
+tests/data/wallet_9svHk1a.address.txt
+tests/data/wallet_9svHk1a.keys
+

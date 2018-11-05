@@ -103,6 +103,7 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
+  { 2, 33407, 0, 1541066055}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 624633;
 
@@ -113,15 +114,7 @@ static const struct {
   time_t time;
 } stagenet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1341378000 },
-
-  // versions 2-7 in rapid succession from March 13th, 2018
-  { 2, 32000, 0, 1521000000 },
-  { 3, 33000, 0, 1521120000 },
-  { 4, 34000, 0, 1521240000 },
-  { 5, 35000, 0, 1521360000 },
-  { 6, 36000, 0, 1521480000 },
-  { 7, 37000, 0, 1521600000 },
+  { 1, 1, 0, 1341378000 }
 };
 
 //------------------------------------------------------------------
@@ -2467,7 +2460,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   const uint8_t hf_version = m_hardfork->get_current_version();
 
   //From some hard fork version in the future, forbid dust and compound outputs
-  if (hf_version >= HF_VERSION_TBD)
+  if (hf_version >= HF_VERSION_FORBID_DUST)
   {
     for (auto &o: tx.vout)
     {
@@ -2522,11 +2515,11 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   }
 
   // allow bulletproofs
-  if (hf_version < HF_VERSION_TBD) {
+  if (hf_version < HF_VERSION_ALLOW_BULLETPROOFS) {
     const bool bulletproof = tx.rct_signatures.type == rct::RCTTypeFullBulletproof || tx.rct_signatures.type == rct::RCTTypeSimpleBulletproof;
     if (bulletproof || !tx.rct_signatures.p.bulletproofs.empty())
     {
-      MERROR("Bulletproofs are not allowed before hard fork " << HF_VERSION_TBD);
+      MERROR("Bulletproofs are not allowed before hard fork " << HF_VERSION_ALLOW_BULLETPROOFS);
       tvc.m_invalid_output = true;
       return false;
     }
