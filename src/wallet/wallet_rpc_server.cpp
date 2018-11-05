@@ -1,21 +1,21 @@
 // Copyright (c) 2018, The Safex Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 #include <boost/format.hpp>
@@ -60,6 +60,7 @@ namespace
 {
   const command_line::arg_descriptor<std::string, true> arg_rpc_bind_port = {"rpc-bind-port", "Sets bind port for server"};
   const command_line::arg_descriptor<bool> arg_disable_rpc_login = {"disable-rpc-login", "Disable HTTP authentication for RPC connections served by this process"};
+  const command_line::arg_descriptor<bool> arg_cold_wallet = {"cold-wallet", "Enable rpc to work without a daemon", false};
   const command_line::arg_descriptor<bool> arg_trusted_daemon = {"trusted-daemon", "Enable commands which rely on a trusted daemon", false};
   const command_line::arg_descriptor<std::string> arg_wallet_dir = {"wallet-dir", "Directory for newly created wallets"};
   const command_line::arg_descriptor<bool> arg_prompt_for_password = {"prompt-for-password", "Prompts for password when not provided", false};
@@ -2359,7 +2360,7 @@ namespace tools
       return false;
     }
 
-    cryptonote::COMMAND_RPC_START_MINING::request daemon_req = AUTO_VAL_INIT(daemon_req); 
+    cryptonote::COMMAND_RPC_START_MINING::request daemon_req = AUTO_VAL_INIT(daemon_req);
     daemon_req.miner_address = m_wallet->get_account().get_public_address_str(m_wallet->nettype());
     daemon_req.threads_count        = req.threads_count;
     daemon_req.do_background_mining = req.do_background_mining;
@@ -2851,6 +2852,7 @@ namespace tools
 
     return true;
   }
+
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_sign_multisig(const wallet_rpc::COMMAND_RPC_SIGN_MULTISIG::request& req, wallet_rpc::COMMAND_RPC_SIGN_MULTISIG::response& res, epee::json_rpc::error& er)
   {
@@ -2987,6 +2989,188 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_migrate_view_only(
+      const tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request &req,
+      tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response &res,
+      epee::json_rpc::error &er)
+  {
+    if (!m_wallet) return not_open(er);
+
+    if (!m_wallet->watch_only()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in regular mode. Only view mode.";
+      return false;
+    }
+
+    if (m_wallet->restricted()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+
+    cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+    cryptonote::tx_destination_entry token_destination = AUTO_VAL_INIT(token_destination);
+    if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), req.address)) {
+      er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
+      er.message = "Invalid address: " + req.address;
+      return false;
+    }
+    token_destination.addr = info.address;
+    token_destination.is_subaddress = info.is_subaddress;
+    token_destination.token_transaction = true;
+    token_destination.token_amount = req.amount * SAFEX_CASH_COIN;
+
+    //parse bitcoin transaction hash
+    cryptonote::blobdata expected_bitcoin_hash_data;
+    if (!epee::string_tools::parse_hexstr_to_binbuff(req.bitcoin_hash, expected_bitcoin_hash_data) ||
+        expected_bitcoin_hash_data.size() != sizeof(crypto::hash)) {
+      er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
+      er.message = "Invalid address: " + req.address;
+      return false;
+    }
+    const crypto::hash bitcoin_burn_transaction = *reinterpret_cast<const crypto::hash *>(expected_bitcoin_hash_data.data());
+
+    //airdrop reward calculation
+    cryptonote::tx_destination_entry airdrop_destination = AUTO_VAL_INIT(airdrop_destination);
+    airdrop_destination.addr = info.address;
+    airdrop_destination.is_subaddress = info.is_subaddress;
+    airdrop_destination.token_transaction = false;
+    airdrop_destination.amount = cryptonote::get_airdrop_cash(token_destination.token_amount);
+
+    std::vector<cryptonote::tx_destination_entry> dsts;
+    dsts.push_back(token_destination);
+    dsts.push_back(airdrop_destination);
+
+
+    //for migration transaction, extra nonce is so far not used
+    std::vector<uint8_t> extra;
+
+    cryptonote::add_bitcoin_hash_to_extra(extra, bitcoin_burn_transaction);
+
+    try {
+      // figure out what tx will be necessary
+      std::vector<tools::wallet::pending_tx> ptx_vector;
+      std::string err;
+
+      ptx_vector = m_wallet->create_transactions_migration(
+          dsts, bitcoin_burn_transaction, 0 /* unlock_time */, 0 /* priority, 0 == default */,
+          extra, m_trusted_daemon, true);
+
+      if (ptx_vector.empty()) {
+        er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
+        er.message = "No outputs found, or daemon is not ready";
+        return false;
+      }
+
+      // ugly hack... used bitcoin_hash noy saved in sources
+      for (auto &ptx : ptx_vector) {
+        cryptonote::add_bitcoin_hash_to_extra(ptx.construction_data.extra, bitcoin_burn_transaction);
+      }
+
+      std::string path = req.filename;
+      bool is_saved = m_wallet->save_tx(ptx_vector, path);
+
+      if (!is_saved) {
+        er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
+        er.message = "Could not save to file";
+        return false;
+      } else {
+        res.filename = req.filename;
+      }
+    }
+    catch (...) {
+      er.code = WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR;
+    }
+    return true;
+  }
+
+  bool wallet_rpc_server::on_sign_migration(
+      const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req,
+      tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res,
+      epee::json_rpc::error &er)
+  {
+    if (!m_wallet) return not_open(er);
+
+    if (m_wallet->watch_only()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in view only mode. Must be able to sign transactions.";
+      return false;
+    }
+
+    if (m_wallet->restricted()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+
+    if (m_wallet->key_on_device()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+    if (m_wallet->multisig()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "This is a multisig wallet, it can only sign with sign_multisig";
+      return false;
+    }
+
+    std::vector<tools::wallet::pending_tx> ptx;
+    try {
+      bool success = m_wallet->sign_tx(
+          req.unsigned_filename, req.signed_filename,
+          ptx, [&](const tools::wallet::unsigned_tx_set &tx) { return true; }, false);
+
+      if (!success) {
+        er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
+        er.message = "Failed to sign transaction";
+        return false;
+      }
+    }
+    catch (const std::exception &e) {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = std::string("Failed to sign transaction: ") + e.what();
+      return false;
+    }
+    res.signed_filename = req.signed_filename;
+    return true;
+  }
+
+  bool wallet_rpc_server::on_submit_migration(
+      const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req,
+      tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res,
+      epee::json_rpc::error &er)
+  {
+    if (m_wallet->key_on_device())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "Command not supported by HW wallet";
+      return false;
+    }
+
+    try
+    {
+      std::vector<tools::wallet::pending_tx> pending_transactions;
+      bool is_loading_successful = m_wallet->load_tx(req.signed_filename, pending_transactions,
+                                                     [&](const tools::wallet::signed_tx_set &tx) { return true; });
+      if (!is_loading_successful)
+      {
+        er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_LOAD_SIGNED_TX;
+        er.message = "Could not load signed transaction";
+        return false;
+      }
+
+      m_wallet->commit_tx(pending_transactions);
+      res.signed_filename = req.signed_filename;
+    }
+    catch (const std::exception& e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = std::string("Could not submit transaction: ") + e.what();
+      return false;
+    }
+
+    return true;
+  }
 }
 
 int main(int argc, char** argv) {
@@ -2998,8 +3182,10 @@ int main(int argc, char** argv) {
   po::options_description desc_params(wallet_args::tr("Wallet options"));
   tools::wallet::init_options(desc_params);
   command_line::add_arg(desc_params, arg_rpc_bind_port);
+  command_line::add_arg(desc_params, arg_rpc_bind_port);
   command_line::add_arg(desc_params, arg_disable_rpc_login);
   command_line::add_arg(desc_params, arg_trusted_daemon);
+  command_line::add_arg(desc_params, arg_cold_wallet);
   cryptonote::rpc_args::init_options(desc_params);
   command_line::add_arg(desc_params, arg_wallet_file);
   command_line::add_arg(desc_params, arg_from_json);
@@ -3008,12 +3194,12 @@ int main(int argc, char** argv) {
 
   const auto vm = wallet_args::main(
     argc, argv,
-    "monero-wallet-rpc [--wallet-file=<file>|--generate-from-json=<file>|--wallet-dir=<directory>] [--rpc-bind-port=<port>]",
-    tools::wallet_rpc_server::tr("This is the RPC safex wallet. It needs to connect to a safex\ndaemon to work correctly."),
+    "safex-wallet-rpc [--wallet-file=<file>|--generate-from-json=<file>|--wallet-dir=<directory>] [--rpc-bind-port=<port>][--cold-wallet]",
+    tools::wallet_rpc_server::tr("This is the RPC safex wallet. It needs to connect to a safex\ndaemon to work correctly unless --cold-wallet is enabled"),
     desc_params,
     po::positional_options_description(),
     [](const std::string &s, bool emphasis){ epee::set_console_color(emphasis ? epee::console_color_white : epee::console_color_default, true); std::cout << s << std::endl; if (emphasis) epee::reset_console_color(); },
-    "monero-wallet-rpc.log",
+    "safex-wallet-rpc.log",
     true
   );
   if (!vm)
@@ -3037,6 +3223,7 @@ int main(int argc, char** argv) {
     const auto wallet_dir = command_line::get_arg(*vm, arg_wallet_dir);
     const auto prompt_for_password = command_line::get_arg(*vm, arg_prompt_for_password);
     const auto password_prompt = prompt_for_password ? password_prompter : nullptr;
+    const auto cold_wallet = command_line::get_arg(*vm, arg_cold_wallet);
 
     if(!wallet_file.empty() && !from_json.empty())
     {
@@ -3085,7 +3272,7 @@ int main(int argc, char** argv) {
       wal->stop();
     });
 
-    wal->refresh();
+    if (!cold_wallet) wal->refresh();
     // if we ^C during potentially length load/refresh, there's no server loop yet
     if (quit)
     {

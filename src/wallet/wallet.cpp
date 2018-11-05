@@ -1,21 +1,21 @@
 // Copyright (c) 2018, The Safex Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO gEVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
@@ -7049,7 +7049,7 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
   std::string key_images;
   bool all_are_valid_input = std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
   {
-    if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key))) 
+    if ((s_e.type() == typeid(txin_to_key)) || (s_e.type() == typeid(txin_token_to_key)))
     {
       const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), s_e);
       key_images += boost::to_string(k_image) + " ";
@@ -7059,8 +7059,8 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
       return false;
   });
   THROW_WALLET_EXCEPTION_IF(!all_are_valid_input, error::unexpected_txin_type, tx);
-  
-  
+
+
   bool dust_sent_elsewhere = (dust_policy.addr_for_dust.m_view_public_key != change_dts.addr.m_view_public_key
                                 || dust_policy.addr_for_dust.m_spend_public_key != change_dts.addr.m_spend_public_key);
 
@@ -9209,7 +9209,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_single(const crypto:
 std::vector<wallet::pending_tx> wallet::create_transactions_migration(
     std::vector<cryptonote::tx_destination_entry> dsts,
     const crypto::hash bitcoin_transaction_hash, const uint64_t unlock_time,
-    uint32_t priority, const std::vector<uint8_t> &extra, bool trusted_daemon)
+    uint32_t priority, const std::vector<uint8_t> &extra, bool trusted_daemon,
+    bool mark_as_spent)
 {
   const size_t fake_outs_count = 0;
   const std::vector<size_t> unused_transfers_indices = select_available_outputs_from_histogram(fake_outs_count + 1, true, true, true, trusted_daemon, cryptonote::tx_out_type::out_cash);
@@ -9264,14 +9265,14 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
       // if we made it this far, we've selected our transactions.  committing them will mark them spent,
       // so this is a failsafe in case they don't go through
       // unmark pending tx transfers as spent
-      for (auto & ptx : ptx_vector)
-      {
-        // mark transfers to be used as not spent
-        for(size_t idx2: ptx.selected_transfers)
-        {
-          set_unspent(idx2);
-        }
+      if (!mark_as_spent) {
+        for (auto &ptx : ptx_vector) {
+          // mark transfers to be used as not spent
+          for (size_t idx2: ptx.selected_transfers) {
+            set_unspent(idx2);
+          }
 
+        }
       }
 
       // if we made it this far, we're OK to actually send the transactions
@@ -11366,7 +11367,7 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
             value_amount = td.token_amount();
             tx_tokens_spent_in_ins += value_amount;
             LOG_PRINT_L0("Spent tokens: " << print_money(value_amount) << ", with tx: " << *spent_txid);
-          } 
+          }
           else
           {
             value_amount = td.amount();
