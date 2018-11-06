@@ -577,7 +577,7 @@ size_t estimate_tx_size(bool use_rct, int n_inputs, int mixin, int n_outputs, si
 
 uint8_t get_bulletproof_fork()
 {
-  return HF_VERSION_TBD;
+  return HF_VERSION_ALLOW_BULLETPROOFS;
 }
 
 crypto::hash8 get_short_payment_id(const tools::wallet::pending_tx &ptx, hw::device &hwdev)
@@ -2628,7 +2628,7 @@ void wallet::detach_blockchain(uint64_t height)
   // size  1 2 3 4 5 6 7 8 9
   // block 0 1 2 3 4 5 6 7 8
   //               C
-  THROW_WALLET_EXCEPTION_IF(height <= m_checkpoints.get_max_height() && m_blockchain.size() > m_checkpoints.get_max_height(),
+  THROW_WALLET_EXCEPTION_IF(height < m_blockchain.offset() && m_blockchain.size() > m_blockchain.offset(),
       error::wallet_internal_error, "Daemon claims reorg below last checkpoint");
 
   size_t transfers_detached = 0;
@@ -4082,6 +4082,11 @@ void wallet::load(const std::string& wallet_, const epee::wipeable_string& passw
 void wallet::trim_hashchain()
 {
   uint64_t height = m_checkpoints.get_max_height();
+
+  for (const transfer_details &td: m_transfers)
+    if (td.m_block_height < height)
+      height = td.m_block_height;
+
   if (!m_blockchain.empty() && m_blockchain.size() == m_blockchain.offset())
   {
     MINFO("Fixing empty hashchain");
@@ -5712,7 +5717,7 @@ bool wallet::sign_multisig_tx(multisig_tx_set &exported_txs, std::vector<crypto:
     rct::multisig_out msout = ptx.multisig_sigs.front().msout;
     auto sources = sd.sources;
     const bool bulletproof = sd.use_rct && (ptx.tx.rct_signatures.type == rct::RCTTypeFullBulletproof || ptx.tx.rct_signatures.type == rct::RCTTypeSimpleBulletproof);
-    bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources, sd.splitted_dsts, ptx.change_dts.addr, sd.extra, tx, sd.unlock_time, ptx.tx_key, ptx.additional_tx_keys, sd.use_rct, bulletproof, &msout);
+    bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources, sd.splitted_dsts, ptx.change_dts.addr, sd.extra, tx, sd.unlock_time, ptx.tx_key, ptx.additional_tx_keys, sd.use_rct, bulletproof, &msout, false);
     THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sd.sources, sd.splitted_dsts, sd.unlock_time, m_nettype);
 
     THROW_WALLET_EXCEPTION_IF(get_transaction_prefix_hash (tx) != get_transaction_prefix_hash(ptx.tx),
@@ -7296,7 +7301,7 @@ void wallet::transfer_selected_rct(std::vector<cryptonote::tx_destination_entry>
         LOG_PRINT_L2("Creating supplementary multisig transaction");
         cryptonote::transaction ms_tx;
         auto sources_copy_copy = sources_copy;
-        bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources_copy_copy, splitted_dsts, change_dts.addr, extra, ms_tx, unlock_time,tx_key, additional_tx_keys, true, bulletproof, &msout);
+        bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources_copy_copy, splitted_dsts, change_dts.addr, extra, ms_tx, unlock_time,tx_key, additional_tx_keys, true, bulletproof, &msout, false);
         LOG_PRINT_L2("constructed tx, r="<<r);
         THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
         THROW_WALLET_EXCEPTION_IF(upper_transaction_size_limit <= get_object_blobsize(tx), error::tx_too_big, tx, upper_transaction_size_limit);
@@ -9717,7 +9722,7 @@ uint64_t wallet::get_upper_transaction_size_limit() const
 {
   if (m_upper_transaction_size_limit > 0)
     return m_upper_transaction_size_limit;
-  uint64_t full_reward_zone = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
+  uint64_t full_reward_zone = use_fork_rules(2,10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 : CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
   return full_reward_zone - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
 }
 //----------------------------------------------------------------------------------------------------

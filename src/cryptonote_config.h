@@ -38,7 +38,7 @@
 
 #define CRYPTONOTE_MAX_BLOCK_NUMBER                     500000000
 #define CRYPTONOTE_MAX_BLOCK_SIZE                       500000000  // block header blob limit, never used!
-#define CRYPTONOTE_GETBLOCKTEMPLATE_MAX_BLOCK_SIZE	196608 //size of block (bytes) that is the maximum that miners will produce
+
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
@@ -61,6 +61,7 @@
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    20000 //size of block (bytes) after which reward for block is calculated using block size
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2    60000
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                10
 
@@ -140,10 +141,12 @@
 #define HF_VERSION_TBD                          100 //some hard fork version in the future, to be determined
 
 #define HF_VERSION_DYNAMIC_FEE                  1
-#define HF_VERSION_MIN_MIXIN_REQUIRED           2
+#define HF_VERSION_MIN_MIXIN_REQUIRED           HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_4                  HF_VERSION_TBD
 #define HF_VERSION_MIN_MIXIN_6                  HF_VERSION_TBD
 #define HF_VERSION_ENFORCE_RCT                  HF_VERSION_TBD //enforce RingCT transactions
+#define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
+#define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 

@@ -70,14 +70,6 @@ else ()
   include_directories(SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/gtest/include")
 endif (GTest_FOUND)
 
-file(COPY
-  data/wallet_9svHk1.keys
-  data/wallet_9svHk1
-  data/outputs
-  data/unsigned_safex_tx
-  data/signed_safex_tx
-  DESTINATION data)
-
 add_subdirectory(core_tests)
 add_subdirectory(fuzz)
 add_subdirectory(crypto)
