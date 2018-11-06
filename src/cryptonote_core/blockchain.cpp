@@ -92,8 +92,10 @@ static const struct {
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
+  //version 2 starts from block 61660, around 2018-11-26. Fork time finalized on 2018-11-06
+  { 2, 61660, 0, 1541503503 },
 };
-static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
+static const uint64_t mainnet_hard_fork_version_1_till = 61659;
 
 static const struct {
   uint8_t version;
@@ -105,7 +107,7 @@ static const struct {
   { 1, 1, 0, 1514764801 },
   { 2, 33407, 0, 1541066055}
 };
-static const uint64_t testnet_hard_fork_version_1_till = 624633;
+static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
 static const struct {
   uint8_t version;
