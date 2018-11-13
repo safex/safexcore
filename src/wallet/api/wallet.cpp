@@ -198,6 +198,23 @@ struct WalletCallbackImpl : public tools::i_wallet_callback
         }
     }
 
+    virtual void on_tokens_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction &in_tx,
+                              uint64_t token_amount, const cryptonote::transaction &spend_tx, const cryptonote::subaddress_index &subaddr_index)
+    {
+      // TODO;
+      std::string tx_hash = epee::string_tools::pod_to_hex(txid);
+      LOG_PRINT_L3(__FUNCTION__ << ": tokens spent. height:  " << height
+                                << ", tx: " << tx_hash
+                                << ", token amount: " << print_money(token_amount)
+                                << ", idx: " << subaddr_index);
+      // do not signal on sent tx if wallet is not syncronized completely
+      if (m_listener && m_wallet->synchronized())
+      {
+          m_listener->tokensSpent(tx_hash, token_amount);
+          m_listener->updated();
+      }
+    }
+
     virtual void on_skip_transaction(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx)
     {
         // TODO;
@@ -882,6 +899,16 @@ uint64_t WalletImpl::balance(uint32_t accountIndex) const
 uint64_t WalletImpl::unlockedBalance(uint32_t accountIndex) const
 {
     return m_wallet->unlocked_balance(accountIndex);
+}
+
+uint64_t WalletImpl::tokenBalance(uint32_t accountIndex) const
+{
+  return m_wallet->token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::unlockedTokenBalance(uint32_t accountIndex) const
+{
+  return m_wallet->unlocked_token_balance(accountIndex);
 }
 
 uint64_t WalletImpl::blockChainHeight() const

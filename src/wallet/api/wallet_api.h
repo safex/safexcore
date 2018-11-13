@@ -316,6 +316,14 @@ struct WalletListener
     */
     virtual void unconfirmedMoneyReceived(const std::string &txId, uint64_t amount) = 0;
 
+
+    /**
+    * @brief tokensSpent - called when tokens are spent
+    * @param txId       - transaction id
+    * @param token_amount - token amount
+    */
+    virtual void tokensSpent(const std::string &txId, uint64_t token_amount) = 0;
+
     /**
      * @brief tokensReceived - called when tokens are received
      * @param txId          - transaction id
@@ -510,6 +518,22 @@ struct Wallet
             result += unlockedBalance(i);
         return result;
     }
+
+
+  virtual uint64_t tokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t tokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += tokenBalance(i);
+      return result;
+  }
+  virtual uint64_t unlockedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t unlockedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += unlockedTokenBalance(i);
+      return result;
+  }
 
    /**
     * @brief watchOnly - checks if wallet is watch only
