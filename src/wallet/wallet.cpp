@@ -1674,7 +1674,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
       if (pool) {
         emplace_or_replace(m_unconfirmed_payments, payment_id, pool_payment_details{payment, double_spend_seen});
         if (0 != m_callback)
-          m_callback->on_unconfirmed_money_received(height, txid, tx, payment.m_amount, payment.m_subaddr_index);
+          m_callback->on_unconfirmed_tokens_received(height, txid, tx, payment.m_token_amount, payment.m_subaddr_index);
       }
       else
         m_payments.emplace(payment_id, payment);
