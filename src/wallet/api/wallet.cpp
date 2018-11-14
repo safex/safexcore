@@ -1234,7 +1234,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
 
                 if (tx_type == TransactionType::TokenTransaction) {
                     if (!tools::is_whole_coin_amount(value_amount)) {
-                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, tools::wallet::tr("failed to send decimal token amount"));
+                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, value_amount);
                     }
                     de.token_amount = *value_amount;
                     de.token_transaction = true;
@@ -1250,7 +1250,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                                                                           extra, subaddr_account, subaddr_indices, m_trustedDaemon);
             } else {
                 //TODO: perform sweep unmixable for GUI if amount is 0
-                THROW_WALLET_EXCEPTION(tools::error::tx_not_possible, tools::wallet::tr("could not sent 0 token amount, sweep unmixable not yet implemented"));
+                THROW_WALLET_EXCEPTION(tools::error::zero_amount_error);
             }
 
         } catch (const tools::error::daemon_busy&) {

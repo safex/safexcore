@@ -38,8 +38,8 @@ namespace Safex {
 
 TransactionInfo::~TransactionInfo() {}
 
-TransactionInfo::Transfer::Transfer(uint64_t _amount, const string &_address)
-    : amount(_amount), address(_address) {}
+TransactionInfo::Transfer::Transfer(uint64_t _amount, uint64_t _token_amount, const string &_address)
+    : amount(_amount), token_amount(_token_amount), address(_address) {}
 
 
 TransactionInfoImpl::TransactionInfoImpl()

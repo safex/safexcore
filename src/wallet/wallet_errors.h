@@ -770,6 +770,14 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
+    struct zero_amount_error : public transfer_error
+    {
+      explicit zero_amount_error(std::string&& loc)
+              : transfer_error(std::move(loc), "amount to send is zero, not supported")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
     struct wallet_rpc_error : public wallet_logic_error
     {
       const std::string& request() const { return m_request; }

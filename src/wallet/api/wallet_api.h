@@ -156,7 +156,7 @@ struct TransactionInfo
     };
 
     struct Transfer {
-        Transfer(uint64_t _amount, const std::string &address);
+        Transfer(uint64_t _amount, uint64_t _token_amount, const std::string &address);
         const uint64_t amount;
         const uint64_t token_amount;
         const std::string address;
