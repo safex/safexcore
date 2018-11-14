@@ -48,23 +48,29 @@ enum NetworkType : uint8_t {
     STAGENET
 };
 
-    namespace Utils {
-        bool isAddressLocal(const std::string &hostaddr);
-        void onStartup();
-    }
+enum class TransactionType {
+  CashTransaction = 0,
+  TokenTransaction = 1,
+  MigrationTransaction = 2
+};
 
-    template<typename T>
-    class optional {
-      public:
-        optional(): set(false) {}
-        optional(const T &t): t(t), set(true) {}
-        const T &operator*() const { return t; }
-        T &operator*() { return t; }
-        operator bool() const { return set; }
-      private:
-        T t;
-        bool set;
-    };
+namespace Utils {
+    bool isAddressLocal(const std::string &hostaddr);
+    void onStartup();
+}
+
+template<typename T>
+class optional {
+  public:
+    optional(): set(false) {}
+    optional(const T &t): t(t), set(true) {}
+    const T &operator*() const { return t; }
+    T &operator*() { return t; }
+    operator bool() const { return set; }
+  private:
+    T t;
+    bool set;
+};
 
 /**
  * @brief Transaction-like interface for sending money
@@ -671,7 +677,7 @@ struct Wallet
      * \brief createTransaction creates transaction. if dst_addr is an integrated address, payment_id is ignored
      * \param dst_addr          destination address as string
      * \param payment_id        optional payment_id, can be empty string
-     * \param amount            amount
+     * \param value_amount      amount of cash or tokens
      * \param mixin_count       mixin count. if 0 passed, wallet will use default value
      * \param subaddr_account   subaddress account from which the input funds are taken
      * \param subaddr_indices   set of subaddress indices to use for transfer or sweeping. if set empty, all are chosen when sweeping, and one or more are automatically chosen when transferring. after execution, returns the set of actually used indices
@@ -681,10 +687,11 @@ struct Wallet
      */
 
     virtual PendingTransaction * createTransaction(const std::string &dst_addr, const std::string &payment_id,
-                                                   optional<uint64_t> amount, uint32_t mixin_count,
+                                                   optional<uint64_t> value_amount, uint32_t mixin_count,
                                                    PendingTransaction::Priority = PendingTransaction::Priority_Low,
                                                    uint32_t subaddr_account = 0,
-                                                   std::set<uint32_t> subaddr_indices = {}) = 0;
+                                                   std::set<uint32_t> subaddr_indices = {},
+                                                   const TransactionType tx_type = TransactionType::CashTransaction) = 0;
 
     /*!
      * \brief createSweepUnmixableTransaction creates transaction with unmixable outputs.

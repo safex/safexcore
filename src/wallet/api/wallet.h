@@ -130,10 +130,11 @@ public:
     void setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex, const std::string &label);
 
     PendingTransaction * createTransaction(const std::string &dst_addr, const std::string &payment_id,
-                                        optional<uint64_t> amount, uint32_t mixin_count,
+                                        optional<uint64_t> value_amount, uint32_t mixin_count,
                                         PendingTransaction::Priority priority = PendingTransaction::Priority_Low,
                                         uint32_t subaddr_account = 0,
-                                        std::set<uint32_t> subaddr_indices = {});
+                                        std::set<uint32_t> subaddr_indices = {},
+                                        const TransactionType tx_type = TransactionType::CashTransaction);
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename);

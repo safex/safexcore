@@ -1158,8 +1158,9 @@ void WalletImpl::setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex
 //    - unconfirmed_transfer_details;
 //    - confirmed_transfer_details)
 
-PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> amount, uint32_t mixin_count,
-                                                  PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices)
+PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                  PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices,
+                                                  const TransactionType tx_type)
 
 {
     clearStatus();
@@ -1227,26 +1228,29 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
         //std::vector<tools::wallet::pending_tx> ptx_vector;
 
         try {
-            if (amount) {
+            if (value_amount) {
                 vector<cryptonote::tx_destination_entry> dsts;
                 cryptonote::tx_destination_entry de;
+
+                if (tx_type == TransactionType::TokenTransaction) {
+                    if (!tools::is_whole_coin_amount(value_amount)) {
+                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, tools::wallet::tr("failed to send decimal token amount"));
+                    }
+                    de.token_amount = *value_amount;
+                    de.token_transaction = true;
+                } else {
+                    de.amount = *value_amount;
+                }
+
                 de.addr = info.address;
-                de.amount = *amount;
                 de.is_subaddress = info.is_subaddress;
                 dsts.push_back(de);
                 transaction->m_pending_tx = m_wallet->create_transactions_2(dsts, fake_outs_count, 0 /* unlock_time */,
                                                                           adjusted_priority,
                                                                           extra, subaddr_account, subaddr_indices, m_trustedDaemon);
             } else {
-                // for the GUI, sweep_all (i.e. amount set as "(all)") will always sweep all the funds in all the addresses
-                if (subaddr_indices.empty())
-                {
-                    for (uint32_t index = 0; index < m_wallet->get_num_subaddresses(subaddr_account); ++index)
-                        subaddr_indices.insert(index);
-                }
-                transaction->m_pending_tx = m_wallet->create_transactions_all(0, info.address, info.is_subaddress, fake_outs_count, 0 /* unlock_time */,
-                                                                          adjusted_priority,
-                                                                          extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+                //TODO: perform sweep unmixable for GUI if amount is 0
+                THROW_WALLET_EXCEPTION(tools::error::tx_not_possible, tools::wallet::tr("could not sent 0 token amount, sweep unmixable not yet implemented"));
             }
 
         } catch (const tools::error::daemon_busy&) {
@@ -1258,6 +1262,9 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
             m_status = Status_Error;
         } catch (const tools::error::wallet_rpc_error& e) {
             m_errorString = tr("RPC error: ") +  e.to_string();
+            m_status = Status_Error;
+        } catch (const tools::error::not_whole_token_amount &e) {
+            m_errorString = (boost::format(tr("failed to send token decimal amount: %s")) % e.what()).str();
             m_status = Status_Error;
         } catch (const tools::error::get_random_outs_error &e) {
             m_errorString = (boost::format(tr("failed to get random outputs to mix: %s")) % e.what()).str();
