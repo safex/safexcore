@@ -53,6 +53,8 @@ TransactionInfoImpl::TransactionInfoImpl()
       , m_timestamp(0)
       , m_confirmations(0)
       , m_unlock_time(0)
+      , m_transaction_type(TransactionType::CashTransaction)
+
 {
 
 }
@@ -137,6 +139,11 @@ uint64_t TransactionInfoImpl::confirmations() const
 uint64_t TransactionInfoImpl::unlockTime() const
 {
     return m_unlock_time;
+}
+
+TransactionType TransactionInfoImpl::transactionType() const
+{
+  return m_transaction_type;
 }
 
 } // namespace

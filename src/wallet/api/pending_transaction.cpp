@@ -150,6 +150,17 @@ uint64_t PendingTransactionImpl::amount() const
     return result;
 }
 
+uint64_t PendingTransactionImpl::tokenAmount() const
+{
+  uint64_t result = 0;
+  for (const auto &ptx : m_pending_tx)   {
+    for (const auto &dest : ptx.dests) {
+      result += dest.token_amount;
+    }
+  }
+  return result;
+}
+
 uint64_t PendingTransactionImpl::dust() const
 {
     uint64_t result = 0;
