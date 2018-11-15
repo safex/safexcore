@@ -1233,8 +1233,8 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                 cryptonote::tx_destination_entry de;
 
                 if (tx_type == TransactionType::TokenTransaction) {
-                    if (!tools::is_whole_coin_amount(value_amount)) {
-                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, value_amount);
+                    if (!tools::is_whole_coin_amount(*value_amount)) {
+                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, *value_amount);
                     }
                     de.token_amount = *value_amount;
                     de.token_transaction = true;
