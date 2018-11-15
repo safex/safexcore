@@ -1245,9 +1245,16 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                 de.addr = info.address;
                 de.is_subaddress = info.is_subaddress;
                 dsts.push_back(de);
+              if (tx_type == TransactionType::TokenTransaction)
+              {
+                transaction->m_pending_tx = m_wallet->create_transactions_token(dsts, fake_outs_count, 0 /* unlock_time */,
+                        adjusted_priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+              } else {
                 transaction->m_pending_tx = m_wallet->create_transactions_2(dsts, fake_outs_count, 0 /* unlock_time */,
-                                                                          adjusted_priority,
-                                                                          extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+                        adjusted_priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+              }
+
+
             } else {
                 //TODO: perform sweep unmixable for GUI if amount is 0
                 THROW_WALLET_EXCEPTION(tools::error::zero_amount_error);
