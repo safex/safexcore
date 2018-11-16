@@ -3,7 +3,9 @@
 
 ## Releases
 
-Current active release branch with up to date hotfixes is [release-v0.1](https://github.com/safex/safexcore/tree/release-v0.1). Official releases are available [here](https://github.com/safex/safexcore/releases).
+Hard fork v2 is scheduled for 2018-11-26. Changes include switch to cryptonight-v8 and increase of minimum block size, along with various fixes. Alpha release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases/tag/v0.1.1-alpha). Testing is in progress. Other release binaries and possible fixes will be published around 10 days before the fork.
+
+
 
 ## Build Instructions
 
