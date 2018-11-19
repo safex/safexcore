@@ -146,7 +146,7 @@ application.
 
 * Change to the cloned directory, run:
 
-        cd monero
+        cd safexcore
 
 * If you would like a specific [version/tag](https://github.com/safex/safexcore/tags), do a git checkout for that version. eg. 'v0.1.0'. If you don't care about the version and just want binaries from master, skip this step:
 
