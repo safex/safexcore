@@ -624,6 +624,8 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
             m_wallet->generate(path, password, info.address, viewkey);
             LOG_PRINT_L1("Generated new view only wallet from keys");
         }
+
+        m_recoveringFromSeed= true; //Slow sync wallet
         
     }
     catch (const std::exception& e) {
