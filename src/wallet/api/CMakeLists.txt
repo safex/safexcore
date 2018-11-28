@@ -78,6 +78,7 @@ target_link_libraries(wallet_api
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${Boost_REGEX_LIBRARY}
+    ${Boost_LOCALE_LIBRARY}
   PRIVATE
     ${EXTRA_LIBRARIES})
 
@@ -92,3 +93,5 @@ endif()
 
 install(FILES ${wallet_api_headers}
     DESTINATION include/wallet/api)
+
+add_subdirectory(win_wrapper)

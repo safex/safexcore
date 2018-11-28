@@ -10,7 +10,7 @@
 extern "C" void* win_createWallet(uint8_t nettype) {
 
 	printf("Called %s \n", __FUNCTION__);
-	Safex::WalletImpl* wallet = new Safex::WalleImpl(nettype);
+	Safex::WalletImpl* wallet = new Safex::WalletImpl(static_cast<Safex::NetworkType>(nettype));
 	return static_cast<void*>(wallet);
 }
 extern "C" const char* win_address(void* self) {
@@ -66,7 +66,7 @@ extern "C" const char* win_errorString(void* self) {
     
     return wallet->errorString().c_str();
 }
-extern "C" void win_setRefreshFromBlockeHeight(void* self, uint32_t height) {
+extern "C" void win_setRefreshFromBlockHeight(void* self, uint32_t height) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	wallet->setRefreshFromBlockHeight(height);
 }
@@ -90,7 +90,7 @@ extern "C" uint64_t win_balanceAll(void* self) {
 	
 	return wallet->balanceAll();
 }
-extern "C" uint64_t win_unlockedBallanceAll(void* self) {
+extern "C" uint64_t win_unlockedBalanceAll(void* self) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	
 	return wallet->unlockedBalanceAll();
@@ -100,7 +100,7 @@ extern "C" uint64_t win_tokenBalanceAll(void* self) {
 	
 	return wallet->tokenBalanceAll();
 }
-extern "C" uint64_t win_unlockedTokenBallanceAll(void* self) {
+extern "C" uint64_t win_unlockedTokenBalanceAll(void* self) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	
 	return wallet->unlockedTokenBalanceAll();

@@ -47,7 +47,6 @@
 #include <unordered_map>
 
 #ifdef WIN32
-#include <boost/locale.hpp>
 #include <boost/filesystem.hpp>
 #endif
 
@@ -358,7 +357,7 @@ uint64_t Wallet::maximumAllowedAmount()
 void Wallet::init(const char *argv0, const char *default_log_base_name) {
 #ifdef WIN32
     // Activate UTF-8 support for Boost filesystem classes on Windows
-    std::locale::global(boost::locale::generator().generate(""));
+     std::setlocale(LC_ALL, "en_US.UTF-8");
     boost::filesystem::path::imbue(std::locale());
 #endif
     epee::string_tools::set_module_name_and_folder(argv0);
@@ -1832,8 +1831,7 @@ void WalletImpl::refreshThreadFunc()
         // if auto refresh enabled, we wait for the "m_refreshIntervalSeconds" interval.
         // if not - we wait forever
         if (m_refreshIntervalMillis > 0) {
-            boost::posix_time::milliseconds wait_for_ms(m_refreshIntervalMillis);
-            m_refreshCV.timed_wait(lock, wait_for_ms);
+             m_refreshCV.timed_wait(lock, boost::posix_time::milliseconds(2000));
         } else {
             m_refreshCV.wait(lock);
         }

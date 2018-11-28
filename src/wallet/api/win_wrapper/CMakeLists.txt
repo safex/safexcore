@@ -40,7 +40,24 @@ set(win_wallet_headers
 
 if (BUILD_WIN_WALLET_WRAPPER)
     add_library(win_wallet_wrapper SHARED ${win_wallet_sources} ${win_wallet_headers})
-    target_link_libraries(win_wallet_wrapper wallet_api)
+    target_link_libraries(win_wallet_wrapper
+        PUBLIC
+        wallet_api
+        wallet
+        common
+        cryptonote_core
+        mnemonics
+        ${LMDB_LIBRARY}
+        ${Boost_CHRONO_LIBRARY}
+        ${Boost_SERIALIZATION_LIBRARY}
+        ${Boost_FILESYSTEM_LIBRARY}
+        ${Boost_SYSTEM_LIBRARY}
+        ${Boost_THREAD_LIBRARY}
+        ${Boost_REGEX_LIBRARY}
+        PRIVATE
+        ${EXTRA_LIBRARIES}
+       
+    )
 
 endif()
 set_property(TARGET wallet_api PROPERTY EXCLUDE_FROM_ALL TRUE)
