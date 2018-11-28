@@ -13,12 +13,29 @@
 #include "../wallet_api.h"
 #include "../wallet.h"
 
+/****************************** WALLET API ****************************************************************************/
+
 extern "C" void* win_createWallet(uint8_t nettype);
 
-extern "C" uint8_t win_closeWalletB(void* self, uint8_t storeB)
 extern "C" uint8_t win_initB(void* self, const char* daemon_address);
 extern "C" void win_startRefresh(void* self);
 extern "C" uint8_t win_storeB(void* self, const char* path);
+
+// Returning Safex::PendingTransaction
+// @warning subaddr_indices is here uint32_t. Argument will be ignored for time being because Safex doesnt support
+//          subaddresses. Please be advised to pass integer value instead of initializer_list!!!!!
+// Both subaddr fields will be ignored, but are kept here to avoid any serious changes in existing API.
+extern "C" void* win_createTransaction(
+        void* self,
+        const char* dst_addr,
+        const char* payment_id,
+        uint64_t value_amount,
+        uint32_t mixin_count,
+        uint32_t priority,
+        uint32_t subaddr_account,
+        uint32_t subaddr_indices,
+        uint32_tx_type
+        );
 
 extern "C" const char* win_address(void* self);
 extern "C" const char* win_seed(void* self);
@@ -38,6 +55,40 @@ extern "C" uint64_t win_balanceAll(void* self);
 extern "C" uint64_t win_unlockedBallanceAll(void* self);
 extern "C" uint64_t win_tokenBalanceAll(void* self);
 extern "C" uint64_t win_unlockedTokenBallanceAll(void* self);
+/****************************** END WALLET API ************************************************************************/
+
+/****************************** PENDING TRANSACTION API ***************************************************************/
+extern "C" void* win_pt_createPendingTx(void* wallet);
+extern "C" uint64_t win_pt_amount(void* self);
+extern "C" uint64_t win_pt_tokenAmount(void* self);
+extern "C" uint64_t win_pt_dust(void* self);
+extern "C" uint64_t win_pt_fee(void* self);
+extern "C" uint64_t win_pt_txCount(void* self);
+// @warning Last element is nullptr!! Like
+extern "C" char** win_pt_txid(void* self);
+extern "C" int32_t win_pt_status(void* self);
+extern "C" const char* win_pt_errorString(void* self);
+extern "C" uint8_t win_pt_commit(void* self);
+/****************************** END PENDING TRANSACTION API ***********************************************************/
+
+
+/****************************** WALLET MANAGER API ********************************************************************/
+extern "C" void win_mng_closeWallet(void* self, void* wallet, uint8_t storeB);
+// @return Safex::WalletImpl
+extern "C" void* win_mng_createWallet(void* self, const char* path, const char* password, const char* lang, uint32_t nettype);
+// @return Safex::WalletImpl
+extern "C" void* win_mng_openWallet(void* self, const char* path, const char* password, uint32_t nettype);
+// @return Safex::WalletImpl
+extern "C" void* win_mng_recoveryWallet(
+        void* self,
+        const char* path,
+        const char* password,
+        const char* mnemonic,
+        uint32_t nettype,
+        uint64_t restoreHeight);
+extern "C" uint8_t win_mng_walletExists(void* self, const char* path);
+/****************************** END WALLET MANAGER API ****************************************************************/
 
 
 #endif //SAFEX_WINDOWS_WRAPPER_H
+
