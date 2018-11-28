@@ -13,6 +13,27 @@ extern "C" void* win_createWallet(uint8_t nettype) {
 	Safex::WalletImpl* wallet = new Safex::WalletImpl(static_cast<Safex::NetworkType>(nettype));
 	return static_cast<void*>(wallet);
 }
+
+extern "C" uint8_t win_closeWalletB(void* self, uint8_t storeB){
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	return static_cast<uint8_t>(wallet->closeWallet(wallet, static_cast<bool>(storeB)));
+}
+
+extern "C" uint8_t win_initB(void* self, const char* daemon_address){
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	return static_cast<uint8_t>(wallet->init(daemon_address));
+}
+
+extern "C" void win_startRefresh(void* self){
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	wallet->startRefresh();
+}
+
+extern "C" uint8_t win_storeB(void* self, const char* path){
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	return static_cast<bool>(wallet->store(path));
+}
+
 extern "C" const char* win_address(void* self) {
     Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	printf("Called %s \n", __FUNCTION__);

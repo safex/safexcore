@@ -14,6 +14,12 @@
 #include "../wallet.h"
 
 extern "C" void* win_createWallet(uint8_t nettype);
+
+extern "C" uint8_t win_closeWalletB(void* self, uint8_t storeB)
+extern "C" uint8_t win_initB(void* self, const char* daemon_address);
+extern "C" void win_startRefresh(void* self);
+extern "C" uint8_t win_storeB(void* self, const char* path);
+
 extern "C" const char* win_address(void* self);
 extern "C" const char* win_seed(void* self);
 extern "C" const char* win_path(void* self);
