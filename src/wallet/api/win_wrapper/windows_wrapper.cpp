@@ -14,6 +14,7 @@
 #include "../transaction_info.h"
 #include "../wallet_manager.h"
 #include "../wallet_api.h"
+#include "../windows_wallet_listener.h"
 
 
 char* returnStdString(std::string&& in) {
@@ -165,6 +166,36 @@ extern "C" uint64_t win_unlockedTokenBalanceAll(void* self) {
 extern "C" uint8_t win_static_addressValid(const char* address, uint32_t nettype) {
 	return static_cast<uint8_t>(Safex::Wallet::addressValid(address, static_cast<Safex::NetworkType>(nettype)));
 }
+
+extern "C" char* win_GenPaymentId() {
+	return returnStdString(Safex::Wallet::genPaymentId());
+}
+
+extern "C" uint8_t win_PaymentIdValid( const char* pid) {
+	return static_cast<uint8_t>(Safex::Wallet::paymentIdValid(pid));
+}
+
+extern "C" void win_SetListener(void* self, void* listener) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(listener);
+	wallet->setListener(wlstn);
+}
+
+extern "C" void win_segregatePreForkOutputs(void* self, uint8_t segregateB) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	wallet->segregatePreForkOutputs(static_cast<bool>(segregateB));
+}
+
+extern "C" void win_keyReuseMitigation2(void* self, uint8_t mitigationB) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	wallet->keyReuseMitigation2(static_cast<bool>(mitigationB));
+}
+
+extern "C" char* win_IntegratedAddress(void* self, const char* paymentId) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	return returnStdString(wallet->integratedAddress(paymentId));
+}
+
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" uint64_t win_pt_amount(void* self) {
@@ -368,3 +399,55 @@ extern "C" uint32_t win_txinfo_transactionType(void* self) {
 }
 
 /****************************** END TRANSACTIONINFO API ***************************************************************/
+
+/****************************** WALLET LISTENER API ********************************************************************/
+extern "C" void* win_lstn_Create() {
+	return static_cast<void*>(new WinWalletListener());
+}
+
+extern "C" void win_lstn_setMoneySpent(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->moneySpent_ = callback;
+}
+
+extern "C" void win_lstn_setMoneyReceived(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->moneyReceived_ = callback;
+}
+
+extern "C" void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->unconfirmedMoneyReceived_ = callback;
+}
+
+extern "C" void win_lstn_setTokensSpent(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->tokensSpent_ = callback;
+}
+
+extern "C" void win_lstn_setTokenReceived(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->tokenReceived_ = callback;
+}
+
+extern "C" void win_lstn_setUnconfirmedTokenReceived(void* self, void(*callback)(const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->unconfirmedTokenReceived_ = callback;
+}
+
+extern "C" void win_lstn_setNewBlock(void* self, void(*callback)(uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->newBlock_ = callback;
+}
+
+extern "C" void win_lstn_setUpdated(void* self, void(*callback)(void)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->updated_ = callback;
+}
+
+extern "C" void win_lstn_setRefreshed(void* self, void(*callback)(void)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->refresh_ = callback;
+}
+
+/****************************** END WALLET LISTNER API ****************************************************************/

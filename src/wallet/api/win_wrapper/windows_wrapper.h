@@ -54,6 +54,13 @@ extern "C" uint64_t win_unlockedBallanceAll(void* self);
 extern "C" uint64_t win_tokenBalanceAll(void* self);
 extern "C" uint64_t win_unlockedTokenBallanceAll(void* self);
 
+extern "C" char* win_GenPaymentId();
+extern "C" uint8_t win_PaymentIdValid();
+extern "C" void win_SetListener(void* self, void* listener);
+extern "C" void win_segregatePreForkOutputs(void* self, uint8_t segregate);
+extern "C" void win_keyReuseMitigation2(void* self, uint8_t mitigation);
+extern "C" char* win_IntegratedAddress(void* self, const char* paymentId);
+    
 extern "C" uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 /****************************** END WALLET API ************************************************************************/
 
@@ -108,6 +115,19 @@ extern "C" uint64_t win_txinfo_confirmations(void* self);
 extern "C" uint64_t win_txinfo_unlockTime(void* self);
 extern "C" uint32_t win_txinfo_transactionType(void* self);
 /****************************** END TRANSACTIONINFO API ***************************************************************/
+
+/****************************** WALLET LISTENER API ********************************************************************/
+extern "C" void* win_lstn_Create();
+extern "C" void win_lstn_setMoneySpent(void* self, void(*moneySpent_)(const char*, uint64_t));
+extern "C" void win_lstn_setMoneyReceived(void* self, void(*moneyReceived_)(const char*, uint64_t));
+extern "C" void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*unconfirmedMoneyReceived_)(const char*, uint64_t));
+extern "C" void win_lstn_setTokensSpent(void* self, void(*tokensSpent_)(const char*, uint64_t));
+extern "C" void win_lstn_setTokenReceived(void* self, void(*tokenReceived_)(const char*, uint64_t));
+extern "C" void win_lstn_setUnconfirmedTokenReceived(void* self, void(*unconfirmedTokenReceived_)(const char*, uint64_t));
+extern "C" void win_lstn_setNewBlock(void* self, void(*newBlock_)(uint64_t));
+extern "C" void win_lstn_setUpdated(void* self, void(*updated_)(void));
+extern "C" void win_lstn_setRefreshed(void* self, void(*refreshed_)(void));
+/****************************** END WALLET LISTNER API ****************************************************************/
 
 #endif //SAFEX_WINDOWS_WRAPPER_H
 
