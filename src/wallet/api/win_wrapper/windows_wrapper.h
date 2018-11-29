@@ -55,7 +55,7 @@ extern "C" uint64_t win_tokenBalanceAll(void* self);
 extern "C" uint64_t win_unlockedTokenBallanceAll(void* self);
 
 extern "C" char* win_GenPaymentId();
-extern "C" uint8_t win_PaymentIdValid();
+extern "C" uint8_t win_PaymentIdValid(const char* paymentId);
 extern "C" void win_SetListener(void* self, void* listener);
 extern "C" void win_segregatePreForkOutputs(void* self, uint8_t segregate);
 extern "C" void win_keyReuseMitigation2(void* self, uint8_t mitigation);

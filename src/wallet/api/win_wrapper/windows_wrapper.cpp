@@ -14,7 +14,7 @@
 #include "../transaction_info.h"
 #include "../wallet_manager.h"
 #include "../wallet_api.h"
-#include "../windows_wallet_listener.h"
+#include "windows_wallet_listener.h"
 
 
 char* returnStdString(std::string&& in) {
@@ -447,7 +447,7 @@ extern "C" void win_lstn_setUpdated(void* self, void(*callback)(void)) {
 
 extern "C" void win_lstn_setRefreshed(void* self, void(*callback)(void)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->refresh_ = callback;
+	wlstn->refreshed_ = callback;
 }
 
 /****************************** END WALLET LISTNER API ****************************************************************/

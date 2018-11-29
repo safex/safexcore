@@ -7,7 +7,7 @@
 
 #include "../wallet_api.h"
 
-struct WinWalletListener : public WalletListener
+struct WinWalletListener : public Safex::WalletListener
 {
     void(*moneySpent_)(const char*, uint64_t);
     void(*moneyReceived_)(const char*, uint64_t);
@@ -33,23 +33,23 @@ struct WinWalletListener : public WalletListener
         (*unconfirmedMoneyReceived_)(txId.c_str(), amount);
     }
     virtual void tokensSpent(const std::string &txId, uint64_t token_amount) {
-        (*tokensSpent_)(txId.c_str(), amount);
+        (*tokensSpent_)(txId.c_str(), token_amount);
     }
     virtual void tokensReceived(const std::string &txId, uint64_t token_amount) {
-        (*tokenReceived_)(txId.c_str(), amount);
+        (*tokenReceived_)(txId.c_str(), token_amount);
     }
     virtual void unconfirmedTokensReceived(const std::string &txId, uint64_t token_amount) {
-        (*unconfirmedMoneyReceived_)(txId.c_str(), amount);
+        (*unconfirmedMoneyReceived_)(txId.c_str(), token_amount);
     }
     virtual void newBlock(uint64_t height) {
-        (*newBlock)(height);
+        (*newBlock_)(height);
     }
     virtual void updated() {
         (*updated_)();
     }
 
     virtual void refreshed() {
-        (*refreshed)();
+        (*refreshed_)();
     }
 };
 
