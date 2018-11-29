@@ -163,7 +163,7 @@ extern "C" uint64_t win_unlockedTokenBalanceAll(void* self) {
 }
 
 extern "C" uint8_t win_static_addressValid(const char* address, uint32_t nettype) {
-	return static_cast<uint8t_>(Safex::Wallet::addressValid(address, static_cast<Safex::NetworkType>(nettype)));
+	return static_cast<uint8_t>(Safex::Wallet::addressValid(address, static_cast<Safex::NetworkType>(nettype)));
 }
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
