@@ -5,6 +5,9 @@
 #include <vector>
 #include <string>
 
+#include <cstdlib>
+#include <cstring>
+
 #include "windows_wrapper.h"
 #include "../wallet.h"
 #include "../pending_transaction.h"
@@ -43,7 +46,7 @@ extern "C" void* win_createTransaction(
 		uint32_t priority,
 		uint32_t subaddr_account,
 		uint32_t subaddr_indices,
-		uint32_tx_type) {
+		uint32_t tx_type) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	Safex::PendingTransaction* pTx = wallet->createTransaction(
 			dst_addr,
@@ -53,7 +56,10 @@ extern "C" void* win_createTransaction(
 			static_cast<Safex::PendingTransaction::Priority>(priority),
 			0,
 			{},
-			static_cast<Safex::TransactionType>(tx_type));
+			static_cast<Safex::TransactionType>(tx_type)
+	);
+
+	return static_cast<void*>(pTx);
 }
 
 extern "C" const char* win_address(void* self) {
@@ -150,10 +156,6 @@ extern "C" uint64_t win_unlockedTokenBalanceAll(void* self) {
 }
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
-extern "C" void* win_pt_createPendingTx(void* wallet) {
-	printf("Hello from %s \n", __FUNCTION__);
-}
-
 extern "C" uint64_t win_pt_amount(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
@@ -198,8 +200,11 @@ extern "C" char** win_pt_txid(void* self) {
 	char** retVal;
 	retVal = new char*[ret.size()+1];
 	size_t i = 0;
-	for(tx : ret) {
-		retVal[i++] = tx.c_str();
+	for(auto& tx : ret) {
+		uint32_t len = tx.size();
+		char* dst = (char*) malloc(len * sizeof(char));
+		retVal[i++] = dst;
+		memcpy(dst, tx.c_str(), len);
 	}
 	retVal[i] = nullptr;
 	return retVal;
@@ -260,7 +265,7 @@ extern "C" void* win_mng_recoveryWallet(
 		uint64_t restoreHeight) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
-	eturn static_cast<void*>(mngr->recoveryWallet(path, password, mnemonic, static_cast<Safex::NetworkType>(nettype), restoreHeight));
+	return static_cast<void*>(mngr->recoveryWallet(path, password, mnemonic, static_cast<Safex::NetworkType>(nettype), restoreHeight));
 }
 
 extern "C" uint8_t win_mng_walletExists(void* self, const char* path) {

@@ -32,7 +32,7 @@ extern "C" void* win_createTransaction(
         uint32_t priority,
         uint32_t subaddr_account,
         uint32_t subaddr_indices,
-        uint32_tx_type
+        uint32_t tx_type
         );
 
 extern "C" const char* win_address(void* self);
@@ -56,7 +56,6 @@ extern "C" uint64_t win_unlockedTokenBallanceAll(void* self);
 /****************************** END WALLET API ************************************************************************/
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
-extern "C" void* win_pt_createPendingTx(void* wallet);
 extern "C" uint64_t win_pt_amount(void* self);
 extern "C" uint64_t win_pt_tokenAmount(void* self);
 extern "C" uint64_t win_pt_dust(void* self);
