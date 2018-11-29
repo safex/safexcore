@@ -11,13 +11,14 @@
 #include "windows_wrapper.h"
 #include "../wallet.h"
 #include "../pending_transaction.h"
+#include "../transaction_info.h"
 #include "../wallet_manager.h"
 #include "../wallet_api.h"
 
 
-char* returnStdString(std::string& in) {
+char* returnStdString(std::string&& in) {
 	char* dst = (char*) malloc(in.size()* sizeof(char));
-	memcpy(dst, tx.c_str(), in.size());
+	memcpy(dst, in.c_str(), in.size());
 	return dst;
 }
 
@@ -28,7 +29,7 @@ extern "C" void* win_createWallet(uint8_t nettype) {
 	return static_cast<void*>(wallet);
 }
 
-extern "C" uint8_t win_initB(void* self, char* daemon_address){
+extern "C" uint8_t win_initB(void* self, const char* daemon_address){
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	return static_cast<uint8_t>(wallet->init(daemon_address));
 }
@@ -38,15 +39,15 @@ extern "C" void win_startRefresh(void* self){
 	wallet->startRefresh();
 }
 
-extern "C" uint8_t win_storeB(void* self, char* path){
+extern "C" uint8_t win_storeB(void* self, const char* path){
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	return static_cast<bool>(wallet->store(path));
 }
 
 extern "C" void* win_createTransaction(
 		void* self,
-		char* dst_addr,
-		char* payment_id,
+		const char* dst_addr,
+		const char* payment_id,
 		uint64_t value_amount,
 		uint32_t mixin_count,
 		uint32_t priority,
@@ -110,7 +111,7 @@ extern "C" char* win_publicSpendKey(void* self) {
 
 	return returnStdString(wallet->publicSpendKey());
 }
-extern "C" uint8_t win_setPasswordB(void* self, char* pass_c) {
+extern "C" uint8_t win_setPasswordB(void* self, const char* pass_c) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	std::string password(pass_c);
 	
@@ -248,14 +249,14 @@ extern "C" void win_mng_closeWallet(void* self, void* wallet, uint8_t storeB) {
 }
 
 // @return Safex::WalletImpl
-extern "C" void* win_mng_createWallet(void* self, char* path, char* password, char* lang, uint32_t nettype) {
+extern "C" void* win_mng_createWallet(void* self, const char* path,const  char* password, const char* lang, uint32_t nettype) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<void*>(mngr->createWallet(path, password, lang, static_cast<Safex::NetworkType>(nettype)));
 }
 
 // @return Safex::WalletImpl
-extern "C" void* win_mng_openWallet(void* self, char* path, char* password, uint32_t nettype) {
+extern "C" void* win_mng_openWallet(void* self, const char* path, const char* password, uint32_t nettype) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<void*>(mngr->openWallet(path, password, static_cast<Safex::NetworkType>(nettype)));
@@ -264,9 +265,9 @@ extern "C" void* win_mng_openWallet(void* self, char* path, char* password, uint
 // @return Safex::WalletImpl
 extern "C" void* win_mng_recoveryWallet(
 		void* self,
-		char* path,
-		char* password,
-		char* mnemonic,
+		const char* path,
+		const char* password,
+		const char* mnemonic,
 		uint32_t nettype,
 		uint64_t restoreHeight) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
@@ -274,7 +275,7 @@ extern "C" void* win_mng_recoveryWallet(
 	return static_cast<void*>(mngr->recoveryWallet(path, password, mnemonic, static_cast<Safex::NetworkType>(nettype), restoreHeight));
 }
 
-extern "C" uint8_t win_mng_walletExists(void* self, char* path) {
+extern "C" uint8_t win_mng_walletExists(void* self, const char* path) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<uint8_t>(mngr->walletExists(path));
@@ -287,77 +288,78 @@ extern "C" void* win_mngf_getWalletManager() {
 /****************************** END WALLET MANAGER API ****************************************************************/
 /****************************** TRANSACTIONINFO API *******************************************************************/
 extern "C" void* win_txinfo_createTransactionInfo() {
-
+	Safex::TransactionInfoImpl* txInfo = new Safex::TransactionInfoImpl();
+	return static_cast<void*>(txInfo);
 }
 extern "C" int32_t win_txinfo_direction(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<int32_t>(txInfo->direction());
 }
 
 extern "C" uint8_t win_txinfo_isPendingB(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<uint8_t>(txInfo->isPending());
 }
 
 extern "C" uint8_t win_txinfo_isFailedB(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<uint8_t>(txInfo->isFailed());
 }
 
 extern "C" uint64_t win_txinfo_amount(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return txInfo->amount();
 }
 
 extern "C" uint64_t win_txinfo_fee(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return txInfo->fee();
 }
 
 extern "C" uint64_t win_txinfo_blockHeight(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return txInfo->blockHeight();
 }
 
-extern "C" const char* win_txinfo_label(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+extern "C" char* win_txinfo_label(void* self) {
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return  returnStdString(txInfo->label());
 }
 
-extern "C" const char* win_txinfo_hash(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+extern "C" char* win_txinfo_hash(void* self) {
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return  returnStdString(txInfo->hash());
 }
 
 extern "C" uint64_t win_txinfo_timestamp(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<uint64_t>(txInfo->timestamp());
 }
 
-extern "C" const_char* win_txinfo_paymentId(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+extern "C" char* win_txinfo_paymentId(void* self) {
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return  returnStdString(txInfo->paymentId());
 }
 
-extern "C" void* win_txinfo_transfers(void* self, uint32_t size) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
-	const std::vector<Safex::Transfer>& transfers = txIndo->transfers();
-	size = transfers.size();
-	return static_cast<void*>(transfers.data());
+extern "C" void* win_txinfo_transfers(void* self, uint32_t* size) {
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
+	const std::vector<Safex::TransactionInfo::Transfer>& transfers = txInfo->transfers();
+	*size = transfers.size();
+	return static_cast<void*>(const_cast<Safex::TransactionInfo::Transfer*>(transfers.data()));
 }
 
 extern "C" uint64_t win_txinfo_confirmations(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return txInfo->confirmations();
 }
 
 extern "C" uint64_t win_txinfo_unlockTime(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<uint64_t>(txInfo->unlockTime());
 }
 
 extern "C" uint32_t win_txinfo_transactionType(void* self) {
-	Safex::TransactionInfo* txInfo = static_cast<Safex::TransactionInfo*>(self);
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<uint32_t>(txInfo->transactionType());
 }
 
