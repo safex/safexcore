@@ -53,6 +53,8 @@ extern "C" uint64_t win_balanceAll(void* self);
 extern "C" uint64_t win_unlockedBallanceAll(void* self);
 extern "C" uint64_t win_tokenBalanceAll(void* self);
 extern "C" uint64_t win_unlockedTokenBallanceAll(void* self);
+
+extern "C" uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 /****************************** END WALLET API ************************************************************************/
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
