@@ -10,8 +10,6 @@
 #ifndef SAFEX_WINDOWS_WRAPPER_H
 #define SAFEX_WINDOWS_WRAPPER_H
 
-#include "../wallet_api.h"
-#include "../wallet.h"
 
 /****************************** WALLET API ****************************************************************************/
 
@@ -73,6 +71,7 @@ extern "C" uint8_t win_pt_commit(void* self);
 
 
 /****************************** WALLET MANAGER API ********************************************************************/
+extern "C" void* win_mngf_getWalletManager();
 extern "C" void win_mng_closeWallet(void* self, void* wallet, uint8_t storeB);
 // @return Safex::WalletImpl
 extern "C" void* win_mng_createWallet(void* self, const char* path, const char* password, const char* lang, uint32_t nettype);
@@ -86,6 +85,7 @@ extern "C" void* win_mng_recoveryWallet(
         const char* mnemonic,
         uint32_t nettype,
         uint64_t restoreHeight);
+//@return Safex::WalletManager
 extern "C" uint8_t win_mng_walletExists(void* self, const char* path);
 /****************************** END WALLET MANAGER API ****************************************************************/
 

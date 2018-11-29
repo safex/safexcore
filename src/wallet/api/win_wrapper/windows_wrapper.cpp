@@ -9,6 +9,7 @@
 #include "../wallet.h"
 #include "../pending_transaction.h"
 #include "../wallet_manager.h"
+#include "../wallet_api.h"
 
 
 extern "C" void* win_createWallet(uint8_t nettype) {
@@ -152,36 +153,42 @@ extern "C" uint64_t win_unlockedTokenBalanceAll(void* self) {
 extern "C" void* win_pt_createPendingTx(void* wallet) {
 	printf("Hello from %s \n", __FUNCTION__);
 }
+
 extern "C" uint64_t win_pt_amount(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->amount();
 }
+
 extern "C" uint64_t win_pt_tokenAmount(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->tokenAmount();
 }
+
 extern "C" uint64_t win_pt_dust(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->dust();
 }
+
 extern "C" uint64_t win_pt_fee(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->fee();
 }
+
 extern "C" uint64_t win_pt_txCount(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->txCount();
 }
+
 extern "C" char** win_pt_txid(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
@@ -197,18 +204,21 @@ extern "C" char** win_pt_txid(void* self) {
 	retVal[i] = nullptr;
 	return retVal;
 }
+
 extern "C" int32_t win_pt_status(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->status();
 }
+
 extern "C" const char* win_pt_errorString(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 
 	return ptx->errorString().c_str();
 }
+
 extern "C" uint8_t win_pt_commit(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
@@ -225,18 +235,21 @@ extern "C" void win_mng_closeWallet(void* self, void* wallet, uint8_t storeB) {
 	mngr->closeWallet(wllt, static_cast<bool>(storeB));
 	printf("Hello from %s \n", __FUNCTION__);
 }
+
 // @return Safex::WalletImpl
 extern "C" void* win_mng_createWallet(void* self, const char* path, const char* password, const char* lang, uint32_t nettype) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<void*>(mngr->createWallet(path, password, lang, static_cast<Safex::NetworkType>(nettype)));
 }
+
 // @return Safex::WalletImpl
 extern "C" void* win_mng_openWallet(void* self, const char* path, const char* password, uint32_t nettype) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<void*>(mngr->openWallet(path, password, static_cast<Safex::NetworkType>(nettype)));
 }
+
 // @return Safex::WalletImpl
 extern "C" void* win_mng_recoveryWallet(
 		void* self,
@@ -249,9 +262,15 @@ extern "C" void* win_mng_recoveryWallet(
 	printf("Hello from %s \n", __FUNCTION__);
 	eturn static_cast<void*>(mngr->recoveryWallet(path, password, mnemonic, static_cast<Safex::NetworkType>(nettype), restoreHeight));
 }
+
 extern "C" uint8_t win_mng_walletExists(void* self, const char* path) {
 	Safex::WalletManagerImpl* mngr = static_cast<Safex::WalletManagerImpl*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
 	return static_cast<uint8_t>(mngr->walletExists(path));
+}
+
+extern "C" void* win_mngf_getWalletManager() {
+	Safex::WalletManager* mngr = Safex::WalletManagerFactory::getWalletManager();
+	return static_cast<void*>(mngr);
 }
 /****************************** END WALLET MANAGER API ****************************************************************/
