@@ -88,6 +88,24 @@ extern "C" void* win_mng_recoveryWallet(
 extern "C" uint8_t win_mng_walletExists(void* self, const char* path);
 /****************************** END WALLET MANAGER API ****************************************************************/
 
+/****************************** TRANSACTIONINFO API *******************************************************************/
+extern "C" void* win_txinfo_createTransactionInfo();
+extern "C" int32_t win_txinfo_direction(void* self);
+extern "C" uint8_t win_txinfo_isPendingB(void* self);
+extern "C" uint8_t win_txinfo_isFailedB(void* self);
+extern "C" uint64_t win_txinfo_amount(void* self);
+extern "C" uint64_t win_txinfo_fee(void* self);
+extern "C" uint64_t win_txinfo_blockHeight(void* self);
+extern "C" const char* win_txinfo_label(void* self);
+extern "C" const char* win_txinfo_hash(void* self);
+extern "C" uint64_t win_txinfo_timestamp(void* self);
+extern "C" const_char* win_txinfo_paymentId(void* self);
+// returns array of Safex::Transfers
+extern "C" void* win_txinfo_transfers(void* self, uint32_t);
+extern "C" uint64_t win_txinfo_confirmations(void* self);
+extern "C" uint64_t win_txinfo_unlockTime(void* self);
+extern "C" uint32_t win_txinfo_transactionType(void* self);
+/****************************** END TRANSACTIONINFO API ***************************************************************/
 
 #endif //SAFEX_WINDOWS_WRAPPER_H
 
