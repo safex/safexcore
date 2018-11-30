@@ -13,9 +13,9 @@
 #include <windows.h>
 
 /****************************** WALLET API ****************************************************************************/
-
 __declspec(dllexport) void* win_createWallet(uint8_t nettype);
 __declspec(dllexport) void win_deleteWallet(void* self);
+__declspec(dllexport) void win_checkDLL(const char* msg);
 
 __declspec(dllexport) uint8_t win_initB(void* self, const char* daemon_address);
 __declspec(dllexport) void win_startRefresh(void* self);

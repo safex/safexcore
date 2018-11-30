@@ -23,6 +23,11 @@ char* returnStdString(std::string&& in) {
 	return dst;
 }
 
+
+__declspec(dllexport) void win_checkDLL(const char* msg) {
+	printf("Message from below: %s \n", msg);
+}
+
 __declspec(dllexport) void* win_createWallet(uint8_t nettype) {
 
 	printf("Called %s \n", __FUNCTION__);
