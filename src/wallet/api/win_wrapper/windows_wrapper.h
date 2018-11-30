@@ -14,6 +14,7 @@
 /****************************** WALLET API ****************************************************************************/
 
 extern "C" void* win_createWallet(uint8_t nettype);
+extern "C" void win_deleteWallet(void* self);
 
 extern "C" uint8_t win_initB(void* self, const char* daemon_address);
 extern "C" void win_startRefresh(void* self);
@@ -65,6 +66,8 @@ extern "C" uint8_t win_static_addressValid(const char* address, uint32_t nettype
 /****************************** END WALLET API ************************************************************************/
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
+extern "C" void* win_pt_create(void* wallet);
+extern "C" void win_pt_delete(void* self);
 extern "C" uint64_t win_pt_amount(void* self);
 extern "C" uint64_t win_pt_tokenAmount(void* self);
 extern "C" uint64_t win_pt_dust(void* self);
@@ -99,6 +102,7 @@ extern "C" uint8_t win_mng_walletExists(void* self, const char* path);
 
 /****************************** TRANSACTIONINFO API *******************************************************************/
 extern "C" void* win_txinfo_createTransactionInfo();
+extern "C" void win_txinfo_deleteTransactionInfo(void* self);
 extern "C" int32_t win_txinfo_direction(void* self);
 extern "C" uint8_t win_txinfo_isPendingB(void* self);
 extern "C" uint8_t win_txinfo_isFailedB(void* self);

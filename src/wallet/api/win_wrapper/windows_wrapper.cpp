@@ -30,6 +30,13 @@ extern "C" void* win_createWallet(uint8_t nettype) {
 	return static_cast<void*>(wallet);
 }
 
+extern "C" void win_deleteWallet(void* self) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
+	if(wallet) {
+		delete wallet;
+	}
+}
+
 extern "C" uint8_t win_initB(void* self, const char* daemon_address){
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(self);
 	return static_cast<uint8_t>(wallet->init(daemon_address));
@@ -198,6 +205,19 @@ extern "C" char* win_IntegratedAddress(void* self, const char* paymentId) {
 
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
+extern "C" void* win_pt_create(void* in) {
+	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(in);
+	Safex::PendingTransactionImpl* ret = new Safex:PendingTransactionImpl(wallet);
+	return static_cast<void*>(ret);
+}
+
+extern "C" void win_pt_delete(void* self) {
+	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
+	if(ptx) {
+		delete ptx;
+	}
+}
+
 extern "C" uint64_t win_pt_amount(void* self) {
 	Safex::PendingTransaction* ptx = static_cast<Safex::PendingTransaction*>(self);
 	printf("Hello from %s \n", __FUNCTION__);
@@ -326,6 +346,14 @@ extern "C" void* win_txinfo_createTransactionInfo() {
 	Safex::TransactionInfoImpl* txInfo = new Safex::TransactionInfoImpl();
 	return static_cast<void*>(txInfo);
 }
+
+extern "C" void win_txinfo_deleteTransactionInfo(void* self) {
+	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
+	if(txInfo) {
+		delete txInfo;
+	}
+}
+
 extern "C" int32_t win_txinfo_direction(void* self) {
 	Safex::TransactionInfoImpl* txInfo = static_cast<Safex::TransactionInfoImpl*>(self);
 	return static_cast<int32_t>(txInfo->direction());
