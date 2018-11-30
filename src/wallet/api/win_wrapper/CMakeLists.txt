@@ -40,7 +40,7 @@ set(win_wallet_headers
 
 if (BUILD_WIN_WALLET_WRAPPER)
     add_library(win_wallet_wrapper SHARED ${win_wallet_sources} ${win_wallet_headers})
-    set_target_properties(win_wallet_wrapper PROPERTIES LINK_FLAGS "--exclude-all-symbols -Wl,--output-def,libwin_wallet_wrapper.def")
+    set_target_properties(win_wallet_wrapper PROPERTIES LINK_FLAGS "-Wl,--exclude-all-symbols -Wl,--output-def,libwin_wallet_wrapper.def")
     target_link_libraries(win_wallet_wrapper
         PRIVATE
         wallet_api

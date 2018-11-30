@@ -25,12 +25,6 @@ char* returnStdString(std::string&& in) {
 	return dst;
 }
 
-#ifdef DLLIMPORT_SAFEX 
-	#define DLL_MAGIC __declspec(dllimport)
-#elif
-	#define DLL_MAGIC __declspec(dllexport)
-#endif
-
 extern "C" DLL_MAGIC  void win_checkDLL(const char* msg) {
 	printf("Message from below: %s \n", msg);
 	std::cout << "message bab ba std::cout " << std::endl;

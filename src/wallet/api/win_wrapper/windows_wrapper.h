@@ -13,9 +13,9 @@
 #include <windows.h>
 
 #ifdef DLLIMPORT_SAFEX 
-	#define DLL_MAGIC __declspec(dllimport)
-#elif
-	#define DLL_MAGIC __declspec(dllexport)
+#define DLL_MAGIC __declspec(dllimport)
+#else
+#define DLL_MAGIC __declspec(dllexport)
 #endif
 
 /****************************** WALLET API ****************************************************************************/
