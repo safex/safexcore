@@ -211,7 +211,7 @@ extern "C" char* win_IntegratedAddress(void* self, const char* paymentId) {
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" void* win_pt_create(void* in) {
 	Safex::WalletImpl* wallet = static_cast<Safex::WalletImpl*>(in);
-	Safex::PendingTransactionImpl* ret = new Safex:PendingTransactionImpl(wallet);
+	Safex::PendingTransactionImpl* ret = new Safex::PendingTransactionImpl(*wallet);
 	return static_cast<void*>(ret);
 }
 
