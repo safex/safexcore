@@ -39,7 +39,6 @@ Install all libraries
 ```
 $ brew tap jmuncaster/homebrew-header-only
 $ brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq openssl pkg-config
-$ brew install libzmq
 ```
 You will need to have MacPorts installed. If you don't have it install it from here https://guide.macports.org/. Download the package for your OS version from the website. Open **new** terminal window and check if MacPorts are installed
 ```
