@@ -12,7 +12,7 @@
 
 
 /****************************** WALLET API ****************************************************************************/
-
+extern "C" void win_checkDLL(const char* msg);
 extern "C" void* win_createWallet(uint8_t nettype);
 extern "C" void win_deleteWallet(void* self);
 
