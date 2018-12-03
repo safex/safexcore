@@ -441,50 +441,46 @@ extern "C" DLL_MAGIC  uint32_t win_txinfo_transactionType(void* self) {
 extern "C" DLL_MAGIC  void* win_lstn_Create(void* up) {
 	return static_cast<void*>(new WinWalletListener(up));
 }
-
-extern "C" DLL_MAGIC  void win_lstn_setMoneySpent(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setMoneySpent(void* self, void(*moneySpent_)(void*,const char*, uint64_t)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->moneySpent_ = callback;
+	wlstn->moneySpent_ = moneySpent_;
+}
+extern "C" DLL_MAGIC void win_lstn_setMoneyReceived(void* self, void(*moneyReceived_)(void*,const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->moneyReceived_ = moneyReceived_;
 }
 
-extern "C" DLL_MAGIC  void win_lstn_setMoneyReceived(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*unconfirmedMoneyReceived_)(void*,const char*, uint64_t)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->moneyReceived_ = callback;
+	wlstn->unconfirmedMoneyReceived_ = unconfirmedMoneyReceived_;
+}
+extern "C" DLL_MAGIC void win_lstn_setTokensSpent(void* self, void(*tokensSpent_)(void*,const char*, uint64_t)) {
+	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
+	wlstn->tokensSpent_ = tokensSpent_;
 }
 
-extern "C" DLL_MAGIC  void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setTokenReceived(void* self, void(*tokenReceived_)(void*,const char*, uint64_t)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->unconfirmedMoneyReceived_ = callback;
+	wlstn->tokenReceived_ = tokenReceived_;
 }
 
-extern "C" DLL_MAGIC  void win_lstn_setTokensSpent(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setUnconfirmedTokenReceived(void* self, void(*unconfirmedTokenReceived_)(void*,const char*, uint64_t)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->tokensSpent_ = callback;
+	wlstn->unconfirmedTokenReceived_ = unconfirmedTokenReceived_;
 }
 
-extern "C" DLL_MAGIC  void win_lstn_setTokenReceived(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setNewBlock(void* self, void(*newBlock_)(void*,uint64_t)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->tokenReceived_ = callback;
+	wlstn->newBlock_ = newBlock_;
 }
 
-extern "C" DLL_MAGIC  void win_lstn_setUnconfirmedTokenReceived(void* self, void(*callback)(const char*, uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setUpdated(void* self, void(*updated_)(void*)) {
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->unconfirmedTokenReceived_ = callback;
+	wlstn->updated_ = updated_;
 }
-
-extern "C" DLL_MAGIC  void win_lstn_setNewBlock(void* self, void(*callback)(uint64_t)) {
+extern "C" DLL_MAGIC void win_lstn_setRefreshed(void* self, void(*refreshed_)(void*)){
 	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->newBlock_ = callback;
-}
-
-extern "C" DLL_MAGIC  void win_lstn_setUpdated(void* self, void(*callback)(void)) {
-	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->updated_ = callback;
-}
-
-extern "C" DLL_MAGIC  void win_lstn_setRefreshed(void* self, void(*callback)(void)) {
-	WinWalletListener* wlstn = static_cast<WinWalletListener*>(self);
-	wlstn->refreshed_ = callback;
+	wlstn->refreshed_ = refreshed_;
 }
 
 /****************************** END WALLET LISTNER API ****************************************************************/
