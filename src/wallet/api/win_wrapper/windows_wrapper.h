@@ -128,16 +128,16 @@ extern "C" DLL_MAGIC uint32_t win_txinfo_transactionType(void* self);
 /****************************** END TRANSACTIONINFO API ***************************************************************/
 
 /****************************** WALLET LISTENER API ********************************************************************/
-extern "C" DLL_MAGIC void* win_lstn_Create();
-extern "C" DLL_MAGIC void win_lstn_setMoneySpent(void* self, void(*moneySpent_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setMoneyReceived(void* self, void(*moneyReceived_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*unconfirmedMoneyReceived_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setTokensSpent(void* self, void(*tokensSpent_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setTokenReceived(void* self, void(*tokenReceived_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setUnconfirmedTokenReceived(void* self, void(*unconfirmedTokenReceived_)(const char*, uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setNewBlock(void* self, void(*newBlock_)(uint64_t));
-extern "C" DLL_MAGIC void win_lstn_setUpdated(void* self, void(*updated_)(void));
-extern "C" DLL_MAGIC void win_lstn_setRefreshed(void* self, void(*refreshed_)(void));
+extern "C" DLL_MAGIC void* win_lstn_Create(void*);
+extern "C" DLL_MAGIC void win_lstn_setMoneySpent(void* self, void(*moneySpent_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setMoneyReceived(void* self, void(*moneyReceived_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setUnconfirmedMoneyReceived(void* self, void(*unconfirmedMoneyReceived_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setTokensSpent(void* self, void(*tokensSpent_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setTokenReceived(void* self, void(*tokenReceived_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setUnconfirmedTokenReceived(void* self, void(*unconfirmedTokenReceived_)(void*,const char*, uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setNewBlock(void* self, void(*newBlock_)(void*,uint64_t));
+extern "C" DLL_MAGIC void win_lstn_setUpdated(void* self, void(*updated_)(void*));
+extern "C" DLL_MAGIC void win_lstn_setRefreshed(void* self, void(*refreshed_)(void*));
 /****************************** END WALLET LISTNER API ****************************************************************/
 
 #endif //SAFEX_WINDOWS_WRAPPER_H

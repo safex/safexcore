@@ -438,8 +438,8 @@ extern "C" DLL_MAGIC  uint32_t win_txinfo_transactionType(void* self) {
 /****************************** END TRANSACTIONINFO API ***************************************************************/
 
 /****************************** WALLET LISTENER API ********************************************************************/
-extern "C" DLL_MAGIC  void* win_lstn_Create() {
-	return static_cast<void*>(new WinWalletListener());
+extern "C" DLL_MAGIC  void* win_lstn_Create(void* up) {
+	return static_cast<void*>(new WinWalletListener(up));
 }
 
 extern "C" DLL_MAGIC  void win_lstn_setMoneySpent(void* self, void(*callback)(const char*, uint64_t)) {
