@@ -581,3 +581,13 @@ extern "C" DLL_MAGIC void win_lstn_setRefreshed(void *self, void(*refreshed_)(vo
 }
 
 /****************************** END WALLET LISTNER API ****************************************************************/
+
+/****************************** OTHER FUNCTIONS ***********************************************************************/
+extern "C" DLL_MAGIC void win_mlog_set_log_levelI(int level) {
+  mlog_set_log_level(level);
+}
+
+extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log) {
+  mlog_set_log_level(log);
+}
+/****************************** END OTHER FUNCTIONS *******************************************************************/
