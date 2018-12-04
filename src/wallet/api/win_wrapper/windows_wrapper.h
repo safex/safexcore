@@ -43,16 +43,16 @@ extern "C" DLL_MAGIC void* win_createTransaction(
         uint32_t tx_type
         );
 
-extern "C" DLL_MAGIC char* win_address(void* self);
-extern "C" DLL_MAGIC char* win_seed(void* self);
-extern "C" DLL_MAGIC char* win_path(void* self);
+extern "C" DLL_MAGIC const char* win_address(void* self);
+extern "C" DLL_MAGIC const char* win_seed(void* self);
+extern "C" DLL_MAGIC const char* win_path(void* self);
 extern "C" DLL_MAGIC uint8_t win_nettype(void* self);
-extern "C" DLL_MAGIC char* win_secretViewKey(void* self);
-extern "C" DLL_MAGIC char* win_publicViewKey(void* self);
-extern "C" DLL_MAGIC char* win_secretSpendKey(void* self);
-extern "C" DLL_MAGIC char* win_publicSpendKey(void* self);
+extern "C" DLL_MAGIC const char* win_secretViewKey(void* self);
+extern "C" DLL_MAGIC const char* win_publicViewKey(void* self);
+extern "C" DLL_MAGIC const char* win_secretSpendKey(void* self);
+extern "C" DLL_MAGIC const char* win_publicSpendKey(void* self);
 extern "C" DLL_MAGIC uint8_t win_setPasswordB(void* self, const char*); // @todo See if bool is valid in CAPI
-extern "C" DLL_MAGIC char* win_errorString(void* self);
+extern "C" DLL_MAGIC const char* win_errorString(void* self);
 extern "C" DLL_MAGIC void win_setRefreshFromBlockeHeight(void* self, uint32_t height);
 extern "C" DLL_MAGIC uint32_t win_connected(void* self); // @todo Enum ConnectionStatus without default type should be uint32_t
 extern "C" DLL_MAGIC void win_setTrustedDaemon(void* self, uint8_t argB);
@@ -62,12 +62,12 @@ extern "C" DLL_MAGIC uint64_t win_unlockedBallanceAll(void* self);
 extern "C" DLL_MAGIC uint64_t win_tokenBalanceAll(void* self);
 extern "C" DLL_MAGIC uint64_t win_unlockedTokenBallanceAll(void* self);
 
-extern "C" DLL_MAGIC char* win_GenPaymentId();
+extern "C" DLL_MAGIC const char* win_GenPaymentId();
 extern "C" DLL_MAGIC uint8_t win_PaymentIdValid(const char* paymentId);
 extern "C" DLL_MAGIC void win_SetListener(void* self, void* listener);
 extern "C" DLL_MAGIC void win_segregatePreForkOutputs(void* self, uint8_t segregate);
 extern "C" DLL_MAGIC void win_keyReuseMitigation2(void* self, uint8_t mitigation);
-extern "C" DLL_MAGIC char* win_IntegratedAddress(void* self, const char* paymentId);
+extern "C" DLL_MAGIC const char* win_IntegratedAddress(void* self, const char* paymentId);
     
 extern "C" DLL_MAGIC uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 /****************************** END WALLET API ************************************************************************/
@@ -83,7 +83,7 @@ extern "C" DLL_MAGIC uint64_t win_pt_txCount(void* self);
 // @warning Last element is nullptr!! Like
 extern "C" DLL_MAGIC char** win_pt_txid(void* self);
 extern "C" DLL_MAGIC int32_t win_pt_status(void* self);
-extern "C" DLL_MAGIC char* win_pt_errorString(void* self);
+extern "C" DLL_MAGIC const char* win_pt_errorString(void* self);
 extern "C" DLL_MAGIC uint8_t win_pt_commit(void* self);
 /****************************** END PENDING TRANSACTION API ***********************************************************/
 
@@ -116,10 +116,10 @@ extern "C" DLL_MAGIC uint8_t win_txinfo_isFailedB(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_amount(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_fee(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_blockHeight(void* self);
-extern "C" DLL_MAGIC char* win_txinfo_label(void* self);
-extern "C" DLL_MAGIC char* win_txinfo_hash(void* self);
+extern "C" DLL_MAGIC const char* win_txinfo_label(void* self);
+extern "C" DLL_MAGIC const char* win_txinfo_hash(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_timestamp(void* self);
-extern "C" DLL_MAGIC char* win_txinfo_paymentId(void* self);
+extern "C" DLL_MAGIC const char* win_txinfo_paymentId(void* self);
 // returns array of Safex::Transfers
 extern "C" DLL_MAGIC void* win_txinfo_transfers(void* self, uint32_t* size);
 extern "C" DLL_MAGIC uint64_t win_txinfo_confirmations(void* self);
