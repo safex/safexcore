@@ -321,15 +321,14 @@ extern "C" DLL_MAGIC  char *win_pt_txid(void *self)
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
 
   std::vector<std::string> ret = ptx->txid();
+  static unsigned char buffer[32*1024];
+  memset((void*)buffer, 0, sizeof(buffer));
 
-
-  char* ret = malloc(ret.size() * 32 * sizeof(char));
-
-  uint64_t first = 0;
+  uint64_t offset = 0;
   for (auto &tx : ret)
   {
-    memcpy(ret + first, tx.c_str(), 32);
-    first += 32;
+    memcpy(buffer + offset, tx.c_str(), 32);
+    offset += 32;
   }
 
   return ret;
