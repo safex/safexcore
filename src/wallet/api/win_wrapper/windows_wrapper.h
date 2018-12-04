@@ -105,6 +105,8 @@ extern "C" DLL_MAGIC void* win_mng_recoveryWallet(
         uint64_t restoreHeight);
 //@return Safex::WalletManager
 extern "C" DLL_MAGIC uint8_t win_mng_walletExists(void* self, const char* path);
+extern "C" DLL_MAGIC void* win_mng_createWalletFromKeys(void* self, const char* path, const char* password, const char* language, uint32_t nettype,
+                                                uint64_t restoreHeight,const char *addressString, const char* viewKeyString, const char* spendKeyString);
 /****************************** END WALLET MANAGER API ****************************************************************/
 
 /****************************** TRANSACTIONINFO API *******************************************************************/

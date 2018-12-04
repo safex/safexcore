@@ -419,6 +419,12 @@ extern "C" DLL_MAGIC  void *win_mngf_getWalletManager()
   Safex::WalletManager *mngr = Safex::WalletManagerFactory::getWalletManager();
   return static_cast<void *>(mngr);
 }
+
+extern "C" DLL_MAGIC void* win_mng_createWalletFromKeys(void* self, const char* path, const char* password, const char* language, uint32_t nettype,
+                                                uint64_t restoreHeight,const char *addressString, const char* viewKeyString, const char* spendKeyString) {
+  Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
+  return static_cast<void*>(mnbr->createWalletFromKeys(path, password, language, static_cast<Safex::NetworkType>(nettype), restoreHeight, addressString, viewKeyString, spendKeyString));
+}
 /****************************** END WALLET MANAGER API ****************************************************************/
 /****************************** TRANSACTIONINFO API *******************************************************************/
 extern "C" DLL_MAGIC  void *win_txinfo_createTransactionInfo()
@@ -588,6 +594,6 @@ extern "C" DLL_MAGIC void win_mlog_set_log_levelI(int level) {
 }
 
 extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log) {
-  mlog_set_log_level(log);
+  mlog_set_log(log);
 }
 /****************************** END OTHER FUNCTIONS *******************************************************************/
