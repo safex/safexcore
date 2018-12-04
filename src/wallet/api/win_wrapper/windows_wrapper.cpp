@@ -284,7 +284,6 @@ extern "C" DLL_MAGIC  void win_pt_delete(void *self)
 extern "C" DLL_MAGIC  uint64_t win_pt_amount(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->amount();
 }
@@ -292,7 +291,6 @@ extern "C" DLL_MAGIC  uint64_t win_pt_amount(void *self)
 extern "C" DLL_MAGIC  uint64_t win_pt_tokenAmount(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->tokenAmount();
 }
@@ -300,7 +298,6 @@ extern "C" DLL_MAGIC  uint64_t win_pt_tokenAmount(void *self)
 extern "C" DLL_MAGIC  uint64_t win_pt_dust(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->dust();
 }
@@ -308,7 +305,6 @@ extern "C" DLL_MAGIC  uint64_t win_pt_dust(void *self)
 extern "C" DLL_MAGIC  uint64_t win_pt_fee(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->fee();
 }
@@ -316,7 +312,6 @@ extern "C" DLL_MAGIC  uint64_t win_pt_fee(void *self)
 extern "C" DLL_MAGIC  uint64_t win_pt_txCount(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->txCount();
 }
@@ -324,7 +319,6 @@ extern "C" DLL_MAGIC  uint64_t win_pt_txCount(void *self)
 extern "C" DLL_MAGIC  char **win_pt_txid(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   std::vector<std::string> ret = ptx->txid();
 
@@ -345,7 +339,6 @@ extern "C" DLL_MAGIC  char **win_pt_txid(void *self)
 extern "C" DLL_MAGIC  int32_t win_pt_status(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->status();
 }
@@ -353,7 +346,6 @@ extern "C" DLL_MAGIC  int32_t win_pt_status(void *self)
 extern "C" DLL_MAGIC const char *win_pt_errorString(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return ptx->errorString().c_str();
 }
@@ -361,7 +353,6 @@ extern "C" DLL_MAGIC const char *win_pt_errorString(void *self)
 extern "C" DLL_MAGIC  uint8_t win_pt_commit(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
 
   return static_cast<uint8_t>(ptx->commit());
 }
@@ -374,14 +365,12 @@ extern "C" DLL_MAGIC  void win_mng_closeWallet(void *self, void *wallet, uint8_t
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
   Safex::WalletImpl *wllt = static_cast<Safex::WalletImpl *>(wallet);
   mngr->closeWallet(wllt, static_cast<bool>(storeB));
-  printf("Hello from %s \n", __FUNCTION__);
 }
 
 // @return Safex::WalletImpl
 extern "C" DLL_MAGIC  void *win_mng_createWallet(void *self, const char *path, const char *password, const char *lang, uint32_t nettype)
 {
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
   return static_cast<void *>(mngr->createWallet(path, password, lang, static_cast<Safex::NetworkType>(nettype)));
 }
 
@@ -389,7 +378,6 @@ extern "C" DLL_MAGIC  void *win_mng_createWallet(void *self, const char *path, c
 extern "C" DLL_MAGIC  void *win_mng_openWallet(void *self, const char *path, const char *password, uint32_t nettype)
 {
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
   return static_cast<void *>(mngr->openWallet(path, password, static_cast<Safex::NetworkType>(nettype)));
 }
 
@@ -403,14 +391,12 @@ extern "C" DLL_MAGIC  void *win_mng_recoveryWallet(
         uint64_t restoreHeight)
 {
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
   return static_cast<void *>(mngr->recoveryWallet(path, password, mnemonic, static_cast<Safex::NetworkType>(nettype), restoreHeight));
 }
 
 extern "C" DLL_MAGIC  uint8_t win_mng_walletExists(void *self, const char *path)
 {
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
-  printf("Hello from %s \n", __FUNCTION__);
   return static_cast<uint8_t>(mngr->walletExists(path));
 }
 
@@ -481,13 +467,19 @@ extern "C" DLL_MAGIC  uint64_t win_txinfo_blockHeight(void *self)
 extern "C" DLL_MAGIC const char *win_txinfo_label(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
-  return txInfo->label().c_str();
+  static unsigned char buffer[512];
+  memset((void *) buffer, 0, sizeof(buffer));
+  memcpy((void *) buffer, txInfo->label().c_str(),txInfo->label().length());
+  return (const char *) buffer;
 }
 
 extern "C" DLL_MAGIC const char *win_txinfo_hash(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
-  return txInfo->hash().c_str();
+  static unsigned char buffer[128];
+  memset((void *) buffer, 0, sizeof(buffer));
+  memcpy((void *) buffer, txInfo->hash().c_str(),txInfo->hash().length());
+  return (const char *) buffer;
 }
 
 extern "C" DLL_MAGIC  uint64_t win_txinfo_timestamp(void *self)
@@ -499,7 +491,10 @@ extern "C" DLL_MAGIC  uint64_t win_txinfo_timestamp(void *self)
 extern "C" DLL_MAGIC const char *win_txinfo_paymentId(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
-  return txInfo->paymentId().c_str();
+  static unsigned char buffer[256];
+  memset((void *) buffer, 0, sizeof(buffer));
+  memcpy((void *) buffer, txInfo->paymentId().c_str(),txInfo->paymentId().length());
+  return (const char *) buffer;
 }
 
 extern "C" DLL_MAGIC  void *win_txinfo_transfers(void *self, uint32_t *size)
