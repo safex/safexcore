@@ -81,7 +81,7 @@ extern "C" DLL_MAGIC uint64_t win_pt_dust(void* self);
 extern "C" DLL_MAGIC uint64_t win_pt_fee(void* self);
 extern "C" DLL_MAGIC uint64_t win_pt_txCount(void* self);
 // @warning Last element is nullptr!! Like
-extern "C" DLL_MAGIC char** win_pt_txid(void* self);
+extern "C" DLL_MAGIC char* win_pt_txid(void* self);
 extern "C" DLL_MAGIC int32_t win_pt_status(void* self);
 extern "C" DLL_MAGIC const char* win_pt_errorString(void* self);
 extern "C" DLL_MAGIC uint8_t win_pt_commit(void* self);

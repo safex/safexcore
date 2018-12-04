@@ -321,25 +321,24 @@ extern "C" DLL_MAGIC  uint64_t win_pt_txCount(void *self)
   return ptx->txCount();
 }
 
-extern "C" DLL_MAGIC  char **win_pt_txid(void *self)
+extern "C" DLL_MAGIC  char *win_pt_txid(void *self)
 {
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
   printf("Hello from %s \n", __FUNCTION__);
 
   std::vector<std::string> ret = ptx->txid();
 
-  char **retVal;
-  retVal = new char *[ret.size() + 1];
-  size_t i = 0;
+
+  char* ret = malloc(ret.size() * 32 * sizeof(char));
+
+  uint64_t first = 0;
   for (auto &tx : ret)
   {
-    uint32_t len = tx.size();
-    char *dst = (char *) malloc(len * sizeof(char));
-    retVal[i++] = dst;
-    memcpy(dst, tx.c_str(), len);
+    memcpy(ret + first, tx.c_str(), 32);
+    first += 32;
   }
-  retVal[i] = nullptr;
-  return retVal;
+
+  return ret;
 }
 
 extern "C" DLL_MAGIC  int32_t win_pt_status(void *self)
