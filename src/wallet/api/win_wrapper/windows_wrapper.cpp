@@ -423,7 +423,7 @@ extern "C" DLL_MAGIC  void *win_mngf_getWalletManager()
 extern "C" DLL_MAGIC void* win_mng_createWalletFromKeys(void* self, const char* path, const char* password, const char* language, uint32_t nettype,
                                                 uint64_t restoreHeight,const char *addressString, const char* viewKeyString, const char* spendKeyString) {
   Safex::WalletManagerImpl *mngr = static_cast<Safex::WalletManagerImpl *>(self);
-  return static_cast<void*>(mnbr->createWalletFromKeys(path, password, language, static_cast<Safex::NetworkType>(nettype), restoreHeight, addressString, viewKeyString, spendKeyString));
+  return static_cast<void*>(mngr->createWalletFromKeys(path, password, language, static_cast<Safex::NetworkType>(nettype), restoreHeight, addressString, viewKeyString, spendKeyString));
 }
 /****************************** END WALLET MANAGER API ****************************************************************/
 /****************************** TRANSACTIONINFO API *******************************************************************/
