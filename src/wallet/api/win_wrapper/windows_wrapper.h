@@ -53,14 +53,14 @@ extern "C" DLL_MAGIC const char* win_secretSpendKey(void* self);
 extern "C" DLL_MAGIC const char* win_publicSpendKey(void* self);
 extern "C" DLL_MAGIC uint8_t win_setPasswordB(void* self, const char*); // @todo See if bool is valid in CAPI
 extern "C" DLL_MAGIC const char* win_errorString(void* self);
-extern "C" DLL_MAGIC void win_setRefreshFromBlockeHeight(void* self, uint32_t height);
+extern "C" DLL_MAGIC void win_setRefreshFromBlockHeight(void* self, uint32_t height);
 extern "C" DLL_MAGIC uint32_t win_connected(void* self); // @todo Enum ConnectionStatus without default type should be uint32_t
 extern "C" DLL_MAGIC void win_setTrustedDaemon(void* self, uint8_t argB);
 extern "C" DLL_MAGIC uint8_t win_trustedDaemonB(void* self);
 extern "C" DLL_MAGIC uint64_t win_balanceAll(void* self);
-extern "C" DLL_MAGIC uint64_t win_unlockedBallanceAll(void* self);
+extern "C" DLL_MAGIC uint64_t win_unlockedBalanceAll(void* self);
 extern "C" DLL_MAGIC uint64_t win_tokenBalanceAll(void* self);
-extern "C" DLL_MAGIC uint64_t win_unlockedTokenBallanceAll(void* self);
+extern "C" DLL_MAGIC uint64_t win_unlockedTokenBalanceAll(void* self);
 
 extern "C" DLL_MAGIC const char* win_GenPaymentId();
 extern "C" DLL_MAGIC uint8_t win_PaymentIdValid(const char* paymentId);
