@@ -17,6 +17,7 @@
 #include "../wallet_manager.h"
 #include "../wallet_api.h"
 #include "windows_wallet_listener.h"
+#include "../transaction_history.h"
 
 
 char *returnStdString(std::string &&in)
@@ -495,12 +496,28 @@ extern "C" DLL_MAGIC const char *win_txinfo_paymentId(void *self)
   return (const char *) buffer;
 }
 
-extern "C" DLL_MAGIC  void *win_txinfo_transfers(void *self, uint32_t *size)
+extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
   const std::vector<Safex::TransactionInfo::Transfer> &transfers = txInfo->transfers();
-  *size = transfers.size();
-  return static_cast<void *>(const_cast<Safex::TransactionInfo::Transfer *>(transfers.data()));
+
+  static char buffer[512*1024+sizeof(uint32_t)];
+  uint32_t offset = 0;
+  memset(buffer, 0, sizeof(buffer));
+  uint32_t size = static_cast<uint32_t>(transfers.size());
+  memcpy(buffer, &size, sizeof(uint32_t));
+  offset += sizeof(uint32_t);
+
+  for(auto& tx : transfers) {
+    memcpy(buffer + offset, &(tx.amount), sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    memcpy(buffer + offset, &(tx.token_amount), sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    memcpy(buffer + offset, tx.address.c_str(), tx.address.size()+1);
+    offset += tx.address.size()+1;
+  }
+
+  return static_cast<char *>(buffer);
 }
 
 extern "C" DLL_MAGIC  uint64_t win_txinfo_confirmations(void *self)
@@ -590,3 +607,55 @@ extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log) {
   mlog_set_log(log);
 }
 /****************************** END OTHER FUNCTIONS *******************************************************************/
+
+/****************************** TRANSACTION HISTORY API ***************************************************************/
+extern "C" DLL_MAGIC void* win_txhist_Create(void* wallet) {
+  Safex::WalletImpl* wlt = static_cast<Safex::WalletImpl*>(wallet);
+  Safex::TransactionHistoryImpl* ret = new Safex::TransactionHistoryImpl(wlt);
+  return static_cast<void*>(ret);
+}
+
+extern "C" DLL_MAGIC void win_txhist_Delete(void* self) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  delete txHist;
+}
+
+extern "C" DLL_MAGIC uint32_t win_txhist_count(void* self) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  return txHist->count();
+}
+
+extern "C" DLL_MAGIC void* win_txhist_transactionInt(void* self, uint32_t index) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  Safex::TransactionInfo* txInfo = txHist->transaction(index);
+  return static_cast<void*>(txInfo);
+}
+
+extern "C" DLL_MAGIC void* win_txhist_transactionStr(void* self, const char* id) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  Safex::TransactionInfo* txInfo = txHist->transaction(id);
+  return static_cast<void*>(txInfo);
+}
+
+extern "C" DLL_MAGIC void** win_txhist_getAll(void* self, uint32_t* size) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  std::vector<Safex::TransactionInfo*> txInfos = txHist->getAll();
+  *size = static_cast<uint32_t>(txInfos.size());
+  static void* buffer[4096];
+  memset(buffer, 0, sizeof(buffer));
+  size_t i = 0;
+  for(auto tx : txInfos) {
+    if(i >= 4096) break;
+    buffer[i] = static_cast<void*>(tx);
+    ++i;
+  }
+
+  return buffer;
+}
+
+extern "C" DLL_MAGIC void win_txhist_refresh(void* self) {
+  Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
+  txHist->refresh();
+}
+
+/****************************** END TRANSACTION HISTORY API ***********************************************************/

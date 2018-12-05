@@ -123,7 +123,7 @@ extern "C" DLL_MAGIC const char* win_txinfo_hash(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_timestamp(void* self);
 extern "C" DLL_MAGIC const char* win_txinfo_paymentId(void* self);
 // returns array of Safex::Transfers
-extern "C" DLL_MAGIC void* win_txinfo_transfers(void* self, uint32_t* size);
+extern "C" DLL_MAGIC char* win_txinfo_transfers(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_confirmations(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_unlockTime(void* self);
 extern "C" DLL_MAGIC uint32_t win_txinfo_transactionType(void* self);
@@ -146,6 +146,16 @@ extern "C" DLL_MAGIC void win_lstn_setRefreshed(void* self, void(*refreshed_)(vo
 extern "C" DLL_MAGIC void win_mlog_set_log_levelI(int level);
 extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log);
 /****************************** END OTHER FUNCTIONS *******************************************************************/
+
+/****************************** TRANSACTION HISTORY API ***************************************************************/
+extern "C" DLL_MAGIC void* win_txhist_Create(void* wallet);
+extern "C" DLL_MAGIC void win_txhist_Delete(void* self);
+extern "C" DLL_MAGIC uint32_t win_txhist_count(void* self);
+extern "C" DLL_MAGIC void* win_txhist_transactionInt(void* self, uint32_t index);
+extern "C" DLL_MAGIC void* win_txhist_transactionStr(void* self, const char* id);
+extern "C" DLL_MAGIC void** win_txhist_getAll(void* self, uint32_t* size);
+extern "C" DLL_MAGIC void win_txhist_refresh(void* self);
+/****************************** END TRANSACTION HISTORY API ***********************************************************/
 
 #endif //SAFEX_WINDOWS_WRAPPER_H
 
