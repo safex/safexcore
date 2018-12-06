@@ -4142,13 +4142,17 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
 
   // handle if we want just store wallet state to current files (ex store() replacement);
   bool same_file = true;
+
+#ifdef WIN32
+//boost canonical messes with linux gnu
+#else
   if (!path.empty())
   {
     std::string canonical_path = boost::filesystem::canonical(m_wallet_file).string();
     size_t pos = canonical_path.find(path);
     same_file = pos != std::string::npos;
   }
-
+#endif
 
   if (!same_file)
   {
