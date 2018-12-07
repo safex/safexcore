@@ -144,6 +144,16 @@ extern "C" DLL_MAGIC void win_lstn_setUpdated(void* self, void(*updated_)(void*)
 extern "C" DLL_MAGIC void win_lstn_setRefreshed(void* self, void(*refreshed_)(void*));
 /****************************** END WALLET LISTNER API ****************************************************************/
 
+/****************************** TRANSACTION HISTORY API ***************************************************************/
+extern "C" DLL_MAGIC void* win_txhist_Create(void* wallet);
+extern "C" DLL_MAGIC void win_txhist_Delete(void* self);
+extern "C" DLL_MAGIC uint32_t win_txhist_count(void* self);
+extern "C" DLL_MAGIC void* win_txhist_transactionInt(void* self, uint32_t index);
+extern "C" DLL_MAGIC void* win_txhist_transactionStr(void* self, const char* id);
+extern "C" DLL_MAGIC void** win_txhist_getAll(void* self, uint32_t* size);
+extern "C" DLL_MAGIC void win_txhist_refresh(void* self);
+/****************************** END TRANSACTION HISTORY API ***********************************************************/
+
 /****************************** OTHER FUNCTIONS ***********************************************************************/
 extern "C" DLL_MAGIC void win_mlog_set_log_levelI(int level);
 extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log);
