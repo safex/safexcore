@@ -274,6 +274,27 @@ extern "C" DLL_MAGIC const char *win_IntegratedAddress(void *self, const char *p
   return wallet->integratedAddress(paymentId).c_str();
 }
 
+extern "C" DLL_MAGIC uint64_t win_blockChainHeight(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->blockChainHeight();
+}
+
+extern "C" DLL_MAGIC uint64_t win_approximateBlockChainHeight(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->approximateBlockChainHeight();
+}
+
+extern "C" DLL_MAGIC uint64_t win_daemonBlockChainHeight(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->daemonBlockChainHeight();
+}
+
+extern "C" DLL_MAGIC uint64_t win_daemonBlockChainTargetHeight(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->daemonBlockChainTargetHeight();
+}
+
+
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" DLL_MAGIC  void *win_pt_create(void *in)

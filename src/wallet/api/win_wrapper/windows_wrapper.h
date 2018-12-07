@@ -70,7 +70,12 @@ extern "C" DLL_MAGIC void win_SetListener(void* self, void* listener);
 extern "C" DLL_MAGIC void win_segregatePreForkOutputs(void* self, uint8_t segregate);
 extern "C" DLL_MAGIC void win_keyReuseMitigation2(void* self, uint8_t mitigation);
 extern "C" DLL_MAGIC const char* win_IntegratedAddress(void* self, const char* paymentId);
-    
+
+extern "C" DLL_MAGIC uint64_t win_blockChainHeight(void* self);
+extern "C" DLL_MAGIC uint64_t win_approximateBlockChainHeight(void* self);
+extern "C" DLL_MAGIC uint64_t win_daemonBlockChainHeight(void* self);
+extern "C" DLL_MAGIC uint64_t win_daemonBlockChainTargetHeight(void* self);
+
 extern "C" DLL_MAGIC uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 /****************************** END WALLET API ************************************************************************/
 
