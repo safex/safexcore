@@ -181,6 +181,12 @@ extern "C" DLL_MAGIC  void win_setRefreshFromBlockHeight(void *self, uint32_t he
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
   wallet->setRefreshFromBlockHeight(height);
 }
+
+extern "C" DLL_MAGIC uint64_t win_getRefreshFromBlockHeight(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->getRefreshFromBlockHeight();
+}
+
 extern "C" DLL_MAGIC  uint32_t win_connected(void *self)
 {
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
