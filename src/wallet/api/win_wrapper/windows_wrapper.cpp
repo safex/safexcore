@@ -193,6 +193,12 @@ extern "C" DLL_MAGIC  uint32_t win_connected(void *self)
 
   return static_cast<uint32_t>(wallet->connected());
 }
+
+extern "C" DLL_MAGIC uint8_t win_refresh(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return static_cast<uint8_t>(wallet->refresh());
+}
+
 extern "C" DLL_MAGIC  void win_setTrustedDaemon(void *self, uint8_t argB)
 {
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
