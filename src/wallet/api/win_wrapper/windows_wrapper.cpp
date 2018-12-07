@@ -224,6 +224,16 @@ extern "C" DLL_MAGIC  uint64_t win_unlockedTokenBalanceAll(void *self)
   return wallet->unlockedTokenBalanceAll();
 }
 
+extern "C" DLL_MAGIC uint8_t win_synchronizedB(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return static_cast<uint8_t>(wallet->synchronized());
+}
+
+extern "C" DLL_MAGIC void win_setAutoRefreshInterval(void* self, uint32_t millis) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  wallet->setAutoRefreshInterval(millis);
+}
+
 extern "C" DLL_MAGIC  uint8_t win_static_addressValid(const char *address, uint32_t nettype)
 {
   return static_cast<uint8_t>(Safex::Wallet::addressValid(address, static_cast<Safex::NetworkType>(nettype)));
