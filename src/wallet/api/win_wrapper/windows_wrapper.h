@@ -125,7 +125,7 @@ extern "C" DLL_MAGIC const char* win_txinfo_hash(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_timestamp(void* self);
 extern "C" DLL_MAGIC const char* win_txinfo_paymentId(void* self);
 // returns array of Safex::Transfers
-extern "C" DLL_MAGIC void* win_txinfo_transfers(void* self, uint32_t* size);
+extern "C" DLL_MAGIC char* win_txinfo_transfers(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_confirmations(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_unlockTime(void* self);
 extern "C" DLL_MAGIC uint32_t win_txinfo_transactionType(void* self);
