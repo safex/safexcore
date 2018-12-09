@@ -306,7 +306,15 @@ extern "C" DLL_MAGIC uint64_t win_daemonBlockChainTargetHeight(void* self) {
   return wallet->daemonBlockChainTargetHeight();
 }
 
+extern "C" DLL_MAGIC bool win_rescanBlockchain(void* self) {
+	Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+	return static_cast<uint8_t>(wallet->rescanBlockchain());
+}
 
+extern "C" DLL_MAGIC void win_rescanBlockchainAsync(void* self) {
+	Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+	wallet->rescanBlockchainAsync();
+}
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" DLL_MAGIC  void *win_pt_create(void *in)

@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-#ifdef DLLIMPORT_SAFEX 
+#ifdef DLLIMPORT_SAFEX
 #define DLL_MAGIC __declspec(dllimport)
 #else
 #define DLL_MAGIC __declspec(dllexport)
@@ -78,6 +78,9 @@ extern "C" DLL_MAGIC uint64_t win_blockChainHeight(void* self);
 extern "C" DLL_MAGIC uint64_t win_approximateBlockChainHeight(void* self);
 extern "C" DLL_MAGIC uint64_t win_daemonBlockChainHeight(void* self);
 extern "C" DLL_MAGIC uint64_t win_daemonBlockChainTargetHeight(void* self);
+
+extern "C" DLL_MAGIC bool win_rescanBlockchain(void* self);
+extern "C" DLL_MAGIC void win_rescanBlockchainAsync(void* self);
 
 extern "C" DLL_MAGIC uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 /****************************** END WALLET API ************************************************************************/
