@@ -1845,7 +1845,7 @@ void WalletImpl::refreshThreadFunc()
         // if auto refresh enabled, we wait for the "m_refreshIntervalSeconds" interval.
         // if not - we wait forever
         if (m_refreshIntervalMillis > 0) {
-             m_refreshCV.timed_wait(lock, boost::posix_time::milliseconds(2000));
+             m_refreshCV.timed_wait(lock, boost::posix_time::milliseconds(60*1000));
         } else {
             m_refreshCV.wait(lock);
         }
@@ -1873,10 +1873,10 @@ void WalletImpl::doRefresh()
         // Syncing daemon and refreshing wallet simultaneously is very resource intensive.
         // Disable refresh if wallet is disconnected or daemon isn't synced.
         if (m_wallet->light_wallet() || daemonSynced()) {
-						if(rescan)
-							m_wallet->rescan_blockchain(false);
+            if(rescan)
+                m_wallet->rescan_blockchain(false);
 
-						m_wallet->refresh();
+            m_wallet->refresh();
             if (!m_synchronized) {
                 m_synchronized = true;
             }
