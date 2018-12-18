@@ -83,6 +83,7 @@ extern "C" DLL_MAGIC bool win_rescanBlockchain(void* self);
 extern "C" DLL_MAGIC void win_rescanBlockchainAsync(void* self);
 
 extern "C" DLL_MAGIC uint8_t win_static_addressValid(const char* address, uint32_t nettype);
+extern "C" DLL_MAGIC void* win_history(void* self);
 /****************************** END WALLET API ************************************************************************/
 
 /****************************** PENDING TRANSACTION API ***************************************************************/

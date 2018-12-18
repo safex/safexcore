@@ -316,6 +316,11 @@ extern "C" DLL_MAGIC void win_rescanBlockchainAsync(void* self) {
 	wallet->rescanBlockchainAsync();
 }
 
+extern "C" DLL_MAGIC void* win_history(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return static_cast<void*>(wallet->history());
+}
+
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" DLL_MAGIC  void *win_pt_create(void *in)
 {
@@ -556,7 +561,7 @@ extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
   uint32_t offset = 0;
   memset(buffer, 0, sizeof(buffer));
   uint32_t size = static_cast<uint32_t>(transfers.size());
-  memcpy(buffer, &size, sizeof(uint32_t));
+  memcpy(buffer+offset, &size, sizeof(uint32_t));
   offset += sizeof(uint32_t);
 
   for(auto& tx : transfers) {
