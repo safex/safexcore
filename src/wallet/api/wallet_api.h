@@ -1,21 +1,21 @@
 // Copyright (c) 2018, The Safex Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
@@ -48,23 +48,29 @@ enum NetworkType : uint8_t {
     STAGENET
 };
 
-    namespace Utils {
-        bool isAddressLocal(const std::string &hostaddr);
-        void onStartup();
-    }
+enum class TransactionType {
+  CashTransaction = 0,
+  TokenTransaction = 1,
+  MigrationTransaction = 2
+};
 
-    template<typename T>
-    class optional {
-      public:
-        optional(): set(false) {}
-        optional(const T &t): t(t), set(true) {}
-        const T &operator*() const { return t; }
-        T &operator*() { return t; }
-        operator bool() const { return set; }
-      private:
-        T t;
-        bool set;
-    };
+namespace Utils {
+    bool isAddressLocal(const std::string &hostaddr);
+    void onStartup();
+}
+
+template<typename T>
+class optional {
+  public:
+    optional(): set(false) {}
+    optional(const T &t): t(t), set(true) {}
+    const T &operator*() const { return t; }
+    T &operator*() { return t; }
+    operator bool() const { return set; }
+  private:
+    T t;
+    bool set;
+};
 
 /**
  * @brief Transaction-like interface for sending money
@@ -91,6 +97,7 @@ struct PendingTransaction
     // commit transaction or save to file if filename is provided.
     virtual bool commit(const std::string &filename = "", bool overwrite = false) = 0;
     virtual uint64_t amount() const = 0;
+    virtual uint64_t tokenAmount() const = 0;
     virtual uint64_t dust() const = 0;
     virtual uint64_t fee() const = 0;
     virtual std::vector<std::string> txid() const = 0;
@@ -149,10 +156,12 @@ struct TransactionInfo
     };
 
     struct Transfer {
-        Transfer(uint64_t _amount, const std::string &address);
+        Transfer(uint64_t _amount, uint64_t _token_amount, const std::string &address);
         const uint64_t amount;
+        const uint64_t token_amount;
         const std::string address;
     };
+
 
     virtual ~TransactionInfo() = 0;
     virtual int  direction() const = 0;
@@ -172,6 +181,7 @@ struct TransactionInfo
     virtual std::string paymentId() const = 0;
     //! only applicable for output transactions
     virtual const std::vector<Transfer> & transfers() const = 0;
+    virtual TransactionType transactionType() const = 0;
 };
 /**
  * @brief The TransactionHistory - interface for displaying transaction history
@@ -194,9 +204,9 @@ public:
     AddressBookRow(std::size_t _rowId, const std::string &_address, const std::string &_paymentId, const std::string &_description):
         m_rowId(_rowId),
         m_address(_address),
-        m_paymentId(_paymentId), 
+        m_paymentId(_paymentId),
         m_description(_description) {}
- 
+
 private:
     std::size_t m_rowId;
     std::string m_address;
@@ -204,14 +214,14 @@ private:
     std::string m_description;
 public:
     std::string extra;
-    std::string getAddress() const {return m_address;} 
-    std::string getDescription() const {return m_description;} 
-    std::string getPaymentId() const {return m_paymentId;} 
+    std::string getAddress() const {return m_address;}
+    std::string getDescription() const {return m_description;}
+    std::string getPaymentId() const {return m_paymentId;}
     std::size_t getRowId() const {return m_rowId;}
 };
 
 /**
- * @brief The AddressBook - interface for 
+ * @brief The AddressBook - interface for
 Book
  */
 struct AddressBook
@@ -224,9 +234,9 @@ struct AddressBook
     };
     virtual ~AddressBook() = 0;
     virtual std::vector<AddressBookRow*> getAll() const = 0;
-    virtual bool addRow(const std::string &dst_addr , const std::string &payment_id, const std::string &description) = 0;  
+    virtual bool addRow(const std::string &dst_addr , const std::string &payment_id, const std::string &description) = 0;
     virtual bool deleteRow(std::size_t rowId) = 0;
-    virtual void refresh() = 0;  
+    virtual void refresh() = 0;
     virtual std::string errorString() const = 0;
     virtual int errorCode() const = 0;
     virtual int lookupPaymentID(const std::string &payment_id) const = 0;
@@ -238,7 +248,7 @@ public:
         m_rowId(_rowId),
         m_address(_address),
         m_label(_label) {}
- 
+
 private:
     std::size_t m_rowId;
     std::string m_address;
@@ -308,13 +318,21 @@ struct WalletListener
      * @param amount        - amount
      */
     virtual void moneyReceived(const std::string &txId, uint64_t amount) = 0;
-    
+
    /**
     * @brief unconfirmedMoneyReceived - called when payment arrived in tx pool
     * @param txId          - transaction id
     * @param amount        - amount
     */
     virtual void unconfirmedMoneyReceived(const std::string &txId, uint64_t amount) = 0;
+
+
+    /**
+    * @brief tokensSpent - called when tokens are spent
+    * @param txId       - transaction id
+    * @param token_amount - token amount
+    */
+    virtual void tokensSpent(const std::string &txId, uint64_t token_amount) = 0;
 
     /**
      * @brief tokensReceived - called when tokens are received
@@ -387,7 +405,7 @@ struct Wallet
     //! returns current hard fork info
     virtual void hardForkInfo(uint8_t &version, uint64_t &earliest_height) const = 0;
     //! check if hard fork rules should be used
-    virtual bool useForkRules(uint8_t version, int64_t early_blocks) const = 0;  
+    virtual bool useForkRules(uint8_t version, int64_t early_blocks) const = 0;
     /*!
      * \brief integratedAddress - returns integrated address for current wallet address and given payment_id.
      *                            if passed "payment_id" param is an empty string or not-valid payment id string
@@ -398,7 +416,7 @@ struct Wallet
      * \return                  - 106 characters string representing integrated address
      */
     virtual std::string integratedAddress(const std::string &payment_id) const = 0;
-    
+
    /*!
     * \brief secretViewKey     - returns secret view key
     * \return                  - secret view key
@@ -511,6 +529,22 @@ struct Wallet
         return result;
     }
 
+
+  virtual uint64_t tokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t tokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += tokenBalance(i);
+      return result;
+  }
+  virtual uint64_t unlockedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t unlockedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += unlockedTokenBalance(i);
+      return result;
+  }
+
    /**
     * @brief watchOnly - checks if wallet is watch only
     * @return - true if watch only
@@ -597,6 +631,17 @@ struct Wallet
      */
     virtual void refreshAsync() = 0;
 
+		/**
+		 * @brief rescanBlockchain - rescans the wallet, updating transactions from daemon
+		 * @return - true if refreshed successfully;
+		 */
+		virtual bool rescanBlockchain() = 0;
+		/**
+		 * @brief rescanBlockchainAsync - rescans wallet asynchronously, starting from genesys
+		 */
+		virtual void rescanBlockchainAsync() = 0;
+
+
     /**
      * @brief setAutoRefreshInterval - setup interval for automatic refresh.
      * @param seconds - interval in millis. if zero or less than zero - automatic refresh disabled;
@@ -647,7 +692,7 @@ struct Wallet
      * \brief createTransaction creates transaction. if dst_addr is an integrated address, payment_id is ignored
      * \param dst_addr          destination address as string
      * \param payment_id        optional payment_id, can be empty string
-     * \param amount            amount
+     * \param value_amount      amount of cash or tokens
      * \param mixin_count       mixin count. if 0 passed, wallet will use default value
      * \param subaddr_account   subaddress account from which the input funds are taken
      * \param subaddr_indices   set of subaddress indices to use for transfer or sweeping. if set empty, all are chosen when sweeping, and one or more are automatically chosen when transferring. after execution, returns the set of actually used indices
@@ -657,10 +702,11 @@ struct Wallet
      */
 
     virtual PendingTransaction * createTransaction(const std::string &dst_addr, const std::string &payment_id,
-                                                   optional<uint64_t> amount, uint32_t mixin_count,
+                                                   optional<uint64_t> value_amount, uint32_t mixin_count,
                                                    PendingTransaction::Priority = PendingTransaction::Priority_Low,
                                                    uint32_t subaddr_account = 0,
-                                                   std::set<uint32_t> subaddr_indices = {}) = 0;
+                                                   std::set<uint32_t> subaddr_indices = {},
+                                                   const TransactionType tx_type = TransactionType::CashTransaction) = 0;
 
     /*!
      * \brief createSweepUnmixableTransaction creates transaction with unmixable outputs.
@@ -669,20 +715,20 @@ struct Wallet
      */
 
     virtual PendingTransaction * createSweepUnmixableTransaction() = 0;
-    
+
    /*!
     * \brief loadUnsignedTx  - creates transaction from unsigned tx file
     * \return                - UnsignedTransaction object. caller is responsible to check UnsignedTransaction::status()
     *                          after object returned
     */
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename) = 0;
-    
+
    /*!
     * \brief submitTransaction - submits transaction in signed tx file
     * \return                  - true on success
     */
     virtual bool submitTransaction(const std::string &fileName) = 0;
-    
+
 
     /*!
      * \brief disposeTransaction - destroys transaction object
@@ -696,7 +742,7 @@ struct Wallet
     * \return                  - true on success
     */
     virtual bool exportKeyImages(const std::string &filename) = 0;
-   
+
    /*!
     * \brief importKeyImages - imports key images from file
     * \param filename
@@ -765,13 +811,13 @@ struct Wallet
     virtual bool parse_uri(const std::string &uri, std::string &address, std::string &payment_id, uint64_t &amount, std::string &tx_description, std::string &recipient_name, std::vector<std::string> &unknown_parameters, std::string &error) = 0;
 
     virtual std::string getDefaultDataDir() const = 0;
-   
+
    /*
     * \brief rescanSpent - Rescan spent outputs - Can only be used with trusted daemon
     * \return true on success
     */
     virtual bool rescanSpent() = 0;
-    
+
     //! blackballs a set of outputs
     virtual bool blackballOutputs(const std::vector<std::string> &pubkeys, bool add) = 0;
 
@@ -798,7 +844,7 @@ struct Wallet
 
     //! Light wallet authenticate and login
     virtual bool lightWalletLogin(bool &isNewWallet) const = 0;
-    
+
     //! Initiates a light wallet import wallet request
     virtual bool lightWalletImportWalletRequest(std::string &payment_id, uint64_t &fee, bool &new_request, bool &request_fulfilled, std::string &payment_address, std::string &status) = 0;
 };
@@ -912,16 +958,16 @@ struct WalletManager
     * \param  spendKeyString spend key (optional)
     * \return                Wallet instance (Wallet::status() needs to be called to check if recovered successfully)
     */
-    virtual Wallet * createWalletFromKeys(const std::string &path, 
+    virtual Wallet * createWalletFromKeys(const std::string &path,
                                                     const std::string &language,
-                                                    NetworkType nettype, 
+                                                    NetworkType nettype,
                                                     uint64_t restoreHeight,
                                                     const std::string &addressString,
                                                     const std::string &viewKeyString,
                                                     const std::string &spendKeyString = "") = 0;
-    Wallet * createWalletFromKeys(const std::string &path, 
+    Wallet * createWalletFromKeys(const std::string &path,
                                   const std::string &language,
-                                  bool testnet, 
+                                  bool testnet,
                                   uint64_t restoreHeight,
                                   const std::string &addressString,
                                   const std::string &viewKeyString,
