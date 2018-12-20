@@ -1297,7 +1297,7 @@ namespace tools
       rpc_payment.tx_hash = epee::string_tools::pod_to_hex(payment.m_tx_hash);
       rpc_payment.amount = payment.m_amount;
       rpc_payment.token_amount = payment.m_token_amount;
-      rpc_payment.token_transaction = payment.m_token_transaction;
+      rpc_payment.token_transaction = payment.m_token_amount != 0;
       rpc_payment.block_height = payment.m_block_height;
       rpc_payment.unlock_time = payment.m_unlock_time;
       rpc_payment.subaddr_index = payment.m_subaddr_index;
@@ -1326,7 +1326,7 @@ namespace tools
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.second.m_tx_hash);
         rpc_payment.amount       = payment.second.m_amount;
         rpc_payment.token_amount = payment.second.m_token_amount;
-        rpc_payment.token_transaction = payment.second.m_token_transaction;
+        rpc_payment.token_transaction = payment.second.m_token_amount != 0;
         rpc_payment.block_height = payment.second.m_block_height;
         rpc_payment.unlock_time  = payment.second.m_unlock_time;
         rpc_payment.subaddr_index = payment.second.m_subaddr_index;
@@ -1379,7 +1379,7 @@ namespace tools
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.m_tx_hash);
         rpc_payment.amount       = payment.m_amount;
         rpc_payment.token_amount = payment.m_token_amount;
-        rpc_payment.token_transaction = payment.m_token_transaction;
+        rpc_payment.token_transaction = payment.m_token_amount != 0;
         rpc_payment.block_height = payment.m_block_height;
         rpc_payment.unlock_time  = payment.m_unlock_time;
         rpc_payment.subaddr_index = payment.m_subaddr_index;
