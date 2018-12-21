@@ -1199,6 +1199,8 @@ namespace wallet_rpc
     uint64_t height;
     uint64_t timestamp;
     uint64_t amount;
+    uint64_t token_amount;
+    bool token_transaction;
     uint64_t fee;
     std::string note;
     std::list<transfer_destination> destinations;
@@ -1214,6 +1216,8 @@ namespace wallet_rpc
       KV_SERIALIZE(height);
       KV_SERIALIZE(timestamp);
       KV_SERIALIZE(amount);
+      KV_SERIALIZE(token_amount);
+      KV_SERIALIZE(token_transaction);
       KV_SERIALIZE(fee);
       KV_SERIALIZE(note);
       KV_SERIALIZE(destinations);
