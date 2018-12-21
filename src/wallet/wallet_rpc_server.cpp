@@ -254,6 +254,8 @@ namespace tools
     entry.height = pd.m_block_height;
     entry.timestamp = pd.m_timestamp;
     entry.amount = pd.m_amount;
+    entry.token_amount = pd.m_token_amount;
+    entry.token_transaction = pd.m_token_amount != 0;
     entry.unlock_time = pd.m_unlock_time;
     entry.fee = pd.m_fee;
     entry.note = m_wallet->get_tx_note(pd.m_tx_hash);
@@ -274,6 +276,8 @@ namespace tools
     entry.fee = pd.m_amount_in - pd.m_amount_out;
     uint64_t change = pd.m_change == (uint64_t)-1 ? 0 : pd.m_change; // change may not be known
     entry.amount = pd.m_amount_in - change - entry.fee;
+    entry.token_amount = pd.m_token_amount_in - (pd.m_token_change == (uint64_t)-1 ? 0 : pd.m_token_change);
+    entry.token_transaction = pd.m_token_amount_in != 0;
     entry.note = m_wallet->get_tx_note(txid);
 
     for (const auto &d: pd.m_dests) {
@@ -300,6 +304,8 @@ namespace tools
     entry.timestamp = pd.m_timestamp;
     entry.fee = pd.m_amount_in - pd.m_amount_out;
     entry.amount = pd.m_amount_in - pd.m_change - entry.fee;
+    entry.token_amount = pd.m_token_amount_in - pd.m_token_change;
+    entry.token_transaction = pd.m_token_amount_in != 0;
     entry.unlock_time = pd.m_tx.unlock_time;
     entry.note = m_wallet->get_tx_note(txid);
     entry.type = is_failed ? "failed" : "pending";
@@ -317,6 +323,8 @@ namespace tools
     entry.height = 0;
     entry.timestamp = pd.m_timestamp;
     entry.amount = pd.m_amount;
+    entry.token_amount = pd.m_token_amount;
+    entry.token_transaction = pd.m_token_amount != 0;
     entry.unlock_time = pd.m_unlock_time;
     entry.fee = pd.m_fee;
     entry.note = m_wallet->get_tx_note(pd.m_tx_hash);
