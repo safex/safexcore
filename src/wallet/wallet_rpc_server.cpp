@@ -758,17 +758,17 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
-  static uint64_t total_amount(const tools::wallet::pending_tx &ptx)
+  static uint64_t total_amount(const tools::wallet::pending_tx &ptx, bool token = false)
   {
     uint64_t amount = 0;
-    for (const auto &dest: ptx.dests) amount += dest.amount;
+    for (const auto &dest: ptx.dests) if(token) amount += dest.token_amount; else amount += dest.amount;
     return amount;
   }
   //------------------------------------------------------------------------------------------------------------------------------
   template<typename Ts, typename Tu>
   bool wallet_rpc_server::fill_response(std::vector<tools::wallet::pending_tx> &ptx_vector,
       bool get_tx_key, Ts& tx_key, Tu &amount, Tu &fee, std::string &multisig_txset, bool do_not_relay,
-      Ts &tx_hash, bool get_tx_hex, Ts &tx_blob, bool get_tx_metadata, Ts &tx_metadata, epee::json_rpc::error &er)
+      Ts &tx_hash, bool get_tx_hex, Ts &tx_blob, bool get_tx_metadata, Ts &tx_metadata, epee::json_rpc::error &er, bool token)
   {
     for (const auto & ptx : ptx_vector)
     {
@@ -780,7 +780,7 @@ namespace tools
         fill(tx_key, s);
       }
       // Compute amount leaving wallet in tx. By convention dests does not include change outputs
-      fill(amount, total_amount(ptx));
+      fill(amount, total_amount(ptx, token));
       fill(fee, ptx.fee);
     }
 
@@ -907,6 +907,7 @@ namespace tools
         mixin = m_wallet->adjust_mixin(req.mixin);
 
       }
+
       uint32_t priority = m_wallet->adjust_priority(req.priority);
       std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_token(
           dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
@@ -924,9 +925,9 @@ namespace tools
         return false;
       }
 
-      return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.amount, res.fee, res.multisig_txset,
+      return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
                            req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
-                           res.tx_metadata, er);
+                           res.tx_metadata, er, true);
     }
     catch (const std::exception &e) {
       handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
@@ -974,6 +975,55 @@ namespace tools
 
       return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.amount_list, res.fee_list, res.multisig_txset, req.do_not_relay,
           res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er);
+    }
+    catch (const std::exception& e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
+      return false;
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_transfer_token_split(const wallet_rpc::COMMAND_RPC_TRANSFER_TOKEN_SPLIT::request& req, wallet_rpc::COMMAND_RPC_TRANSFER_TOKEN_SPLIT::response& res, epee::json_rpc::error& er)
+  {
+
+    std::vector<cryptonote::tx_destination_entry> dsts;
+    std::vector<uint8_t> extra;
+
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted())
+    {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+
+    // validate the transfer requested and populate dsts & extra; RPC_TRANSFER::request and RPC_TRANSFER_SPLIT::request are identical types.
+    if (!validate_transfer(req.destinations, req.payment_id, dsts, extra, true, er, true))
+    {
+      return false;
+    }
+
+    try
+    {
+      uint64_t mixin;
+      if(req.ring_size != 0)
+      {
+        mixin = m_wallet->adjust_mixin(req.ring_size - 1);
+      }
+      else
+      {
+        mixin = m_wallet->adjust_mixin(req.mixin);
+      }
+      uint32_t priority = m_wallet->adjust_priority(req.priority);
+      LOG_PRINT_L2("on_transfer_split calling create_transactions_2");
+      // @todo Implement create_transactions_2 into safex
+
+      std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_token(dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
+      LOG_PRINT_L2("on_transfer_split called create_transactions_2");
+
+      return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.token_amount_list, res.fee_list, res.multisig_txset, req.do_not_relay,
+                           res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er, true);
     }
     catch (const std::exception& e)
     {
