@@ -50,6 +50,9 @@
 
 #define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW               60
 
+#define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V2           500
+#define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V2            12
+
 // COIN - number of smallest units in one coin
 #define COIN                                            ((uint64_t)10000000000) // pow(10, 10)
 #define SAFEX_CASH_COIN                                 COIN
@@ -84,6 +87,11 @@
 #define DIFFICULTY_LAG                                  15  // !!!
 #define DIFFICULTY_CUT                                  60  // timestamps to cut after sorting
 #define DIFFICULTY_BLOCKS_COUNT                         DIFFICULTY_WINDOW + DIFFICULTY_LAG
+
+#define DIFFICULTY_WINDOW_V2                            60
+#define DIFFICULTY_LAG_V2                               0  // just for refrence
+#define DIFFICULTY_CUT_V2                               0  // just for refrence
+#define DIFFICULTY_BLOCKS_COUNT_V2                      DIFFICULTY_WINDOW_V2
 
 #define DIFFICULTY_SECONDS_PER_YEAR                     ((uint64_t)31557600)
 #define DIFFICULTY_BLOCKS_PER_YEAR                      ((uint64_t)DIFFICULTY_SECONDS_PER_YEAR/DIFFICULTY_TARGET)
@@ -147,6 +155,7 @@
 #define HF_VERSION_ENFORCE_RCT                  HF_VERSION_TBD //enforce RingCT transactions
 #define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
+#define HF_VERSION_DIFFICULTY_V2                3
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
