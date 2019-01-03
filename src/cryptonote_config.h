@@ -157,11 +157,14 @@
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 #define HF_VERSION_DIFFICULTY_V2                3
 
+
+
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        6
 
 #define HASH_OF_HASHES_STEP                     256
+#define HASH_CN_VARIANT                         2
 
 #define DEFAULT_TXPOOL_MAX_SIZE                 648000000ull // 3 days at 300000, in bytes
 
