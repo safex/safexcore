@@ -94,6 +94,8 @@ static const struct {
   { 1, 1, 0, 1514764801 },
   //version 2 starts from block 61660, around 2018-11-26. Fork time finalized on 2018-11-06
   { 2, 61660, 0, 1541503503 },
+  //version 3 starts from block 92200, fork time finalized on 2019-01-04
+  { 3, 92200, 0, 1546602383 }
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 61659;
 
