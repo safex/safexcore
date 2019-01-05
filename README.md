@@ -3,7 +3,7 @@
 
 ## Releases
 
-Hard fork v2 is scheduled for 2018-11-26. Changes include switch to cryptonight-v8 and increase of minimum block size, along with various fixes. Alpha release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases/tag/v0.1.1-alpha). Testing is in progress. Other release binaries and possible fixes will be published around 10 days before the fork.
+Hard fork v2 is scheduled for 2018-11-26. Changes include switch to cryptonight-v8 and increase of minimum block size, along with various fixes. Current hard fork ready release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases). Current release branch with latest hotfixes is [v0.1.1](https://github.com/safex/safexcore/tree/release-v0.1.1).
 
 
 
@@ -39,7 +39,6 @@ Install all libraries
 ```
 $ brew tap jmuncaster/homebrew-header-only
 $ brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq openssl pkg-config
-$ brew install libzmq
 ```
 You will need to have MacPorts installed. If you don't have it install it from here https://guide.macports.org/. Download the package for your OS version from the website. Open **new** terminal window and check if MacPorts are installed
 ```
@@ -146,7 +145,7 @@ application.
 
 * Change to the cloned directory, run:
 
-        cd monero
+        cd safexcore
 
 * If you would like a specific [version/tag](https://github.com/safex/safexcore/tags), do a git checkout for that version. eg. 'v0.1.0'. If you don't care about the version and just want binaries from master, skip this step:
 
