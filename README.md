@@ -3,7 +3,7 @@
 
 ## Releases
 
-Hard fork v2 is scheduled for 2018-11-26. Changes include switch to cryptonight-v8 and increase of minimum block size, along with various fixes. Current hard fork ready release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases). Current release branch with latest hotfixes is [v0.1.1](https://github.com/safex/safexcore/tree/release-v0.1.1).
+Network has performed hard fork 3 with change of difficulty calculation and numerous bug fixes. Current hard fork ready release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases). Current release branch with latest hotfixes is [v0.1.2](https://github.com/safex/safexcore/tree/release-v0.1.2).
 
 
 
