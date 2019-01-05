@@ -1551,7 +1551,7 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::check_tx_proof, this, _1),
                            tr("check_tx_proof <txid> <address> <signature_file> [<message>]"),
                            tr("Check the proof for funds going to <address> in <txid> with the challenge string <message> if any."));
-#if ENABLE_ADVANCED_OPTIONS
+
   m_cmd_binder.set_handler("get_spend_proof",
                            boost::bind(&simple_wallet::get_spend_proof, this, _1),
                            tr("get_spend_proof <txid> [<message>]"),
@@ -1563,7 +1563,7 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("get_reserve_proof",
                            boost::bind(&simple_wallet::get_reserve_proof, this, _1),
-                           tr("get_reserve_proof (all|<amount>) [<message>]"),
+                           tr("get_reserve_proof (token|cash) (all|<amount>) [<message>]"),
                            tr("Generate a signature proving that you own at least this much, optionally with a challenge string <message>.\n"
                               "If 'all' is specified, you prove the entire sum of all of your existing accounts' balances.\n"
                               "Otherwise, you prove the reserve of the smallest possible amount above <amount> available in your current account."));
@@ -1571,7 +1571,7 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::check_reserve_proof, this, _1),
                            tr("check_reserve_proof <address> <signature_file> [<message>]"),
                            tr("Check a signature proving that the owner of <address> holds at least this much, optionally with a challenge string <message>."));
-#endif
+
   m_cmd_binder.set_handler("show_transfers",
                            boost::bind(&simple_wallet::show_transfers, this, _1),
                            tr("show_transfers [in|out|pending|failed|pool] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]"),
@@ -5091,13 +5091,20 @@ bool simple_wallet::check_tx_key(const std::vector<std::string> &args_)
   try
   {
     uint64_t received;
+    uint64_t received_tokens;
     bool in_pool;
     uint64_t confirmations;
-    m_wallet->check_tx_key(txid, tx_key, additional_tx_keys, info.address, received, in_pool, confirmations);
+    m_wallet->check_tx_key(txid, tx_key, additional_tx_keys, info.address, received, received_tokens, in_pool, confirmations);
 
-    if (received > 0)
+    if (received > 0 || received_tokens > 0)
     {
-      success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received) << " " << tr("in txid") << " " << txid;
+      if(received_tokens > 0) {
+        success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received_tokens) << " SFT " << tr("in txid") << " " << txid;
+      }
+      else {
+        success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " SFX " << print_money(received) << " " << tr("in txid") << " " << txid;
+      }
+
       if (in_pool)
       {
         success_msg_writer() << tr("WARNING: this transaction is not yet included in the blockchain!");
@@ -5163,14 +5170,20 @@ bool simple_wallet::check_tx_proof(const std::vector<std::string> &args)
   try
   {
     uint64_t received;
+    uint64_t token_received;
     bool in_pool;
     uint64_t confirmations;
-    if (m_wallet->check_tx_proof(txid, info.address, info.is_subaddress, args.size() == 4 ? args[3] : "", sig_str, received, in_pool, confirmations))
+    if (m_wallet->check_tx_proof(txid, info.address, info.is_subaddress, args.size() == 4 ? args[3] : "", sig_str, received, token_received, in_pool, confirmations))
     {
       success_msg_writer() << tr("Good signature");
-      if (received > 0)
+      if (received > 0 || token_received > 0)
       {
-        success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received) << " " << tr("in txid") << " " << txid;
+        if(token_received > 0) {
+          success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(token_received) << " SFT " << tr("in txid") << " " << txid;
+        }
+        else {
+          success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received) << " SFX " << tr("in txid") << " " << txid;
+        }
         if (in_pool)
         {
           success_msg_writer() << tr("WARNING: this transaction is not yet included in the blockchain!");
@@ -5301,8 +5314,9 @@ bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
     fail_msg_writer() << tr("command not supported by HW wallet");
     return true;
   }
-  if(args.size() != 1 && args.size() != 2) {
-    fail_msg_writer() << tr("usage: get_reserve_proof (all|<amount>) [<message>]");
+
+  if(args.size() != 2 && args.size() != 3) {
+    fail_msg_writer() << tr("usage: get_reserve_proof (token|cash) (all|<amount>) [<message>]");
     return true;
   }
 
@@ -5312,14 +5326,26 @@ bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
     return true;
   }
 
+  bool token_reserve = false;
+  if(args[0] == "token") {
+    token_reserve = true;
+  }
+  else if (args[0] == "cash") {
+    token_reserve = false;
+  }
+  else {
+    fail_msg_writer() << tr("Choose correct value for currency! (token|cash).");
+    return true;
+  }
+
   boost::optional<std::pair<uint32_t, uint64_t>> account_minreserve;
-  if (args[0] != "all")
+  if (args[1] != "all")
   {
     account_minreserve = std::pair<uint32_t, uint64_t>();
     account_minreserve->first = m_current_subaddress_account;
-    if (!cryptonote::parse_amount(account_minreserve->second, args[0]))
+    if (!cryptonote::parse_amount(account_minreserve->second, args[1]))
     {
-      fail_msg_writer() << tr("amount is wrong: ") << args[0];
+      fail_msg_writer() << tr("amount is wrong: ") << args[1];
       return true;
     }
   }
@@ -5336,7 +5362,7 @@ bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
 
   try
   {
-    const std::string sig_str = m_wallet->get_reserve_proof(account_minreserve, args.size() == 2 ? args[1] : "");
+    const std::string sig_str = m_wallet->get_reserve_proof(account_minreserve, args.size() == 3 ? args[2] : "", token_reserve);
     const std::string filename = "safex_reserve_proof";
     if (epee::file_io_utils::save_string_to_file(filename, sig_str))
       success_msg_writer() << tr("signature file saved to: ") << filename;
@@ -5387,9 +5413,12 @@ bool simple_wallet::check_reserve_proof(const std::vector<std::string> &args)
   try
   {
     uint64_t total, spent;
-    if (m_wallet->check_reserve_proof(info.address, args.size() == 3 ? args[2] : "", sig_str, total, spent))
+    uint64_t token_total, token_spent;
+    if (m_wallet->check_reserve_proof(info.address, args.size() == 3 ? args[2] : "", sig_str, total, spent, token_total, token_spent))
     {
-      success_msg_writer() << boost::format(tr("Good signature -- total: %s, spent: %s, unspent: %s")) % print_money(total) % print_money(spent) % print_money(total - spent);
+      success_msg_writer() << boost::format(tr("Good signature -- Cash total: %s, Cash spent: %s, Cash unspent: %s")) % print_money(total) % print_money(spent) % print_money(total - spent);
+      success_msg_writer() << boost::format(tr("Good signature -- Token total: %s, Token spent: %s, Token unspent: %s")) % print_money(token_total) % print_money(token_spent) % print_money(token_total - token_spent);
+
     }
     else
     {

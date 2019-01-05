@@ -38,9 +38,10 @@
 #define PARSE_URI(uri, expected) \
   std::string address, payment_id, recipient_name, description, error; \
   uint64_t amount; \
+  uint64_t token_amount; \
   std::vector<std::string> unknown_parameters; \
   tools::wallet w(cryptonote::TESTNET); \
-  bool ret = w.parse_uri(uri, address, payment_id, amount, description, recipient_name, unknown_parameters, error); \
+  bool ret = w.parse_uri(uri, address, payment_id, amount, token_amount, description, recipient_name, unknown_parameters, error); \
   ASSERT_EQ(ret, expected);
 
 TEST(uri, empty_string)
@@ -91,32 +92,32 @@ TEST(uri, good_integrated_address)
 
 TEST(uri, parameter_without_inter)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"&amount=1", false);
+  PARSE_URI("safex:" TEST_ADDRESS"&tx_cash_amount=1", false);
 }
 
 TEST(uri, parameter_without_equals)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?amount", false);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount", false);
 }
 
 TEST(uri, parameter_without_value)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?tx_amount=", false);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount=", false);
 }
 
 TEST(uri, negative_amount)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?tx_amount=-1", false);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount=-1", false);
 }
 
 TEST(uri, bad_amount)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?tx_amount=alphanumeric", false);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount=alphanumeric", false);
 }
 
 TEST(uri, duplicate_parameter)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?tx_amount=1&tx_amount=1", false);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount=1&tx_cash_amount=1", false);
 }
 
 TEST(uri, unknown_parameter)
@@ -128,7 +129,7 @@ TEST(uri, unknown_parameter)
 
 TEST(uri, unknown_parameters)
 {
-  PARSE_URI("safex:" TEST_ADDRESS"?tx_amount=1&unknown=1&tx_description=desc&foo=bar", true);
+  PARSE_URI("safex:" TEST_ADDRESS"?tx_cash_amount=1&unknown=1&tx_description=desc&foo=bar", true);
   ASSERT_EQ(unknown_parameters.size(), 2);
   ASSERT_EQ(unknown_parameters[0], "unknown=1");
   ASSERT_EQ(unknown_parameters[1], "foo=bar");

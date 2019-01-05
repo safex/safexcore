@@ -516,6 +516,28 @@ namespace tools
       uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
+    struct not_whole_token_amount : public transfer_error
+    {
+      explicit not_whole_token_amount(std::string&& loc, uint64_t tx_token_amount)
+              : transfer_error(std::move(loc), "tokens could not be divided")
+              , m_tx_token_amount(tx_token_amount)
+      {
+      }
+
+      uint64_t tx_token_amount() const { return m_tx_token_amount; }
+
+      std::string to_string() const
+      {
+        std::ostringstream ss;
+        ss << transfer_error::to_string() <<
+           ", tx_token_amount = " << cryptonote::print_money(m_tx_token_amount);
+        return ss.str();
+      }
+
+    private:
+      uint64_t m_tx_token_amount;
+    };
+    //----------------------------------------------------------------------------------------------------
     struct tx_not_possible : public transfer_error
     {
       explicit tx_not_possible(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
@@ -744,6 +766,14 @@ namespace tools
     {
       explicit zero_destination(std::string&& loc)
         : transfer_error(std::move(loc), "destination amount is zero")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct zero_amount_error : public transfer_error
+    {
+      explicit zero_amount_error(std::string&& loc)
+              : transfer_error(std::move(loc), "amount to send is zero, not supported")
       {
       }
     };

@@ -61,12 +61,14 @@ public:
     virtual const std::vector<Transfer> &transfers() const;
     virtual uint64_t confirmations() const;
     virtual uint64_t unlockTime() const;
+    virtual TransactionType transactionType() const override;
 
 private:
     int         m_direction;
     bool        m_pending;
     bool        m_failed;
     uint64_t    m_amount;
+    uint64_t    m_token_amount;
     uint64_t    m_fee;
     uint64_t    m_blockheight;
     std::set<uint32_t> m_subaddrIndex;        // always unique index for incoming transfers; can be multiple indices for outgoing transfers
@@ -78,6 +80,7 @@ private:
     std::vector<Transfer> m_transfers;
     uint64_t    m_confirmations;
     uint64_t    m_unlock_time;
+    TransactionType m_transaction_type;
 
     friend class TransactionHistoryImpl;
 

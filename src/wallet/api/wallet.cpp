@@ -47,7 +47,6 @@
 #include <unordered_map>
 
 #ifdef WIN32
-#include <boost/locale.hpp>
 #include <boost/filesystem.hpp>
 #endif
 
@@ -108,7 +107,7 @@ struct WalletCallbackImpl : public tools::i_wallet_callback
     virtual void on_new_block(uint64_t height, const cryptonote::block& block)
     {
         // Don't flood the GUI with signals. On fast refresh - send signal every 1000th block
-        // get_refresh_from_block_height() returns the blockheight from when the wallet was 
+        // get_refresh_from_block_height() returns the blockheight from when the wallet was
         // created or the restore height specified when wallet was recovered
         if(height >= m_wallet->m_wallet->get_refresh_from_block_height() || height % 1000 == 0) {
             // LOG_PRINT_L3(__FUNCTION__ << ": new block. height: " << height);
@@ -196,6 +195,23 @@ struct WalletCallbackImpl : public tools::i_wallet_callback
             m_listener->moneySpent(tx_hash, amount);
             m_listener->updated();
         }
+    }
+
+    virtual void on_tokens_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction &in_tx,
+                              uint64_t token_amount, const cryptonote::transaction &spend_tx, const cryptonote::subaddress_index &subaddr_index)
+    {
+      // TODO;
+      std::string tx_hash = epee::string_tools::pod_to_hex(txid);
+      LOG_PRINT_L3(__FUNCTION__ << ": tokens spent. height:  " << height
+                                << ", tx: " << tx_hash
+                                << ", token amount: " << print_money(token_amount)
+                                << ", idx: " << subaddr_index);
+      // do not signal on sent tx if wallet is not syncronized completely
+      if (m_listener && m_wallet->synchronized())
+      {
+          m_listener->tokensSpent(tx_hash, token_amount);
+          m_listener->updated();
+      }
     }
 
     virtual void on_skip_transaction(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx)
@@ -294,7 +310,7 @@ bool Wallet::keyValid(const std::string &secret_key_string, const std::string &a
       error = tr("Failed to parse address");
       return false;
   }
-  
+
   cryptonote::blobdata key_data;
   if(!epee::string_tools::parse_hexstr_to_binbuff(secret_key_string, key_data) || key_data.size() != sizeof(crypto::secret_key))
   {
@@ -319,7 +335,7 @@ bool Wallet::keyValid(const std::string &secret_key_string, const std::string &a
       error = tr("key does not match address");
       return false;
   }
-  
+
   return true;
 }
 
@@ -341,7 +357,7 @@ uint64_t Wallet::maximumAllowedAmount()
 void Wallet::init(const char *argv0, const char *default_log_base_name) {
 #ifdef WIN32
     // Activate UTF-8 support for Boost filesystem classes on Windows
-    std::locale::global(boost::locale::generator().generate(""));
+     std::setlocale(LC_ALL, "en_US.UTF-8");
     boost::filesystem::path::imbue(std::locale());
 #endif
     epee::string_tools::set_module_name_and_folder(argv0);
@@ -374,6 +390,7 @@ WalletImpl::WalletImpl(NetworkType nettype)
     , m_synchronized(false)
     , m_rebuildWalletCache(false)
     , m_is_connected(false)
+		, m_refreshShouldRescan(false)
 {
     m_wallet = new tools::wallet(static_cast<cryptonote::network_type>(nettype));
     m_history = new TransactionHistoryImpl(this);
@@ -400,7 +417,7 @@ WalletImpl::~WalletImpl()
     LOG_PRINT_L1(__FUNCTION__);
     // Pause refresh thread - prevents refresh from starting again
     pauseRefresh();
-    // Close wallet - stores cache and stops ongoing refresh operation 
+    // Close wallet - stores cache and stops ongoing refresh operation
     close(false); // do not store wallet as part of the closing activities
     // Stop refresh thread
     stopRefresh();
@@ -607,7 +624,9 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
             m_wallet->generate(path, password, info.address, viewkey);
             LOG_PRINT_L1("Generated new view only wallet from keys");
         }
-        
+
+        m_recoveringFromSeed= true; //Slow sync wallet
+
     }
     catch (const std::exception& e) {
         m_errorString = string(tr("failed to generate new wallet: ")) + e.what();
@@ -884,6 +903,16 @@ uint64_t WalletImpl::unlockedBalance(uint32_t accountIndex) const
     return m_wallet->unlocked_balance(accountIndex);
 }
 
+uint64_t WalletImpl::tokenBalance(uint32_t accountIndex) const
+{
+  return m_wallet->token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::unlockedTokenBalance(uint32_t accountIndex) const
+{
+  return m_wallet->unlocked_token_balance(accountIndex);
+}
+
 uint64_t WalletImpl::blockChainHeight() const
 {
     if(m_wallet->light_wallet()) {
@@ -936,14 +965,14 @@ uint64_t WalletImpl::daemonBlockChainTargetHeight() const
         m_status = Status_Ok;
         m_errorString = "";
     }
-    // Target height can be 0 when daemon is synced. Use blockchain height instead. 
+    // Target height can be 0 when daemon is synced. Use blockchain height instead.
     if(result == 0)
         result = daemonBlockChainHeight();
     return result;
 }
 
 bool WalletImpl::daemonSynced() const
-{   
+{
     if(connected() == Wallet::ConnectionStatus_Disconnected)
         return false;
     uint64_t blockChainHeight = daemonBlockChainHeight();
@@ -985,6 +1014,19 @@ int WalletImpl::autoRefreshInterval() const
     return m_refreshIntervalMillis;
 }
 
+bool WalletImpl::rescanBlockchain()
+{
+	clearStatus();
+	m_refreshShouldRescan = true;
+	doRefresh();
+	return status() == Status_Ok;
+}
+void WalletImpl::rescanBlockchainAsync()
+{
+	m_refreshShouldRescan = true;
+	refreshAsync();
+}
+
 UnsignedTransaction *WalletImpl::loadUnsignedTx(const std::string &unsigned_filename) {
   clearStatus();
   UnsignedTransactionImpl * transaction = new UnsignedTransactionImpl(*this);
@@ -992,15 +1034,15 @@ UnsignedTransaction *WalletImpl::loadUnsignedTx(const std::string &unsigned_file
     m_errorString = tr("Failed to load unsigned transactions");
     m_status = Status_Error;
   }
-  
+
   // Check tx data and construct confirmation message
   std::string extra_message;
   if (!transaction->m_unsigned_tx_set.transfers.empty())
     extra_message = (boost::format("%u outputs to import. ") % (unsigned)transaction->m_unsigned_tx_set.transfers.size()).str();
   transaction->checkLoadedTx([&transaction](){return transaction->m_unsigned_tx_set.txes.size();}, [&transaction](size_t n)->const tools::wallet::tx_construction_data&{return transaction->m_unsigned_tx_set.txes[n];}, extra_message);
   m_status = transaction->status();
-  m_errorString = transaction->errorString(); 
-    
+  m_errorString = transaction->errorString();
+
   return transaction;
 }
 
@@ -1014,7 +1056,7 @@ bool WalletImpl::submitTransaction(const string &fileName) {
     m_status = Status_Ok;
     return false;
   }
-  
+
   if(!transaction->commit()) {
     m_errorString = transaction->m_errorString;
     m_status = Status_Error;
@@ -1024,7 +1066,7 @@ bool WalletImpl::submitTransaction(const string &fileName) {
   return true;
 }
 
-bool WalletImpl::exportKeyImages(const string &filename) 
+bool WalletImpl::exportKeyImages(const string &filename)
 {
   if (m_wallet->watch_only())
   {
@@ -1032,7 +1074,7 @@ bool WalletImpl::exportKeyImages(const string &filename)
     m_status = Status_Error;
     return false;
   }
-  
+
   try
   {
     if (!m_wallet->export_key_images(filename))
@@ -1131,14 +1173,15 @@ void WalletImpl::setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex
 //    - unconfirmed_transfer_details;
 //    - confirmed_transfer_details)
 
-PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> amount, uint32_t mixin_count,
-                                                  PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices)
+PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                  PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices,
+                                                  const TransactionType tx_type)
 
 {
     clearStatus();
     // Pause refresh thread while creating transaction
     pauseRefresh();
-      
+
     cryptonote::address_parse_info info;
 
     // indicates if dst_addr is integrated address (address + payment_id)
@@ -1200,26 +1243,36 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
         //std::vector<tools::wallet::pending_tx> ptx_vector;
 
         try {
-            if (amount) {
+            if (value_amount) {
                 vector<cryptonote::tx_destination_entry> dsts;
                 cryptonote::tx_destination_entry de;
+
+                if (tx_type == TransactionType::TokenTransaction) {
+                    if (!tools::is_whole_coin_amount(*value_amount)) {
+                        THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, *value_amount);
+                    }
+                    de.token_amount = *value_amount;
+                    de.token_transaction = true;
+                } else {
+                    de.amount = *value_amount;
+                }
+
                 de.addr = info.address;
-                de.amount = *amount;
                 de.is_subaddress = info.is_subaddress;
                 dsts.push_back(de);
+              if (tx_type == TransactionType::TokenTransaction)
+              {
+                transaction->m_pending_tx = m_wallet->create_transactions_token(dsts, fake_outs_count, 0 /* unlock_time */,
+                        adjusted_priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+              } else {
                 transaction->m_pending_tx = m_wallet->create_transactions_2(dsts, fake_outs_count, 0 /* unlock_time */,
-                                                                          adjusted_priority,
-                                                                          extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+                        adjusted_priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+              }
+
+
             } else {
-                // for the GUI, sweep_all (i.e. amount set as "(all)") will always sweep all the funds in all the addresses
-                if (subaddr_indices.empty())
-                {
-                    for (uint32_t index = 0; index < m_wallet->get_num_subaddresses(subaddr_account); ++index)
-                        subaddr_indices.insert(index);
-                }
-                transaction->m_pending_tx = m_wallet->create_transactions_all(0, info.address, info.is_subaddress, fake_outs_count, 0 /* unlock_time */,
-                                                                          adjusted_priority,
-                                                                          extra, subaddr_account, subaddr_indices, m_trustedDaemon);
+                //TODO: perform sweep unmixable for GUI if amount is 0
+                THROW_WALLET_EXCEPTION(tools::error::zero_amount_error);
             }
 
         } catch (const tools::error::daemon_busy&) {
@@ -1231,6 +1284,9 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
             m_status = Status_Error;
         } catch (const tools::error::wallet_rpc_error& e) {
             m_errorString = tr("RPC error: ") +  e.to_string();
+            m_status = Status_Error;
+        } catch (const tools::error::not_whole_token_amount &e) {
+            m_errorString = (boost::format(tr("failed to send token decimal amount: %s")) % e.what()).str();
             m_status = Status_Error;
         } catch (const tools::error::get_random_outs_error &e) {
             m_errorString = (boost::format(tr("failed to get random outputs to mix: %s")) % e.what()).str();
@@ -1789,8 +1845,7 @@ void WalletImpl::refreshThreadFunc()
         // if auto refresh enabled, we wait for the "m_refreshIntervalSeconds" interval.
         // if not - we wait forever
         if (m_refreshIntervalMillis > 0) {
-            boost::posix_time::milliseconds wait_for_ms(m_refreshIntervalMillis);
-            m_refreshCV.timed_wait(lock, wait_for_ms);
+             m_refreshCV.timed_wait(lock, boost::posix_time::milliseconds(60*1000));
         } else {
             m_refreshCV.wait(lock);
         }
@@ -1798,6 +1853,7 @@ void WalletImpl::refreshThreadFunc()
         LOG_PRINT_L3(__FUNCTION__ << ": refresh lock acquired...");
         LOG_PRINT_L3(__FUNCTION__ << ": m_refreshEnabled: " << m_refreshEnabled);
         LOG_PRINT_L3(__FUNCTION__ << ": m_status: " << m_status);
+				LOG_PRINT_L3(__FUNCTION__ << ": m_refreshShouldRescan: " << m_refreshShouldRescan);
         if (m_refreshEnabled) {
             LOG_PRINT_L3(__FUNCTION__ << ": refreshing...");
             doRefresh();
@@ -1808,12 +1864,18 @@ void WalletImpl::refreshThreadFunc()
 
 void WalletImpl::doRefresh()
 {
+		bool rescan = m_refreshShouldRescan.exchange(false);
     // synchronizing async and sync refresh calls
     boost::lock_guard<boost::mutex> guarg(m_refreshMutex2);
-    try {
+		do try {
+			LOG_PRINT_L3(__FUNCTION__ << ": doRefresh, rescan = "<<rescan);
+
         // Syncing daemon and refreshing wallet simultaneously is very resource intensive.
         // Disable refresh if wallet is disconnected or daemon isn't synced.
         if (m_wallet->light_wallet() || daemonSynced()) {
+            if(rescan)
+                m_wallet->rescan_blockchain(false);
+
             m_wallet->refresh();
             if (!m_synchronized) {
                 m_synchronized = true;
@@ -1827,11 +1889,14 @@ void WalletImpl::doRefresh()
             m_wallet->find_and_save_rings(false);
         } else {
            LOG_PRINT_L3(__FUNCTION__ << ": skipping refresh - daemon is not synced");
-        }
-    } catch (const std::exception &e) {
-        m_status = Status_Error;
-        m_errorString = e.what();
-    }
+					}
+			} catch (const std::exception &e) {
+					m_status = Status_Error;
+					m_errorString = e.what();
+					break;
+			}
+		while(!rescan && (rescan=m_refreshShouldRescan.exchange(false))); // repeat if not rescanned and rescan was requested
+
     if (m_walletCallback->getListener()) {
         m_walletCallback->getListener()->refreshed();
     }
@@ -1875,7 +1940,7 @@ bool WalletImpl::isNewWallet() const
     // it's the same case as if it created from scratch, i.e. we need "fast sync"
     // with the daemon (pull hashes instead of pull blocks).
     // If wallet cache is rebuilt, creation height stored in .keys is used.
-    // Watch only wallet is a copy of an existing wallet. 
+    // Watch only wallet is a copy of an existing wallet.
     return !(blockChainHeight() > 1 || m_recoveringFromSeed || m_rebuildWalletCache) && !watchOnly();
 }
 
@@ -1940,7 +2005,7 @@ void WalletImpl::hardForkInfo(uint8_t &version, uint64_t &earliest_height) const
     m_wallet->get_hard_fork_info(version, earliest_height);
 }
 
-bool WalletImpl::useForkRules(uint8_t version, int64_t early_blocks) const 
+bool WalletImpl::useForkRules(uint8_t version, int64_t early_blocks) const
 {
     return m_wallet->use_fork_rules(version,early_blocks);
 }

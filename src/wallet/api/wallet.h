@@ -74,7 +74,7 @@ public:
     // deprecated: use recoverFromKeysWithPassword() instead
     bool recoverFromKeys(const std::string &path,
                             const std::string &language,
-                            const std::string &address_string, 
+                            const std::string &address_string,
                             const std::string &viewkey_string,
                             const std::string &spendkey_string = "");
     bool close(bool store = true);
@@ -102,6 +102,8 @@ public:
     bool trustedDaemon() const;
     uint64_t balance(uint32_t accountIndex = 0) const;
     uint64_t unlockedBalance(uint32_t accountIndex = 0) const;
+    uint64_t tokenBalance(uint32_t accountIndex = 0) const;
+    uint64_t unlockedTokenBalance(uint32_t accountIndex = 0) const;
     uint64_t blockChainHeight() const;
     uint64_t approximateBlockChainHeight() const;
     uint64_t daemonBlockChainHeight() const;
@@ -109,6 +111,8 @@ public:
     bool synchronized() const;
     bool refresh();
     void refreshAsync();
+		bool rescanBlockchain() override;
+		void rescanBlockchainAsync() override;
     void setAutoRefreshInterval(int millis);
     int autoRefreshInterval() const;
     void setRefreshFromBlockHeight(uint64_t refresh_from_block_height);
@@ -128,10 +132,11 @@ public:
     void setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex, const std::string &label);
 
     PendingTransaction * createTransaction(const std::string &dst_addr, const std::string &payment_id,
-                                        optional<uint64_t> amount, uint32_t mixin_count,
+                                        optional<uint64_t> value_amount, uint32_t mixin_count,
                                         PendingTransaction::Priority priority = PendingTransaction::Priority_Low,
                                         uint32_t subaddr_account = 0,
-                                        std::set<uint32_t> subaddr_indices = {});
+                                        std::set<uint32_t> subaddr_indices = {},
+                                        const TransactionType tx_type = TransactionType::CashTransaction);
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename);
@@ -184,7 +189,7 @@ private:
 
 private:
     friend class PendingTransactionImpl;
-    friend class UnsignedTransactionImpl;    
+    friend class UnsignedTransactionImpl;
     friend class TransactionHistoryImpl;
     friend struct WalletCallbackImpl;
     friend class AddressBookImpl;
@@ -206,6 +211,7 @@ private:
     std::atomic<bool> m_refreshEnabled;
     std::atomic<bool> m_refreshThreadDone;
     std::atomic<int>  m_refreshIntervalMillis;
+		std::atomic<bool> m_refreshShouldRescan;
     // synchronizing  refresh loop;
     boost::mutex        m_refreshMutex;
 
