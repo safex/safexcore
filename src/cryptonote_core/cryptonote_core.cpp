@@ -631,11 +631,10 @@ namespace cryptonote
     }
     bad_semantics_txes_lock.unlock();
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = version == 1 ? 1 : 2;
-    if (tx.version == 0 || tx.version > max_tx_version)
+    if (tx.version == 0 || tx.version > HF_VERSION_MAX_SUPPORTED_TX_VERSION)
     {
-      // v2 is the latest one we know
+      // HF_VERSION_MAX_SUPPORTED_TX_VERSION is the latest transaction version
+      // we know in the current protocol version
       tvc.m_verifivation_failed = true;
       return false;
     }
@@ -992,7 +991,7 @@ namespace cryptonote
   bool core::check_tx_inputs_ring_members_diff(const transaction& tx) const
   {
     const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    if (version >= 6)
+    if (version >= HF_VERSION_TBD)
     {
       for(const auto& in: tx.vin)
       {

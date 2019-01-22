@@ -1108,7 +1108,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     money_in_use += o.amount;
   partial_block_reward = false;
 
-  if (version == 3) {
+  if (version >= HF_VERSION_VALID_DECOMPOSED_MINER_TX) {
     for (auto &o: b.miner_tx.vout) {
       if (!is_valid_decomposed_amount(o.amount)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
@@ -1130,7 +1130,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     return false;
   }
   // From hard fork 2, we allow a miner to claim less block reward than is allowed, in case a miner wants less dust
-  if (m_hardfork->get_current_version() < 2)
+  if (m_hardfork->get_current_version() < HF_VERSION_ALLOW_LESS_BLOCK_REWARD)
   {
     if(base_reward + fee != money_in_use)
     {
@@ -1140,7 +1140,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
   }
   else
   {
-    // from hard fork 2, since a miner can claim less than the full block reward, we update the base_reward
+    // from hard fork 2 defined as HF_VERSION_ALLOW_LESS_BLOCK_REWARD, since a miner can claim less than the full block reward, we update the base_reward
     // to show the amount of coins that were actually generated, the remainder will be pushed back for later
     // emission. This modifies the emission curve very slightly.
     CHECK_AND_ASSERT_MES(money_in_use - fee <= base_reward, false, "base reward calculation bug");
@@ -2695,7 +2695,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     for (const auto& txin : tx.vin)
     {
       const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
-
+      //todo ATANA add txin_token_to_key input here before min mixin starts to be used
       if (txin.type() == typeid(txin_to_key))
       {
         const txin_to_key& in_to_key = boost::get<txin_to_key>(txin);
@@ -3741,6 +3741,7 @@ leave:
   // coins will eventually exceed MONEY_SUPPLY and overflow a uint64. To prevent overflow, cap already_generated_coins
   // at MONEY_SUPPLY. already_generated_coins is only used to compute the block subsidy and MONEY_SUPPLY yields a
   // subsidy of 0 under the base formula and therefore the minimum subsidy >0 in the tail state.
+  //todo ATANA calculate inflation into this formula
   already_generated_coins = base_reward < (MONEY_SUPPLY-already_generated_coins) ? already_generated_coins + base_reward : MONEY_SUPPLY;
   if(m_db->height())
     cumulative_difficulty += m_db->get_block_cumulative_difficulty(m_db->height() - 1);
