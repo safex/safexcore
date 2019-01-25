@@ -631,7 +631,7 @@ namespace cryptonote
         boost::tribool battery_powered(on_battery_power());
         if(!indeterminate( battery_powered ))
         {
-          on_ac_power = !battery_powered;
+          on_ac_power = !static_cast<bool>(battery_powered);
         }
       }
 
