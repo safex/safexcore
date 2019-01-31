@@ -184,7 +184,7 @@ namespace cryptonote
     size_t count = 0;
     for (const auto &i : destinations)
     {
-      if (i.amount == 0)
+      if ((i.amount == 0) && (i.token_amount == 0))
         continue;
       if (change_addr && i.addr == *change_addr)
         continue;
