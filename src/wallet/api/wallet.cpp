@@ -1561,7 +1561,7 @@ std::string WalletImpl::getTxKey(const std::string &txid_str) const
     }
 }
 
-bool WalletImpl::checkTxKey(const std::string &txid_str, std::string tx_key_str, const std::string &address_str, uint64_t &received, bool &in_pool, uint64_t &confirmations)
+bool WalletImpl::checkTxKey(const std::string &txid_str, std::string tx_key_str, const std::string &address_str, uint64_t &received_cash, uint64_t &received_token, bool &in_pool, uint64_t &confirmations)
 {
     crypto::hash txid;
     if (!epee::string_tools::hex_to_pod(txid_str, txid))
@@ -1602,7 +1602,7 @@ bool WalletImpl::checkTxKey(const std::string &txid_str, std::string tx_key_str,
 
     try
     {
-        m_wallet->check_tx_key(txid, tx_key, additional_tx_keys, info.address, received, in_pool, confirmations);
+        m_wallet->check_tx_key(txid, tx_key, additional_tx_keys, info.address, received_cash, received_token, in_pool, confirmations);
         m_status = Status_Ok;
         return true;
     }
@@ -1645,7 +1645,7 @@ std::string WalletImpl::getTxProof(const std::string &txid_str, const std::strin
     }
 }
 
-bool WalletImpl::checkTxProof(const std::string &txid_str, const std::string &address_str, const std::string &message, const std::string &signature, bool &good, uint64_t &received, bool &in_pool, uint64_t &confirmations)
+bool WalletImpl::checkTxProof(const std::string &txid_str, const std::string &address_str, const std::string &message, const std::string &signature, bool &good, uint64_t &received_cash, uint64_t &received_token, bool &in_pool, uint64_t &confirmations)
 {
     crypto::hash txid;
     if (!epee::string_tools::hex_to_pod(txid_str, txid))
@@ -1665,7 +1665,7 @@ bool WalletImpl::checkTxProof(const std::string &txid_str, const std::string &ad
 
     try
     {
-        good = m_wallet->check_tx_proof(txid, info.address, info.is_subaddress, message, signature, received, in_pool, confirmations);
+        good = m_wallet->check_tx_proof(txid, info.address, info.is_subaddress, message, signature, received_cash, received_token, in_pool, confirmations);
         m_status = Status_Ok;
         return true;
     }
@@ -1742,7 +1742,7 @@ std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64
     }
 }
 
-bool WalletImpl::checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent) const {
+bool WalletImpl::checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent, uint64_t& token_total, uint64_t& token_spent) const {
     cryptonote::address_parse_info info;
     if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), address))
     {
@@ -1761,7 +1761,7 @@ bool WalletImpl::checkReserveProof(const std::string &address, const std::string
     try
     {
         m_status = Status_Ok;
-        good = m_wallet->check_reserve_proof(info.address, message, signature, total, spent);
+        good = m_wallet->check_reserve_proof(info.address, message, signature, total, spent, token_total, token_spent);
         return true;
     }
     catch (const std::exception &e)
@@ -1970,9 +1970,10 @@ bool WalletImpl::doInit(const string &daemon_address, uint64_t upper_transaction
     return true;
 }
 
-bool WalletImpl::parse_uri(const std::string &uri, std::string &address, std::string &payment_id, uint64_t &amount, std::string &tx_description, std::string &recipient_name, std::vector<std::string> &unknown_parameters, std::string &error)
+bool WalletImpl::parse_uri(const std::string &uri, std::string &address, std::string &payment_id, uint64_t &cash_amount, uint64_t& token_amount, std::string &tx_description,
+        std::string &recipient_name, std::vector<std::string> &unknown_parameters, std::string &error)
 {
-    return m_wallet->parse_uri(uri, address, payment_id, amount, tx_description, recipient_name, unknown_parameters, error);
+    return m_wallet->parse_uri(uri, address, payment_id, cash_amount, token_amount, tx_description, recipient_name, unknown_parameters, error);
 }
 
 std::string WalletImpl::getDefaultDataDir() const
