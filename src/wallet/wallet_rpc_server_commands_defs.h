@@ -490,7 +490,7 @@ namespace wallet_rpc
         std::string tx_hash;
         std::string tx_key;
         std::list<std::string> amount_keys;
-        uint64_t amount;
+        uint64_t token_amount;
         uint64_t fee;
         std::string tx_blob;
         std::string tx_metadata;
@@ -500,7 +500,7 @@ namespace wallet_rpc
             KV_SERIALIZE(tx_hash)
             KV_SERIALIZE(tx_key)
             KV_SERIALIZE(amount_keys)
-            KV_SERIALIZE(amount)
+            KV_SERIALIZE(token_amount)
             KV_SERIALIZE(fee)
             KV_SERIALIZE(tx_blob)
             KV_SERIALIZE(tx_metadata)
@@ -569,6 +569,70 @@ namespace wallet_rpc
         KV_SERIALIZE(tx_blob_list)
         KV_SERIALIZE(tx_metadata_list)
         KV_SERIALIZE(multisig_txset)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_TRANSFER_TOKEN_SPLIT
+  {
+    struct request
+    {
+      std::list<transfer_destination> destinations;
+      uint32_t account_index;
+      std::set<uint32_t> subaddr_indices;
+      uint32_t priority;
+      uint64_t mixin;
+      uint64_t ring_size;
+      uint64_t unlock_time;
+      std::string payment_id;
+      bool get_tx_keys;
+      bool do_not_relay;
+      bool get_tx_hex;
+      bool get_tx_metadata;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(destinations)
+      KV_SERIALIZE(account_index)
+      KV_SERIALIZE(subaddr_indices)
+      KV_SERIALIZE(priority)
+      KV_SERIALIZE_OPT(mixin, (uint64_t)0)
+      KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
+      KV_SERIALIZE(unlock_time)
+      KV_SERIALIZE(payment_id)
+      KV_SERIALIZE(get_tx_keys)
+      KV_SERIALIZE_OPT(do_not_relay, false)
+      KV_SERIALIZE_OPT(get_tx_hex, false)
+      KV_SERIALIZE_OPT(get_tx_metadata, false)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct key_list
+    {
+      std::list<std::string> keys;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(keys)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::list<std::string> tx_hash_list;
+      std::list<std::string> tx_key_list;
+      std::list<uint64_t> token_amount_list;
+      std::list<uint64_t> fee_list;
+      std::list<std::string> tx_blob_list;
+      std::list<std::string> tx_metadata_list;
+      std::string multisig_txset;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(tx_hash_list)
+      KV_SERIALIZE(tx_key_list)
+      KV_SERIALIZE(token_amount_list)
+      KV_SERIALIZE(fee_list)
+      KV_SERIALIZE(tx_blob_list)
+      KV_SERIALIZE(tx_metadata_list)
+      KV_SERIALIZE(multisig_txset)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -856,6 +920,8 @@ namespace wallet_rpc
   struct transfer_details
   {
     uint64_t amount;
+    uint64_t token_amount;
+    bool token_transaction;
     bool spent;
     uint64_t global_index;
     std::string tx_hash;
@@ -865,6 +931,8 @@ namespace wallet_rpc
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(amount)
+      KV_SERIALIZE(token_amount)
+      KV_SERIALIZE(token_transaction)
       KV_SERIALIZE(spent)
       KV_SERIALIZE(global_index)
       KV_SERIALIZE(tx_hash)
@@ -1123,11 +1191,15 @@ namespace wallet_rpc
     struct response
     {
       uint64_t received;
+      uint64_t received_tokens;
+      bool token_transaction;
       bool in_pool;
       uint64_t confirmations;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(received)
+        KV_SERIALIZE(received_tokens)
+        KV_SERIALIZE(token_transaction)
         KV_SERIALIZE(in_pool)
         KV_SERIALIZE(confirmations)
       END_KV_SERIALIZE_MAP()
@@ -1180,12 +1252,16 @@ namespace wallet_rpc
     {
       bool good;
       uint64_t received;
+      uint64_t received_tokens;
+      bool token_transaction;
       bool in_pool;
       uint64_t confirmations;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(good)
         KV_SERIALIZE(received)
+        KV_SERIALIZE(received_tokens)
+        KV_SERIALIZE(token_transaction)
         KV_SERIALIZE(in_pool)
         KV_SERIALIZE(confirmations)
       END_KV_SERIALIZE_MAP()
@@ -1199,6 +1275,8 @@ namespace wallet_rpc
     uint64_t height;
     uint64_t timestamp;
     uint64_t amount;
+    uint64_t token_amount;
+    bool token_transaction;
     uint64_t fee;
     std::string note;
     std::list<transfer_destination> destinations;
@@ -1214,6 +1292,8 @@ namespace wallet_rpc
       KV_SERIALIZE(height);
       KV_SERIALIZE(timestamp);
       KV_SERIALIZE(amount);
+      KV_SERIALIZE(token_amount);
+      KV_SERIALIZE(token_transaction);
       KV_SERIALIZE(fee);
       KV_SERIALIZE(note);
       KV_SERIALIZE(destinations);
@@ -1280,12 +1360,14 @@ namespace wallet_rpc
       bool all;
       uint32_t account_index;     // ignored when `all` is true
       uint64_t amount;            // ignored when `all` is true
+      bool token;
       std::string message;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(all)
         KV_SERIALIZE(account_index)
         KV_SERIALIZE(amount)
+        KV_SERIALIZE(token)
         KV_SERIALIZE(message)
       END_KV_SERIALIZE_MAP()
     };
@@ -1320,11 +1402,15 @@ namespace wallet_rpc
       bool good;
       uint64_t total;
       uint64_t spent;
+      uint64_t token_total;
+      uint64_t token_spent;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(good)
         KV_SERIALIZE(total)
         KV_SERIALIZE(spent)
+        KV_SERIALIZE(token_total)
+        KV_SERIALIZE(token_spent)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -1516,6 +1602,7 @@ namespace wallet_rpc
     std::string address;
     std::string payment_id;
     uint64_t amount;
+    uint64_t token_amount;
     std::string tx_description;
     std::string recipient_name;
 
@@ -1523,6 +1610,7 @@ namespace wallet_rpc
       KV_SERIALIZE(address);
       KV_SERIALIZE(payment_id);
       KV_SERIALIZE(amount);
+      KV_SERIALIZE(token_amount);
       KV_SERIALIZE(tx_description);
       KV_SERIALIZE(recipient_name);
     END_KV_SERIALIZE_MAP()

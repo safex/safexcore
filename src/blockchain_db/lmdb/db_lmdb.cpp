@@ -983,12 +983,12 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       throw0(DB_ERROR("tx has outputs, but no output indices found"));
   }
 
-  bool is_pseudo_rct = tx.version >= 2 && tx.vin.size() == 1 && tx.vin[0].type() == typeid(txin_gen);
+  //bool is_pseudo_rct = tx.version >= 2 && tx.vin.size() == 1 && tx.vin[0].type() == typeid(txin_gen);
   for (size_t i = tx.vout.size(); i-- > 0;)
   {
-    const uint64_t amount = is_pseudo_rct ? 0 : tx.vout[i].amount;
     const tx_out_type output_type = get_tx_out_type(tx.vout[i].target);
-    remove_output(amount, amount_output_indices[i], output_type);
+    const uint64_t out_amount = (output_type == tx_out_type::out_token) ? tx.vout[i].token_amount : tx.vout[i].amount;
+    remove_output(out_amount, amount_output_indices[i], output_type);
   }
 }
 

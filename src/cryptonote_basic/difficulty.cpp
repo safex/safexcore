@@ -178,5 +178,95 @@ difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vect
 #endif
   }
 
+  /*
+# Tom Harold (Degnr8) WT
+# Modified by Zawy to be a weighted-Weighted Harmonic Mean (WWHM)
+# Copyright (c) 2017-2018 Zawy https://github.com/zawy12/difficulty-algorithms/issues/3
+# Copyright (c) 2017-2018 The Masari Project
+# No limits in rise or fall rate should be employed.
+# MTP should not be used.
+k = (N+1)/2  * T
+
+# original algorithm
+d=0, t=0, j=0
+for i = height - N+1 to height  # (N most recent blocks)
+    # TS = timestamp
+    solvetime = TS[i] - TS[i-1]
+    solvetime = 10*T if solvetime > 10*T
+    solvetime = -9*T if solvetime < -9*T
+    j++
+    t +=  solvetime * j
+    d +=D[i] # sum the difficulties
+next i
+t=T*N/2 if t < T*N/2  # in case of startup weirdness, keep t reasonable
+next_D = d * k / t
+*/
+  difficulty_type next_difficulty_v2(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds)
+  {
+
+    if (timestamps.size() > DIFFICULTY_BLOCKS_COUNT_V2)
+    {
+      timestamps.resize(DIFFICULTY_BLOCKS_COUNT_V2);
+      cumulative_difficulties.resize(DIFFICULTY_BLOCKS_COUNT_V2);
+    }
+
+    size_t length = timestamps.size();
+    assert(length == cumulative_difficulties.size());
+    if (length <= 1)
+    {
+      return 1;
+    }
+
+    uint64_t weighted_timespans = 0;
+    uint64_t target;
+
+    uint64_t previous_max = timestamps[0];
+    for (size_t i = 1; i < length; i++)
+    {
+      uint64_t timespan;
+      uint64_t max_timestamp;
+
+      if (timestamps[i] > previous_max)
+      {
+        max_timestamp = timestamps[i];
+      } else
+      {
+        max_timestamp = previous_max;
+      }
+
+      timespan = max_timestamp - previous_max;
+      if (timespan == 0)
+      {
+        timespan = 1;
+      } else if (timespan > 10 * target_seconds)
+      {
+        // The below check is only needed for higher FTL's
+        timespan = 10 * target_seconds;
+      }
+
+      weighted_timespans += i * timespan;
+      previous_max = max_timestamp;
+    }
+
+    target = 9909 * (((length) / 2) * target_seconds) / 10000;
+
+    uint64_t minimum_timespan = target_seconds * length / 2;
+    if (weighted_timespans < minimum_timespan)
+    {
+      weighted_timespans = minimum_timespan;
+    }
+
+    difficulty_type total_work = cumulative_difficulties.back() - cumulative_difficulties.front();
+    assert(total_work > 0);
+
+    uint64_t low, high;
+    mul(total_work, target, low, high);
+    if (high != 0)
+    {
+      return 0;
+    }
+    return low / weighted_timespans;
+  }
+
 
 }
