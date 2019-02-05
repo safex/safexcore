@@ -316,6 +316,13 @@ extern "C" DLL_MAGIC void win_rescanBlockchainAsync(void* self) {
 	wallet->rescanBlockchainAsync();
 }
 
+extern "C" DLL_MAGIC void win_setSeedLanguage(void* self, const char* seedLanguage) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  std::string seed(seedLanguage);
+  wallet->setSeedLanguage(seed);
+}
+
+
 extern "C" DLL_MAGIC void* win_history(void* self) {
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
   return static_cast<void*>(wallet->history());
