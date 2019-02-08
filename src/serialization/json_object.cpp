@@ -552,6 +552,8 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_script& tx
   val.SetObject();
 
   INSERT_INTO_JSON_OBJECT(val, doc, keys, txout.keys);
+  INSERT_INTO_JSON_OBJECT(val, doc, amount, txout.amount);
+  INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txout.token_amount);
   INSERT_INTO_JSON_OBJECT(val, doc, script, txout.script);
 }
 
@@ -564,6 +566,8 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_script& txo
   }
 
   GET_FROM_JSON_OBJECT(val, txout.keys, keys);
+  GET_FROM_JSON_OBJECT(val, txout.amount, amount);
+  GET_FROM_JSON_OBJECT(val, txout.token_amount, token_amount);
   GET_FROM_JSON_OBJECT(val, txout.script, script);
 }
 

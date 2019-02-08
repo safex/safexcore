@@ -94,6 +94,8 @@ namespace boost
   inline void serialize(Archive &a, cryptonote::txout_to_script &x, const boost::serialization::version_type ver)
   {
     a & x.keys;
+    a & x.amount;
+    a & x.token_amount;
     a & x.script;
   }
 

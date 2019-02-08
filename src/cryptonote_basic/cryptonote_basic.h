@@ -63,10 +63,15 @@ namespace cryptonote
   struct txout_to_script
   {
     std::vector<crypto::public_key> keys;
-    std::vector<uint8_t> script;
+    uint64_t amount = 0; //Safex Cash amount
+    uint64_t token_amount = 0; //Safex Token amount
+    std::vector<uint8_t> script; //Contains Safex protocol layer commands
+
 
     BEGIN_SERIALIZE_OBJECT()
       FIELD(keys)
+      VARINT_FIELD(amount)
+      VARINT_FIELD(token_amount)
       FIELD(script)
     END_SERIALIZE()
   };
