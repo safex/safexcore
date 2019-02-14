@@ -47,6 +47,11 @@ debug-all:
 	mkdir -p build/debug
 	cd build/debug && cmake -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
 
+debug-all-protobuf:
+	mkdir -p build/debug
+	cd build/debug && cmake -D BUILD_SAFEX_PROTOBUF_RPC=ON -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
+
+
 debug-static-all:
 	mkdir -p build/debug
 	cd build/debug && cmake -D BUILD_TESTS=ON -D STATIC=ON -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
