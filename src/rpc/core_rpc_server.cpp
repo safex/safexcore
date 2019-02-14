@@ -31,6 +31,11 @@
 
 #include "include_base_utils.h"
 #include "string_tools.h"
+
+#ifdef SAFEX_PROTOBUF_RPC
+#include "cryptonote_to_protobuf.h"
+#endif
+
 using namespace epee;
 
 #include "core_rpc_server.h"
@@ -2160,6 +2165,163 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+
+  bool core_rpc_server::on_get_transactions_protobuf(const COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::request& req,
+                                                            COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::response& res)
+  {
+#ifdef SAFEX_PROTOBUF_RPC
+    PERF_TIMER(on_get_transactions);
+    bool ok;
+    if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF>(invoke_http_mode::JON_RPC, "/gettransactions_proto", req, res, ok))
+      return ok;
+
+    std::vector<crypto::hash> vh;
+    for(const auto& tx_hex_str: req.txs_hashes)
+    {
+      blobdata b;
+      if(!string_tools::parse_hexstr_to_binbuff(tx_hex_str, b))
+      {
+        res.status = "Failed to parse hex representation of transaction hash";
+        return true;
+      }
+      if(b.size() != sizeof(crypto::hash))
+      {
+        res.status = "Failed, size of data mismatch";
+        return true;
+      }
+      vh.push_back(*reinterpret_cast<const crypto::hash*>(b.data()));
+    }
+    std::list<crypto::hash> missed_txs;
+    std::list<transaction> txs;
+    bool r = m_core.get_transactions(vh, txs, missed_txs);
+    if(!r)
+    {
+      res.status = "Failed";
+      return true;
+    }
+    LOG_PRINT_L2("Found " << txs.size() << "/" << vh.size() << " transactions on the blockchain");
+
+    // try the pool for any missing txes
+    size_t found_in_pool = 0;
+    std::unordered_set<crypto::hash> pool_tx_hashes;
+    std::unordered_map<crypto::hash, bool> double_spend_seen;
+    if (!missed_txs.empty())
+    {
+      std::vector<tx_info> pool_tx_info;
+      std::vector<spent_key_image_info> pool_key_image_info;
+      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info);
+      if(r)
+      {
+        // sort to match original request
+        std::list<transaction> sorted_txs;
+        std::vector<tx_info>::const_iterator i;
+        for (const crypto::hash &h: vh)
+        {
+          if (std::find(missed_txs.begin(), missed_txs.end(), h) == missed_txs.end())
+          {
+            if (txs.empty())
+            {
+              res.status = "Failed: internal error - txs is empty";
+              return true;
+            }
+            // core returns the ones it finds in the right order
+            if (get_transaction_hash(txs.front()) != h)
+            {
+              res.status = "Failed: tx hash mismatch";
+              return true;
+            }
+            sorted_txs.push_back(std::move(txs.front()));
+            txs.pop_front();
+          }
+          else if ((i = std::find_if(pool_tx_info.begin(), pool_tx_info.end(), [h](const tx_info &txi) { return epee::string_tools::pod_to_hex(h) == txi.id_hash; })) != pool_tx_info.end())
+          {
+            cryptonote::transaction tx;
+            if (!cryptonote::parse_and_validate_tx_from_blob(i->tx_blob, tx))
+            {
+              res.status = "Failed to parse and validate tx from blob";
+              return true;
+            }
+            sorted_txs.push_back(tx);
+            missed_txs.remove(h);
+            pool_tx_hashes.insert(h);
+            const std::string hash_string = epee::string_tools::pod_to_hex(h);
+            for (const auto &ti: pool_tx_info)
+            {
+              if (ti.id_hash == hash_string)
+              {
+                double_spend_seen.insert(std::make_pair(h, ti.double_spend_seen));
+                break;
+              }
+            }
+            ++found_in_pool;
+          }
+        }
+        txs = sorted_txs;
+      }
+      LOG_PRINT_L2("Found " << found_in_pool << "/" << vh.size() << " transactions in the pool");
+    }
+
+    std::list<std::string>::const_iterator txhi = req.txs_hashes.begin();
+    std::vector<crypto::hash>::const_iterator vhi = vh.begin();
+
+    safex::transactions_protobuf txs_proto;
+    for(auto& tx: txs)
+    {
+      safex::Transaction* proto_tx = txs_proto.add_transaction(tx);
+      crypto::hash tx_hash = *vhi++;
+
+      proto_tx->set_tx_hash(*txhi++);
+      proto_tx->set_in_pool(pool_tx_hashes.find(tx_hash) != pool_tx_hashes.end());
+
+      if (proto_tx->in_pool())
+      {
+        proto_tx->set_block_height(std::numeric_limits<uint64_t>::max());
+        proto_tx->set_block_timestamp(std::numeric_limits<uint64_t>::max());
+
+        if (double_spend_seen.find(tx_hash) != double_spend_seen.end())
+        {
+          proto_tx->set_double_spend_seen(double_spend_seen[tx_hash]);
+        }
+        else
+        {
+          MERROR("Failed to determine double spend status for " << tx_hash);
+          proto_tx->set_double_spend_seen(false);
+        }
+      }
+      else
+      {
+        proto_tx->set_block_height(m_core.get_blockchain_storage().get_db().get_tx_block_height(tx_hash));
+        proto_tx->set_block_timestamp(m_core.get_blockchain_storage().get_db().get_block_timestamp(proto_tx->block_height()));
+        proto_tx->set_double_spend_seen(false);
+      }
+
+      // output indices too if not in pool
+      if (pool_tx_hashes.find(tx_hash) == pool_tx_hashes.end())
+      {
+        std::vector<uint64_t> output_indices;
+        bool r = m_core.get_tx_outputs_gindexs(tx_hash, output_indices);
+        for(uint64_t index : output_indices) {
+          proto_tx->add_output_indices(index);
+        }
+        if (!r)
+        {
+          res.status = "Failed";
+          return false;
+        }
+      }
+    }
+
+    for(const auto& miss_tx: missed_txs)
+    {
+      txs_proto.add_missed_tx(string_tools::pod_to_hex(miss_tx));
+    }
+
+    res.protobuf_content = txs_proto.string();
+
+#endif
+    return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
 
 
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
