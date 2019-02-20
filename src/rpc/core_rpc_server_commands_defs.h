@@ -634,6 +634,35 @@ namespace cryptonote
   };
 
   //-----------------------------------------------
+  struct COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF
+  {
+      struct request
+      {
+          std::list<std::string> txs_hashes;
+          bool prune = false;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(txs_hashes)
+              KV_SERIALIZE_OPT(prune, false)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string protobuf_content;
+          std::list<std::string> missed_tx;   //not found transactions
+          std::string status;
+          bool untrusted;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(protobuf_content)
+              KV_SERIALIZE(missed_tx)
+              KV_SERIALIZE(status)
+              KV_SERIALIZE(untrusted)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
+  //-----------------------------------------------
   struct COMMAND_RPC_IS_KEY_IMAGE_SPENT
   {
     enum STATUS {
