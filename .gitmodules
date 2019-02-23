@@ -6,3 +6,6 @@
 	path = external/unbound
 	url = https://github.com/monero-project/unbound
 	branch = monero
+[submodule "external/protobuf"]
+	path = external/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
