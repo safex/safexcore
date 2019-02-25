@@ -2738,14 +2738,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     }
 
     // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = (hf_version < HF_VERSION_ENFORCE_RCT) ? 1 : 2;
+    const size_t max_tx_version = HF_VERSION_MAX_SUPPORTED_TX_VERSION;
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
       tvc.m_verifivation_failed = true;
       return false;
     }
-    const size_t min_tx_version = (n_unmixable > 0 ? 1 : (hf_version >= HF_VERSION_ENFORCE_RCT) ? 2 : 1);
+    const size_t min_tx_version = HF_VERSION_MIN_SUPPORTED_TX_VERSION;
     if (tx.version < min_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
@@ -2857,7 +2857,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     // make sure that output being spent matches up correctly with the
     // signature spending it.
-    if (!check_tx_input(tx.version, txin, tx_prefix_hash, tx.version == 1 ? tx.signatures[sig_index] : std::vector<crypto::signature>(), tx.rct_signatures, pubkeys[sig_index], pmax_used_block_height))
+    if (!check_tx_input(tx.version, txin, tx_prefix_hash, tx.signatures[sig_index], pubkeys[sig_index], pmax_used_block_height))
     {
       it->second[k_image] = false;
       MERROR_VER("Failed to check ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
@@ -3237,7 +3237,7 @@ bool Blockchain::is_tx_spendtime_unlocked(uint64_t unlock_time) const
 // and validates that they exist and are usable.  It also checks the ring
 // signature for each input.
 template <class T>
-bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
+bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 
@@ -3292,38 +3292,37 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
   if (tx_version == 1) {
     CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
   }
-  // rct_signatures will be expanded after this
+
   return true;
 }
 //------------------------------------------------------------------
 // Call particular specialized function to check various input types
-bool Blockchain::check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
+bool Blockchain::check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
 {
   struct txin_visitor : public boost::static_visitor<bool> {
       size_t tx_version;
       const crypto::hash& tx_prefix_hash;
       const std::vector<crypto::signature>& sig;
-      const rct::rctSig &rct_signatures;
       std::vector<rct::ctkey> &output_keys;
       uint64_t* pmax_related_block_height;
       Blockchain *const that;
 
       txin_visitor(Blockchain *const _that, size_t _tx_version, const crypto::hash& _tx_prefix_hash, const std::vector<crypto::signature>& _sig,
-          const rct::rctSig &_rct_signatures, std::vector<rct::ctkey> &_output_keys, uint64_t* _pmax_related_block_height):
-            that(_that), tx_version(_tx_version), tx_prefix_hash(_tx_prefix_hash), sig(_sig),rct_signatures(_rct_signatures),output_keys(_output_keys),
+              std::vector<rct::ctkey> &_output_keys, uint64_t* _pmax_related_block_height):
+            that(_that), tx_version(_tx_version), tx_prefix_hash(_tx_prefix_hash), sig(_sig), output_keys(_output_keys),
             pmax_related_block_height(_pmax_related_block_height)
       {}
 
       bool operator()(const cryptonote::txin_gen & _txin) const {return false;}
-      bool operator()(const txin_to_key & _txin) const {return that->check_tx_input_generic<txin_to_key>(tx_version, _txin, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height);}
-      bool operator()(const txin_token_to_key & _txin) const {return that->check_tx_input_generic<txin_token_to_key>(tx_version, _txin, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height);}
+      bool operator()(const txin_to_key & _txin) const {return that->check_tx_input_generic<txin_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
+      bool operator()(const txin_token_to_key & _txin) const {return that->check_tx_input_generic<txin_token_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_token_migration & _txin) const {return that->check_tx_input_migration(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_to_script & _txin) const {return false;}
       bool operator()(const txin_to_scripthash & _txin) const {return false;}
 
   };
 
-  return boost::apply_visitor(txin_visitor(this, tx_version, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height), txin);
+  return boost::apply_visitor(txin_visitor(this, tx_version, tx_prefix_hash, sig, output_keys, pmax_related_block_height), txin);
 }
 //------------------------------------------------------------------
 // Verify migration transaction

@@ -1075,15 +1075,14 @@ namespace cryptonote
      * @param tx_prefix_hash the transaction prefix hash, for caching organization
      * @param sig the input signature
      * @param output_keys return-by-reference the public keys of the outputs in the input set
-     * @param rct_signatures the ringCT signatures, which are only valid if tx version > 1
      * @param pmax_related_block_height return-by-pointer the height of the most recent block in the input set
      *
      * @return false if any output is not yet unlocked, or is missing, otherwise true
      */
     template <class T>
-    bool check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+    bool check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
-    bool check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+    bool check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
     bool check_tx_input_migration(size_t tx_version, const txin_token_migration& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
