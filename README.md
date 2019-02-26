@@ -38,7 +38,7 @@ $ brew install wget
 Install all libraries
 ```
 $ brew tap jmuncaster/homebrew-header-only
-$ brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq openssl pkg-config
+$ brew install cmake boost zmq czmq zeromq jmuncaster/header-only/cppzmq openssl pkg-config protbuf
 ```
 You will need to have MacPorts installed. If you don't have it install it from here https://guide.macports.org/. Download the package for your OS version from the website. Open **new** terminal window and check if MacPorts are installed
 ```
@@ -52,6 +52,8 @@ Build it and insert the number of cores you have
 ```
 $ make -j<Your number of cores> debug-all
 ```
+
+If you want to build safexd with protobuf support you need to install protobuf build dependency by starting `install_protobuf_dep_macos.sh`
 
 ### Ubuntu 18.04
 
