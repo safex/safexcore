@@ -591,16 +591,16 @@ block Blockchain::pop_block_from_blockchain()
       //
       // FIXME: HardFork
       // This is not quite correct, as we really want to add the txes
-      // to the pool based on the version determined after all blocks
+      // to the pool based on the hf_version determined after all blocks
       // are popped.
-      uint8_t version = get_current_hard_fork_version();
+      uint8_t hf_version = get_current_hard_fork_version();
 
       // We assume that if they were in a block, the transactions are already
       // known to the network as a whole. However, if we had mined that block,
       // that might not be always true. Unlikely though, and always relaying
       // these again might cause a spike of traffic as many nodes re-relay
       // all the transactions in a popped block when a reorg happens.
-      bool r = m_tx_pool.add_tx(tx, tvc, true, true, false, version);
+      bool r = m_tx_pool.add_tx(tx, tvc, true, true, false, hf_version);
       if (!r)
       {
         LOG_ERROR("Error returning transaction to tx_pool");
@@ -1099,7 +1099,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
 }
 //------------------------------------------------------------------
 // This function validates the miner transaction reward
-bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t version)
+bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t hf_version)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   //validate reward
@@ -1108,7 +1108,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     money_in_use += o.amount;
   partial_block_reward = false;
 
-  if (version >= HF_VERSION_VALID_DECOMPOSED_MINER_TX) {
+  if (hf_version >= HF_VERSION_VALID_DECOMPOSED_MINER_TX) {
     for (auto &o: b.miner_tx.vout) {
       if (!is_valid_decomposed_amount(o.amount)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
@@ -1119,7 +1119,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<size_t> last_blocks_sizes;
   get_last_n_blocks_sizes(last_blocks_sizes, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, hf_version, m_db->height()))
   {
     MERROR_VER("block size " << cumulative_block_size << " is bigger than allowed for this blockchain");
     return false;
@@ -1262,10 +1262,8 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     }
     else
     {
-      if (cur_tx.fee != cur_tx.tx.rct_signatures.txnFee)
-      {
-        LOG_ERROR("Creating block template: error: invalid fee");
-      }
+        //todo ATANA implement tx version 2 checks
+        LOG_ERROR("Transacdtion version 2 not yet supported");
     }
   }
   if (txs_size != real_txs_size)
@@ -1290,7 +1288,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
    */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
   uint8_t hf_version = m_hardfork->get_current_version();
-  size_t max_outs = hf_version >= HF_VERSION_ENFORCE_RCT ? 1 : 11;
+  size_t max_outs = HF_VERSION_MINER_TX_MAX_OUTS;
   bool r = construct_miner_tx(height, median_size, already_generated_coins, txs_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_size = txs_size + get_object_blobsize(b.miner_tx);
@@ -2520,6 +2518,10 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
           tvc.m_invalid_output = true;
           return false;
         }
+      } else {
+        //todo ATANA implement check
+        MERROR("Transaction version 2 outputs not yet supported");
+        return false;
       }
     }
   }
@@ -2534,19 +2536,10 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
         }
       }
     }
-  }
-
-
-  // in a v2 tx, all outputs must have 0 amount
-  if (hf_version >= HF_VERSION_ENFORCE_RCT) {
-    if (tx.version >= 2) {
-      for (auto &o: tx.vout) {
-        if (o.amount != 0) {
-          tvc.m_invalid_output = true;
-          return false;
-        }
-      }
-    }
+  } else {
+    //todo ATANA implement check
+    MERROR("Transaction version 2 outputs not yet supported");
+    return false;
   }
 
   //forbid invalid pubkeys
@@ -2601,7 +2594,7 @@ bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
 bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys)
 {
   PERF_TIMER(expand_transaction_2);
-  CHECK_AND_ASSERT_MES(tx.version == 2, false, "Transaction version is not 2");
+  CHECK_AND_ASSERT_MES(tx.version >= 2, false, "Transaction version is not 2");
 
   rct::rctSig &rv = tx.rct_signatures;
 
@@ -2935,146 +2928,10 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   }
   else
   {
-    //for RingCT
-    if (!expand_transaction_2(tx, tx_prefix_hash, pubkeys))
-    {
-      MERROR_VER("Failed to expand rct signatures!");
-      return false;
-    }
 
-    // from version 2, check ringct signatures
-    // obviously, the original and simple rct APIs use a mixRing that's indexes
-    // in opposite orders, because it'd be too simple otherwise...
-    const rct::rctSig &rv = tx.rct_signatures;
-    switch (rv.type)
-    {
-    case rct::RCTTypeNull: {
-      // we only accept no signatures for coinbase txes
-      MERROR_VER("Null rct signature on non-coinbase tx");
-      return false;
-    }
-    case rct::RCTTypeSimple:
-    case rct::RCTTypeSimpleBulletproof:
-    {
-      // check all this, either reconstructed (so should really pass), or not
-      {
-        if (pubkeys.size() != rv.mixRing.size())
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-          return false;
-        }
-        for (size_t i = 0; i < pubkeys.size(); ++i)
-        {
-          if (pubkeys[i].size() != rv.mixRing[i].size())
-          {
-            MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-            return false;
-          }
-        }
+    //todo ATANA implement input check for transaction version 2
+    MERROR_VER("Transaction version >=1 not yet supported");
 
-        for (size_t n = 0; n < pubkeys.size(); ++n)
-        {
-          for (size_t m = 0; m < pubkeys[n].size(); ++m)
-          {
-            if (pubkeys[n][m].dest != rct::rct2pk(rv.mixRing[n][m].dest))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched pubkey at vin " << n << ", index " << m);
-              return false;
-            }
-            if (pubkeys[n][m].mask != rct::rct2pk(rv.mixRing[n][m].mask))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched commitment at vin " << n << ", index " << m);
-              return false;
-            }
-          }
-        }
-      }
-
-      if (rv.p.MGs.size() != tx.vin.size())
-      {
-        MERROR_VER("Failed to check ringct signatures: mismatched MGs/vin sizes");
-        return false;
-      }
-      for (size_t n = 0; n < tx.vin.size(); ++n)
-      {
-        if (rv.p.MGs[n].II.empty() || memcmp(&boost::get<txin_to_key>(tx.vin[n]).k_image, &rv.p.MGs[n].II[0], 32))
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched key image");
-          return false;
-        }
-      }
-
-      if (!rct::verRctSimple(rv, false))
-      {
-        MERROR_VER("Failed to check ringct signatures!");
-        return false;
-      }
-      break;
-    }
-    case rct::RCTTypeFull:
-    case rct::RCTTypeFullBulletproof:
-    {
-      // check all this, either reconstructed (so should really pass), or not
-      {
-        bool size_matches = true;
-        for (size_t i = 0; i < pubkeys.size(); ++i)
-          size_matches &= pubkeys[i].size() == rv.mixRing.size();
-        for (size_t i = 0; i < rv.mixRing.size(); ++i)
-          size_matches &= pubkeys.size() == rv.mixRing[i].size();
-        if (!size_matches)
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-          return false;
-        }
-
-        for (size_t n = 0; n < pubkeys.size(); ++n)
-        {
-          for (size_t m = 0; m < pubkeys[n].size(); ++m)
-          {
-            if (pubkeys[n][m].dest != rct::rct2pk(rv.mixRing[m][n].dest))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched pubkey at vin " << n << ", index " << m);
-              return false;
-            }
-            if (pubkeys[n][m].mask != rct::rct2pk(rv.mixRing[m][n].mask))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched commitment at vin " << n << ", index " << m);
-              return false;
-            }
-          }
-        }
-      }
-
-      if (rv.p.MGs.size() != 1)
-      {
-        MERROR_VER("Failed to check ringct signatures: Bad MGs size");
-        return false;
-      }
-      if (rv.p.MGs.empty() || rv.p.MGs[0].II.size() != tx.vin.size())
-      {
-        MERROR_VER("Failed to check ringct signatures: mismatched II/vin sizes");
-        return false;
-      }
-      for (size_t n = 0; n < tx.vin.size(); ++n)
-      {
-        if (memcmp(&boost::get<txin_to_key>(tx.vin[n]).k_image, &rv.p.MGs[0].II[n], 32))
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched II/vin sizes");
-          return false;
-        }
-      }
-
-      if (!rct::verRct(rv, false))
-      {
-        MERROR_VER("Failed to check ringct signatures!");
-        return false;
-      }
-      break;
-    }
-    default:
-      MERROR_VER("Unsupported rct type: " << rv.type);
-      return false;
-    }
   }
   return true;
 }
@@ -3142,10 +2999,10 @@ uint64_t Blockchain::get_dynamic_per_kb_fee(uint64_t block_reward, size_t median
 //------------------------------------------------------------------
 bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
 {
-  const uint8_t version = get_current_hard_fork_version();
+  const uint8_t hf_version = get_current_hard_fork_version();
 
   uint64_t fee_per_kb;
-  if (version < HF_VERSION_DYNAMIC_FEE)
+  if (hf_version < HF_VERSION_DYNAMIC_FEE)
   {
     fee_per_kb = FEE_PER_KB;
   }
@@ -3154,9 +3011,9 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
     uint64_t median = m_current_block_cumul_sz_limit / 2;
     uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
     uint64_t base_reward;
-    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+    if (!get_block_reward(median, 1, already_generated_coins, base_reward, hf_version, m_db->height()))
       return false;
-    fee_per_kb = get_dynamic_per_kb_fee(base_reward, median, version);
+    fee_per_kb = get_dynamic_per_kb_fee(base_reward, median, hf_version);
   }
   MDEBUG("Using " << print_money(fee_per_kb) << "/kB fee");
 
@@ -3175,15 +3032,15 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
 //------------------------------------------------------------------
 uint64_t Blockchain::get_dynamic_per_kb_fee_estimate(uint64_t grace_blocks) const
 {
-  const uint8_t version = get_current_hard_fork_version();
+  const uint8_t hf_version = get_current_hard_fork_version();
 
-  if (version < HF_VERSION_DYNAMIC_FEE)
+  if (hf_version < HF_VERSION_DYNAMIC_FEE)
     return FEE_PER_KB;
 
   if (grace_blocks >= CRYPTONOTE_REWARD_BLOCKS_WINDOW)
     grace_blocks = CRYPTONOTE_REWARD_BLOCKS_WINDOW - 1;
 
-  const uint64_t min_block_size = get_min_block_size(version);
+  const uint64_t min_block_size = get_min_block_size(hf_version);
   std::vector<size_t> sz;
   get_last_n_blocks_sizes(sz, CRYPTONOTE_REWARD_BLOCKS_WINDOW - grace_blocks);
   for (size_t i = 0; i < grace_blocks; ++i)
@@ -3195,13 +3052,13 @@ uint64_t Blockchain::get_dynamic_per_kb_fee_estimate(uint64_t grace_blocks) cons
 
   uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
   uint64_t base_reward;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, hf_version, m_db->height()))
   {
     MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;
   }
 
-  uint64_t fee = get_dynamic_per_kb_fee(base_reward, median, version);
+  uint64_t fee = get_dynamic_per_kb_fee(base_reward, median, hf_version);
   MDEBUG("Estimating " << grace_blocks << "-block fee at " << print_money(fee) << "/kB");
   return fee;
 }
@@ -3414,7 +3271,7 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
 //------------------------------------------------------------------
 void Blockchain::return_tx_to_pool(std::vector<transaction> &txs)
 {
-  uint8_t version = get_current_hard_fork_version();
+  uint8_t hf_version = get_current_hard_fork_version();
   for (auto& tx : txs)
   {
     cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);
@@ -3423,7 +3280,7 @@ void Blockchain::return_tx_to_pool(std::vector<transaction> &txs)
     // that might not be always true. Unlikely though, and always relaying
     // these again might cause a spike of traffic as many nodes re-relay
     // all the transactions in a popped block when a reorg happens.
-    if (!m_tx_pool.add_tx(tx, tvc, true, true, false, version))
+    if (!m_tx_pool.add_tx(tx, tvc, true, true, false, hf_version))
     {
       MERROR("Failed to return taken transaction with hash: " << get_transaction_hash(tx) << " to tx_pool");
     }

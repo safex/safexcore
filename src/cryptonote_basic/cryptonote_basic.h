@@ -531,7 +531,7 @@ namespace cryptonote
 
   public:
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
-    rct::rctSig rct_signatures;
+    rct::rctSig rct_signatures; //for RingCT and Booletproofs
 
     // hash cash
     mutable crypto::hash hash;

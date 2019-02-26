@@ -792,14 +792,8 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
+
+
 
     if(!check_money_overflow(tx))
     {
@@ -829,7 +823,12 @@ namespace cryptonote
         return false;
       }
     }
-    // for version > 1, ringct signatures check verifies amounts match
+    else if (tx.version >= 2) {
+      //ATANA todo, here goes tx version 2 semantic check
+      MERROR_VER("tx with version 2 not yet supported");
+      return false;
+    }
+
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -856,36 +855,6 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version >= 2)
-    {
-      const rct::rctSig &rv = tx.rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          return false;
-        case rct::RCTTypeSimple:
-        case rct::RCTTypeSimpleBulletproof:
-          if (!rct::verRctSimple(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        case rct::RCTTypeFull:
-        case rct::RCTTypeFullBulletproof:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          return false;
-      }
-    }
-
     return true;
   }
   //-----------------------------------------------------------------------------------------------
@@ -906,12 +875,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
-    static const uint64_t quick_height = m_nettype == TESTNET ? 801219 : m_nettype == MAINNET ? 1220516 : 0;
-    if (block_sync_size > 0)
-      return block_sync_size;
-    if (height >= quick_height)
-      return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
-    return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT_PRE_V4;
+    return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const
@@ -1055,8 +1019,8 @@ namespace cryptonote
       return true;
     }
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, version);
+    uint8_t hf_version = m_blockchain_storage.get_current_hard_fork_version();
+    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, hf_version);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::relay_txpool_transactions()
