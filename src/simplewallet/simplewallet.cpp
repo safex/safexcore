@@ -2559,58 +2559,7 @@ bool simple_wallet::new_wallet(const boost::program_options::variables_map& vm,
 
   return true;
 }
-//----------------------------------------------------------------------------------------------------
-bool simple_wallet::new_wallet(const boost::program_options::variables_map& vm,
-    const std::string &multisig_keys, const std::string &old_language)
-{
-  auto rc = tools::wallet::make_new(vm, password_prompter);
-  m_wallet = std::move(rc.first);
-  if (!m_wallet)
-  {
-    return false;
-  }
 
-  if (!m_subaddress_lookahead.empty())
-  {
-    auto lookahead = parse_subaddress_lookahead(m_subaddress_lookahead);
-    assert(lookahead);
-    m_wallet->set_subaddress_lookahead(lookahead->first, lookahead->second);
-  }
-
-  std::string mnemonic_language = old_language;
-
-  std::vector<std::string> language_list;
-  crypto::ElectrumWords::get_language_list(language_list);
-  if (mnemonic_language.empty() && std::find(language_list.begin(), language_list.end(), m_mnemonic_language) != language_list.end())
-  {
-    mnemonic_language = m_mnemonic_language;
-  }
-
-  m_wallet->set_seed_language(mnemonic_language);
-
-  bool create_address_file = command_line::get_arg(vm, arg_create_address_file);
-
-  try
-  {
-    m_wallet->generate(m_wallet_file, std::move(rc.second).password(), multisig_keys, create_address_file);
-    bool ready;
-    uint32_t threshold, total;
-    if (!m_wallet->multisig(&ready, &threshold, &total) || !ready)
-    {
-      fail_msg_writer() << tr("failed to generate new mutlisig wallet");
-      return false;
-    }
-    message_writer(console_color_white, true) << boost::format(tr("Generated new %u/%u multisig wallet: ")) % threshold % total
-      << m_wallet->get_account().get_public_address_str(m_wallet->nettype());
-  }
-  catch (const std::exception& e)
-  {
-    fail_msg_writer() << tr("failed to generate new wallet: ") << e.what();
-    return false;
-  }
-
-  return true;
-}
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::open_wallet(const boost::program_options::variables_map& vm)
 {
@@ -2635,8 +2584,6 @@ bool simple_wallet::open_wallet(const boost::program_options::variables_map& vm)
     uint32_t threshold, total;
     if (m_wallet->watch_only())
       prefix = tr("Opened watch-only wallet");
-    else if (m_wallet->multisig(&ready, &threshold, &total))
-      prefix = (boost::format(tr("Opened %u/%u multisig wallet%s")) % threshold % total % (ready ? "" : " (not yet finalized)")).str();
     else
       prefix = tr("Opened wallet");
     message_writer(console_color_white, true) <<
@@ -2748,11 +2695,6 @@ bool simple_wallet::save(const std::vector<std::string> &args)
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::save_watch_only(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
-  if (m_wallet->multisig())
-  {
-    fail_msg_writer() << tr("wallet is multisig and cannot save a watch-only version");
-    return true;
-  }
 
   const auto pwd_container = password_prompter(tr("Password for new watch-only wallet"), true);
 
@@ -3083,8 +3025,6 @@ bool simple_wallet::refresh(const std::vector<std::string>& args)
 bool simple_wallet::show_balance_unlocked(bool detailed)
 {
   std::string extra;
-  if (m_wallet->has_multisig_partial_key_images())
-    extra = tr(" (Some owned outputs have partial key images - import_multisig_info needed)");
   success_msg_writer() << tr("Currently selected account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
   const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
   success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
@@ -3136,8 +3076,6 @@ bool simple_wallet::show_cash_balance(const std::vector<std::string> &args/* = s
 bool simple_wallet::show_token_balance_unlocked(bool detailed)
 {
   std::string extra;
-  if (m_wallet->has_multisig_partial_key_images())
-    extra = tr(" (Some owned token outputs have partial key images - import_multisig_info needed)");
   success_msg_writer() << tr("Currently selected token account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
   const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
   success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
@@ -3888,20 +3826,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         }
     }
 
-    // actually commit the transactions
-    if (m_wallet->multisig())
-    {
-      bool r = m_wallet->save_multisig_tx(ptx_vector, "multisig_safex_tx");
-      if (!r)
-      {
-        fail_msg_writer() << tr("Failed to write transaction(s) to file");
-      }
-      else
-      {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_safex_tx";
-      }
-    }
-    else if (m_wallet->watch_only())
+    if (m_wallet->watch_only())
     {
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
       if (!r)
@@ -4088,19 +4013,7 @@ bool simple_wallet::migrate(const std::vector<std::string> &args_)
     }
 
     // actually commit the transactions
-    if (m_wallet->multisig())
-    {
-      bool r = m_wallet->save_multisig_tx(ptx_vector, "multisig_safex_tx");
-      if (!r)
-      {
-        fail_msg_writer() << tr("Failed to write transaction(s) to file");
-      }
-      else
-      {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_safex_tx";
-      }
-    }
-    else if (m_wallet->watch_only())
+    if (m_wallet->watch_only())
     {
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_migration");
       if (!r)
@@ -4210,19 +4123,7 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
     }
 
     // actually commit the transactions
-    if (m_wallet->multisig())
-    {
-      bool r = m_wallet->save_multisig_tx(ptx_vector, "multisig_safex_tx");
-      if (!r)
-      {
-        fail_msg_writer() << tr("Failed to write transaction(s) to file");
-      }
-      else
-      {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_safex_tx";
-      }
-    }
-    else if (m_wallet->watch_only())
+    if (m_wallet->watch_only())
     {
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
       if (!r)
@@ -4443,19 +4344,7 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
     }
 
     // actually commit the transactions
-    if (m_wallet->multisig())
-    {
-      bool r = m_wallet->save_multisig_tx(ptx_vector, "multisig_safex_tx");
-      if (!r)
-      {
-        fail_msg_writer() << tr("Failed to write transaction(s) to file");
-      }
-      else
-      {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_safex_tx";
-      }
-    }
-    else if (m_wallet->watch_only())
+    if (m_wallet->watch_only())
     {
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
       if (!r)
@@ -4640,19 +4529,7 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
     }
 
     // actually commit the transactions
-    if (m_wallet->multisig())
-    {
-      bool r = m_wallet->save_multisig_tx(ptx_vector, "multisig_safex_tx");
-      if (!r)
-      {
-        fail_msg_writer() << tr("Failed to write transaction(s) to file");
-      }
-      else
-      {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_safex_tx";
-      }
-    }
-    else if (m_wallet->watch_only())
+    if (m_wallet->watch_only())
     {
       bool r = m_wallet->save_tx(ptx_vector, "unsigned_safex_tx");
       if (!r)
@@ -4860,11 +4737,7 @@ bool simple_wallet::sign_transfer(const std::vector<std::string> &args_)
     fail_msg_writer() << tr("command not supported by HW wallet");
     return true;
   }
-  if(m_wallet->multisig())
-  {
-     fail_msg_writer() << tr("This is a multisig wallet, simplewallet does not support it");
-     return true;
-  }
+
   if(m_wallet->watch_only())
   {
      fail_msg_writer() << tr("This is a watch only wallet");
@@ -5320,7 +5193,7 @@ bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
     return true;
   }
 
-  if (m_wallet->watch_only() || m_wallet->multisig())
+  if (m_wallet->watch_only())
   {
     fail_msg_writer() << tr("The reserve proof can be generated only by a full wallet");
     return true;
@@ -6446,8 +6319,6 @@ bool simple_wallet::wallet_info(const std::vector<std::string> &args)
   std::string type;
   if (m_wallet->watch_only())
     type = tr("Watch only");
-  else if (m_wallet->multisig(&ready, &threshold, &total))
-    type = (boost::format(tr("%u/%u multisig%s")) % threshold % total % (ready ? "" : " (not yet finalized)")).str();
   else
     type = tr("Normal");
   message_writer() << tr("Type: ") << type;
@@ -6474,11 +6345,7 @@ bool simple_wallet::sign(const std::vector<std::string> &args)
     fail_msg_writer() << tr("wallet is watch-only and cannot sign");
     return true;
   }
-  if (m_wallet->multisig())
-  {
-    fail_msg_writer() << tr("This wallet is multisig and cannot sign");
-    return true;
-  }
+
   if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }
   std::string filename = args[0];
   std::string data;

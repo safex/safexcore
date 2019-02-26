@@ -540,53 +540,6 @@ namespace tools
     void restore(const std::string& wallet_, const epee::wipeable_string& password, const std::string &device_name);
 
     /*!
-     * \brief Creates a multisig wallet
-     * \return empty if done, non empty if we need to send another string
-     * to other participants
-     */
-    std::string make_multisig(const epee::wipeable_string &password,
-      const std::vector<std::string> &info,
-      uint32_t threshold);
-    /*!
-     * \brief Creates a multisig wallet
-     * \return empty if done, non empty if we need to send another string
-     * to other participants
-     */
-    std::string make_multisig(const epee::wipeable_string &password,
-      const std::vector<crypto::secret_key> &view_keys,
-      const std::vector<crypto::public_key> &spend_keys,
-      uint32_t threshold);
-    /*!
-     * \brief Finalizes creation of a multisig wallet
-     */
-    bool finalize_multisig(const epee::wipeable_string &password, const std::vector<std::string> &info);
-    /*!
-     * \brief Finalizes creation of a multisig wallet
-     */
-    bool finalize_multisig(const epee::wipeable_string &password, std::unordered_set<crypto::public_key> pkeys, std::vector<crypto::public_key> signers);
-    /*!
-     * Get a packaged multisig information string
-     */
-    std::string get_multisig_info() const;
-    /*!
-     * Verifies and extracts keys from a packaged multisig information string
-     */
-    static bool verify_multisig_info(const std::string &data, crypto::secret_key &skey, crypto::public_key &pkey);
-    /*!
-     * Verifies and extracts keys from a packaged multisig information string
-     */
-    static bool verify_extra_multisig_info(const std::string &data, std::unordered_set<crypto::public_key> &pkeys, crypto::public_key &signer);
-    /*!
-     * Export multisig info
-     * This will generate and remember new k values
-     */
-    cryptonote::blobdata export_multisig();
-    /*!
-     * Import a set of multisig info from multisig partners
-     * \return the number of inputs which were imported
-     */
-    size_t import_multisig(std::vector<cryptonote::blobdata> info);
-    /*!
      * \brief Rewrites to the wallet file for wallet upgrade (doesn't generate key, assumes it's already there)
      * \param wallet_name Name of wallet file (should exist)
      * \param password    Password for wallet file
@@ -687,8 +640,6 @@ namespace tools
     bool restricted() const { return m_restricted; }
     bool watch_only() const { return m_watch_only; }
     bool multisig(bool *ready = NULL, uint32_t *threshold = NULL, uint32_t *total = NULL) const;
-    bool has_multisig_partial_key_images() const;
-    bool get_multisig_seed(std::string& seed, const epee::wipeable_string &passphrase = std::string(), bool raw = true) const;
     bool key_on_device() const { return m_key_on_device; }
 
     // locked & unlocked balance of given or current subaddress account
@@ -721,10 +672,7 @@ namespace tools
     void commit_tx(pending_tx& ptx_vector);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
     bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
-    std::string save_multisig_tx(multisig_tx_set txs);
-    bool save_multisig_tx(const multisig_tx_set &txs, const std::string &filename);
-    std::string save_multisig_tx(const std::vector<pending_tx>& ptx_vector);
-    bool save_multisig_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename);
+
     // load unsigned tx from file and sign it. Takes confirmation callback as argument. Used by the cli wallet
     bool sign_tx(const std::string &unsigned_filename, const std::string &signed_filename, std::vector<wallet::pending_tx> &ptx, std::function<bool(const unsigned_tx_set&)> accept_func = NULL, bool export_raw = false);
     // sign unsigned tx. Takes unsigned_tx_set as argument. Used by GUI
@@ -742,11 +690,6 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    bool load_multisig_tx(cryptonote::blobdata blob, multisig_tx_set &exported_txs, std::function<bool(const multisig_tx_set&)> accept_func = NULL);
-    bool load_multisig_tx_from_file(const std::string &filename, multisig_tx_set &exported_txs, std::function<bool(const multisig_tx_set&)> accept_func = NULL);
-    bool sign_multisig_tx_from_file(const std::string &filename, std::vector<crypto::hash> &txids, std::function<bool(const multisig_tx_set&)> accept_func);
-    bool sign_multisig_tx(multisig_tx_set &exported_txs, std::vector<crypto::hash> &txids);
-    bool sign_multisig_tx_to_file(multisig_tx_set &exported_txs, const std::string &filename, std::vector<crypto::hash> &txids);
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -1014,11 +957,6 @@ namespace tools
     void set_attribute(const std::string &key, const std::string &value);
     std::string get_attribute(const std::string &key) const;
 
-    crypto::public_key get_multisig_signer_public_key(const crypto::secret_key &spend_skey) const;
-    crypto::public_key get_multisig_signer_public_key() const;
-    crypto::public_key get_multisig_signing_public_key(size_t idx) const;
-    crypto::public_key get_multisig_signing_public_key(const crypto::secret_key &skey) const;
-
     template<class t_request, class t_response>
     inline bool invoke_http_json(const boost::string_ref uri, const t_request& req, t_response& res, std::chrono::milliseconds timeout = std::chrono::seconds(15), const boost::string_ref http_method = "GET")
     {
@@ -1103,11 +1041,6 @@ namespace tools
     void scan_output(const cryptonote::transaction &tx, const crypto::public_key &tx_pub_key, size_t i, tx_scan_info_t &tx_scan_info, int &num_vouts_received,
         std::unordered_map<cryptonote::subaddress_index, uint64_t> &tx_money_got_in_outs, std::unordered_map<cryptonote::subaddress_index, uint64_t> &tx_token_got_in_outs, std::vector<size_t> &outs) const;
     void trim_hashchain();
-    crypto::key_image get_multisig_composite_key_image(size_t n) const;
-    rct::multisig_kLRki get_multisig_composite_kLRki(size_t n, const crypto::public_key &ignore, std::unordered_set<rct::key> &used_L, std::unordered_set<rct::key> &new_used_L) const;
-    rct::multisig_kLRki get_multisig_kLRki(size_t n, const rct::key &k) const;
-    rct::key get_multisig_k(size_t idx, const std::unordered_set<rct::key> &used_L) const;
-    void update_multisig_rescan_info(const std::vector<std::vector<rct::key>> &multisig_k, const std::vector<std::vector<tools::wallet::multisig_info>> &info, size_t n);
     bool add_rings(const crypto::chacha_key &key, const cryptonote::transaction_prefix &tx);
     bool add_rings(const cryptonote::transaction_prefix &tx);
     bool remove_rings(const cryptonote::transaction_prefix &tx);
@@ -1160,8 +1093,8 @@ namespace tools
     std::string seed_language; /*!< Language of the mnemonics (seed). */
     bool is_old_file_format; /*!< Whether the wallet file is of an old file format */
     bool m_watch_only; /*!< no spend key */
-    bool m_multisig; /*!< if > 1 spend secret key will not match spend public key */
-    uint32_t m_multisig_threshold;
+    bool m_multisig = false; /*!< if > 1 spend secret key will not match spend public key */
+    uint32_t m_multisig_threshold = 0;
     std::vector<crypto::public_key> m_multisig_signers;
     bool m_always_confirm_transfers;
     bool m_print_ring_members;
@@ -1638,7 +1571,7 @@ namespace tools
       src.real_out_tx_key = get_tx_pub_key_from_extra(td.m_tx);
       src.real_output = interted_it - src.outputs.begin();
       src.real_output_in_tx_index = td.m_internal_output_index;
-      src.multisig_kLRki = rct::multisig_kLRki({rct::zero(), rct::zero(), rct::zero(), rct::zero()});
+      src.multisig_kLRki = AUTO_VAL_INIT(src.multisig_kLRki);
       detail::print_source_entry(src);
       ++i;
     }
@@ -1673,8 +1606,7 @@ namespace tools
 
     crypto::secret_key tx_key = AUTO_VAL_INIT(tx_key);
     std::vector<crypto::secret_key> additional_tx_keys;
-    rct::multisig_out msout = AUTO_VAL_INIT(msout);
-    bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, m_multisig ? &msout : NULL);
+    bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
     THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
     THROW_WALLET_EXCEPTION_IF(upper_transaction_size_limit <= get_object_blobsize(tx), error::tx_too_big, tx, upper_transaction_size_limit);
 
