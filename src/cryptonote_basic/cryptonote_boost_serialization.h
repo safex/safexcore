@@ -192,16 +192,7 @@ namespace boost
     a & x.vin;
     a & x.vout;
     a & x.extra;
-    if (x.version == 1)
-    {
-      a & x.signatures;
-    }
-    else
-    {
-      a & (rct::rctSigBase&)x.rct_signatures;
-      if (x.rct_signatures.type != rct::RCTTypeNull)
-        a & x.rct_signatures.p;
-    }
+    a & x.signatures;
   }
 
   template <class Archive>
