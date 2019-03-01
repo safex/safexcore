@@ -66,6 +66,7 @@ namespace cryptonote
     uint64_t amount = 0; //Safex Cash amount
     uint64_t token_amount = 0; //Safex Token amount
     std::vector<uint8_t> script; //Contains Safex protocol layer commands
+    std::vector<uint8_t> data; //Local output data and state
 
 
     BEGIN_SERIALIZE_OBJECT()
@@ -73,6 +74,7 @@ namespace cryptonote
       VARINT_FIELD(amount)
       VARINT_FIELD(token_amount)
       FIELD(script)
+      FIELD(data)
     END_SERIALIZE()
   };
 

@@ -97,6 +97,7 @@ namespace boost
     a & x.amount;
     a & x.token_amount;
     a & x.script;
+    a & x.data;
   }
 
 
