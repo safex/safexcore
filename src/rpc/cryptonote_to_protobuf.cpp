@@ -158,4 +158,30 @@ namespace safex {
     void transactions_protobuf::add_missed_tx(const std::string& missed) {
         m_txs.add_missed_txs(missed);
     }
+
+    blocks_protobuf::blocks_protobuf() {
+
+    }
+
+    blocks_protobuf::~blocks_protobuf() {
+
+    }
+
+    safex::Block blocks_protobuf::add_block(const cryptonote::block& blck) {
+
+    }
+
+    safex::Block* blocks_protobuf::last() {
+
+    }
+
+    void blocks_protobuf::add_error(const std::string& err) {
+
+    }
+
+
+    std::string blocks_protobuf::string() const {
+
+    }
+
 }
