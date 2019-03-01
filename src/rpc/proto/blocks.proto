@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "transactions.proto";
+
+package safex;
+
+message BlockHeader {
+    uint64 depth = 1;
+    string hash = 2;
+    uint32 major_version = 3;
+    uint32 minor_version = 4;
+    string prev_hash = 5;
+}
+
+message Block {
+    BlockHeader header = 1;
+    repeated Transaction txs = 2;
+    Transaction miner_tx = 3;
+}
+
+message Blocks {
+    repeated Block block = 1;
+    bool status = 2;
+    bool untrusted = 3;
+}

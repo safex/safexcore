@@ -2322,6 +2322,16 @@ namespace cryptonote
     return true;
   }
     //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_blocks_protobuf(const COMMAND_RPC_GET_BLOCKS_PROTOBUF::request& req, COMMAND_RPC_GET_BLOCKS_PROTOBUF::response& res) {
+
+    #ifdef SAFEX_PROTOBUF_RPC
+
+
+
+    #endif
+    return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
 
 
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
