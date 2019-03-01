@@ -682,6 +682,31 @@ namespace cryptonote
       };
   };
   //-----------------------------------------------
+
+  struct COMMAND_RPC_GET_BLOCKS_PROTOBUF
+  {
+      struct request
+      {
+          uint64_t start_height;
+          uint64_t end_height;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(start_height)
+              KV_SERIALIZE(end_height)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string protobuf_content;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(protobuf_content)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
+  //-----------------------------------------------
+
   struct COMMAND_RPC_IS_KEY_IMAGE_SPENT
   {
     enum STATUS {
