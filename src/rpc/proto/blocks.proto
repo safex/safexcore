@@ -22,4 +22,5 @@ message Blocks {
     repeated Block block = 1;
     bool status = 2;
     bool untrusted = 3;
+    string error = 4;
 }

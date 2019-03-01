@@ -2326,7 +2326,47 @@ namespace cryptonote
 
     #ifdef SAFEX_PROTOBUF_RPC
 
+    PERF_TIMER(on_get_block_headers_range);
 
+    std::string err_message = "";
+    safex::blocks;
+
+    const uint64_t bc_height = m_core.get_current_blockchain_height();
+    if (req.start_height >= bc_height || req.end_height >= bc_height || req.start_height > req.end_height)
+    {
+      err_message = "Invalid start/end heights.";
+      return false;
+    }
+    for (uint64_t h = req.start_height; h <= req.end_height; ++h)
+    {
+      crypto::hash block_hash = m_core.get_block_id_by_height(h);
+      block blk;
+      bool have_block = m_core.get_block_by_hash(block_hash, blk);
+      if (!have_block)
+      {
+
+        err_message = "Internal error: can't get block by height. Height = " + boost::lexical_cast<std::string>(h) + ". Hash = " + epee::string_tools::pod_to_hex(block_hash) + '.';
+        return false;
+      }
+      if (blk.miner_tx.vin.size() != 1 || blk.miner_tx.vin.front().type() != typeid(txin_gen))
+      {
+        err_message = "Internal error: coinbase transaction in the block has the wrong type";
+        return false;
+      }
+      uint64_t block_height = boost::get<txin_gen>(blk.miner_tx.vin.front()).height;
+      if (block_height != h)
+      {
+        err_message = "Internal error: coinbase transaction in the block has the wrong height";
+        return false;
+      }
+
+      // Generate response properly
+
+      blocks.add_block(blk);
+      blocks.add_error(err_message);
+
+
+    }
 
     #endif
     return true;

@@ -8,6 +8,7 @@
 #define SAFEX_CRYPTONOTE_TO_PROTOBUF_H
 
 #include "transactions.pb.h"
+#include "blocks.pb.h"
 #include "../cryptonote_basic/cryptonote_basic.h"
 #include <google/protobuf/text_format.h>
 
@@ -31,6 +32,26 @@ namespace safex {
         safex::Transactions m_txs;
         safex::Transaction *m_last;
     };
+
+
+    class blocks_protobuf {
+    public:
+        blocks_protobuf();
+        ~blocks_protobuf();
+
+        safex::Block add_block(const cryptonote::block& blck);
+        safex::Block* last();
+
+        void add_error(const std::string& err);
+
+
+        std::string string() const;
+    private:
+        safex::Blocks m_blcks;
+        safex::Block* m_last;
+
+    };
+
 }
 
 #endif //SAFEX_CRYPTONOTE_TO_PROTOBUF_H
