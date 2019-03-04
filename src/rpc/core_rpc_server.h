@@ -94,7 +94,8 @@ namespace cryptonote
       MAP_URI_AUTO_BIN2("/get_random_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
       MAP_URI_AUTO_BIN2("/getrandom_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
       MAP_URI_AUTO_JON2("/get_transactions", on_get_transactions, COMMAND_RPC_GET_TRANSACTIONS)
-      MAP_URI_AUTO_PROTOBUF("/get_transactions_protobuf", on_get_transactions_protobuf, COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF)
+      MAP_URI_AUTO_PROTOBUF("/proto/get_transactions", on_get_transactions_protobuf, COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF)
+      MAP_URI_AUTO_PROTOBUF("/proto/get_blocks", on_get_blocks_protobuf, COMMAND_RPC_GET_BLOCKS_PROTOBUF)
       MAP_URI_AUTO_JON2("/gettransactions", on_get_transactions, COMMAND_RPC_GET_TRANSACTIONS)
       MAP_URI_AUTO_JON2("/get_alt_blocks_hashes", on_get_alt_blocks_hashes, COMMAND_RPC_GET_ALT_BLOCKS_HASHES)
       MAP_URI_AUTO_JON2("/is_key_image_spent", on_is_key_image_spent, COMMAND_RPC_IS_KEY_IMAGE_SPENT)
@@ -161,6 +162,7 @@ namespace cryptonote
 
 
     bool on_get_transactions_protobuf(const COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::request& req, COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::response& res);
+    bool on_get_blocks_protobuf(const COMMAND_RPC_GET_BLOCKS_PROTOBUF::request& req, COMMAND_RPC_GET_BLOCKS_PROTOBUF::response& res);
     bool on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res);
     bool on_get_blocks(const COMMAND_RPC_GET_BLOCKS_FAST::request& req, COMMAND_RPC_GET_BLOCKS_FAST::response& res);
     bool on_get_alt_blocks_hashes(const COMMAND_RPC_GET_ALT_BLOCKS_HASHES::request& req, COMMAND_RPC_GET_ALT_BLOCKS_HASHES::response& res);

@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <memory>
 
+#include <numeric>
+
 #include "string_tools.h"
 
 namespace {
@@ -107,7 +109,8 @@ namespace {
 }
 
 namespace safex {
-    transactions_protobuf::transactions_protobuf() {
+
+    transactions_protobuf::transactions_protobuf() : protobuf_endpoint() {
         GOOGLE_PROTOBUF_VERIFY_VERSION;
     }
 
@@ -117,19 +120,24 @@ namespace safex {
 
     safex::Transaction* transactions_protobuf::add_transaction(const cryptonote::transaction &tx) {
         m_last = m_txs.add_tx();
-        m_last->set_version(tx.version);
-        m_last->set_unlock_time(tx.unlock_time);
+        transactions_protobuf::fill_proto_tx(m_last, tx);
+        return m_last;
+    }
+
+    void transactions_protobuf::fill_proto_tx(safex::Transaction* prototx, const cryptonote::transaction& tx) {
+        prototx->set_version(tx.version);
+        prototx->set_unlock_time(tx.unlock_time);
 
         for(uint8_t extra : tx.extra)
-            m_last->add_extra(extra);
+            prototx->add_extra(extra);
 
         // Handling tx inputs
-        ::add_to_protobuf_txin_visitor visitor(m_last);
+        ::add_to_protobuf_txin_visitor visitor(prototx);
         std::for_each(tx.vin.begin(), tx.vin.end(), boost::apply_visitor(visitor));
 
         // Handling tx outputs
         for(const cryptonote::tx_out& txout : tx.vout) {
-            safex::txout* curr_out = m_last->add_vout();
+            safex::txout* curr_out = prototx->add_vout();
             curr_out->set_amount(txout.amount);
             curr_out->set_token_amount(txout.token_amount);
 
@@ -138,24 +146,68 @@ namespace safex {
         }
 
         for(auto& signatures : tx.signatures) {
-            safex::Signature* sigs = m_last->add_signatures();
+            safex::Signature* sigs = prototx->add_signatures();
             for(auto& sig : signatures) {
                 sigs->add_signature(epee::string_tools::pod_to_hex(sig));
             }
         }
 
-        return m_last;
     }
 
     safex::Transaction* transactions_protobuf::last() {
         return m_last;
     }
 
-    const std::string transactions_protobuf::string() {
+    std::string transactions_protobuf::string() const {
         return m_txs.SerializeAsString();
     }
 
     void transactions_protobuf::add_missed_tx(const std::string& missed) {
         m_txs.add_missed_txs(missed);
     }
+
+    blocks_protobuf::blocks_protobuf() : protobuf_endpoint() {
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
+    }
+
+    blocks_protobuf::~blocks_protobuf() {
+
+    }
+
+    void blocks_protobuf::add_block(const cryptonote::block& blck, const std::list<cryptonote::transaction>& txs) {
+        safex::Block* proto_blck = m_blcks.add_block();
+        proto_blck->set_allocated_header(proto_block_header(blck));
+
+        safex::Transaction* proto_minertx = new safex::Transaction{};
+        transactions_protobuf::fill_proto_tx(proto_minertx, blck.miner_tx);
+
+        proto_blck->set_allocated_miner_tx(proto_minertx);
+
+        for(const auto& tx : txs) {
+            safex::Transaction* proto_tx = proto_blck->add_txs();
+            transactions_protobuf::fill_proto_tx(proto_tx, tx);
+        }
+    }
+
+    void blocks_protobuf::add_error(const std::string& err) {
+        m_blcks.set_error(err);
+    }
+
+
+    std::string blocks_protobuf::string() const {
+        return m_blcks.SerializeAsString();
+    }
+
+    safex::BlockHeader* blocks_protobuf::proto_block_header(const cryptonote::block& blck) {
+        safex::BlockHeader* hdr = new safex::BlockHeader{};
+
+        hdr->set_major_version(blck.major_version);
+        hdr->set_minor_version(blck.minor_version);
+        hdr->set_prev_hash(epee::string_tools::pod_to_hex(blck.prev_id));
+        hdr->set_hash(epee::string_tools::pod_to_hex(blck.hash));
+        hdr->set_depth(boost::get<cryptonote::txin_gen>(blck.miner_tx.vin.front()).height);
+
+        return hdr;
+    }
+
 }
