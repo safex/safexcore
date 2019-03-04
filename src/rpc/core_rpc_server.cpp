@@ -2171,9 +2171,6 @@ namespace cryptonote
   {
 #ifdef SAFEX_PROTOBUF_RPC
     PERF_TIMER(on_get_transactions);
-    bool ok;
-    if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF>(invoke_http_mode::JON_RPC, "/gettransactions_proto", req, res, ok))
-      return ok;
 
     std::vector<crypto::hash> vh;
     for(const auto& tx_hex_str: req.txs_hashes)
@@ -2329,7 +2326,7 @@ namespace cryptonote
     PERF_TIMER(on_get_block_headers_range);
 
     std::string err_message = "";
-    safex::blocks;
+    safex::blocks_protobuf blocks;
 
     const uint64_t bc_height = m_core.get_current_blockchain_height();
     if (req.start_height >= bc_height || req.end_height >= bc_height || req.start_height > req.end_height)
@@ -2344,15 +2341,16 @@ namespace cryptonote
       bool have_block = m_core.get_block_by_hash(block_hash, blk);
       if (!have_block)
       {
-
         err_message = "Internal error: can't get block by height. Height = " + boost::lexical_cast<std::string>(h) + ". Hash = " + epee::string_tools::pod_to_hex(block_hash) + '.';
         return false;
       }
+
       if (blk.miner_tx.vin.size() != 1 || blk.miner_tx.vin.front().type() != typeid(txin_gen))
       {
         err_message = "Internal error: coinbase transaction in the block has the wrong type";
         return false;
       }
+
       uint64_t block_height = boost::get<txin_gen>(blk.miner_tx.vin.front()).height;
       if (block_height != h)
       {
@@ -2360,14 +2358,19 @@ namespace cryptonote
         return false;
       }
 
+      std::list<cryptonote::transaction> txs;
+      std::list<crypto::hash> missed_tx;
+
+
+      m_core.get_transactions(blk.tx_hashes, txs, missed_tx);
+
       // Generate response properly
-
-      blocks.add_block(blk);
-      blocks.add_error(err_message);
-
+      blocks.add_block(blk, txs);
 
     }
 
+    blocks.add_error(err_message);
+    res.protobuf_content = blocks.string();
     #endif
     return true;
   }
