@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "crypto/crypto.h"
+#include "cryptonote_core/blockchain.h"
 
 
 namespace safex
@@ -51,6 +52,8 @@ namespace safex
       return what_message.c_str();
     }
 
+    command_t getCommand() { return command_type; }
+
 
     private:
 
@@ -59,12 +62,12 @@ namespace safex
 
   };
 
-  /**
-   * It is command specific result with data as result of command execution
-   * */
-  struct command_result
+
+  struct token_lock_result
   {
-    bool valid = false;
+    uint64_t token_amount;
+    uint32_t block_number;
+    bool valid;
   };
 
 
@@ -76,6 +79,7 @@ namespace safex
   * without having to make significant changes
   * to the current blockchain core protocol.
   */
+  template<typename Result>
   class command
   {
     public:
@@ -95,7 +99,7 @@ namespace safex
 
     }
 
-    virtual bool execute(command_result &cr) = 0;
+    virtual bool execute(cryptonote::Blockchain &blokchain, token_lock_result &cr) = 0;
 
     virtual bool parse_arguments(const std::vector<const uint8_t> &arguments) = 0;
 
@@ -107,6 +111,21 @@ namespace safex
     const std::vector<crypto::public_key> keys;
   };
 
+
+  class token_lock : public command<token_lock_result>
+  {
+    token_lock(const uint32_t _version, const command_t _command_type, const uint64_t _cash_amount, const uint64_t _token_amount, const std::vector<crypto::public_key> &_keys) :
+            command(_version, _command_type, _cash_amount, _token_amount, _keys)
+    {
+
+
+    }
+
+    virtual bool execute(cryptonote::Blockchain &blokchain, token_lock_result &cr) override;
+
+    virtual bool parse_arguments(const std::vector<const uint8_t> &arguments) override;
+
+  };
 
 
 
