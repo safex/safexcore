@@ -382,8 +382,10 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_script& txi
   val.SetObject();
 
   INSERT_INTO_JSON_OBJECT(val, doc, prev, txin.prev);
-  INSERT_INTO_JSON_OBJECT(val, doc, prevout, txin.prevout);
-  INSERT_INTO_JSON_OBJECT(val, doc, sigset, txin.sigset);
+  INSERT_INTO_JSON_OBJECT(val, doc, k_image, txin.k_image);
+  INSERT_INTO_JSON_OBJECT(val, doc, amount, txin.amount);
+  INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txin.token_amount);
+  INSERT_INTO_JSON_OBJECT(val, doc, script, txin.script);
 }
 
 
@@ -395,8 +397,10 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_script& txin
   }
 
   GET_FROM_JSON_OBJECT(val, txin.prev, prev);
-  GET_FROM_JSON_OBJECT(val, txin.prevout, prevout);
-  GET_FROM_JSON_OBJECT(val, txin.sigset, sigset);
+  GET_FROM_JSON_OBJECT(val, txin.k_image, k_image);
+  GET_FROM_JSON_OBJECT(val, txin.amount, amount);
+  GET_FROM_JSON_OBJECT(val, txin.token_amount, token_amount);
+  GET_FROM_JSON_OBJECT(val, txin.script, script);
 }
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_scripthash& txin, rapidjson::Value& val)

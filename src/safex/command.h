@@ -5,6 +5,13 @@
 #ifndef SAFEX_COMMAND_H
 #define SAFEX_COMMAND_H
 
+#include <string>
+#include <exception>
+#include <vector>
+
+#include "crypto/crypto.h"
+
+
 namespace safex
 {
 
@@ -34,12 +41,12 @@ namespace safex
   {
     public:
 
-    command_exception(command_t _command_type, std::string _message) : command_type(_command_type), what_message(_message),
+    command_exception(command_t _command_type, std::string _message) : command_type{_command_type}, what_message{_message}
     {
 
     }
 
-    const char *what() override
+    virtual const char *what() const noexcept override
     {
       return what_message.c_str();
     }
@@ -81,7 +88,7 @@ namespace safex
      * @param _key public key related to the owner of the output, who posses private key and is able to "spend", use this output
      *
     * */
-    command(const uint32_t _version, const command_t _command_type, const uint64_t _cash_amount, const uint64_t _token_amount, const vector<const crypto::public_key> &_keys) :
+    command(const uint32_t _version, const command_t _command_type, const uint64_t _cash_amount, const uint64_t _token_amount, const std::vector<crypto::public_key> &_keys) :
             version(_version), command_type(_command_type), cash_amount(_cash_amount), token_amount(_token_amount), keys(_keys)
     {
 
@@ -90,14 +97,14 @@ namespace safex
 
     virtual bool execute(command_result &cr) = 0;
 
-    virtual bool parse_arguments(const vector<const uint8_t> &arguments) = 0;
+    virtual bool parse_arguments(const std::vector<const uint8_t> &arguments) = 0;
 
 
     const uint32_t version;
     const command_t command_type;
     const uint64_t cash_amount;
     const uint64_t token_amount;
-    const vector<const crypto::public_key> keys;
+    const std::vector<crypto::public_key> keys;
   };
 
 
