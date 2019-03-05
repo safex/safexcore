@@ -81,8 +81,8 @@ namespace safex
      * @param _key public key related to the owner of the output, who posses private key and is able to "spend", use this output
      *
     * */
-    command(uint32_t _version, command_t _command_type, uint64_t _cash_amount, uint64_t _token_amount, crypto::public_key _key) :
-            version(_version), command_type(_command_type), cash_amount(_cash_amount), token_amount(_token_amount), key(_key)
+    command(const uint32_t _version, const command_t _command_type, const uint64_t _cash_amount, const uint64_t _token_amount, const vector<const crypto::public_key> &_keys) :
+            version(_version), command_type(_command_type), cash_amount(_cash_amount), token_amount(_token_amount), keys(_keys)
     {
 
 
@@ -97,8 +97,15 @@ namespace safex
     const command_t command_type;
     const uint64_t cash_amount;
     const uint64_t token_amount;
-    const crypto::public_key key;
+    const vector<const crypto::public_key> keys;
   };
+
+
+
+
+  //Token lock command
+
+
 
 
 } //namespace safex
