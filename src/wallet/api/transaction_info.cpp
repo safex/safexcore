@@ -85,6 +85,11 @@ uint64_t TransactionInfoImpl::amount() const
     return m_amount;
 }
 
+uint64_t TransactionInfoImpl::token_amount() const
+{
+    return m_token_amount;
+}
+
 uint64_t TransactionInfoImpl::fee() const
 {
     return m_fee;
