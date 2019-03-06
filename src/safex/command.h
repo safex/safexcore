@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "crypto/crypto.h"
+#include "crypto/hash.h"
 #include "cryptonote_core/blockchain.h"
 
 
@@ -67,6 +68,8 @@ namespace safex
   {
     uint64_t token_amount;
     uint32_t block_number;
+    crypto::hash id;
+
     bool valid;
   };
 
@@ -109,6 +112,7 @@ namespace safex
     const uint64_t cash_amount;
     const uint64_t token_amount;
     const std::vector<crypto::public_key> keys;
+
   };
 
 
@@ -124,6 +128,8 @@ namespace safex
     virtual bool execute(cryptonote::Blockchain &blokchain, token_lock_result &cr) override;
 
     virtual bool parse_arguments(const std::vector<const uint8_t> &arguments) override;
+
+
 
   };
 
