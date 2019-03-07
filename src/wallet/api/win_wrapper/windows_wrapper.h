@@ -132,6 +132,7 @@ extern "C" DLL_MAGIC int32_t win_txinfo_direction(void* self);
 extern "C" DLL_MAGIC uint8_t win_txinfo_isPendingB(void* self);
 extern "C" DLL_MAGIC uint8_t win_txinfo_isFailedB(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_amount(void* self);
+extern "C" DLL_MAGIC uint64_t win_txinfo_token_amount(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_fee(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_blockHeight(void* self);
 extern "C" DLL_MAGIC const char* win_txinfo_label(void* self);

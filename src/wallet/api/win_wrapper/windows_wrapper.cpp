@@ -514,6 +514,12 @@ extern "C" DLL_MAGIC  uint64_t win_txinfo_amount(void *self)
   return txInfo->amount();
 }
 
+extern "C" DLL_MAGIC  uint64_t win_txinfo_token_amount(void *self)
+{
+  Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
+  return txInfo->token_amount();
+}
+
 extern "C" DLL_MAGIC  uint64_t win_txinfo_fee(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
