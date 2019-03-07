@@ -30,13 +30,29 @@
 
 #include "gtest/gtest.h"
 #include "safex/command.h"
+#include <vector>
 
-
+using namespace safex;
 
 TEST(CommandParsing, HandlesTokenLock) {
 
-  EXPECT_EQ(1,1);
-  std::cout << "Safex command parsing test" << std::endl;
+  token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, command_t::token_lock, 2000};
+
+  //serialize
+  std::vector<uint8_t> serialized_command;
+  safex_command_serializer::store_command(command1, serialized_command);
+
+
+  command_t command_type = safex_command_serializer::get_command_type(serialized_command);
+  ASSERT_EQ(command_type, command_t::token_lock) << "Token lock command type not properly parsed from binary blob";
+
+  //deserialize
+  token_lock command2{};
+  safex_command_serializer::load_command(serialized_command, command2);
+
+  ASSERT_EQ(command1.version, command2.version) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.command_type, command2.command_type) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.locked_token_amount, command2.locked_token_amount) << "Original and deserialized command must have same locked amount";
 
 }
 

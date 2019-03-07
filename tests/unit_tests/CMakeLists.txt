@@ -85,6 +85,7 @@ target_link_libraries(unit_tests
     cryptonote_protocol
     cryptonote_core
     blockchain_db
+    safex_basic
     rpc
     wallet
     p2p

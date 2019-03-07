@@ -165,6 +165,7 @@
 
 //Safex related constants
 #define MINIMUM_TOKEN_LOCK_AMOUNT               10000
+#define SAFEX_COMMAND_PROTOCOL_VERSION          1
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
