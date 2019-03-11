@@ -49,7 +49,8 @@ namespace safex
   {
       nop = 0x0,
       token_lock = 0x01,
-      token_unlock = 0x02
+      token_unlock = 0x02,
+      invalid_command
   };
 
   /**
@@ -59,7 +60,7 @@ namespace safex
   {
     public:
 
-      command_exception(command_t _command_type, std::string _message) : command_type{_command_type}, what_message{_message}
+      command_exception(const command_t _command_type, const std::string &_message) : command_type{_command_type}, what_message{_message}
       {
 
       }
@@ -75,8 +76,8 @@ namespace safex
 
     private:
 
-      command_t command_type;
-      std::string what_message;
+      const command_t command_type;
+      const std::string what_message;
 
   };
 
@@ -115,19 +116,24 @@ namespace safex
       * */
       command(const uint32_t _version, const command_t _command_type) : version(_version), command_type(_command_type)
       {
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((_command_type < command_t::invalid_command), "Invalid command type", _command_type);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((_version <= SAFEX_COMMAND_PROTOCOL_VERSION), "Unsupported command protocol version " + std::to_string(_version), command_type);
 
       }
 
       virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) = 0;
 
-      uint32_t getVersion() { return version; }
+      uint32_t getVersion() const
+      { return version; }
 
-      command_t getCommandType() { return command_type; }
+      command_t getCommandType() const
+      { return command_type; }
 
 
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const;
+
       virtual bool load(epee::serialization::portable_storage &ps);
 
       uint32_t version;
@@ -145,23 +151,30 @@ namespace safex
 
       friend class safex_command_serializer;
 
-      token_lock(const uint32_t _version, const command_t _command_type, const uint64_t _token_amount) : command<token_lock_result>(_version, _command_type), locked_token_amount(_token_amount)
+      /**
+       * @param _version Safex command protocol version
+       * @param _token_amount amount of tokens to lock
+       *
+      * */
+      token_lock(const uint32_t _version, const uint64_t _token_amount) : command<token_lock_result>(_version, command_t::token_lock), locked_token_amount(_token_amount)
       {
 
       }
 
-      token_lock() : command<token_lock_result>(0, command_t::nop), locked_token_amount(0)
+      token_lock() : command<token_lock_result>(0, command_t::token_lock), locked_token_amount(0)
       {
 
       }
 
-      uint64_t getLockedTokenAmount() { return locked_token_amount; }
+      uint64_t getLockedTokenAmount() const
+      { return locked_token_amount; }
 
       virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) override;
 
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const override;
+
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t locked_token_amount;
@@ -184,7 +197,7 @@ namespace safex
 
         if (!ps.store_to_binary(bin_target))
         {
-          throw safex::command_exception(command_t::token_lock, "Could not store to portable storage binary blob");
+          throw safex::command_exception(com.getCommandType(), "Could not store to portable storage binary blob");
         }
 
         target.clear();
@@ -201,7 +214,7 @@ namespace safex
         epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
         if (!ps.load_from_binary(bin_source))
         {
-          throw safex::command_exception(command_t::token_lock, "Could not load portable storage from binary blob");
+          throw safex::command_exception(command_t::invalid_command, "Could not load portable storage from binary blob");
         }
 
         com.load(ps);

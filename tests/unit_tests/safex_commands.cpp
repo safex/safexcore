@@ -36,7 +36,7 @@ using namespace safex;
 
 TEST(CommandParsing, HandlesTokenLock) {
 
-  token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, command_t::token_lock, 2000};
+  token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 2000};
 
   //serialize
   std::vector<uint8_t> serialized_command;
@@ -56,3 +56,28 @@ TEST(CommandParsing, HandlesTokenLock) {
 
 }
 
+TEST(CommandParsing, HandlesCorruptedArrayOfBytes) {
+
+  std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+  //deserialize
+  token_lock command2{};
+  EXPECT_THROW(safex_command_serializer::load_command(serialized_command, command2), safex::command_exception);
+
+}
+
+
+TEST(CommandCreation, HandlesUnknownProtocolVersion) {
+
+  try
+  {
+    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION+1, 2000};
+    FAIL() << "Should throw exception with message invalid command";
+  }
+  catch (safex::command_exception &exception) {
+    ASSERT_STREQ(std::string(("Unsupported command protocol version "+std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION+1))).c_str(), std::string(exception.what()).c_str());
+  }
+  catch (...) {
+    FAIL() << "Unexpected exception";
+  }
+}
