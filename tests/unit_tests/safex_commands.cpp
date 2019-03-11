@@ -50,9 +50,9 @@ TEST(CommandParsing, HandlesTokenLock) {
   token_lock command2{};
   safex_command_serializer::load_command(serialized_command, command2);
 
-  ASSERT_EQ(command1.version, command2.version) << "Original and deserialized command must have same version";
-  ASSERT_EQ(command1.command_type, command2.command_type) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.locked_token_amount, command2.locked_token_amount) << "Original and deserialized command must have same locked amount";
+  ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.getCommandType(), command2.getCommandType()) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.getLockedTokenAmount(), command2.getLockedTokenAmount()) << "Original and deserialized command must have same locked amount";
 
 }
 
