@@ -62,18 +62,18 @@ namespace cryptonote
 
   struct txout_to_script
   {
+    uint32_t output_type;
     std::vector<crypto::public_key> keys;
     uint64_t amount = 0; //Safex Cash amount
     uint64_t token_amount = 0; //Safex Token amount
-    std::vector<uint8_t> script; //Contains Safex protocol layer commands
     std::vector<uint8_t> data; //Local output data and state
 
 
     BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(output_type)
       FIELD(keys)
       VARINT_FIELD(amount)
       VARINT_FIELD(token_amount)
-      FIELD(script)
       FIELD(data)
     END_SERIALIZE()
   };
@@ -136,7 +136,7 @@ namespace cryptonote
 
   struct txin_to_script
   {
-    crypto::hash prev; //Hash of the previous txout_to_script that is being "spend" and its state used as input
+    std::vector<uint64_t> key_offsets = AUTO_VAL_INIT(key_offsets); //offsets of previous inputs that should be spent
     crypto::key_image k_image = AUTO_VAL_INIT(k_image); // double spending protection, only owner of previous txout_to_script can use it
     uint64_t amount = 0; //Safex Cash amount as input
     uint64_t token_amount = 0; //Safex Token amount as input
@@ -144,12 +144,11 @@ namespace cryptonote
 
 
     BEGIN_SERIALIZE_OBJECT()
-      FIELD(prev)
-      FIELD(k_image)
       VARINT_FIELD(amount)
       VARINT_FIELD(token_amount)
+      FIELD(key_offsets)
+      FIELD(k_image)
       FIELD(script)
-
     END_SERIALIZE()
   };
 

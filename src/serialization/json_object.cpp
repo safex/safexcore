@@ -381,7 +381,7 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_script& txi
 {
   val.SetObject();
 
-  INSERT_INTO_JSON_OBJECT(val, doc, prev, txin.prev);
+  INSERT_INTO_JSON_OBJECT(val, doc, prev, txin.key_offsets);
   INSERT_INTO_JSON_OBJECT(val, doc, k_image, txin.k_image);
   INSERT_INTO_JSON_OBJECT(val, doc, amount, txin.amount);
   INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txin.token_amount);
@@ -396,7 +396,7 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_script& txin
     throw WRONG_TYPE("json object");
   }
 
-  GET_FROM_JSON_OBJECT(val, txin.prev, prev);
+  GET_FROM_JSON_OBJECT(val, txin.key_offsets, prev);
   GET_FROM_JSON_OBJECT(val, txin.k_image, k_image);
   GET_FROM_JSON_OBJECT(val, txin.amount, amount);
   GET_FROM_JSON_OBJECT(val, txin.token_amount, token_amount);
@@ -555,10 +555,10 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_script& tx
 {
   val.SetObject();
 
+  INSERT_INTO_JSON_OBJECT(val, doc, script, txout.output_type);
   INSERT_INTO_JSON_OBJECT(val, doc, keys, txout.keys);
   INSERT_INTO_JSON_OBJECT(val, doc, amount, txout.amount);
   INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txout.token_amount);
-  INSERT_INTO_JSON_OBJECT(val, doc, script, txout.script);
   INSERT_INTO_JSON_OBJECT(val, doc, data, txout.data);
 }
 
@@ -570,10 +570,10 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_script& txo
     throw WRONG_TYPE("json object");
   }
 
+  GET_FROM_JSON_OBJECT(val, txout.output_type, script);
   GET_FROM_JSON_OBJECT(val, txout.keys, keys);
   GET_FROM_JSON_OBJECT(val, txout.amount, amount);
   GET_FROM_JSON_OBJECT(val, txout.token_amount, token_amount);
-  GET_FROM_JSON_OBJECT(val, txout.script, script);
   GET_FROM_JSON_OBJECT(val, txout.data, data);
 
 }
