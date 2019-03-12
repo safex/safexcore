@@ -62,7 +62,7 @@ namespace safex
   }
 
 
-  bool token_lock::execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr)
+  bool token_lock::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txout_to_script &utxo, token_lock_result &cr)
   {
 
 
@@ -72,9 +72,9 @@ namespace safex
 
 
     cr.token_amount = utxo.token_amount;
-    cr.block_number = blokchain.get_current_blockchain_height();
+    cr.block_number = blokchainDB.height();
 
-    //Calculate has, locked output ID
+    //Calculate hash, locked output ID
     cryptonote::blobdata b_blob = AUTO_VAL_INIT(b_blob);
     b_blob.append(reinterpret_cast<const char *>(&utxo.token_amount), sizeof(utxo.token_amount));
     b_blob.append(reinterpret_cast<const char *>(&utxo.amount), sizeof(utxo.amount));

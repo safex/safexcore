@@ -121,7 +121,7 @@ namespace safex
 
       }
 
-      virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) = 0;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) = 0;
 
       uint32_t getVersion() const
       { return version; }
@@ -169,7 +169,7 @@ namespace safex
       uint64_t getLockedTokenAmount() const
       { return locked_token_amount; }
 
-      virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) override;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) override;
 
     protected:
 

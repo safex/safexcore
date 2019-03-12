@@ -32,9 +32,129 @@
 #include "safex/command.h"
 #include <vector>
 
+#include "blockchain_db/blockchain_db.h"
+#include "cryptonote_basic/cryptonote_format_utils.h"
+#include "cryptonote_basic/hardfork.h"
+
+
 using namespace safex;
 
-TEST(CommandParsing, HandlesTokenLock) {
+
+class TestBlockchainDB: public cryptonote::BlockchainDB {
+  public:
+    TestBlockchainDB() {};
+    virtual void open(const std::string& filename, const int db_flags = 0) { }
+    virtual void close() {}
+    virtual void sync() {}
+    virtual void safesyncmode(const bool onoff) {}
+    virtual void reset() {}
+    virtual std::vector<std::string> get_filenames() const { return std::vector<std::string>(); }
+    virtual std::string get_db_name() const { return std::string(); }
+    virtual bool lock() { return true; }
+    virtual void unlock() { }
+    virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0) { return true; }
+    virtual void batch_stop() {}
+    virtual void set_batch_transactions(bool) {}
+    virtual void block_txn_start(bool readonly=false) {}
+    virtual void block_txn_stop() {}
+    virtual void block_txn_abort() {}
+    virtual void drop_hard_fork_info() {}
+    virtual bool block_exists(const crypto::hash& h, uint64_t *height) const { return false; }
+    virtual cryptonote::blobdata get_block_blob_from_height(const uint64_t& height) const { return cryptonote::t_serializable_object_to_blob(get_block_from_height(height)); }
+    virtual cryptonote::blobdata get_block_blob(const crypto::hash& h) const { return cryptonote::blobdata(); }
+    virtual bool get_tx_blob(const crypto::hash& h, cryptonote::blobdata &tx) const { return false; }
+    virtual uint64_t get_block_height(const crypto::hash& h) const { return 0; }
+    virtual cryptonote::block_header get_block_header(const crypto::hash& h) const { return cryptonote::block_header(); }
+    virtual uint64_t get_block_timestamp(const uint64_t& height) const { return 0; }
+    virtual uint64_t get_top_block_timestamp() const { return 0; }
+    virtual size_t get_block_size(const uint64_t& height) const { return 128; }
+    virtual cryptonote::difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const { return 10; }
+    virtual cryptonote::difficulty_type get_block_difficulty(const uint64_t& height) const { return 0; }
+    virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const { return 10000000000; }
+    virtual uint64_t get_block_already_migrated_tokens(const uint64_t& height) const { return 10000000000; }
+    virtual crypto::hash get_block_hash_from_height(const uint64_t& height) const { return crypto::hash(); }
+    virtual std::vector<cryptonote::block> get_blocks_range(const uint64_t& h1, const uint64_t& h2) const { return std::vector<cryptonote::block>(); }
+    virtual std::vector<crypto::hash> get_hashes_range(const uint64_t& h1, const uint64_t& h2) const { return std::vector<crypto::hash>(); }
+    virtual crypto::hash top_block_hash() const { return crypto::hash(); }
+    virtual cryptonote::block get_top_block() const { return cryptonote::block(); }
+    virtual uint64_t height() const { return blocks.size(); }
+    virtual bool tx_exists(const crypto::hash& h) const { return false; }
+    virtual bool tx_exists(const crypto::hash& h, uint64_t& tx_index) const { return false; }
+    virtual uint64_t get_tx_unlock_time(const crypto::hash& h) const { return 0; }
+    virtual cryptonote::transaction get_tx(const crypto::hash& h) const { return cryptonote::transaction(); }
+    virtual bool get_tx(const crypto::hash& h, cryptonote::transaction &tx) const { return false; }
+    virtual uint64_t get_tx_count() const { return 0; }
+    virtual std::vector<cryptonote::transaction> get_tx_list(const std::vector<crypto::hash>& hlist) const { return std::vector<cryptonote::transaction>(); }
+    virtual uint64_t get_tx_block_height(const crypto::hash& h) const { return 0; }
+    virtual uint64_t get_num_outputs(const uint64_t& amount, const cryptonote::tx_out_type output_type) const { return 1; }
+    virtual uint64_t get_indexing_base() const { return 0; }
+    virtual cryptonote::output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const cryptonote::tx_out_type output_type) { return cryptonote::output_data_t(); }
+    virtual cryptonote::output_data_t get_output_key(const uint64_t& global_index) const { return cryptonote::output_data_t(); }
+    virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return cryptonote::tx_out_index(); }
+    virtual cryptonote::tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const cryptonote::tx_out_type output_type) const { return cryptonote::tx_out_index(); }
+    virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::tx_out_index> &indices, const cryptonote::tx_out_type output_type) const {}
+    virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::output_data_t> &outputs, const cryptonote::tx_out_type output_type, bool allow_partial = false) {}
+    virtual bool can_thread_bulk_indices() const { return false; }
+    virtual std::vector<uint64_t> get_tx_output_indices(const crypto::hash& h) const { return std::vector<uint64_t>(); }
+    virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_index) const { return std::vector<uint64_t>(); }
+    virtual bool has_key_image(const crypto::key_image& img) const { return false; }
+    virtual void remove_block() { blocks.pop_back(); }
+    virtual uint64_t add_transaction_data(const crypto::hash& blk_hash, const cryptonote::transaction& tx, const crypto::hash& tx_hash) {return 0;}
+    virtual void remove_transaction_data(const crypto::hash& tx_hash, const cryptonote::transaction& tx) {}
+    virtual uint64_t add_output(const crypto::hash& tx_hash, const cryptonote::tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) {return 0;}
+    virtual void add_tx_amount_output_indices(const uint64_t tx_index, const std::vector<uint64_t>& amount_output_indices) {}
+    virtual void add_spent_key(const crypto::key_image& k_image) {}
+    virtual void remove_spent_key(const crypto::key_image& k_image) {}
+
+    virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }
+    virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const { return true; }
+    virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const { return true; }
+    virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const cryptonote::tx_out_type output_type) const { return true; }
+    virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const cryptonote::tx_out_type output_type) const { return true; }
+    virtual bool is_read_only() const { return false; }
+    virtual std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> get_output_histogram(const std::vector<uint64_t> &amounts, bool unlocked, uint64_t recent_cutoff, const cryptonote::tx_out_type output_type) const { return std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>>(); }
+
+    virtual void add_txpool_tx(const cryptonote::transaction &tx, const cryptonote::txpool_tx_meta_t& details) {}
+    virtual void update_txpool_tx(const crypto::hash &txid, const cryptonote::txpool_tx_meta_t& details) {}
+    virtual uint64_t get_txpool_tx_count(bool include_unrelayed_txes = true) const { return 0; }
+    virtual bool txpool_has_tx(const crypto::hash &txid) const { return false; }
+    virtual void remove_txpool_tx(const crypto::hash& txid) {}
+    virtual bool get_txpool_tx_meta(const crypto::hash& txid, cryptonote::txpool_tx_meta_t &meta) const { return false; }
+    virtual bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const { return false; }
+    virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
+    virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const cryptonote::txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
+
+    virtual void add_block( const cryptonote::block& blk
+            , const size_t& block_size
+            , const cryptonote::difficulty_type& cumulative_difficulty
+            , const uint64_t& coins_generated
+            , const uint64_t& tokens_migrated
+            , const crypto::hash& blk_hash
+    ) {
+      blocks.push_back(blk);
+    }
+    virtual cryptonote::block get_block_from_height(const uint64_t& height) const {
+      return blocks.at(height);
+    }
+    virtual void set_hard_fork_version(uint64_t height, uint8_t version) {
+      if (versions.size() <= height)
+        versions.resize(height+1);
+      versions[height] = version;
+    }
+    virtual uint8_t get_hard_fork_version(uint64_t height) const {
+      return versions.at(height);
+    }
+    virtual void check_hard_fork_info() {}
+
+  private:
+    std::vector<cryptonote::block> blocks;
+    std::deque<uint8_t> versions;
+};
+
+
+
+
+TEST(SafexCommandParsing, HandlesTokenLock) {
 
   token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 2000};
 
@@ -56,7 +176,7 @@ TEST(CommandParsing, HandlesTokenLock) {
 
 }
 
-TEST(CommandParsing, HandlesCorruptedArrayOfBytes) {
+TEST(SafexCommandParsing, HandlesCorruptedArrayOfBytes) {
 
   std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
 
@@ -67,7 +187,7 @@ TEST(CommandParsing, HandlesCorruptedArrayOfBytes) {
 }
 
 
-TEST(CommandCreation, HandlesUnknownProtocolVersion) {
+TEST(SafexCommandCreation, HandlesUnknownProtocolVersion) {
 
   try
   {
@@ -76,6 +196,49 @@ TEST(CommandCreation, HandlesUnknownProtocolVersion) {
   }
   catch (safex::command_exception &exception) {
     ASSERT_STREQ(std::string(("Unsupported command protocol version "+std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION+1))).c_str(), std::string(exception.what()).c_str());
+  }
+  catch (...) {
+    FAIL() << "Unexpected exception";
+  }
+}
+
+TEST(SafexCommandExecution, TokenLockExecute) {
+
+  try
+  {
+    crypto::public_key pubKey;
+    epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+    std::vector<crypto::public_key> keys{pubKey};
+
+//    TestBlockchainDB db;
+//    cryptonote::Blockchain blk(&db, cryptonote::network_type::TESTNET);
+//
+//    cryptonote::txout_to_script utxo = AUTO_VAL_INIT(utxo);
+//    utxo.keys = keys;
+//    utxo.token_amount=10000;
+//
+//    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000};
+//    safex_command_serializer::store_command(command1, utxo.script);
+//
+//    token_lock command2{};
+//    safex_command_serializer::load_command(utxo.script, command2);
+//
+//    token_lock_result result{};
+//    command2.execute(utxo, result);
+
+
+
+
+
+
+
+
+  }
+  catch (safex::command_exception &exception) {
+    FAIL() << exception.what();
+  }
+  catch (std::exception &exception) {
+    FAIL() << "Exception happened " << exception.what();
   }
   catch (...) {
     FAIL() << "Unexpected exception";
