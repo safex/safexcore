@@ -332,7 +332,7 @@ TEST(SafexCommandParsing, HandlesTokenLock)
 
   ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
   ASSERT_EQ(command1.getCommandType(), command2.getCommandType()) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.getLockedTokenAmount(), command2.getLockedTokenAmount()) << "Original and deserialized command must have same locked amount";
+  ASSERT_EQ(command1.getLockTokenAmount(), command2.getLockTokenAmount()) << "Original and deserialized command must have same locked amount";
 
 }
 
@@ -366,16 +366,33 @@ TEST(SafexCommandCreation, HandlesUnknownProtocolVersion)
   }
 }
 
-TEST(SafexCommandExecution, TokenLockExecute)
+
+
+namespace
+{
+
+
+  class SafexCommandExecution : public ::testing::Test
+  {
+    public:
+      SafexCommandExecution() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+
+      }
+    protected:
+      std::vector<crypto::public_key> keys;
+      TestBlockchainDB db;
+  };
+}
+
+TEST_F(SafexCommandExecution, TokenLockExecute)
 {
 
   try
   {
-    crypto::public_key pubKey;
-    epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
-    std::vector<crypto::public_key> keys{pubKey};
 
-    TestBlockchainDB db;
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 10000;
@@ -387,7 +404,7 @@ TEST(SafexCommandExecution, TokenLockExecute)
     safex_command_serializer::load_command(txinput.script, command2);
 
     token_lock_result result{};
-    command2.execute(db, txinput, result);
+    command2.execute(this->db, txinput, result);
 
     std::string id = epee::string_tools::pod_to_hex(result.id);
 
@@ -398,6 +415,142 @@ TEST(SafexCommandExecution, TokenLockExecute)
   catch (safex::command_exception &exception)
   {
     FAIL() << exception.what();
+  }
+  catch (std::exception &exception)
+  {
+    FAIL() << "Exception happened " << exception.what();
+  }
+  catch (...)
+  {
+    FAIL() << "Unexpected exception";
+  }
+}
+
+
+TEST_F(SafexCommandExecution, TokenLockExceptions)
+{
+
+  try
+  {
+
+    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+    txinput.token_amount = 8000;
+    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
+    safex_command_serializer::store_command(command1, txinput.script);
+
+    token_lock command2{};
+    safex_command_serializer::load_command(txinput.script, command2);
+
+    token_lock_result result{};
+    command2.execute(this->db, txinput, result);
+    FAIL() << "Should throw exception with minimum amount of tokens to lock";
+
+  }
+  catch (safex::command_exception &exception)
+  {
+    ASSERT_STREQ(std::string("Minumum amount of tokens to lock is " + std::to_string(MINIMUM_TOKEN_LOCK_AMOUNT)).c_str(), std::string(exception.what()).c_str());
+  }
+  catch (std::exception &exception)
+  {
+    FAIL() << "Exception happened " << exception.what();
+  }
+  catch (...)
+  {
+    FAIL() << "Unexpected exception";
+  }
+
+
+  try
+  {
+
+    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+    txinput.token_amount = 19000;
+    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
+    safex_command_serializer::store_command(command1, txinput.script);
+
+    token_lock command2{};
+    safex_command_serializer::load_command(txinput.script, command2);
+
+    token_lock_result result{};
+    command2.execute(this->db, txinput, result);
+    FAIL() << "Should throw exception with input amount differs from token lock command amount";
+
+  }
+  catch (safex::command_exception &exception)
+  {
+
+  }
+  catch (std::exception &exception)
+  {
+    FAIL() << "Exception happened " << exception.what();
+  }
+  catch (...)
+  {
+    FAIL() << "Unexpected exception";
+  }
+
+
+}
+
+
+TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
+{
+
+  try
+  {
+
+    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+    txinput.token_amount = 10000; //unlock 10k tokens
+    txinput.key_offsets.push_back(23);
+    uint64_t locked_token_output_index = 23;
+    token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
+    safex_command_serializer::store_command(command1, txinput.script);
+
+
+    token_lock command2{};
+    safex_command_serializer::load_command(txinput.script, command2);
+
+    token_lock_result result{};
+    command2.execute(db, txinput, result);
+
+  }
+  catch (safex::command_exception &exception)
+  {
+    ASSERT_STREQ("Could not create command, wrong command type", std::string(exception.what()).c_str());
+
+  }
+  catch (std::exception &exception)
+  {
+    FAIL() << "Exception happened " << exception.what();
+  }
+  catch (...)
+  {
+    FAIL() << "Unexpected exception";
+  }
+}
+
+
+TEST_F(SafexCommandExecution, TokenUnlockExecute)
+{
+
+  try
+  {
+
+    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+    txinput.token_amount = 120000; //unlock 120k tokens
+    txinput.key_offsets.push_back(23);
+    uint64_t locked_token_output_index = 23;
+    token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
+    safex_command_serializer::store_command(command1, txinput.script);
+
+
+    token_unlock command2{};
+    safex_command_serializer::load_command(txinput.script, command2);
+
+    token_unlock_result result{};
+    command2.execute(this->db, txinput, result);
+
+    std::cout << "Token amount: " << result.token_amount << " valid:" << result.valid << " block number:" << result.block_number << " interest: " << result.interest << std::endl;
   }
   catch (std::exception &exception)
   {

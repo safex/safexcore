@@ -31,10 +31,12 @@
 
 set(safex_basic_sources
         command.cpp
+        fee_distribution.cpp
         )
 
 set(safex_basic_headers
-        command.h)
+        command.h
+        fee_distribution.h)
 
 set(safex_basic_private_headers)
 
