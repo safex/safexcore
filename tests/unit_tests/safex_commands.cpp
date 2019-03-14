@@ -331,8 +331,8 @@ TEST(SafexCommandParsing, HandlesTokenLock)
   safex_command_serializer::load_command(serialized_command, command2);
 
   ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
-  ASSERT_EQ(command1.getCommandType(), command2.getCommandType()) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.getLockTokenAmount(), command2.getLockTokenAmount()) << "Original and deserialized command must have same locked amount";
+  ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.get_lock_token_amount(), command2.get_lock_token_amount()) << "Original and deserialized command must have same locked amount";
 
 }
 
@@ -406,9 +406,7 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
     token_lock_result result{};
     command2.execute(this->db, txinput, result);
 
-    std::string id = epee::string_tools::pod_to_hex(result.id);
-
-    std::cout << "Token amount: " << result.token_amount << " valid:" << result.valid << " block number:" << result.block_number << " id: " << id << std::endl;
+    std::cout << "Token amount: " << result.token_amount << " valid:" << result.valid << " block number:" << result.block_number << std::endl;
 
 
   }

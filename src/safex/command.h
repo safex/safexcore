@@ -89,7 +89,6 @@ namespace safex
   {
     uint64_t token_amount; //locked amount
     uint32_t block_number; //block where it is locked
-    crypto::hash id; //id of the
 
     bool valid;
   };
@@ -108,7 +107,6 @@ namespace safex
     uint64_t token_amount; //amount of tokens that is relocked
     uint64_t interest; //collected interest from network fees over period
     uint32_t block_number; //block where it is unlocked
-    crypto::hash id;
 
     bool valid;
   };
@@ -148,8 +146,10 @@ namespace safex
       uint32_t getVersion() const
       { return version; }
 
-      command_t getCommandType() const
+      command_t get_command_type() const
       { return command_type; }
+
+      virtual ~command() = default;
 
 
     protected:
@@ -188,7 +188,7 @@ namespace safex
 
       }
 
-      uint64_t getLockTokenAmount() const
+      uint64_t get_lock_token_amount() const
       { return lock_token_amount; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_lock_result &cr) override;
@@ -212,11 +212,11 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _token_amount amount of tokens to lock
+       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
        *
       * */
-      token_unlock(const uint32_t _version, const uint64_t _unlock_token_amount) : command<token_unlock_result>(_version, command_t::token_unlock),
-              locked_token_output_index(_unlock_token_amount)
+      token_unlock(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_unlock_result>(_version, command_t::token_unlock),
+              locked_token_output_index(_locked_token_output_index)
       {
 
       }
@@ -226,7 +226,7 @@ namespace safex
 
       }
 
-      uint64_t getLockedTokenOutputIndex() const
+      uint64_t get_locked_token_output_index() const
       { return locked_token_output_index; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
@@ -242,7 +242,7 @@ namespace safex
 
 
   //Token collect command
-  class token_collect : public command<token_unlock_result>
+  class token_collect : public command<token_collect_result>
   {
     public:
 
@@ -250,24 +250,24 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _token_amount amount of tokens to lock
+       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
        *
       * */
-      token_collect(const uint32_t _version, const uint64_t _unlock_token_amount) : command<token_unlock_result>(_version, command_t::token_unlock),
-                                                                                   unlock_token_amount(_unlock_token_amount)
+      token_collect(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
+                                                                                          locked_token_output_index(_locked_token_output_index)
       {
 
       }
 
-      token_collect() : command<token_unlock_result>(0, command_t::token_unlock), unlock_token_amount(0)
+      token_collect() : command<token_collect_result>(0, command_t::token_collect), locked_token_output_index(0)
       {
 
       }
 
-      uint64_t getUnlockedTokenAmount() const
-      { return unlock_token_amount; }
+      uint64_t get_locked_token_output_index() const
+      { return locked_token_output_index; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
 
     protected:
 
@@ -275,7 +275,7 @@ namespace safex
 
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
-      uint64_t unlock_token_amount;
+      uint64_t locked_token_output_index;
   };
 
 
@@ -295,7 +295,7 @@ namespace safex
 
         if (!ps.store_to_binary(bin_target))
         {
-          throw safex::command_exception(com.getCommandType(), "Could not store to portable storage binary blob");
+          throw safex::command_exception(com.get_command_type(), "Could not store to portable storage binary blob");
         }
 
         target.clear();
