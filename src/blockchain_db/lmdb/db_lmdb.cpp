@@ -859,6 +859,98 @@ void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const 
       throw1(DB_ERROR("Failed to add removal of tx index to db transaction"));
 }
 
+uint64_t BlockchainLMDB::add_token_output(const tx_out& tx_output, const uint64_t unlock_time)
+{
+
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  uint64_t m_height = height();
+  uint64_t m_num_outputs = num_outputs();
+  MDB_cursor *cur_token_output_amount;
+  int result = 0;
+  uint64_t out_token_amount = 0;
+
+  CURSOR(output_token_amounts);
+  out_token_amount = tx_output.token_amount;
+  cur_token_output_amount = m_cur_output_token_amounts;
+
+  outkey ok = AUTO_VAL_INIT(ok);
+  MDB_val data;
+  MDB_val_copy<uint64_t> token_amount(out_token_amount);
+  result = mdb_cursor_get(cur_token_output_amount, &token_amount, &data, MDB_SET);
+  if (!result)
+  {
+    mdb_size_t num_elems = 0;
+    result = mdb_cursor_count(cur_token_output_amount, &num_elems);
+    if (result)
+      throw0(DB_ERROR(std::string("Failed to get number of outputs for amount: ").append(mdb_strerror(result)).c_str()));
+    ok.amount_index = num_elems;
+  }
+  else if (result != MDB_NOTFOUND)
+    throw0(DB_ERROR(lmdb_error("Failed to get output token amount in db transaction: ", result).c_str()));
+  else
+    ok.amount_index = 0;
+
+  ok.output_id = m_num_outputs;
+  ok.data.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
+  ok.data.unlock_time = unlock_time;
+  ok.data.height = m_height;
+  data.mv_size = sizeof(pre_rct_outkey);
+  data.mv_data = &ok;
+
+  if ((result = mdb_cursor_put(cur_token_output_amount, &token_amount, &data, MDB_APPENDDUP)))
+    throw0(DB_ERROR(lmdb_error("Failed to add token output amount: ", result).c_str()));
+
+  return ok.amount_index;
+}
+
+uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t unlock_time)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  uint64_t m_height = height();
+  uint64_t m_num_outputs = num_outputs();
+  MDB_cursor *cur_cash_output_amount;
+  int result = 0;
+  uint64_t out_cash_amount = 0;
+
+  CURSOR(output_amounts);
+  out_cash_amount = tx_output.amount;
+  cur_cash_output_amount = m_cur_output_amounts;
+
+  outkey ok = AUTO_VAL_INIT(ok);
+  MDB_val data;
+  MDB_val_copy<uint64_t> cash_amount(out_cash_amount);
+  result = mdb_cursor_get(cur_cash_output_amount, &cash_amount, &data, MDB_SET);
+  if (!result)
+  {
+    mdb_size_t num_elems = 0;
+    result = mdb_cursor_count(cur_cash_output_amount, &num_elems);
+    if (result)
+      throw0(DB_ERROR(std::string("Failed to get number of outputs for amount: ").append(mdb_strerror(result)).c_str()));
+    ok.amount_index = num_elems;
+  }
+  else if (result != MDB_NOTFOUND)
+    throw0(DB_ERROR(lmdb_error("Failed to get output amount in db transaction: ", result).c_str()));
+  else
+    ok.amount_index = 0;
+
+  ok.output_id = m_num_outputs;
+  ok.data.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
+  ok.data.unlock_time = unlock_time;
+  ok.data.height = m_height;
+  data.mv_size = sizeof(pre_rct_outkey);
+  data.mv_data = &ok;
+
+  if ((result = mdb_cursor_put(cur_cash_output_amount, &cash_amount, &data, MDB_APPENDDUP)))
+    throw0(DB_ERROR(lmdb_error("Failed to add cash output amount: ", result).c_str()));
+
+  return ok.amount_index;
+}
+
+
 uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
     const tx_out& tx_output,
     const uint64_t& local_index,
@@ -868,40 +960,14 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
-  uint64_t m_height = height();
   uint64_t m_num_outputs = num_outputs();
-  MDB_cursor *cur_output_amount;
   int result = 0;
 
   if (!is_valid_transaction_output_type(tx_output.target))
-    throw0(DB_ERROR("Wrong output type: expected txout_to_key or txout_token_to_key"));
-
-  const tx_out_type output_type = get_tx_out_type(tx_output.target);
-  uint64_t out_value_amount = 0;
+    throw0(DB_ERROR("Wrong output type: expected txout_to_key, txout_token_to_key or txout_to_script"));
 
 
   CURSOR(output_txs)
-
-  switch (output_type)
-  {
-    case tx_out_type::out_cash:
-      CURSOR(output_amounts);
-      out_value_amount = tx_output.amount;
-      cur_output_amount = m_cur_output_amounts;
-      break;
-    case tx_out_type::out_token:
-      CURSOR(output_token_amounts);
-      out_value_amount = tx_output.token_amount;
-      cur_output_amount = m_cur_output_token_amounts;
-      break;
-    default:
-      throw0(DB_ERROR("Unknown utxo output type"));
-      break;
-  }
-
-  if (out_value_amount == 0 && !commitment)
-    throw0(DB_ERROR("RCT output without commitment"));
-
   outtx ot = {m_num_outputs, tx_hash, local_index};
   MDB_val_set(vot, ot);
 
@@ -909,41 +975,23 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   if (result)
     throw0(DB_ERROR(lmdb_error("Failed to add output tx hash to db transaction: ", result).c_str()));
 
-  outkey ok;
-  MDB_val data;
-  MDB_val_copy<uint64_t> val_amount(out_value_amount);
-  result = mdb_cursor_get(cur_output_amount, &val_amount, &data, MDB_SET);
-  if (!result)
-    {
-      mdb_size_t num_elems = 0;
-      result = mdb_cursor_count(cur_output_amount, &num_elems);
-      if (result)
-        throw0(DB_ERROR(std::string("Failed to get number of outputs for amount: ").append(mdb_strerror(result)).c_str()));
-      ok.amount_index = num_elems;
-    }
-  else if (result != MDB_NOTFOUND)
-    throw0(DB_ERROR(lmdb_error("Failed to get output amount in db transaction: ", result).c_str()));
-  else
-    ok.amount_index = 0;
-  ok.output_id = m_num_outputs;
-  ok.data.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
-  ok.data.unlock_time = unlock_time;
-  ok.data.height = m_height;
-  if (out_value_amount == 0)
+
+  const tx_out_type output_type = get_tx_out_type(tx_output.target);
+  if (output_type == tx_out_type::out_cash)
   {
-    ok.data.commitment = *commitment;
-    data.mv_size = sizeof(ok);
+    return add_cash_output(tx_output, unlock_time);
+  }
+  else if (output_type == tx_out_type::out_token)
+  {
+    return add_token_output(tx_output, unlock_time);
   }
   else
   {
-    data.mv_size = sizeof(pre_rct_outkey);
+    throw0(DB_ERROR("Unknown utxo output type"));
   }
-  data.mv_data = &ok;
 
-  if ((result = mdb_cursor_put(cur_output_amount, &val_amount, &data, MDB_APPENDDUP)))
-      throw0(DB_ERROR(lmdb_error("Failed to add output pubkey to db transaction: ", result).c_str()));
+  return 0;
 
-  return ok.amount_index;
 }
 
 void BlockchainLMDB::add_tx_amount_output_indices(const uint64_t tx_id,
@@ -4000,7 +4048,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   // check if valid output type, txout_to_key, txout_token_to_key
   if ((txout.type() == typeid(txout_to_key))
       || (txout.type() == typeid(txout_token_to_key))
-  )
+      || (txout.type() == typeid(txout_to_script)) )
   {
     return true;
   }
