@@ -31,15 +31,17 @@ namespace safex
   /* Binary storage fields */
   static const std::string FIELD_VERSION = "version";
   static const std::string FIELD_COMMAND = "command";
-  static const std::string FIELD_LOCK_TOKEN_AMOUNT = "locked_token_amount";
+  static const std::string FIELD_LOCK_TOKEN_AMOUNT = "lock_token_amount";
+  static const std::string FIELD_LOCKED_TOKEN_OUTPUT_INDEX = "locked_token_output_index";
+
 
   /**
   * It is indicator in transaction version 2 extra field, to ease transaction verification
   * */
   enum class command_domain : uint32_t
   {
-
-
+      none = 0x00,
+      token_locking = 0x01
   };
 
   /**
@@ -49,7 +51,9 @@ namespace safex
   {
       nop = 0x0,
       token_lock = 0x01,
-      token_unlock = 0x02
+      token_unlock = 0x02,
+      token_collect = 0x03,
+      invalid_command
   };
 
   /**
@@ -59,7 +63,7 @@ namespace safex
   {
     public:
 
-      command_exception(command_t _command_type, std::string _message) : command_type{_command_type}, what_message{_message}
+      command_exception(const command_t _command_type, const std::string &_message) : command_type{_command_type}, what_message{_message}
       {
 
       }
@@ -75,17 +79,34 @@ namespace safex
 
     private:
 
-      command_t command_type;
-      std::string what_message;
+      const command_t command_type;
+      const std::string what_message;
 
   };
 
 
   struct token_lock_result
   {
-    uint64_t token_amount;
-    uint32_t block_number;
-    crypto::hash id;
+    uint64_t token_amount; //locked amount
+    uint32_t block_number; //block where it is locked
+
+    bool valid;
+  };
+
+  struct token_unlock_result
+  {
+    uint64_t token_amount; //unlocked token amount
+    uint64_t interest; //collected interest from network fees over period
+    uint32_t block_number; //block where it is unlocked
+
+    bool valid;
+  };
+
+  struct token_collect_result
+  {
+    uint64_t token_amount; //amount of tokens that is relocked
+    uint64_t interest; //collected interest from network fees over period
+    uint32_t block_number; //block where it is unlocked
 
     bool valid;
   };
@@ -115,19 +136,26 @@ namespace safex
       * */
       command(const uint32_t _version, const command_t _command_type) : version(_version), command_type(_command_type)
       {
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((_command_type < command_t::invalid_command), "Invalid command type", _command_type);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((_version <= SAFEX_COMMAND_PROTOCOL_VERSION), "Unsupported command protocol version " + std::to_string(_version), command_type);
 
       }
 
-      virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) = 0;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, CommandResult &cr) = 0;
 
-      uint32_t getVersion() { return version; }
+      uint32_t getVersion() const
+      { return version; }
 
-      command_t getCommandType() { return command_type; }
+      command_t get_command_type() const
+      { return command_type; }
+
+      virtual ~command() = default;
 
 
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const;
+
       virtual bool load(epee::serialization::portable_storage &ps);
 
       uint32_t version;
@@ -145,26 +173,109 @@ namespace safex
 
       friend class safex_command_serializer;
 
-      token_lock(const uint32_t _version, const command_t _command_type, const uint64_t _token_amount) : command<token_lock_result>(_version, _command_type), locked_token_amount(_token_amount)
+      /**
+       * @param _version Safex command protocol version
+       * @param _token_amount amount of tokens to lock
+       *
+      * */
+      token_lock(const uint32_t _version, const uint64_t _token_amount) : command<token_lock_result>(_version, command_t::token_lock), lock_token_amount(_token_amount)
       {
 
       }
 
-      token_lock() : command<token_lock_result>(0, command_t::nop), locked_token_amount(0)
+      token_lock() : command<token_lock_result>(0, command_t::token_lock), lock_token_amount(0)
       {
 
       }
 
-      uint64_t getLockedTokenAmount() { return locked_token_amount; }
+      uint64_t get_lock_token_amount() const
+      { return lock_token_amount; }
 
-      virtual bool execute(cryptonote::Blockchain &blokchain, const cryptonote::txout_to_script &utxo, token_lock_result &cr) override;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_lock_result &cr) override;
 
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const override;
+
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
-      uint64_t locked_token_amount;
+      uint64_t lock_token_amount;
+  };
+
+
+  //Token unlock command
+  class token_unlock : public command<token_unlock_result>
+  {
+    public:
+
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
+       *
+      * */
+      token_unlock(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_unlock_result>(_version, command_t::token_unlock),
+              locked_token_output_index(_locked_token_output_index)
+      {
+
+      }
+
+      token_unlock() : command<token_unlock_result>(0, command_t::token_unlock), locked_token_output_index(0)
+      {
+
+      }
+
+      uint64_t get_locked_token_output_index() const
+      { return locked_token_output_index; }
+
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
+
+    protected:
+
+      virtual bool store(epee::serialization::portable_storage &ps) const override;
+
+      virtual bool load(epee::serialization::portable_storage &ps) override;
+
+      uint64_t locked_token_output_index;
+  };
+
+
+  //Token collect command
+  class token_collect : public command<token_collect_result>
+  {
+    public:
+
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
+       *
+      * */
+      token_collect(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
+                                                                                          locked_token_output_index(_locked_token_output_index)
+      {
+
+      }
+
+      token_collect() : command<token_collect_result>(0, command_t::token_collect), locked_token_output_index(0)
+      {
+
+      }
+
+      uint64_t get_locked_token_output_index() const
+      { return locked_token_output_index; }
+
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
+
+    protected:
+
+      virtual bool store(epee::serialization::portable_storage &ps) const override;
+
+      virtual bool load(epee::serialization::portable_storage &ps) override;
+
+      uint64_t locked_token_output_index;
   };
 
 
@@ -184,7 +295,7 @@ namespace safex
 
         if (!ps.store_to_binary(bin_target))
         {
-          throw safex::command_exception(command_t::token_lock, "Could not store to portable storage binary blob");
+          throw safex::command_exception(com.get_command_type(), "Could not store to portable storage binary blob");
         }
 
         target.clear();
@@ -201,7 +312,7 @@ namespace safex
         epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
         if (!ps.load_from_binary(bin_source))
         {
-          throw safex::command_exception(command_t::token_lock, "Could not load portable storage from binary blob");
+          throw safex::command_exception(command_t::invalid_command, "Could not load portable storage from binary blob");
         }
 
         com.load(ps);

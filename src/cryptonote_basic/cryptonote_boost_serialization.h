@@ -93,10 +93,10 @@ namespace boost
   template <class Archive>
   inline void serialize(Archive &a, cryptonote::txout_to_script &x, const boost::serialization::version_type ver)
   {
+    a & x.output_type;
     a & x.keys;
     a & x.amount;
     a & x.token_amount;
-    a & x.script;
     a & x.data;
   }
 
@@ -128,7 +128,7 @@ namespace boost
   template <class Archive>
   inline void serialize(Archive &a, cryptonote::txin_to_script &x, const boost::serialization::version_type ver)
   {
-    a & x.prev;
+    a & x.key_offsets;
     a & x.k_image;
     a & x.amount;
     a & x.token_amount;

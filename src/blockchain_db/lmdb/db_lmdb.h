@@ -383,6 +383,10 @@ private:
 
   virtual bool is_valid_transaction_output_type(const txout_target_v &txout);
 
+  uint64_t add_token_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
+
+  uint64_t add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
+
 private:
   MDB_env* m_env;
 
