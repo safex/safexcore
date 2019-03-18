@@ -859,15 +859,14 @@ void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const 
       throw1(DB_ERROR("Failed to add removal of tx index to db transaction"));
 }
 
-uint64_t BlockchainLMDB::add_token_output(const tx_out& tx_output, const uint64_t unlock_time)
+uint64_t BlockchainLMDB::add_token_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t total_output_number)
 {
 
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
-  uint64_t m_height = height();
-  uint64_t m_num_outputs = num_outputs();
   MDB_cursor *cur_token_output_amount;
+  uint64_t blockchain_height = height();
   int result = 0;
   uint64_t out_token_amount = 0;
 
@@ -892,10 +891,10 @@ uint64_t BlockchainLMDB::add_token_output(const tx_out& tx_output, const uint64_
   else
     ok.amount_index = 0;
 
-  ok.output_id = m_num_outputs;
+  ok.output_id = total_output_number;
   ok.data.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
   ok.data.unlock_time = unlock_time;
-  ok.data.height = m_height;
+  ok.data.height = blockchain_height;
   data.mv_size = sizeof(pre_rct_outkey);
   data.mv_data = &ok;
 
@@ -905,13 +904,12 @@ uint64_t BlockchainLMDB::add_token_output(const tx_out& tx_output, const uint64_
   return ok.amount_index;
 }
 
-uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t unlock_time)
+uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t total_output_number)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
-  uint64_t m_height = height();
-  uint64_t m_num_outputs = num_outputs();
+  uint64_t blockchain_height = height();
   MDB_cursor *cur_cash_output_amount;
   int result = 0;
   uint64_t out_cash_amount = 0;
@@ -937,10 +935,10 @@ uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t
   else
     ok.amount_index = 0;
 
-  ok.output_id = m_num_outputs;
+  ok.output_id = total_output_number;
   ok.data.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
   ok.data.unlock_time = unlock_time;
-  ok.data.height = m_height;
+  ok.data.height = blockchain_height;
   data.mv_size = sizeof(pre_rct_outkey);
   data.mv_data = &ok;
 
@@ -979,11 +977,11 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   const tx_out_type output_type = get_tx_out_type(tx_output.target);
   if (output_type == tx_out_type::out_cash)
   {
-    return add_cash_output(tx_output, unlock_time);
+    return add_cash_output(tx_output, unlock_time, m_num_outputs);
   }
   else if (output_type == tx_out_type::out_token)
   {
-    return add_token_output(tx_output, unlock_time);
+    return add_token_output(tx_output, unlock_time, m_num_outputs);
   }
   else
   {
