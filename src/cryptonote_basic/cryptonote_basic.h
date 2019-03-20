@@ -62,7 +62,7 @@ namespace cryptonote
 
   struct txout_to_script
   {
-    uint32_t output_type;
+    uint8_t output_type;
     std::vector<crypto::public_key> keys;
     uint64_t amount = 0; //Safex Cash amount
     uint64_t token_amount = 0; //Safex Token amount
@@ -221,6 +221,8 @@ namespace cryptonote
     out_cash = 0,
     out_token = 1,
     out_bitcoin_migration = 2,
+    out_advanced = 10, //generic advanced utxo
+    out_locked_token = 11,
     out_invalid = 100
   };
 
@@ -250,7 +252,7 @@ namespace cryptonote
 
       boost::optional<const crypto::key_image &> operator()(const cryptonote::txin_to_script &txin) const
       {
-        return {};
+        return txin.k_image;
       }
 
       boost::optional<const crypto::key_image &> operator()(const cryptonote::txin_gen &txin) const
@@ -285,7 +287,7 @@ namespace cryptonote
 
       boost::optional<const std::vector<uint64_t> &> operator()(const cryptonote::txin_to_script &txin) const
       {
-        return {};
+        return txin.key_offsets;
       }
 
       boost::optional<const std::vector<uint64_t> &> operator()(const cryptonote::txin_gen &txin) const
@@ -320,7 +322,7 @@ namespace cryptonote
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
       {
-        return {};
+        return txin.amount;
       }
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
@@ -360,6 +362,7 @@ namespace cryptonote
     // check if valid output type, txout_to_key, txout_token_to_key
     if ((txout.type() == typeid(txout_to_key))
         || (txout.type() == typeid(txout_token_to_key))
+        || (txout.type() == typeid(txout_to_script))
     )
     {
       return true;
@@ -382,6 +385,7 @@ namespace cryptonote
     if ((txin.type() == typeid(txin_to_key))
         || (txin.type() == typeid(txin_token_to_key))
         || (txin.type() == typeid(txin_token_migration))
+        || (txin.type() == typeid(txin_to_script))
     )
     {
       return true;
@@ -416,7 +420,7 @@ namespace cryptonote
 
        tx_out_type operator()(const cryptonote::txin_to_script &txin) const
        {
-         return tx_out_type::out_invalid;
+         return tx_out_type::out_invalid; //todo, based on input command, figure out type
        }
 
        tx_out_type operator()(const cryptonote::txin_gen &txin) const
@@ -431,6 +435,8 @@ namespace cryptonote
        return tx_out_type::out_cash;
      } else if (txout.type() == typeid(txout_token_to_key)) {
        return tx_out_type::out_token;
+     } else if (txout.type() == typeid(txout_to_script)) {
+       return static_cast<tx_out_type>((boost::get<txout_to_script>(txout)).output_type);
      } else {
        return tx_out_type::out_invalid;
      }

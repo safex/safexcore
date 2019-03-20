@@ -1081,6 +1081,11 @@ namespace cryptonote
     return t_serializable_object_to_blob(tx, b_blob);
   }
   //---------------------------------------------------------------
+  blobdata txout_script_to_blob(const txout_to_script& txout)
+  {
+    return t_serializable_object_to_blob(txout);
+  }
+  //---------------------------------------------------------------
   void get_tx_tree_hash(const std::vector<crypto::hash>& tx_hashes, crypto::hash& h)
   {
     tree_hash(tx_hashes.data(), tx_hashes.size(), h);

@@ -303,6 +303,13 @@ typedef struct outtx {
     uint64_t local_index;
 } outtx;
 
+typedef struct outkey_advanced {
+  uint64_t output_id; //Output ID
+  std::vector<uint8_t> data; //Blob of txoutput
+} outkey_advanced;
+
+
+
 std::atomic<uint64_t> mdb_txn_safe::num_active_txns{0};
 std::atomic_flag mdb_txn_safe::creation_gate = ATOMIC_FLAG_INIT;
 
@@ -976,8 +983,16 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   //put advanced output to the output_advanced table, then update output_advanced_type table with id of new output
 
   CURSOR(output_advanced);
-  //cur_advanced_output = m_cur_output_advanced;
+  MDB_val_set(val_output_id, output_id);
 
+  const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
+
+  MDB_val_copy<blobdata> blob(txout_script_to_blob(txout));
+  result = mdb_cursor_put(m_cur_txs, &val_output_id, &blob, MDB_APPEND);
+  if (result)
+    throw0(DB_ERROR(lmdb_error("Failed to add advanced output to database: ", result).c_str()));
+
+  //index outputs
 
 
   return output_id;
@@ -1017,6 +1032,10 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   else if (output_type == tx_out_type::out_token)
   {
     return add_token_output(tx_output, unlock_time, m_num_outputs);
+  }
+  else if (output_type >= tx_out_type::out_advanced && output_type < tx_out_type::out_invalid)
+  {
+    return add_advanced_output(tx_output, m_num_outputs);
   }
   else
   {
