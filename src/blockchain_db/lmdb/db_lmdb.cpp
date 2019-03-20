@@ -160,23 +160,30 @@ int compare_string(const MDB_val *a, const MDB_val *b)
 
 /* DB schema:
  *
- * Table            Key          Data
- * -----            ---          ----
- * blocks           block ID     block blob
- * block_heights    block hash   block height
- * block_info       block ID     {block metadata}
+ * Table                 Key          Data
+ * -----                 ---          ----
+ * blocks                block ID     block blob
+ * block_heights         block hash   block height
+ * block_info            block ID     {block metadata}
  *
- * txs              txn ID       txn blob
- * tx_indices       txn hash     {txn ID, metadata}
- * tx_outputs       txn ID       [txn amount output indices]
+ * txs                   txn ID       txn blob
+ * tx_indices            txn hash     {txn ID, metadata}
+ * tx_outputs            txn ID       [txn amount output indices]
  *
- * output_txs       output ID    {txn hash, local index}
- * output_amounts   amount       [{amount output index, metadata}...]
+ * output_txs            output ID    {txn hash, local index}
+ * output_amounts        amount       [{amount output index, metadata}...]
+ * output_token_amounts  token_amount [{token amount output index, metadata}...]
  *
- * spent_keys       input hash   -
+ * spent_keys            input hash   -
  *
- * txpool_meta      txn hash     txn metadata
- * txpool_blob      txn hash     txn blob
+ * txpool_meta           txn hash     txn metadata
+ * txpool_blob           txn hash     txn blob
+ *
+ * output_advanced       output ID    {output type specific data}...
+ * output_advanced_type  output type  {Output Id of outputs from `output_advanced` table}...
+ * token_locked_sum      interval     token sum
+ * network_fee           interval     collected fee sum
+ * token_lock_expiry     block_number {list of loked outputs that expiry on this block number}
  *
  * Note: where the data items are of uniform size, DUPFIXED tables have
  * been used to save space. In most of these cases, a dummy "zerokval"
@@ -184,7 +191,8 @@ int compare_string(const MDB_val *a, const MDB_val *b)
  * attached as a prefix on the Data to serve as the DUPSORT key.
  * (DUPFIXED saves 8 bytes per record.)
  *
- * The output_amounts table doesn't use a dummy key, but uses DUPSORT.
+ * The output_amounts, output_token_amounts, output_advanced_type, token_lock_expiry tables
+ * doesn't use a dummy key, but use DUPSORT.
  */
 const char* const LMDB_BLOCKS = "blocks";
 const char* const LMDB_BLOCK_HEIGHTS = "block_heights";
@@ -204,6 +212,13 @@ const char* const LMDB_TXPOOL_BLOB = "txpool_blob";
 
 const char* const LMDB_HF_STARTING_HEIGHTS = "hf_starting_heights";
 const char* const LMDB_HF_VERSIONS = "hf_versions";
+
+
+const char* const LMDB_OUTPUT_ADVANCED = "output_advanced";
+const char* const LMDB_OUTPUT_ADVANCED_TYPE = "output_advanced_type";
+const char* const LMDB_TOKEN_LOCKED_SUM = "token_locked_sum";
+const char* const LMDB_NETWORK_FEE = "network_fee";
+const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
 
 const char* const LMDB_PROPERTIES = "properties";
 
@@ -949,6 +964,26 @@ uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t
 }
 
 
+uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint64_t output_id)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  uint64_t blockchain_height = height();
+  MDB_cursor *cur_advanced_output;
+  int result = 0;
+
+  //put advanced output to the output_advanced table, then update output_advanced_type table with id of new output
+
+  CURSOR(output_advanced);
+  //cur_advanced_output = m_cur_output_advanced;
+
+
+
+  return output_id;
+}
+
+
 uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
     const tx_out& tx_output,
     const uint64_t& local_index,
@@ -1307,6 +1342,14 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
     lmdb_db_open(txn, LMDB_HF_STARTING_HEIGHTS, MDB_CREATE, m_hf_starting_heights, "Failed to open db handle for m_hf_starting_heights");
 
   lmdb_db_open(txn, LMDB_HF_VERSIONS, MDB_INTEGERKEY | MDB_CREATE, m_hf_versions, "Failed to open db handle for m_hf_versions");
+
+  //safex related
+  lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED, MDB_INTEGERKEY | MDB_CREATE, m_output_advanced, "Failed to open db handle for m_output_advanced");
+  lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED_TYPE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED , m_output_advanced_type, "Failed to open db handle for m_output_advanced_type");
+  lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_locked_sum, "Failed to open db handle for m_token_locked_sum"); //use zero key
+  lmdb_db_open(txn, LMDB_NETWORK_FEE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_network_fee, "Failed to open db handle for m_network_fee");//use zero key
+  lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
+
 
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
