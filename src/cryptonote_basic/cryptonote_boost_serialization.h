@@ -95,8 +95,6 @@ namespace boost
   {
     a & x.output_type;
     a & x.keys;
-    a & x.amount;
-    a & x.token_amount;
     a & x.data;
   }
 

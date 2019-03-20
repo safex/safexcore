@@ -64,16 +64,12 @@ namespace cryptonote
   {
     uint8_t output_type;
     std::vector<crypto::public_key> keys;
-    uint64_t amount = 0; //Safex Cash amount
-    uint64_t token_amount = 0; //Safex Token amount
     std::vector<uint8_t> data; //Local output data and state
 
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(output_type)
       FIELD(keys)
-      VARINT_FIELD(amount)
-      VARINT_FIELD(token_amount)
       FIELD(data)
     END_SERIALIZE()
   };
