@@ -1538,7 +1538,6 @@ namespace tools
       cryptonote::tx_source_entry& src = sources.back();
       const transfer_details& td = m_transfers[idx];
       src.amount = td.amount();
-      src.rct = false;
       //paste mixin transaction
       if(daemon_resp.outs.size())
       {
@@ -1571,7 +1570,6 @@ namespace tools
       src.real_out_tx_key = get_tx_pub_key_from_extra(td.m_tx);
       src.real_output = interted_it - src.outputs.begin();
       src.real_output_in_tx_index = td.m_internal_output_index;
-      src.multisig_kLRki = AUTO_VAL_INIT(src.multisig_kLRki);
       detail::print_source_entry(src);
       ++i;
     }

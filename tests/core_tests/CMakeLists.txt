@@ -43,7 +43,6 @@ set(core_tests_sources
   transaction_tests.cpp
   tx_validation.cpp
   v2_tests.cpp
-  rct.cpp
   chain_migration.cpp)
 
 set(core_tests_headers
@@ -60,7 +59,6 @@ set(core_tests_headers
   transaction_tests.h
   tx_validation.h
   v2_tests.h
-  rct.h
   chain_migration.h
   token_transactions.h)
 

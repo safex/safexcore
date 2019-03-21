@@ -49,15 +49,12 @@ namespace cryptonote
   {
     typedef std::pair<uint64_t, rct::ctkey> output_entry;
 
-    std::vector<output_entry> outputs;  //index + key + optional ringct commitment
+    std::vector<output_entry> outputs;  //index + key
     size_t real_output = 0;             //index in outputs vector of real output_entry
     crypto::public_key real_out_tx_key = AUTO_VAL_INIT(real_out_tx_key); //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
     size_t real_output_in_tx_index = 0;  //index in transaction outputs vector
     uint64_t amount = 0;                //money
-    bool rct = false;                    //true if the output is rct
-    rct::key mask = AUTO_VAL_INIT(mask);//ringct amount mask
-    rct::multisig_kLRki multisig_kLRki = AUTO_VAL_INIT(multisig_kLRki); //multisig info, not used, kept for binary compatibility
     uint64_t token_amount = 0;          //tokens
     bool token_transaction = false;     //source with safex tokens, not safex cash
     bool migration = false;             //this transaction is migration from bitcoin network
@@ -71,9 +68,6 @@ namespace cryptonote
       FIELD(real_out_additional_tx_keys)
       FIELD(real_output_in_tx_index)
       FIELD(amount)
-      FIELD(rct)
-      FIELD(mask)
-      FIELD(multisig_kLRki)
       FIELD(token_amount)
       FIELD(token_transaction)
       FIELD(migration)
@@ -146,9 +140,6 @@ namespace boost
       a & x.real_output_in_tx_index;
       a & x.real_out_additional_tx_keys;
       a & x.amount;
-      a & x.rct;
-      a & x.mask;
-      a & x.multisig_kLRki;
       a & x.token_amount;
       a & x.token_transaction;
       a & x.migration;

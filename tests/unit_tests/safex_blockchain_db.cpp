@@ -145,7 +145,6 @@ protected:
           src.push_output(0, boost::get<txout_to_key>(m_blocks[i - 1].miner_tx.vout[0].target).key, src.amount);
           src.real_out_tx_key = cryptonote::get_tx_pub_key_from_extra(m_blocks[i - 1].miner_tx);
           src.real_output = 0;
-          src.rct = false;
           src.real_output_in_tx_index = 0;
         }
         //fill outputs entry

@@ -517,7 +517,6 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               continue;
 
             ts.real_output = realOutput;
-            ts.rct = false;
 
             sources.push_back(ts);
 
@@ -581,7 +580,6 @@ bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std:
               continue;
 
             ts.real_output = realOutput;
-            ts.rct = false;
 
             sources.push_back(ts);
 
@@ -601,7 +599,6 @@ bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std:
   auto output = cryptonote::generate_migration_bitcoin_transaction_output(from.get_keys(), bitcoin_transaction_hash, token_amount);
   src.outputs.push_back(output);
   src.token_amount = token_amount;
-  src.rct = false;
   src.token_transaction = true;
   src.migration = true;
 

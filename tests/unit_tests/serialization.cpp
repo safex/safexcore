@@ -1180,8 +1180,7 @@ namespace {
     epee::string_tools::hex_to_pod("4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05", tse.real_out_tx_key);
     tse.real_output_in_tx_index = 1;
     tse.amount = 11066009260865;
-    tse.rct = true;
-    epee::string_tools::hex_to_pod("789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703", tse.mask);
+
     // tcd.change_dts
     tcd.change_dts.amount = 9631208773403;
 
@@ -1375,8 +1374,6 @@ TEST(Serialization, portability_unsigned_tx)
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
   ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
-  ASSERT_TRUE(tse.rct);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // tcd.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
   ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "SFXtzUpLfKDTSBG1KEydRqTmac2vvvpXZU6yx4Yct1dHUSPJ6AJqCj1Umne7mznPpjV7Bz9PgjavTVSbLB1Ngn2BVmzgCdUvvDW");
@@ -1524,8 +1521,6 @@ namespace {
     epee::string_tools::hex_to_pod("4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05", tse.real_out_tx_key);
     tse.real_output_in_tx_index = 1;
     tse.amount = 11066009260865;
-    tse.rct = true;
-    epee::string_tools::hex_to_pod("789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703", tse.mask);
     // ptx.construction_data.change_dts
     tcd.change_dts.amount = 9631208773403;
 
@@ -1691,8 +1686,6 @@ TEST(Serialization, portability_signed_tx)
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
   ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
-  ASSERT_TRUE(tse.rct);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // ptx.construction_data.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
   ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "SFXtzUpLfKDTSBG1KEydRqTmac2vvvpXZU6yx4Yct1dHUSPJ6AJqCj1Umne7mznPpjV7Bz9PgjavTVSbLB1Ngn2BVmzgCdUvvDW");
