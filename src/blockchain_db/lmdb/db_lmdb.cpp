@@ -976,23 +976,31 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
-  uint64_t blockchain_height = height();
   MDB_cursor *cur_advanced_output;
+  MDB_cursor *cur_advanced_output_type;
   int result = 0;
 
-  //put advanced output to the output_advanced table, then update output_advanced_type table with id of new output
+  //put advanced output blob to the output_advanced table, then update output_advanced_type table with id of new output
 
   CURSOR(output_advanced);
+  CURSOR(output_advanced_type);
+  cur_advanced_output = m_cur_output_advanced;
+  cur_advanced_output_type = m_cur_output_advanced_type;
+
   MDB_val_set(val_output_id, output_id);
-
   const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
-
   MDB_val_copy<blobdata> blob(txout_script_to_blob(txout));
-  result = mdb_cursor_put(m_cur_txs, &val_output_id, &blob, MDB_APPEND);
+  result = mdb_cursor_put(cur_advanced_output, &val_output_id, &blob, MDB_APPEND);
   if (result)
     throw0(DB_ERROR(lmdb_error("Failed to add advanced output to database: ", result).c_str()));
 
-  //index outputs
+
+  //cache output id per type
+  const uint64_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
+  MDB_val_set(k_output_type, output_type);
+  MDB_val value = {sizeof(uint64_t), (void *)&output_id};
+  if ((result = mdb_cursor_put(cur_advanced_output_type, &k_output_type, &value, MDB_APPENDDUP)))
+    throw0(DB_ERROR(lmdb_error("Failed to add advanced output index: ", result).c_str()));
 
 
   return output_id;
