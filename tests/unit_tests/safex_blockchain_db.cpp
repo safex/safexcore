@@ -212,10 +212,10 @@ bool compare_txs(const transaction& a, const transaction& b)
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 10) {
-            //create token lock transaction
+            //create token lock transaction, user 0 locks 100 safex token
             tx_list.resize(tx_list.size()+1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_token_tx_to_key(tx, m_users_acc[0], m_users_acc[1], 100*SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 100*SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 11) {
@@ -234,19 +234,19 @@ bool compare_txs(const transaction& a, const transaction& b)
 
       }
 
-      bool fill_tx_destination(tx_destination_entry &de, const cryptonote::account_base &to, uint64_t amount)
+      tx_destination_entry create_tx_destination(const cryptonote::account_base &to, uint64_t amount)
       {
-        de.addr = to.get_keys().m_account_address;
-        de.amount = amount;
-        return true;
+        return tx_destination_entry{amount, to.get_keys().m_account_address, false, tx_out_type::out_cash};
       }
 
-      bool fill_token_tx_destination(tx_destination_entry &de, const cryptonote::account_base &to, uint64_t token_amount)
+      tx_destination_entry create_token_tx_destination(const cryptonote::account_base &to, uint64_t token_amount)
       {
-        de.addr = to.get_keys().m_account_address;
-        de.token_amount = token_amount;
-        de.token_transaction = true;
-        return true;
+        return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_token};
+      }
+
+      tx_destination_entry create_locked_token_tx_destination(const cryptonote::account_base &to, uint64_t token_amount)
+      {
+        return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_locked_token};
       }
 
       bool init_output_indices(map_output_idx_t &outs, std::map<uint64_t, std::vector<size_t> > &outs_mine, const std::vector<cryptonote::block> &blockchain,
@@ -423,11 +423,15 @@ bool compare_txs(const transaction& a, const transaction& b)
 
                   cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
                   if (out_type == cryptonote::tx_out_type::out_cash)
+                  {
                     ts.amount = oi.amount;
+                    ts.referenced_output_type = cryptonote::tx_out_type::out_cash;
+                  }
                   else if (out_type == cryptonote::tx_out_type::out_token)
                   {
                     ts.token_amount = oi.token_amount;
-                    ts.token_transaction = true;
+                    //ts.token_transaction = true;
+                    ts.referenced_output_type = cryptonote::tx_out_type::out_token;
                   }
                   ts.real_output_in_tx_index = oi.out_no;
                   ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
@@ -511,8 +515,9 @@ bool compare_txs(const transaction& a, const transaction& b)
         auto output = cryptonote::generate_migration_bitcoin_transaction_output(from.get_keys(), bitcoin_transaction_hash, token_amount);
         src.outputs.push_back(output);
         src.token_amount = token_amount;
-        src.token_transaction = true;
-        src.migration = true;
+        //src.token_transaction = true;
+        src.referenced_output_type = cryptonote::tx_out_type::out_bitcoin_migration;
+//        src.migration = true;
 
 
         return sources_found;
@@ -552,17 +557,13 @@ bool compare_txs(const transaction& a, const transaction& b)
         if (!fill_tx_sources(sources, from, amount + fee, nmix))
           throw std::runtime_error("couldn't fill transaction sources");
 
-        tx_destination_entry de;
-        if (!fill_tx_destination(de, to, amount))
-          throw std::runtime_error("couldn't fill transaction destination");
+        tx_destination_entry de = create_tx_destination(de, to, amount);
         destinations.push_back(de);
 
-        tx_destination_entry de_change;
         uint64_t cache_back = get_inputs_amount(sources) - (amount + fee);
         if (0 < cache_back)
         {
-          if (!fill_tx_destination(de_change, from, cache_back))
-            throw std::runtime_error("couldn't fill transaction cache back destination");
+          tx_destination_entry de_change = create_tx_destination(de_change, from, cache_back);
           destinations.push_back(de_change);
         }
       }
@@ -583,28 +584,23 @@ bool compare_txs(const transaction& a, const transaction& b)
           throw std::runtime_error("couldn't fill token transaction sources");
 
         //token destination
-        tx_destination_entry de = AUTO_VAL_INIT(de);
-        if (!fill_token_tx_destination(de, to, token_amount))
-          throw std::runtime_error("couldn't fill token transaction destination");
+        tx_destination_entry de = create_token_tx_destination(to, token_amount);
         destinations.push_back(de);
 
         //destination token change
-        tx_destination_entry de_token_change = AUTO_VAL_INIT(de_token_change);
+
         uint64_t token_back = get_inputs_token_amount(sources) - token_amount;
         if (0 < token_back)
         {
-          if (!fill_token_tx_destination(de_token_change, from, token_back))
-            throw std::runtime_error("couldn't fill transaction token back destination");
+          tx_destination_entry de_token_change = create_token_tx_destination(from, token_back);
           destinations.push_back(de_token_change);
         }
 
         //sender change for fee
-        tx_destination_entry de_change = AUTO_VAL_INIT(de);
         uint64_t cache_back = get_inputs_amount(sources) - fee;
         if (0 < cache_back)
         {
-          if (!fill_tx_destination(de_change, from, cache_back))
-            throw std::runtime_error("couldn't fill transaction cache back destination");
+          tx_destination_entry de_change = create_tx_destination(from, cache_back);
           destinations.push_back(de_change);
         }
       }
@@ -621,23 +617,18 @@ bool compare_txs(const transaction& a, const transaction& b)
         if (!fill_migration_tx_sources(sources, from, token_amount, cash_airdrop_amount + fee, bitcoin_transaction_hash))
           throw std::runtime_error("couldn't fill transaction sources");
 
-        tx_destination_entry de_cash = AUTO_VAL_INIT(de_cash);
-        if (!fill_tx_destination(de_cash, to, cash_airdrop_amount))
-          throw std::runtime_error("couldn't fill transaction destination");
+        tx_destination_entry de_cash = create_tx_destination(to, cash_airdrop_amount);
         destinations.push_back(de_cash);
 
-        tx_destination_entry de_change = AUTO_VAL_INIT(de_change);
+
         uint64_t cache_back = get_inputs_amount(sources) - (cash_airdrop_amount + fee);
         if (0 < cache_back)
         {
-          if (!fill_tx_destination(de_change, from, cache_back))
-            throw std::runtime_error("couldn't fill transaction cache back destination");
+          tx_destination_entry de_change = create_tx_destination(from, cache_back);
           destinations.push_back(de_change);
         }
 
-        tx_destination_entry de_token = AUTO_VAL_INIT(de_token);
-        if (!fill_token_tx_destination(de_token, to, token_amount))
-          throw std::runtime_error("couldn't fill transaction destination");
+        tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
         destinations.push_back(de_token);
 
       }
@@ -657,29 +648,25 @@ bool compare_txs(const transaction& a, const transaction& b)
         if (!fill_tx_sources(sources, from, token_amount, nmix, cryptonote::tx_out_type::out_token))
           throw std::runtime_error("couldn't fill token transaction sources");
 
-        //token destination
-        tx_destination_entry de = AUTO_VAL_INIT(de);
-        if (!fill_token_tx_destination(de, to, token_amount))
-          throw std::runtime_error("couldn't fill token transaction destination");
+        //locked token destination
+        tx_destination_entry de = create_locked_token_tx_destination(to, token_amount);
         destinations.push_back(de);
 
         //destination token change
-        tx_destination_entry de_token_change = AUTO_VAL_INIT(de_token_change);
+
         uint64_t token_back = get_inputs_token_amount(sources) - token_amount;
         if (0 < token_back)
         {
-          if (!fill_token_tx_destination(de_token_change, from, token_back))
-            throw std::runtime_error("couldn't fill transaction token back destination");
+          tx_destination_entry de_token_change = create_token_tx_destination(from, token_back);
           destinations.push_back(de_token_change);
         }
 
         //sender change for fee
-        tx_destination_entry de_change = AUTO_VAL_INIT(de);
+
         uint64_t cache_back = get_inputs_amount(sources) - fee;
         if (0 < cache_back)
         {
-          if (!fill_tx_destination(de_change, from, cache_back))
-            throw std::runtime_error("couldn't fill transaction cache back destination");
+          tx_destination_entry de_change = create_tx_destination(from, cache_back);
           destinations.push_back(de_change);
         }
       }
@@ -742,7 +729,8 @@ bool compare_txs(const transaction& a, const transaction& b)
         return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, extra, tx, 0);
       }
 
-      bool construct_token_lock_transaction(cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix)
+      bool construct_token_lock_transaction(cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to,
+              uint64_t token_amount, uint64_t fee, size_t nmix)
       {
         std::vector<tx_source_entry> sources;
         std::vector<tx_destination_entry> destinations;

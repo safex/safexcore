@@ -508,7 +508,8 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
             else if (out_type == cryptonote::tx_out_type::out_token)
             {
               ts.token_amount = oi.token_amount;
-              ts.token_transaction = true;
+              //ts.token_transaction = true;
+              ts.referenced_output_type = cryptonote::tx_out_type::out_token;
             }
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
@@ -599,8 +600,9 @@ bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std:
   auto output = cryptonote::generate_migration_bitcoin_transaction_output(from.get_keys(), bitcoin_transaction_hash, token_amount);
   src.outputs.push_back(output);
   src.token_amount = token_amount;
-  src.token_transaction = true;
-  src.migration = true;
+  //src.token_transaction = true;
+  src.referenced_output_type = cryptonote::tx_out_type::out_bitcoin_migration;
+//  src.migration = true;
 
 
   return sources_found;

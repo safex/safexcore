@@ -4273,8 +4273,9 @@ void wallet::transfer_migration(
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = 0;
-    src.token_transaction = false;
-    src.migration = false;
+    //src.token_transaction = false;
+    src.referenced_output_type = tx_out_type::out_cash;
+    //src.migration = false;
     //paste mixin transaction
     if(!daemon_resp.outs.empty())
     {
@@ -4322,8 +4323,9 @@ void wallet::transfer_migration(
       auto output = cryptonote::generate_migration_bitcoin_transaction_output(m_account.get_keys(), bitcoin_transaction_hash, dt.token_amount);
       src.outputs.push_back(output);
       src.token_amount = dt.token_amount;
-      src.token_transaction = true;
-      src.migration = true;
+      //src.token_transaction = true;
+      src.referenced_output_type = tx_out_type::out_bitcoin_migration;
+      //src.migration = true;
       detail::print_token_source_entry(src);
     }
   }
@@ -6045,7 +6047,8 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = td.token_amount();
-    src.token_transaction = src.token_amount > 0;
+    //src.token_transaction = src.token_amount > 0;
+    src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
     //paste keys (fake and real)
 
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
