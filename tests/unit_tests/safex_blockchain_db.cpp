@@ -51,7 +51,7 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 5;
+  const int NUMBER_OF_BLOCKS = 20;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
@@ -211,6 +211,20 @@ bool compare_txs(const transaction& a, const transaction& b)
             construct_token_tx_to_key(tx, m_users_acc[0], m_users_acc[1], 100*SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
+          else if (i == 10) {
+            //create token lock transaction
+            tx_list.resize(tx_list.size()+1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_token_tx_to_key(tx, m_users_acc[0], m_users_acc[1], 100*SAFEX_TOKEN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 11) {
+            //create other token lock transaction
+          }
+          else if (i == 17) {
+            //token unlock transaction
+          }
+
 
           construct_block(blk, i, prev_hash, m_miner_acc, 0, m_test_sizes[i], tx_list);
 
@@ -628,6 +642,48 @@ bool compare_txs(const transaction& a, const transaction& b)
 
       }
 
+      void fill_token_lock_tx_sources_and_destinations(const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                                  uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
+                                                  std::vector<tx_destination_entry> &destinations)
+      {
+        sources.clear();
+        destinations.clear();
+
+        //fill cache sources for fee
+        if (!fill_tx_sources(sources, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+          throw std::runtime_error("couldn't fill transaction sources");
+
+        //token source
+        if (!fill_tx_sources(sources, from, token_amount, nmix, cryptonote::tx_out_type::out_token))
+          throw std::runtime_error("couldn't fill token transaction sources");
+
+        //token destination
+        tx_destination_entry de = AUTO_VAL_INIT(de);
+        if (!fill_token_tx_destination(de, to, token_amount))
+          throw std::runtime_error("couldn't fill token transaction destination");
+        destinations.push_back(de);
+
+        //destination token change
+        tx_destination_entry de_token_change = AUTO_VAL_INIT(de_token_change);
+        uint64_t token_back = get_inputs_token_amount(sources) - token_amount;
+        if (0 < token_back)
+        {
+          if (!fill_token_tx_destination(de_token_change, from, token_back))
+            throw std::runtime_error("couldn't fill transaction token back destination");
+          destinations.push_back(de_token_change);
+        }
+
+        //sender change for fee
+        tx_destination_entry de_change = AUTO_VAL_INIT(de);
+        uint64_t cache_back = get_inputs_amount(sources) - fee;
+        if (0 < cache_back)
+        {
+          if (!fill_tx_destination(de_change, from, cache_back))
+            throw std::runtime_error("couldn't fill transaction cache back destination");
+          destinations.push_back(de_change);
+        }
+      }
+
       crypto::hash get_hash_from_string(const std::string hashstr)
       {
         //parse bitcoin transaction hash
@@ -685,6 +741,16 @@ bool compare_txs(const transaction& a, const transaction& b)
 
         return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, extra, tx, 0);
       }
+
+      bool construct_token_lock_transaction(cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix)
+      {
+        std::vector<tx_source_entry> sources;
+        std::vector<tx_destination_entry> destinations;
+        fill_token_lock_tx_sources_and_destinations(from, to, token_amount, fee, nmix, sources, destinations);
+
+        return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+      }
+
 
       bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id,
                            const cryptonote::account_base &miner_acc, uint64_t timestamp, uint64_t already_generated_coins,

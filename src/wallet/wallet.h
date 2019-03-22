@@ -1383,12 +1383,12 @@ namespace tools
       {
         if (de.token_transaction) {
           cryptonote::decompose_amount_into_digits(de.token_amount, 0,
-                        [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, true)); },
-                        [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, true)); } );
+                        [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); },
+                        [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); } );
         } else {
           cryptonote::decompose_amount_into_digits(de.amount, 0,
-              [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress)); },
-              [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress)); } );
+              [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); },
+              [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); } );
         }
       }
 
@@ -1396,9 +1396,9 @@ namespace tools
       cryptonote::decompose_amount_into_digits(change_dst.amount, 0,
         [&](uint64_t chunk) {
           if (chunk <= dust_threshold)
-            dust_dsts.push_back(cryptonote::tx_destination_entry(chunk, change_dst.addr, false));
+            dust_dsts.push_back(cryptonote::tx_destination_entry(chunk, change_dst.addr, false, cryptonote::tx_out_type::out_cash));
           else
-            splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, change_dst.addr, false));
+            splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, change_dst.addr, false, cryptonote::tx_out_type::out_cash));
         },
         [&](uint64_t a_dust) { dust_dsts.push_back(cryptonote::tx_destination_entry(a_dust, change_dst.addr, false)); } );
 
@@ -1406,11 +1406,11 @@ namespace tools
       cryptonote::decompose_amount_into_digits(change_token_dst.token_amount, 0,
         [&](uint64_t token_chunk) {
           if (token_chunk <= dust_threshold)
-            dust_dsts.push_back(cryptonote::tx_destination_entry(token_chunk, change_token_dst.addr, false, true /*token destination*/));
+            dust_dsts.push_back(cryptonote::tx_destination_entry(token_chunk, change_token_dst.addr, false, cryptonote::tx_out_type::out_token));
           else
-            splitted_dsts.push_back(cryptonote::tx_destination_entry(token_chunk, change_token_dst.addr, false, true));
+            splitted_dsts.push_back(cryptonote::tx_destination_entry(token_chunk, change_token_dst.addr, false, cryptonote::tx_out_type::out_token));
         },
-        [&](uint64_t a_token_dust) { dust_dsts.push_back(cryptonote::tx_destination_entry(a_token_dust, change_token_dst.addr, false, true)); } );
+        [&](uint64_t a_token_dust) { dust_dsts.push_back(cryptonote::tx_destination_entry(a_token_dust, change_token_dst.addr, false, cryptonote::tx_out_type::out_token)); } );
     }
     //----------------------------------------------------------------------------------------------------
     inline void null_split_strategy(const std::vector<cryptonote::tx_destination_entry>& dsts,
@@ -1430,7 +1430,7 @@ namespace tools
 
       if (0 != token_change)
       {
-        splitted_dsts.push_back(cryptonote::tx_destination_entry(token_change, change_token_dst.addr, false, true));
+        splitted_dsts.push_back(cryptonote::tx_destination_entry(token_change, change_token_dst.addr, false, cryptonote::tx_out_type::out_token));
       }
     }
     //----------------------------------------------------------------------------------------------------
@@ -1596,7 +1596,7 @@ namespace tools
         splitted_dsts.push_back(cryptonote::tx_destination_entry(d.amount, dust_policy.addr_for_dust, d.is_subaddress));
 
       if (d.token_transaction)
-        splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, true));
+        splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, cryptonote::tx_out_type::out_token));
 
       dust += d.amount;
       token_dust += d.token_amount;

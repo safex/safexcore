@@ -84,15 +84,29 @@ namespace cryptonote
     account_public_address addr;        //destination address
     bool is_subaddress;
     bool token_transaction;             //output is safex tokens, not safex cash
+    bool script_output;                 // if this is advanced output
+    tx_out_type output_type;            //type of the output
 
-    tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false), token_transaction(false) { }
-    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, bool is_token_transaction = false) : amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_transaction)
+    tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false),
+    token_transaction(false), script_output(false), output_type{tx_out_type::out_cash} {
+
+    }
+
+
+
+    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, tx_out_type _out_type = tx_out_type::out_cash) :
+    amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)), output_type(_out_type)
     {
-      if (is_token_transaction)
+      if (token_transaction)
         token_amount = a;
       else
         amount = a;
     }
+
+    constexpr bool is_token_output(tx_out_type _out_type) const { return _out_type == tx_out_type::out_token;}
+    constexpr bool is_cash_output(tx_out_type _out_type) const { return _out_type == tx_out_type::out_cash;}
+    constexpr bool is_script_output(tx_out_type _out_type) const { return (_out_type >= tx_out_type::out_advanced && _out_type < tx_out_type::out_invalid );}
+
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(amount)
@@ -100,6 +114,8 @@ namespace cryptonote
       FIELD(addr)
       FIELD(is_subaddress)
       FIELD(token_transaction)
+      FIELD(script_output)
+      FIELD(output_type)
     END_SERIALIZE()
   };
 
