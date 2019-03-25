@@ -70,7 +70,8 @@ set(unit_tests_sources
   ringct.cpp
   output_selection.cpp
   vercmp.cpp
-  safex_commands.cpp)
+  safex_commands.cpp
+  safex_blockchain_db.cpp)
 
 
 set(unit_tests_headers

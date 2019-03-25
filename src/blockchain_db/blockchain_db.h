@@ -452,7 +452,7 @@ private:
    * @param local_index index of the output in its transaction
    * @param unlock_time unlock time/height of the output
    * @param commitment the rct commitment to the output amount
-   * @return amount output index
+   * @return amount/token_amount/advanced output output index
    */
   virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) = 0;
 

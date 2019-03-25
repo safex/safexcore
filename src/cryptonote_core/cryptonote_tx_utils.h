@@ -49,18 +49,16 @@ namespace cryptonote
   {
     typedef std::pair<uint64_t, rct::ctkey> output_entry;
 
-    std::vector<output_entry> outputs;  //index + key + optional ringct commitment
+    std::vector<output_entry> outputs;  //index + key
     size_t real_output = 0;             //index in outputs vector of real output_entry
     crypto::public_key real_out_tx_key = AUTO_VAL_INIT(real_out_tx_key); //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
     size_t real_output_in_tx_index = 0;  //index in transaction outputs vector
     uint64_t amount = 0;                //money
-    bool rct = false;                    //true if the output is rct
-    rct::key mask = AUTO_VAL_INIT(mask);//ringct amount mask
-    rct::multisig_kLRki multisig_kLRki = AUTO_VAL_INIT(multisig_kLRki); //multisig info, not used, kept for binary compatibility
     uint64_t token_amount = 0;          //tokens
-    bool token_transaction = false;     //source with safex tokens, not safex cash
-    bool migration = false;             //this transaction is migration from bitcoin network
+    //bool token_transaction = false;     //source with safex tokens, not safex cash
+    //bool migration = false;             //this transaction is migration from bitcoin network
+    cryptonote::tx_out_type referenced_output_type = tx_out_type::out_cash;
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 
@@ -71,12 +69,10 @@ namespace cryptonote
       FIELD(real_out_additional_tx_keys)
       FIELD(real_output_in_tx_index)
       FIELD(amount)
-      FIELD(rct)
-      FIELD(mask)
-      FIELD(multisig_kLRki)
       FIELD(token_amount)
-      FIELD(token_transaction)
-      FIELD(migration)
+      //FIELD(token_transaction)
+//      FIELD(migration)
+      FIELD(referenced_output_type)
 
       if (real_output >= outputs.size())
         return false;
@@ -90,15 +86,29 @@ namespace cryptonote
     account_public_address addr;        //destination address
     bool is_subaddress;
     bool token_transaction;             //output is safex tokens, not safex cash
+    bool script_output;                 // if this is advanced output
+    tx_out_type output_type;            //type of the output
 
-    tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false), token_transaction(false) { }
-    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, bool is_token_transaction = false) : amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_transaction)
+    tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false),
+    token_transaction(false), script_output(false), output_type{tx_out_type::out_cash} {
+
+    }
+
+
+
+    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, tx_out_type _out_type = tx_out_type::out_cash) :
+    amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)), output_type(_out_type)
     {
-      if (is_token_transaction)
+      if (token_transaction)
         token_amount = a;
       else
         amount = a;
     }
+
+    constexpr bool is_token_output(tx_out_type _out_type) const { return _out_type == tx_out_type::out_token;}
+    constexpr bool is_cash_output(tx_out_type _out_type) const { return _out_type == tx_out_type::out_cash;}
+    constexpr bool is_script_output(tx_out_type _out_type) const { return (_out_type >= tx_out_type::out_advanced && _out_type < tx_out_type::out_invalid );}
+
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(amount)
@@ -106,6 +116,8 @@ namespace cryptonote
       FIELD(addr)
       FIELD(is_subaddress)
       FIELD(token_transaction)
+      FIELD(script_output)
+      FIELD(output_type)
     END_SERIALIZE()
   };
 
@@ -113,6 +125,7 @@ namespace cryptonote
   crypto::public_key get_destination_view_key_pub(const std::vector<tx_destination_entry> &destinations, const boost::optional<cryptonote::account_public_address>& change_addr);
   bool construct_tx(const account_keys& sender_account_keys, std::vector<tx_source_entry> &sources, const std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time);
   bool construct_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool shuffle_outs = true);
+  bool construct_advanced_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool shuffle_outs = true);
   bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys);
 
   bool generate_genesis_block(
@@ -146,12 +159,10 @@ namespace boost
       a & x.real_output_in_tx_index;
       a & x.real_out_additional_tx_keys;
       a & x.amount;
-      a & x.rct;
-      a & x.mask;
-      a & x.multisig_kLRki;
       a & x.token_amount;
-      a & x.token_transaction;
-      a & x.migration;
+      //a & x.token_transaction;
+//      a & x.migration;
+      a & x.referenced_output_type;
 
     }
 
@@ -163,6 +174,8 @@ namespace boost
       a & x.is_subaddress;
       a & x.token_amount;
       a & x.token_transaction;
+      a & x.script_output;
+      a & x.output_type;
     }
   }
 }

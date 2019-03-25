@@ -4273,9 +4273,9 @@ void wallet::transfer_migration(
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = 0;
-    src.token_transaction = false;
-    src.migration = false;
-    src.rct = false;
+    //src.token_transaction = false;
+    src.referenced_output_type = tx_out_type::out_cash;
+    //src.migration = false;
     //paste mixin transaction
     if(!daemon_resp.outs.empty())
     {
@@ -4307,7 +4307,6 @@ void wallet::transfer_migration(
     src.real_out_tx_key = get_tx_pub_key_from_extra(td.m_tx);
     src.real_output = interted_it - src.outputs.begin();
     src.real_output_in_tx_index = td.m_internal_output_index;
-    src.multisig_kLRki = AUTO_VAL_INIT(src.multisig_kLRki);
     detail::print_source_entry(src);
     ++i;
   }
@@ -4324,9 +4323,9 @@ void wallet::transfer_migration(
       auto output = cryptonote::generate_migration_bitcoin_transaction_output(m_account.get_keys(), bitcoin_transaction_hash, dt.token_amount);
       src.outputs.push_back(output);
       src.token_amount = dt.token_amount;
-      src.rct = false;
-      src.token_transaction = true;
-      src.migration = true;
+      //src.token_transaction = true;
+      src.referenced_output_type = tx_out_type::out_bitcoin_migration;
+      //src.migration = true;
       detail::print_token_source_entry(src);
     }
   }
@@ -4353,7 +4352,7 @@ void wallet::transfer_migration(
       splitted_dsts.push_back(cryptonote::tx_destination_entry(d.amount, dust_policy.addr_for_dust, d.is_subaddress));
 
     if (d.token_transaction)
-      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, true));
+      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, cryptonote::tx_out_type::out_token));
 
     dust += d.amount;
     token_dust += d.token_amount;
@@ -6048,8 +6047,8 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = td.token_amount();
-    src.token_transaction = src.token_amount > 0;
-    src.rct = td.is_rct();
+    //src.token_transaction = src.token_amount > 0;
+    src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
     //paste keys (fake and real)
 
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
@@ -6083,7 +6082,6 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
     src.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(td.m_tx);
     src.real_output = it_to_replace - src.outputs.begin();
     src.real_output_in_tx_index = td.m_internal_output_index;
-    src.multisig_kLRki = AUTO_VAL_INIT(src.multisig_kLRki);
     detail::print_source_entry(src);
     ++out_index;
   }
@@ -6115,10 +6113,10 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
   }
   for(auto& d: dust_dsts) {
     if ((!dust_policy.add_to_fee) && (!d.token_transaction))
-      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.amount, dust_policy.addr_for_dust, d.is_subaddress));
+      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.amount, dust_policy.addr_for_dust, d.is_subaddress, cryptonote::tx_out_type::out_cash));
 
     if (d.token_transaction)
-      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, true));
+      splitted_dsts.push_back(cryptonote::tx_destination_entry(d.token_amount, dust_policy.addr_for_dust, d.is_subaddress, cryptonote::tx_out_type::out_token));
 
     dust += d.amount;
     token_dust += d.token_amount;
@@ -7177,17 +7175,17 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
     size_t bytes = 0;
     std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
 
-    void add(const account_public_address &addr, bool is_subaddress, bool is_token_transaction, uint64_t amount, unsigned int original_output_index, bool merge_destinations) {
+    void add(const account_public_address &addr, bool is_subaddress, cryptonote::tx_out_type output_type, uint64_t amount, unsigned int original_output_index, bool merge_destinations) {
       if (merge_destinations)
       {
         std::vector<cryptonote::tx_destination_entry>::iterator i;
         i = std::find_if(dsts.begin(), dsts.end(), [&](const cryptonote::tx_destination_entry &d) { return !memcmp (&d.addr, &addr, sizeof(addr)); });
         if (i == dsts.end())
         {
-          dsts.emplace_back(0, addr, is_subaddress, is_token_transaction);
+          dsts.emplace_back(0, addr, is_subaddress, output_type);
           i = dsts.end() - 1;
         }
-        if (is_token_transaction)
+        if (output_type == cryptonote::tx_out_type::out_token)
         {
           THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
           i->token_amount += amount;
@@ -7202,9 +7200,9 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         THROW_WALLET_EXCEPTION_IF(original_output_index > dsts.size(), error::wallet_internal_error,
             std::string("original_output_index too large: ") + std::to_string(original_output_index) + " > " + std::to_string(dsts.size()));
         if (original_output_index == dsts.size())
-          dsts.emplace_back(0,addr,is_subaddress,is_token_transaction);
+          dsts.emplace_back(0,addr,is_subaddress, output_type);
         THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
-        if (is_token_transaction)
+        if (output_type == cryptonote::tx_out_type::out_token)
         {
           THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
           dsts[original_output_index].token_amount += amount;
@@ -7499,7 +7497,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         // we can fully pay that destination
         LOG_PRINT_L2("We can fully pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
           " for " << print_money(dsts[0].token_amount));
-        tx.add(dsts[0].addr, dsts[0].is_subaddress, true, dsts[0].token_amount, original_output_index, m_merge_destinations);
+        tx.add(dsts[0].addr, dsts[0].is_subaddress, cryptonote::tx_out_type::out_token, dsts[0].token_amount, original_output_index, m_merge_destinations);
         available_token_amount -= dsts[0].token_amount;
         dsts[0].token_amount = 0;
         pop_index(dsts, 0);
@@ -7511,7 +7509,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         // we can partially fill that destination
         LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
           " for " << print_money(available_token_amount) << "/" << print_money(dsts[0].token_amount));
-        tx.add(dsts[0].addr, dsts[0].is_subaddress, true, available_token_amount, original_output_index, m_merge_destinations);
+        tx.add(dsts[0].addr, dsts[0].is_subaddress, cryptonote::tx_out_type::out_token, available_token_amount, original_output_index, m_merge_destinations);
         dsts[0].token_amount -= available_token_amount;
         available_token_amount = 0;
       }

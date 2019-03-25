@@ -62,6 +62,14 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_txpool_blob;
 
   MDB_cursor *m_txc_hf_versions;
+
+  MDB_cursor *m_txc_output_advanced;
+  MDB_cursor *m_txc_output_advanced_type;
+  MDB_cursor *m_txc_token_locked_sum;
+  MDB_cursor *m_txc_network_fee;
+  MDB_cursor *m_txc_token_lock_expiry;
+
+
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -77,6 +85,11 @@ typedef struct mdb_txn_cursors
 #define m_cur_txpool_meta	m_cursors->m_txc_txpool_meta
 #define m_cur_txpool_blob	m_cursors->m_txc_txpool_blob
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
+#define m_cur_output_advanced	m_cursors->m_txc_output_advanced
+#define m_cur_output_advanced_type	m_cursors->m_txc_output_advanced_type
+#define m_cur_token_locked_sum	m_cursors->m_txc_token_locked_sum
+#define m_cur_network_fee	m_cursors->m_txc_network_fee
+#define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 
 typedef struct mdb_rflags
 {
@@ -94,6 +107,11 @@ typedef struct mdb_rflags
   bool m_rf_txpool_meta;
   bool m_rf_txpool_blob;
   bool m_rf_hf_versions;
+  bool m_rf_output_advanced;
+  bool m_rf_output_advanced_type;
+  bool m_rf_token_locked_sum;
+  bool m_rf_network_fee;
+  bool m_rf_token_lock_expiry;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -376,9 +394,6 @@ private:
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);
 
-  // migrate from DB version 0 to 1
-  void migrate_0_1();
-
   void cleanup_batch();
 
   virtual bool is_valid_transaction_output_type(const txout_target_v &txout);
@@ -386,6 +401,8 @@ private:
   uint64_t add_token_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
 
   uint64_t add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
+
+  uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
 
 private:
   MDB_env* m_env;
@@ -412,6 +429,14 @@ private:
   MDB_dbi m_hf_versions;
 
   MDB_dbi m_properties;
+
+  //Safex related
+  MDB_dbi m_output_advanced;
+  MDB_dbi m_output_advanced_type;
+  MDB_dbi m_token_locked_sum;
+  MDB_dbi m_network_fee;
+  MDB_dbi m_token_lock_expiry;
+
 
   mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;

@@ -41,7 +41,7 @@
 #include "ring_signature_1.h"
 #include "tx_validation.h"
 #include "v2_tests.h"
-#include "rct.h"
+//#include "rct.h"
 #include "chain_migration.h"
 #include "token_transactions.h"
 /************************************************************************/

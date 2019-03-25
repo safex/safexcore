@@ -236,6 +236,8 @@ namespace cryptonote
   bool is_valid_decomposed_amount(uint64_t amount);
   void get_hash_stats(uint64_t &tx_hashes_calculated, uint64_t &tx_hashes_cached, uint64_t &block_hashes_calculated, uint64_t & block_hashes_cached);
 
+  blobdata txout_script_to_blob(const txout_to_script& txout);
+
   crypto::secret_key encrypt_key(crypto::secret_key key, const epee::wipeable_string &passphrase);
   crypto::secret_key decrypt_key(crypto::secret_key key, const epee::wipeable_string &passphrase);
 #define CHECKED_GET_SPECIFIC_VARIANT(variant_var, specific_type, variable_name, fail_return_val) \
