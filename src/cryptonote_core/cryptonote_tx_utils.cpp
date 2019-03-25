@@ -42,6 +42,7 @@ using namespace epee;
 #include "crypto/crypto.h"
 #include "crypto/hash.h"
 #include "ringct/rctSigs.h"
+#include "safex/command.h"
 
 using namespace crypto;
 
@@ -72,6 +73,10 @@ namespace cryptonote
       }
     }
     LOG_PRINT_L2("destinations include " << num_stdaddresses << " standard addresses and " << num_subaddresses << " subaddresses");
+  }
+  //---------------------------------------------------------------
+  bool is_advanced_transaction(const std::vector<tx_destination_entry>& destinations) {
+    return std::any_of(destinations.begin(), destinations.end(), [](const tx_destination_entry &de) {return de.script_output;});
   }
   //---------------------------------------------------------------
   bool construct_miner_tx(size_t height, size_t median_size, uint64_t already_generated_coins, size_t current_block_size, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs, uint8_t hard_fork_version) {
@@ -571,6 +576,46 @@ namespace cryptonote
 
     return true;
   }
+
+  txin_to_script prepare_advanced_input(const tx_source_entry &src_entr, const crypto::key_image &img)
+  {
+    txin_to_script input = AUTO_VAL_INIT(input);
+
+    if (src_entr.command_type == safex::command_t::token_lock)
+    {
+
+      //todo put this into function
+
+      input.token_amount = src_entr.token_amount;
+      input.k_image = img;
+
+      //fill outputs array and use relative offsets
+      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+        input.key_offsets.push_back(out_entry.first);
+
+      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+      //here, prepare data of transaction command execution and serialize command
+      safex::token_lock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+      safex::safex_command_serializer::store_command(cmd, input.script);
+    }
+    else
+    {
+      SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
+    }
+
+    return input;
+  }
+
+  txin_to_script& match_input(const tx_destination_entry &dst_entr, const std::vector<tx_source_entry>& sources)
+  {
+
+
+
+      SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
+
+  }
+
   //---------------------------------------------------------------
   bool construct_advanced_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses,
           std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr,
@@ -683,7 +728,12 @@ namespace cryptonote
         return false;
       }
 
-      if (src_entr.referenced_output_type == tx_out_type::out_token)
+      if (src_entr.command_type != safex::command_t::nop)
+      {
+        txin_to_script input_txin_to_script = prepare_advanced_input(src_entr, img);
+        tx.vin.push_back(input_txin_to_script);
+      }
+      else if (src_entr.referenced_output_type == tx_out_type::out_token)
       {
         txin_token_to_key input_token_to_key = AUTO_VAL_INIT(input_token_to_key);
         input_token_to_key.token_amount = src_entr.token_amount;
@@ -772,7 +822,7 @@ namespace cryptonote
     size_t output_index = 0;
     for(const tx_destination_entry& dst_entr: destinations)
     {
-      CHECK_AND_ASSERT_MES(dst_entr.amount > 0 || dst_entr.token_amount > 0 || tx.version > 1, false, "Destination with wrong amount: " << dst_entr.amount << " or token amount " << dst_entr.token_amount);
+      CHECK_AND_ASSERT_MES(dst_entr.amount > 0 || dst_entr.token_amount > 0 ||  dst_entr.output_type > tx_out_type::out_advanced, false, "Destination with wrong amount: " << dst_entr.amount << " or token amount " << dst_entr.token_amount);
       crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);
       crypto::public_key out_eph_public_key = AUTO_VAL_INIT(out_eph_public_key);
 
@@ -813,20 +863,48 @@ namespace cryptonote
 
       tx_out out = AUTO_VAL_INIT(out);
 
-      if (dst_entr.token_transaction) {
+      if (dst_entr.output_type == tx_out_type::out_token)
+      {
         out.token_amount = dst_entr.token_amount;
         out.amount = 0;
         txout_token_to_key ttk = AUTO_VAL_INIT(ttk);
         ttk.key = out_eph_public_key;
         out.target = ttk;
         tx.vout.push_back(out);
-      } else {
+      }
+      else if (dst_entr.output_type == tx_out_type::out_cash)
+      {
         out.amount = dst_entr.amount;
         out.token_amount = 0;
         txout_to_key tk = AUTO_VAL_INIT(tk);
         tk.key = out_eph_public_key;
         out.target = tk;
         tx.vout.push_back(out);
+      }
+      else if (dst_entr.output_type == tx_out_type::out_locked_token)
+      {
+        out.token_amount = dst_entr.token_amount;
+        out.amount = 0;
+        txout_to_script txs = AUTO_VAL_INIT(txs);
+        txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_locked_token);
+        txs.keys.push_back(out_eph_public_key);
+
+        //fill data from command execution
+        safex::token_lock command{};
+        //find matching script input
+        const txin_to_script& txinput = match_input(dst_entr, sources);
+        safex::safex_command_serializer::load_command(txinput.script, command);
+
+        safex::token_lock_result result{};
+        //command.execute(this->db, txinput, result);
+
+
+        tx.vout.push_back(out);
+      }
+      else
+      {
+        LOG_ERROR("Wrong transaction output type");
+        return false;
       }
 
       output_index++;
@@ -945,11 +1023,8 @@ namespace cryptonote
         additional_tx_keys.push_back(keypair::generate(sender_account_keys.get_device()).sec);
     }
 
-    //check if we are dealing with advanced transaction
-    bool advanced_transaction = std::any_of(destinations.begin(), destinations.end(), [](const tx_destination_entry &de) {return de.script_output;});
-
     bool r;
-    if (advanced_transaction)
+    if (is_advanced_transaction(destinations))
       r = construct_advanced_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
     else
       r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys);

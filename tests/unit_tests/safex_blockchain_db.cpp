@@ -278,7 +278,7 @@ bool compare_txs(const transaction& a, const transaction& b)
                     const tx_out &out = tx.vout[j];
                     const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
-                    if (out_type == cryptonote::tx_out_type::out_token)
+                    if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_locked_token))
                     {
                       if (out.target.type() == typeid(cryptonote::txout_token_to_key))
                       {
@@ -293,7 +293,8 @@ bool compare_txs(const transaction& a, const transaction& b)
                         }
                       }
 
-                    } else if (out_type == cryptonote::tx_out_type::out_cash)
+                    }
+                    else if (out_type == cryptonote::tx_out_type::out_cash)
                     {
                       if (out.target.type() == typeid(cryptonote::txout_to_key))
                       { // out_to_key
@@ -309,8 +310,6 @@ bool compare_txs(const transaction& a, const transaction& b)
                       }
 
                     }
-
-
                   }
                 }
               }
@@ -430,8 +429,16 @@ bool compare_txs(const transaction& a, const transaction& b)
                   else if (out_type == cryptonote::tx_out_type::out_token)
                   {
                     ts.token_amount = oi.token_amount;
-                    //ts.token_transaction = true;
                     ts.referenced_output_type = cryptonote::tx_out_type::out_token;
+                  }
+                  else if (out_type == cryptonote::tx_out_type::out_locked_token)
+                  {
+                    ts.token_amount = oi.token_amount;
+                    ts.referenced_output_type = cryptonote::tx_out_type::out_token;
+                    ts.command_type = safex::command_t::token_lock;
+                  }
+                  else {
+                    throw std::runtime_error("unknown referenced output type");
                   }
                   ts.real_output_in_tx_index = oi.out_no;
                   ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
@@ -447,7 +454,8 @@ bool compare_txs(const transaction& a, const transaction& b)
                   {
                     sources_cash_amount += ts.amount;
                     sources_found = value_amount <= sources_cash_amount;
-                  } else if (out_type == cryptonote::tx_out_type::out_token)
+                  } else if ((out_type == cryptonote::tx_out_type::out_token) ||
+                          (out_type == cryptonote::tx_out_type::out_locked_token))
                   {
                     sources_token_amount += ts.token_amount;
                     sources_found = value_amount <= sources_token_amount;
@@ -515,9 +523,7 @@ bool compare_txs(const transaction& a, const transaction& b)
         auto output = cryptonote::generate_migration_bitcoin_transaction_output(from.get_keys(), bitcoin_transaction_hash, token_amount);
         src.outputs.push_back(output);
         src.token_amount = token_amount;
-        //src.token_transaction = true;
         src.referenced_output_type = cryptonote::tx_out_type::out_bitcoin_migration;
-//        src.migration = true;
 
 
         return sources_found;
@@ -645,8 +651,8 @@ bool compare_txs(const transaction& a, const transaction& b)
           throw std::runtime_error("couldn't fill transaction sources");
 
         //token source
-        if (!fill_tx_sources(sources, from, token_amount, nmix, cryptonote::tx_out_type::out_token))
-          throw std::runtime_error("couldn't fill token transaction sources");
+        if (!fill_tx_sources(sources, from, token_amount, nmix, cryptonote::tx_out_type::out_locked_token))
+          throw std::runtime_error("couldn't fill token transaction sources for tokens to lock");
 
         //locked token destination
         tx_destination_entry de = create_locked_token_tx_destination(to, token_amount);
