@@ -3,6 +3,7 @@
 //
 
 #include "cryptonote_to_protobuf.h"
+#include "cryptonote_basic/cryptonote_format_utils.h"
 #include <algorithm>
 #include <memory>
 
@@ -128,8 +129,9 @@ namespace safex {
         prototx->set_version(tx.version);
         prototx->set_unlock_time(tx.unlock_time);
 
-        for(uint8_t extra : tx.extra)
-            prototx->add_extra(extra);
+        prototx->set_tx_hash(epee::string_tools::pod_to_hex(tx.hash));
+
+        prototx->set_extra(std::string{std::begin(tx.extra), std::end(tx.extra)});
 
         // Handling tx inputs
         ::add_to_protobuf_txin_visitor visitor(prototx);
@@ -174,18 +176,14 @@ namespace safex {
 
     }
 
-    void blocks_protobuf::add_block(const cryptonote::block& blck, const std::list<cryptonote::transaction>& txs) {
+    void blocks_protobuf::add_block(const cryptonote::block& blck) {
         safex::Block* proto_blck = m_blcks.add_block();
         proto_blck->set_allocated_header(proto_block_header(blck));
 
-        safex::Transaction* proto_minertx = new safex::Transaction{};
-        transactions_protobuf::fill_proto_tx(proto_minertx, blck.miner_tx);
+        proto_blck->set_miner_tx(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(blck.miner_tx)));
 
-        proto_blck->set_allocated_miner_tx(proto_minertx);
-
-        for(const auto& tx : txs) {
-            safex::Transaction* proto_tx = proto_blck->add_txs();
-            transactions_protobuf::fill_proto_tx(proto_tx, tx);
+        for(const auto& tx : blck.tx_hashes) {
+            proto_blck->add_txs(epee::string_tools::pod_to_hex(tx));
         }
     }
 

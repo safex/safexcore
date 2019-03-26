@@ -10,6 +10,7 @@
 #include "transactions.pb.h"
 #include "blocks.pb.h"
 #include "../cryptonote_basic/cryptonote_basic.h"
+#include "../cryptonote_core/cryptonote_core.h"
 #include <google/protobuf/text_format.h>
 #include <string>
 
@@ -49,7 +50,7 @@ namespace safex {
         blocks_protobuf();
         ~blocks_protobuf();
 
-        void add_block(const cryptonote::block& blck, const std::list<cryptonote::transaction>& txs);
+        void add_block(const cryptonote::block& blck);
         void add_error(const std::string& err);
 
 
