@@ -2358,14 +2358,8 @@ namespace cryptonote
         return false;
       }
 
-      std::list<cryptonote::transaction> txs;
-      std::list<crypto::hash> missed_tx;
-
-
-      m_core.get_transactions(blk.tx_hashes, txs, missed_tx);
-
       // Generate response properly
-      blocks.add_block(blk, txs);
+      blocks.add_block(blk);
 
     }
 

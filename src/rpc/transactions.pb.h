@@ -1102,17 +1102,16 @@ class Transaction : public ::google::protobuf::Message /* @@protoc_insertion_poi
   ::google::protobuf::uint64 unlock_time() const;
   void set_unlock_time(::google::protobuf::uint64 value);
 
-  // repeated uint32 extra = 3;
-  int extra_size() const;
+  // optional bytes extra = 3;
   void clear_extra();
   static const int kExtraFieldNumber = 3;
-  ::google::protobuf::uint32 extra(int index) const;
-  void set_extra(int index, ::google::protobuf::uint32 value);
-  void add_extra(::google::protobuf::uint32 value);
-  const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-      extra() const;
-  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-      mutable_extra();
+  const ::std::string& extra() const;
+  void set_extra(const ::std::string& value);
+  void set_extra(const char* value);
+  void set_extra(const void* value, size_t size);
+  ::std::string* mutable_extra();
+  ::std::string* release_extra();
+  void set_allocated_extra(::std::string* extra);
 
   // repeated .safex.txin_v vin = 4;
   int vin_size() const;
@@ -1204,8 +1203,7 @@ class Transaction : public ::google::protobuf::Message /* @@protoc_insertion_poi
   bool _is_default_instance_;
   ::google::protobuf::uint64 version_;
   ::google::protobuf::uint64 unlock_time_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > extra_;
-  mutable int _extra_cached_byte_size_;
+  ::google::protobuf::internal::ArenaStringPtr extra_;
   ::google::protobuf::RepeatedPtrField< ::safex::txin_v > vin_;
   ::google::protobuf::RepeatedPtrField< ::safex::txout > vout_;
   ::google::protobuf::RepeatedPtrField< ::safex::Signature > signatures_;
@@ -2134,34 +2132,48 @@ inline void Transaction::set_unlock_time(::google::protobuf::uint64 value) {
   // @@protoc_insertion_point(field_set:safex.Transaction.unlock_time)
 }
 
-// repeated uint32 extra = 3;
-inline int Transaction::extra_size() const {
-  return extra_.size();
-}
+// optional bytes extra = 3;
 inline void Transaction::clear_extra() {
-  extra_.Clear();
+  extra_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::google::protobuf::uint32 Transaction::extra(int index) const {
+inline const ::std::string& Transaction::extra() const {
   // @@protoc_insertion_point(field_get:safex.Transaction.extra)
-  return extra_.Get(index);
+  return extra_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Transaction::set_extra(int index, ::google::protobuf::uint32 value) {
-  extra_.Set(index, value);
+inline void Transaction::set_extra(const ::std::string& value) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:safex.Transaction.extra)
 }
-inline void Transaction::add_extra(::google::protobuf::uint32 value) {
-  extra_.Add(value);
-  // @@protoc_insertion_point(field_add:safex.Transaction.extra)
+inline void Transaction::set_extra(const char* value) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.Transaction.extra)
 }
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-Transaction::extra() const {
-  // @@protoc_insertion_point(field_list:safex.Transaction.extra)
-  return extra_;
+inline void Transaction::set_extra(const void* value, size_t size) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.Transaction.extra)
 }
-inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-Transaction::mutable_extra() {
-  // @@protoc_insertion_point(field_mutable_list:safex.Transaction.extra)
-  return &extra_;
+inline ::std::string* Transaction::mutable_extra() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.Transaction.extra)
+  return extra_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* Transaction::release_extra() {
+  // @@protoc_insertion_point(field_release:safex.Transaction.extra)
+  
+  return extra_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void Transaction::set_allocated_extra(::std::string* extra) {
+  if (extra != NULL) {
+    
+  } else {
+    
+  }
+  extra_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), extra);
+  // @@protoc_insertion_point(field_set_allocated:safex.Transaction.extra)
 }
 
 // repeated .safex.txin_v vin = 4;

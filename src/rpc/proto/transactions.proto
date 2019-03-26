@@ -69,7 +69,7 @@ message Transaction {
 	uint64 version = 1;
 
 	uint64 unlock_time = 2;
-	repeated uint32 extra = 3;
+	bytes extra = 3;
 	repeated txin_v vin = 4;
 	repeated txout vout = 5;
 	repeated Signature signatures = 6;

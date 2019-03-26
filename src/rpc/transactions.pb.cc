@@ -369,7 +369,7 @@ void protobuf_AddDesc_transactions_2eproto() {
     "nt\030\002 \001(\004\022%\n\006target\030\003 \001(\0132\025.safex.txout_t"
     "arget_v\"\036\n\tSignature\022\021\n\tsignature\030\001 \003(\t\""
     "\244\002\n\013Transaction\022\017\n\007version\030\001 \001(\004\022\023\n\013unlo"
-    "ck_time\030\002 \001(\004\022\r\n\005extra\030\003 \003(\r\022\032\n\003vin\030\004 \003("
+    "ck_time\030\002 \001(\004\022\r\n\005extra\030\003 \001(\014\022\032\n\003vin\030\004 \003("
     "\0132\r.safex.txin_v\022\032\n\004vout\030\005 \003(\0132\014.safex.t"
     "xout\022$\n\nsignatures\030\006 \003(\0132\020.safex.Signatu"
     "re\022\024\n\014block_height\030\007 \001(\004\022\027\n\017block_timest"
@@ -4095,6 +4095,7 @@ void Transaction::SharedCtor() {
   _cached_size_ = 0;
   version_ = GOOGLE_ULONGLONG(0);
   unlock_time_ = GOOGLE_ULONGLONG(0);
+  extra_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   block_height_ = GOOGLE_ULONGLONG(0);
   block_timestamp_ = GOOGLE_ULONGLONG(0);
   double_spend_seen_ = false;
@@ -4108,6 +4109,7 @@ Transaction::~Transaction() {
 }
 
 void Transaction::SharedDtor() {
+  extra_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   tx_hash_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != default_instance_) {
   }
@@ -4158,13 +4160,13 @@ void Transaction::Clear() {
 
   ZR_(version_, unlock_time_);
   ZR_(block_height_, block_timestamp_);
+  extra_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ZR_(double_spend_seen_, in_pool_);
   tx_hash_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 
 #undef ZR_HELPER_
 #undef ZR_
 
-  extra_.Clear();
   vin_.Clear();
   vout_.Clear();
   signatures_.Clear();
@@ -4210,17 +4212,12 @@ bool Transaction::MergePartialFromCodedStream(
         break;
       }
 
-      // repeated uint32 extra = 3;
+      // optional bytes extra = 3;
       case 3: {
         if (tag == 26) {
          parse_extra:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, this->mutable_extra())));
-        } else if (tag == 24) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 1, 26, input, this->mutable_extra())));
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_extra()));
         } else {
           goto handle_unusual;
         }
@@ -4406,14 +4403,10 @@ void Transaction::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->unlock_time(), output);
   }
 
-  // repeated uint32 extra = 3;
-  if (this->extra_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(3, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_extra_cached_byte_size_);
-  }
-  for (int i = 0; i < this->extra_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32NoTag(
-      this->extra(i), output);
+  // optional bytes extra = 3;
+  if (this->extra().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      3, this->extra(), output);
   }
 
   // repeated .safex.txin_v vin = 4;
@@ -4490,18 +4483,11 @@ void Transaction::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(2, this->unlock_time(), target);
   }
 
-  // repeated uint32 extra = 3;
-  if (this->extra_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      3,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _extra_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->extra_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteUInt32NoTagToArray(this->extra(i), target);
+  // optional bytes extra = 3;
+  if (this->extra().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        3, this->extra(), target);
   }
 
   // repeated .safex.txin_v vin = 4;
@@ -4592,6 +4578,13 @@ int Transaction::ByteSize() const {
         this->unlock_time());
   }
 
+  // optional bytes extra = 3;
+  if (this->extra().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->extra());
+  }
+
   // optional uint64 block_height = 7;
   if (this->block_height() != 0) {
     total_size += 1 +
@@ -4621,23 +4614,6 @@ int Transaction::ByteSize() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
         this->tx_hash());
-  }
-
-  // repeated uint32 extra = 3;
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->extra_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        UInt32Size(this->extra(i));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-    _extra_cached_byte_size_ = data_size;
-    GOOGLE_SAFE_CONCURRENT_WRITES_END();
-    total_size += data_size;
   }
 
   // repeated .safex.txin_v vin = 4;
@@ -4709,7 +4685,6 @@ void Transaction::MergeFrom(const Transaction& from) {
   if (GOOGLE_PREDICT_FALSE(&from == this)) {
     ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
   }
-  extra_.MergeFrom(from.extra_);
   vin_.MergeFrom(from.vin_);
   vout_.MergeFrom(from.vout_);
   signatures_.MergeFrom(from.signatures_);
@@ -4719,6 +4694,10 @@ void Transaction::MergeFrom(const Transaction& from) {
   }
   if (from.unlock_time() != 0) {
     set_unlock_time(from.unlock_time());
+  }
+  if (from.extra().size() > 0) {
+
+    extra_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.extra_);
   }
   if (from.block_height() != 0) {
     set_block_height(from.block_height());
@@ -4764,7 +4743,7 @@ void Transaction::Swap(Transaction* other) {
 void Transaction::InternalSwap(Transaction* other) {
   std::swap(version_, other->version_);
   std::swap(unlock_time_, other->unlock_time_);
-  extra_.UnsafeArenaSwap(&other->extra_);
+  extra_.Swap(&other->extra_);
   vin_.UnsafeArenaSwap(&other->vin_);
   vout_.UnsafeArenaSwap(&other->vout_);
   signatures_.UnsafeArenaSwap(&other->signatures_);
@@ -4817,34 +4796,48 @@ void Transaction::clear_unlock_time() {
   // @@protoc_insertion_point(field_set:safex.Transaction.unlock_time)
 }
 
-// repeated uint32 extra = 3;
-int Transaction::extra_size() const {
-  return extra_.size();
-}
+// optional bytes extra = 3;
 void Transaction::clear_extra() {
-  extra_.Clear();
+  extra_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::google::protobuf::uint32 Transaction::extra(int index) const {
+ const ::std::string& Transaction::extra() const {
   // @@protoc_insertion_point(field_get:safex.Transaction.extra)
-  return extra_.Get(index);
+  return extra_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void Transaction::set_extra(int index, ::google::protobuf::uint32 value) {
-  extra_.Set(index, value);
+ void Transaction::set_extra(const ::std::string& value) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:safex.Transaction.extra)
 }
- void Transaction::add_extra(::google::protobuf::uint32 value) {
-  extra_.Add(value);
-  // @@protoc_insertion_point(field_add:safex.Transaction.extra)
+ void Transaction::set_extra(const char* value) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.Transaction.extra)
 }
- const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
-Transaction::extra() const {
-  // @@protoc_insertion_point(field_list:safex.Transaction.extra)
-  return extra_;
+ void Transaction::set_extra(const void* value, size_t size) {
+  
+  extra_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.Transaction.extra)
 }
- ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
-Transaction::mutable_extra() {
-  // @@protoc_insertion_point(field_mutable_list:safex.Transaction.extra)
-  return &extra_;
+ ::std::string* Transaction::mutable_extra() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.Transaction.extra)
+  return extra_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Transaction::release_extra() {
+  // @@protoc_insertion_point(field_release:safex.Transaction.extra)
+  
+  return extra_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Transaction::set_allocated_extra(::std::string* extra) {
+  if (extra != NULL) {
+    
+  } else {
+    
+  }
+  extra_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), extra);
+  // @@protoc_insertion_point(field_set_allocated:safex.Transaction.extra)
 }
 
 // repeated .safex.txin_v vin = 4;

@@ -27,7 +27,6 @@
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
 #include <google/protobuf/unknown_field_set.h>
-#include "transactions.pb.h"
 // @@protoc_insertion_point(includes)
 
 namespace safex {
@@ -232,26 +231,32 @@ class Block : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
   ::safex::BlockHeader* release_header();
   void set_allocated_header(::safex::BlockHeader* header);
 
-  // repeated .safex.Transaction txs = 2;
+  // repeated string txs = 2;
   int txs_size() const;
   void clear_txs();
   static const int kTxsFieldNumber = 2;
-  const ::safex::Transaction& txs(int index) const;
-  ::safex::Transaction* mutable_txs(int index);
-  ::safex::Transaction* add_txs();
-  ::google::protobuf::RepeatedPtrField< ::safex::Transaction >*
-      mutable_txs();
-  const ::google::protobuf::RepeatedPtrField< ::safex::Transaction >&
-      txs() const;
+  const ::std::string& txs(int index) const;
+  ::std::string* mutable_txs(int index);
+  void set_txs(int index, const ::std::string& value);
+  void set_txs(int index, const char* value);
+  void set_txs(int index, const char* value, size_t size);
+  ::std::string* add_txs();
+  void add_txs(const ::std::string& value);
+  void add_txs(const char* value);
+  void add_txs(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& txs() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_txs();
 
-  // optional .safex.Transaction miner_tx = 3;
-  bool has_miner_tx() const;
+  // optional string miner_tx = 3;
   void clear_miner_tx();
   static const int kMinerTxFieldNumber = 3;
-  const ::safex::Transaction& miner_tx() const;
-  ::safex::Transaction* mutable_miner_tx();
-  ::safex::Transaction* release_miner_tx();
-  void set_allocated_miner_tx(::safex::Transaction* miner_tx);
+  const ::std::string& miner_tx() const;
+  void set_miner_tx(const ::std::string& value);
+  void set_miner_tx(const char* value);
+  void set_miner_tx(const char* value, size_t size);
+  ::std::string* mutable_miner_tx();
+  ::std::string* release_miner_tx();
+  void set_allocated_miner_tx(::std::string* miner_tx);
 
   // @@protoc_insertion_point(class_scope:safex.Block)
  private:
@@ -259,8 +264,8 @@ class Block : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   bool _is_default_instance_;
   ::safex::BlockHeader* header_;
-  ::google::protobuf::RepeatedPtrField< ::safex::Transaction > txs_;
-  ::safex::Transaction* miner_tx_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> txs_;
+  ::google::protobuf::internal::ArenaStringPtr miner_tx_;
   mutable int _cached_size_;
   friend void  protobuf_AddDesc_blocks_2eproto();
   friend void protobuf_AssignDesc_blocks_2eproto();
@@ -563,71 +568,102 @@ inline void Block::set_allocated_header(::safex::BlockHeader* header) {
   // @@protoc_insertion_point(field_set_allocated:safex.Block.header)
 }
 
-// repeated .safex.Transaction txs = 2;
+// repeated string txs = 2;
 inline int Block::txs_size() const {
   return txs_.size();
 }
 inline void Block::clear_txs() {
   txs_.Clear();
 }
-inline const ::safex::Transaction& Block::txs(int index) const {
+inline const ::std::string& Block::txs(int index) const {
   // @@protoc_insertion_point(field_get:safex.Block.txs)
   return txs_.Get(index);
 }
-inline ::safex::Transaction* Block::mutable_txs(int index) {
+inline ::std::string* Block::mutable_txs(int index) {
   // @@protoc_insertion_point(field_mutable:safex.Block.txs)
   return txs_.Mutable(index);
 }
-inline ::safex::Transaction* Block::add_txs() {
-  // @@protoc_insertion_point(field_add:safex.Block.txs)
+inline void Block::set_txs(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:safex.Block.txs)
+  txs_.Mutable(index)->assign(value);
+}
+inline void Block::set_txs(int index, const char* value) {
+  txs_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:safex.Block.txs)
+}
+inline void Block::set_txs(int index, const char* value, size_t size) {
+  txs_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:safex.Block.txs)
+}
+inline ::std::string* Block::add_txs() {
+  // @@protoc_insertion_point(field_add_mutable:safex.Block.txs)
   return txs_.Add();
 }
-inline ::google::protobuf::RepeatedPtrField< ::safex::Transaction >*
-Block::mutable_txs() {
-  // @@protoc_insertion_point(field_mutable_list:safex.Block.txs)
-  return &txs_;
+inline void Block::add_txs(const ::std::string& value) {
+  txs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:safex.Block.txs)
 }
-inline const ::google::protobuf::RepeatedPtrField< ::safex::Transaction >&
+inline void Block::add_txs(const char* value) {
+  txs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:safex.Block.txs)
+}
+inline void Block::add_txs(const char* value, size_t size) {
+  txs_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:safex.Block.txs)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
 Block::txs() const {
   // @@protoc_insertion_point(field_list:safex.Block.txs)
   return txs_;
 }
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+Block::mutable_txs() {
+  // @@protoc_insertion_point(field_mutable_list:safex.Block.txs)
+  return &txs_;
+}
 
-// optional .safex.Transaction miner_tx = 3;
-inline bool Block::has_miner_tx() const {
-  return !_is_default_instance_ && miner_tx_ != NULL;
-}
+// optional string miner_tx = 3;
 inline void Block::clear_miner_tx() {
-  if (GetArenaNoVirtual() == NULL && miner_tx_ != NULL) delete miner_tx_;
-  miner_tx_ = NULL;
+  miner_tx_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline const ::safex::Transaction& Block::miner_tx() const {
+inline const ::std::string& Block::miner_tx() const {
   // @@protoc_insertion_point(field_get:safex.Block.miner_tx)
-  return miner_tx_ != NULL ? *miner_tx_ : *default_instance_->miner_tx_;
+  return miner_tx_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::safex::Transaction* Block::mutable_miner_tx() {
+inline void Block::set_miner_tx(const ::std::string& value) {
   
-  if (miner_tx_ == NULL) {
-    miner_tx_ = new ::safex::Transaction;
-  }
-  // @@protoc_insertion_point(field_mutable:safex.Block.miner_tx)
-  return miner_tx_;
+  miner_tx_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:safex.Block.miner_tx)
 }
-inline ::safex::Transaction* Block::release_miner_tx() {
+inline void Block::set_miner_tx(const char* value) {
+  
+  miner_tx_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.Block.miner_tx)
+}
+inline void Block::set_miner_tx(const char* value, size_t size) {
+  
+  miner_tx_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.Block.miner_tx)
+}
+inline ::std::string* Block::mutable_miner_tx() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.Block.miner_tx)
+  return miner_tx_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* Block::release_miner_tx() {
   // @@protoc_insertion_point(field_release:safex.Block.miner_tx)
   
-  ::safex::Transaction* temp = miner_tx_;
-  miner_tx_ = NULL;
-  return temp;
+  return miner_tx_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Block::set_allocated_miner_tx(::safex::Transaction* miner_tx) {
-  delete miner_tx_;
-  miner_tx_ = miner_tx;
-  if (miner_tx) {
+inline void Block::set_allocated_miner_tx(::std::string* miner_tx) {
+  if (miner_tx != NULL) {
     
   } else {
     
   }
+  miner_tx_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), miner_tx);
   // @@protoc_insertion_point(field_set_allocated:safex.Block.miner_tx)
 }
 

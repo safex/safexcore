@@ -37,6 +37,7 @@
 #include "transactions.pb.h"
 #include "blocks.pb.h"
 #include "../cryptonote_basic/cryptonote_basic.h"
+#include "../cryptonote_core/cryptonote_core.h"
 #include <google/protobuf/text_format.h>
 #include <string>
 
@@ -92,10 +93,14 @@ namespace safex {
         blocks_protobuf();
         ~blocks_protobuf();
 
+<<<<<<< HEAD
         // @brief Getting all necessary data for block and serializing.
         // @param reference to cryptonote::block
         // @param list of transactions in given block
         void add_block(const cryptonote::block& blck, const std::list<cryptonote::transaction>& txs);
+=======
+        void add_block(const cryptonote::block& blck);
+>>>>>>> Small changes on protobuf related stuff
         void add_error(const std::string& err);
 
         // @brief Get string representation of protobuf serialization.
