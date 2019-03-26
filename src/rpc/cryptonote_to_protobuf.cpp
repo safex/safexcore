@@ -11,6 +11,7 @@
 
 #include "string_tools.h"
 
+// Anonymous namespace for visitor used to recover data from variants.
 namespace {
     // Visitor for serializing tx inputs to protobuf tx structure.
     class add_to_protobuf_txin_visitor : public boost::static_visitor<>
