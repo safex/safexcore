@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "transactions.proto";
-
 package safex;
 
 message BlockHeader {
@@ -14,8 +12,8 @@ message BlockHeader {
 
 message Block {
     BlockHeader header = 1;
-    repeated Transaction txs = 2;
-    Transaction miner_tx = 3;
+    repeated string txs = 2;
+    string miner_tx = 3;
 }
 
 message Blocks {
