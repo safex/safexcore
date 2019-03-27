@@ -43,6 +43,10 @@ namespace safex
   struct token_lock_data
   {
     uint32_t reserved;
+
+    BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(reserved)
+    END_SERIALIZE()
   };
 
   struct token_unlock_result
@@ -117,7 +121,31 @@ namespace safex
 
       uint32_t version;
       command_t command_type;
+  };
 
+  //Dummy command for serialization
+  typedef struct{} dummy_struct;
+  class dummy_command : public command<dummy_struct>
+  {
+
+    public:
+
+      friend class safex_command_serializer;
+
+      dummy_command() :  command<dummy_struct>(0, command_t::nop)
+      {
+
+      }
+
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, dummy_struct &cr) override { return false;};
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<dummy_struct> *>(this))
+      END_SERIALIZE()
+
+    protected:
+      virtual bool store(epee::serialization::portable_storage &ps) const override;
+      virtual bool load(epee::serialization::portable_storage &ps) override;
 
   };
 
@@ -254,18 +282,18 @@ namespace safex
   {
     public:
 
-      template<typename Command>
-      static bool store_command(const Command &com, std::vector<uint8_t>& buffer)
+      template<typename CommandOrData>
+      static bool serialize_safex_object(const CommandOrData &commandOrData, std::vector<uint8_t> &buffer)
       {
-        cryptonote::blobdata blob = cryptonote::t_serializable_object_to_blob(com);
+        cryptonote::blobdata blob = cryptonote::t_serializable_object_to_blob(commandOrData);
         buffer.resize(blob.size());
         memcpy(&buffer[0], blob.data(), blob.size());
         return true;
       }
 
 
-      template<typename Command>
-      static bool load_command(const std::vector<uint8_t>& buffer, Command& command)
+      template<typename CommandOrData>
+      static bool parse_safex_object(const std::vector<uint8_t> &buffer, CommandOrData &commandOrData)
       {
         cryptonote::blobdata command_blob;
         const uint8_t* serialized_buffer_ptr = &buffer[0];
@@ -274,8 +302,8 @@ namespace safex
         std::stringstream ss;
         ss << command_blob;
         binary_archive<false> ba(ss);
-        bool r = ::serialization::serialize(ba, command);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
+        bool r = ::serialization::serialize(ba, commandOrData);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
         return true;
       }
 
@@ -284,14 +312,13 @@ namespace safex
 
         cryptonote::blobdata command_blob;
         const uint8_t* serialized_buffer_ptr = &script[0];
-        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + script.size(), std::back_inserter(command_blob));
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + 2, std::back_inserter(command_blob));
 
         std::stringstream ss;
         ss << command_blob;
         binary_archive<false> ba(ss);
-        token_lock temp; //just take any command, we just need command type deserialized
-        //bool r = ::serialization::serialize(ba, static_cast<command<token_lock_result>&>(temp));
-        bool r = ::serialization::serialize(ba, temp);
+        dummy_command temp; //just take any command, we just need command type deserialized
+        bool r = ::serialization::serialize(ba, static_cast<command<dummy_struct>&>(temp));
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
 
         return static_cast<command_t>(temp.get_command_type());

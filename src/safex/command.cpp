@@ -44,6 +44,9 @@ namespace safex
     return true;
   }
 
+  bool dummy_command::store(epee::serialization::portable_storage &ps) const {return false;};
+  bool dummy_command::load(epee::serialization::portable_storage &ps) {return false;};
+
 
   bool token_lock::store(epee::serialization::portable_storage &ps) const
   {

@@ -417,7 +417,7 @@ bool compare_txs(const transaction& a, const transaction& b)
                   size_t sender_out = o.second[i];
                   const output_index &oi = outs[o.first][sender_out];
                   if ((oi.spent) || (oi.token_amount > 0 && out_type == cryptonote::tx_out_type::out_cash) ||
-                      (oi.amount > 0 && out_type == cryptonote::tx_out_type::out_token))
+                      (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_locked_token)))
                     continue;
 
                   cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);

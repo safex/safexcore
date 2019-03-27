@@ -597,7 +597,7 @@ namespace cryptonote
 
       //here, prepare data of transaction command execution and serialize command
       safex::token_lock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
-      safex::safex_command_serializer::store_command(cmd, input.script);
+      safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else
     {
@@ -607,12 +607,54 @@ namespace cryptonote
     return input;
   }
 
-  txin_to_script& match_input(const tx_destination_entry &dst_entr, const std::vector<tx_source_entry>& sources)
+  /**
+   * Based on ouput, check if matching source entry logic applies (command that produces output), and return command input
+   * @param dst_entr - destination output for which input should be founded
+   * @param sources - vector of source entries
+   * @param inputs - vector of transaction inputs created based on source entries
+   * @return pointer to input matching output or nullptr
+   */
+  const std::vector<const txin_to_script* > match_inputs(const tx_destination_entry &dst_entr, const std::vector<tx_source_entry> &sources, const std::vector<txin_v>& inputs)
   {
 
+    int counter=0;
+    std::vector<const txin_to_script *> matched_inputs;
+
+    switch (dst_entr.output_type)
+    {
+      case tx_out_type::out_locked_token:
+      {
+        counter = std::count_if(sources.begin(), sources.end(), [](const tx_source_entry &entry)
+        { return entry.command_type == safex::command_t::token_lock; });
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter > 0, "Must be at least one tocken lock command per transaction", safex::command_t::token_lock);
+
+        std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
+        {
+          if ((txin.type() == typeid(txin_to_script))
+              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::token_lock))
+          {
+            matched_inputs.push_back(&boost::get<txin_to_script>(txin));
+          };
 
 
-      SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
+        });
+
+        //count tokens to lock
+        uint64_t tokens_to_lock = 0;
+        for (auto txin: matched_inputs)
+        {
+          tokens_to_lock += txin->token_amount;
+        }
+
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(tokens_to_lock >= dst_entr.token_amount, "Not enough tokens to lock at input", safex::command_t::token_lock);
+
+        return matched_inputs;
+
+      }
+      default:
+        SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex output type", safex::command_t::invalid_command);
+    }
+
 
   }
 
@@ -889,14 +931,14 @@ namespace cryptonote
         txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_locked_token);
         txs.keys.push_back(out_eph_public_key);
 
-        //fill data from command execution
-        safex::token_lock command{};
         //find matching script input
-        const txin_to_script& txinput = match_input(dst_entr, sources);
-        safex::safex_command_serializer::load_command(txinput.script, command);
+        const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token lock output", safex::command_t::token_lock);
 
-        safex::token_lock_result result{};
-        //command.execute(this->db, txinput, result);
+        //nothing else to do with matched inputs, create txout data field
+        blobdata out_data = cryptonote::t_serializable_object_to_blob(safex::token_lock_data{0});
+
+
 
 
         tx.vout.push_back(out);

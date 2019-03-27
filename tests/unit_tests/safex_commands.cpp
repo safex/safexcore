@@ -320,7 +320,7 @@ TEST(SafexCommandParsing, HandlesTokenLock)
 
   //serialize
   std::vector<uint8_t> serialized_command;
-  safex_command_serializer::store_command(command1, serialized_command);
+  safex_command_serializer::serialize_safex_object(command1, serialized_command);
 
 
 
@@ -329,11 +329,33 @@ TEST(SafexCommandParsing, HandlesTokenLock)
 
   //deserialize
   token_lock command2{};
-  safex_command_serializer::load_command(serialized_command, command2);
+  safex_command_serializer::parse_safex_object(serialized_command, command2);
 
   ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
   ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
   ASSERT_EQ(command1.get_lock_token_amount(), command2.get_lock_token_amount()) << "Original and deserialized command must have same locked amount";
+
+}
+
+TEST(SafexCommandParsing, HandlesTokenCollect)
+{
+
+  token_collect command1{SAFEX_COMMAND_PROTOCOL_VERSION, 2000};
+
+  //serialize
+  std::vector<uint8_t> serialized_command;
+  safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+  command_t command_type = safex_command_serializer::get_command_type(serialized_command);
+  ASSERT_EQ(command_type, command_t::token_collect) << "Token unlock command type not properly parsed from binary blob";
+
+  //deserialize
+  token_collect command2{};
+  safex_command_serializer::parse_safex_object(serialized_command, command2);
+
+  ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.get_locked_token_output_index(), command2.get_locked_token_output_index()) << "Original and deserialized command must have same output index";
 
 }
 
@@ -344,7 +366,7 @@ TEST(SafexCommandParsing, HandlesCorruptedArrayOfBytes)
 
   //deserialize
   token_lock command2{};
-  EXPECT_THROW(safex_command_serializer::load_command(serialized_command, command2), safex::command_exception);
+  EXPECT_THROW(safex_command_serializer::parse_safex_object(serialized_command, command2), safex::command_exception);
 
 }
 
@@ -398,11 +420,11 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 10000;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000};
-    safex_command_serializer::store_command(command1, txinput.script);
+    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
 
     token_lock command2{};
-    safex_command_serializer::load_command(txinput.script, command2);
+    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
     token_lock_result result{};
     command2.execute(this->db, txinput, result);
@@ -435,10 +457,10 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 8000;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
-    safex_command_serializer::store_command(command1, txinput.script);
+    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
     token_lock command2{};
-    safex_command_serializer::load_command(txinput.script, command2);
+    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
     token_lock_result result{};
     command2.execute(this->db, txinput, result);
@@ -465,10 +487,10 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 19000;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
-    safex_command_serializer::store_command(command1, txinput.script);
+    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
     token_lock command2{};
-    safex_command_serializer::load_command(txinput.script, command2);
+    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
     token_lock_result result{};
     command2.execute(this->db, txinput, result);
@@ -503,11 +525,11 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
-    safex_command_serializer::store_command(command1, txinput.script);
+    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
 
     token_lock command2{};
-    safex_command_serializer::load_command(txinput.script, command2);
+    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
     token_lock_result result{};
     command2.execute(db, txinput, result);
@@ -540,11 +562,11 @@ TEST_F(SafexCommandExecution, TokenUnlockExecute)
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
-    safex_command_serializer::store_command(command1, txinput.script);
+    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
 
     token_unlock command2{};
-    safex_command_serializer::load_command(txinput.script, command2);
+    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
     token_unlock_result result{};
     command2.execute(this->db, txinput, result);
