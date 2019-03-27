@@ -323,6 +323,7 @@ TEST(SafexCommandParsing, HandlesTokenLock)
   safex_command_serializer::store_command(command1, serialized_command);
 
 
+
   command_t command_type = safex_command_serializer::get_command_type(serialized_command);
   ASSERT_EQ(command_type, command_t::token_lock) << "Token lock command type not properly parsed from binary blob";
 

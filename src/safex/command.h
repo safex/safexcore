@@ -15,9 +15,12 @@
 #include "cryptonote_core/blockchain.h"
 
 #include "storages/portable_storage.h"
+#include "serialization/serialization.h"
 #include "safex_core.h"
 
 #include "misc_log_ex.h"
+
+
 
 
 namespace safex
@@ -100,6 +103,11 @@ namespace safex
 
       virtual ~command() = default;
 
+      BEGIN_SERIALIZE_OBJECT()
+        VARINT_FIELD(version)
+        VARINT_FIELD(command_type)
+      END_SERIALIZE()
+
 
     protected:
 
@@ -110,7 +118,6 @@ namespace safex
       uint32_t version;
       command_t command_type;
 
-    protected:
 
   };
 
@@ -142,10 +149,15 @@ namespace safex
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_lock_result &cr) override;
 
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<token_lock_result> *>(this))
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_lock), "Could not create command, wrong command type", this->command_type);
+        VARINT_FIELD(lock_token_amount)
+      END_SERIALIZE()
+
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const override;
-
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t lock_token_amount;
@@ -180,10 +192,15 @@ namespace safex
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
 
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<token_unlock_result> *>(this))
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_unlock), "Could not create command, wrong command type", this->command_type);
+        VARINT_FIELD(locked_token_output_index)
+      END_SERIALIZE()
+
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const override;
-
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t locked_token_output_index;
@@ -218,10 +235,15 @@ namespace safex
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
 
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<token_collect_result> *>(this))
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_collect), "Could not create command, wrong command type", this->command_type);
+        VARINT_FIELD(locked_token_output_index)
+      END_SERIALIZE()
+
     protected:
 
       virtual bool store(epee::serialization::portable_storage &ps) const override;
-
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t locked_token_output_index;
@@ -233,7 +255,50 @@ namespace safex
     public:
 
       template<typename Command>
-      static bool store_command(const Command &com, std::vector<uint8_t> &target)
+      static bool store_command(const Command &com, std::vector<uint8_t>& buffer)
+      {
+        cryptonote::blobdata blob = cryptonote::t_serializable_object_to_blob(com);
+        buffer.resize(blob.size());
+        memcpy(&buffer[0], blob.data(), blob.size());
+        return true;
+      }
+
+
+      template<typename Command>
+      static bool load_command(const std::vector<uint8_t>& buffer, Command& command)
+      {
+        cryptonote::blobdata command_blob;
+        const uint8_t* serialized_buffer_ptr = &buffer[0];
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
+
+        std::stringstream ss;
+        ss << command_blob;
+        binary_archive<false> ba(ss);
+        bool r = ::serialization::serialize(ba, command);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
+        return true;
+      }
+
+      static command_t get_command_type(const std::vector<uint8_t> &script)
+      {
+
+        cryptonote::blobdata command_blob;
+        const uint8_t* serialized_buffer_ptr = &script[0];
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + script.size(), std::back_inserter(command_blob));
+
+        std::stringstream ss;
+        ss << command_blob;
+        binary_archive<false> ba(ss);
+        token_lock temp; //just take any command, we just need command type deserialized
+        //bool r = ::serialization::serialize(ba, static_cast<command<token_lock_result>&>(temp));
+        bool r = ::serialization::serialize(ba, temp);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
+
+        return static_cast<command_t>(temp.get_command_type());
+      }
+
+      template<typename Command>
+      static bool store_command_to_potable_storage(const Command &com, std::vector<uint8_t> &target)
       {
         epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
 
@@ -251,11 +316,10 @@ namespace safex
         target = std::vector<uint8_t>(bin_target.begin(), bin_target.end());
 
         return true;
-
       }
 
       template<typename Command>
-      static bool load_command(const std::vector<uint8_t> &source, Command &com)
+      static bool load_command_from_portable_storage(const std::vector<uint8_t> &source, Command &com)
       {
         const epee::serialization::binarybuffer bin_source(source.begin(), source.end());
         epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
@@ -271,7 +335,7 @@ namespace safex
       }
 
 
-      static command_t get_command_type(const std::vector<uint8_t> &source)
+      static command_t get_command_type_portable_storage(const std::vector<uint8_t> &source)
       {
         const epee::serialization::binarybuffer bin_source(source.begin(), source.end());
         epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
@@ -284,49 +348,6 @@ namespace safex
         ps.get_value(FIELD_COMMAND, command_type, nullptr);
 
         return static_cast<command_t>(command_type);
-      }
-
-      /**
-       *
-       * @tparam Data POD data structure
-       * @param data structure holds advanced utxo data
-       * @param target vector of bytes of serialized data
-       * @return true if succede
-       */
-      template<typename Data>
-      static bool store_data(const Data& data, std::vector<uint8_t> &target)
-      {
-        epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
-
-        //here serialize particular
-        data.store(ps);
-
-        epee::serialization::binarybuffer bin_target = AUTO_VAL_INIT(bin_target);
-
-        if (!ps.store_to_binary(bin_target))
-        {
-          throw safex::command_exception(command_t::invalid_command, "Could not store data to portable storage binary blob");
-        }
-
-        target.clear();
-        target = std::vector<uint8_t>(bin_target.begin(), bin_target.end());
-
-        return true;
-      }
-
-      template<typename Data>
-      static bool load_data(const std::vector<uint8_t> source, Data &data)
-      {
-        const epee::serialization::binarybuffer bin_source(source.begin(), source.end());
-        epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
-        if (!ps.load_from_binary(bin_source))
-        {
-          throw safex::command_exception(command_t::invalid_command, "Could not load portable storage data from binary blob");
-        }
-
-        data.load(ps);
-
-        return true;
       }
 
   };
