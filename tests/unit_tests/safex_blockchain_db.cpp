@@ -220,8 +220,16 @@ bool compare_txs(const transaction& a, const transaction& b)
           }
           else if (i == 11) {
             //create other token lock transaction
+            tx_list.resize(tx_list.size()+1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 400*SAFEX_TOKEN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 17) {
+            //token unlock transaction
+             std::cout << "Token unlock transaction here" << std::endl;
+          }
+          else if (i == 19) {
             //token unlock transaction
           }
 
@@ -900,6 +908,7 @@ bool compare_txs(const transaction& a, const transaction& b)
 
   TYPED_TEST_CASE(SafexBlockchainDBTest, implementations);
 
+#if 0
   TYPED_TEST(SafexBlockchainDBTest, OpenAndClose)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
@@ -996,6 +1005,7 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
 
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[0]), get_block_hash(blks[0]));
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[1]), get_block_hash(blks[1]));
+  ASSERT_HASH_EQ(get_block_hash(this->m_blocks[10]), get_block_hash(blks[10]));
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS-1]), get_block_hash(blks[NUMBER_OF_BLOCKS-1]));
 
   std::vector<crypto::hash> hashes;
@@ -1004,7 +1014,45 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
 
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[0]), hashes[0]);
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[1]), hashes[1]);
+  ASSERT_HASH_EQ(get_block_hash(this->m_blocks[10]), hashes[10]);
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS-1]), hashes[NUMBER_OF_BLOCKS-1]);
 }
+#endif
+
+  TYPED_TEST(SafexBlockchainDBTest, RetrieveTokenLockData)
+  {
+    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    std::string dirPath = tempPath.string();
+
+    this->set_prefix(dirPath);
+
+    // make sure open does not throw
+    ASSERT_NO_THROW(this->m_db->open(dirPath));
+    this->get_filenames();
+    this->init_hard_fork();
+
+    for (int i=0;i<NUMBER_OF_BLOCKS-1; i++) {
+      if (i==10) {
+        std::cout << "10 block"<<std::endl;
+      }
+
+
+      //ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+      try
+      {
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &e) {
+        std::cout << "Error: " << e.what() << std::endl;
+      }
+    }
+
+    std::cout << "All blocks added"<<std::endl;
+
+
+
+
+
+  }
 
 }  // anonymous namespace

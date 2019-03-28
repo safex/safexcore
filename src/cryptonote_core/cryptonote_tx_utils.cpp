@@ -927,20 +927,17 @@ namespace cryptonote
       {
         out.token_amount = dst_entr.token_amount;
         out.amount = 0;
+
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_locked_token);
         txs.keys.push_back(out_eph_public_key);
-
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token lock output", safex::command_t::token_lock);
-
         //nothing else to do with matched inputs, create txout data field
-        blobdata out_data = cryptonote::t_serializable_object_to_blob(safex::token_lock_data{0});
+        safex::safex_command_serializer::serialize_safex_object(safex::token_lock_data{0}, txs.data);
 
-
-
-
+        out.target = txs;
         tx.vout.push_back(out);
       }
       else
@@ -989,7 +986,7 @@ namespace cryptonote
       MDEBUG("Null secret key, skipping signatures");
     }
 
-    if (tx.version == 1)
+    if (tx.version == 2)
     {
       //generate ring signatures
       crypto::hash tx_prefix_hash = AUTO_VAL_INIT(tx_prefix_hash);
@@ -1034,7 +1031,7 @@ namespace cryptonote
     }
     else
     {
-      LOG_ERROR("Transaction version>=2 not supported");
+      LOG_ERROR("Advanced transaction must be version >1");
       return false;
 
     }
@@ -1067,7 +1064,17 @@ namespace cryptonote
 
     bool r;
     if (is_advanced_transaction(destinations))
-      r = construct_advanced_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
+    {
+      try
+      {
+        r = construct_advanced_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
+      }
+      catch (safex::command_exception &exception)
+      {
+        LOG_ERROR("Error constructing advanced transaction: " << exception.what());
+        r = false;
+      }
+    }
     else
       r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
 

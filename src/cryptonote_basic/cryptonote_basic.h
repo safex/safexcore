@@ -114,7 +114,7 @@ namespace cryptonote
 
       boost::optional<const crypto::public_key &> operator()(const cryptonote::txout_to_script &txout) const
       {
-        return {};
+        return txout.keys[0];
       }
   };
 

@@ -321,11 +321,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    if (tx.version > 1)
-    {
-      fee = tx.rct_signatures.txnFee;
-      return true;
-    }
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
