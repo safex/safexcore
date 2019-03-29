@@ -216,6 +216,7 @@ bool compare_txs(const transaction& a, const transaction& b)
             tx_list.resize(tx_list.size()+1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 100*SAFEX_TOKEN, default_miner_fee, 0);
+            std::cout << "tx 10 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 11) {
@@ -223,6 +224,7 @@ bool compare_txs(const transaction& a, const transaction& b)
             tx_list.resize(tx_list.size()+1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 400*SAFEX_TOKEN, default_miner_fee, 0);
+            std::cout << "tx 11 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 17) {
@@ -333,9 +335,10 @@ bool compare_txs(const transaction& a, const transaction& b)
 
         BOOST_FOREACH (const map_output_t::value_type &o, outs_mine)
               {
-                for (size_t i = 0; i < o.second.size(); ++i)
+                for (size_t i = 0; i < o.second.size(); ++i) //go through my output indexes, o.first = amount, o.second="indexes of my outputs"
                 {
-                  output_index &oi = outs[o.first][o.second[i]];
+                  output_index &oi = outs[o.first][o.second[i]]; //full data about the utxo
+
 
                   // construct key image for this output
                   crypto::key_image img;
@@ -1017,7 +1020,7 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[10]), hashes[10]);
   ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS-1]), hashes[NUMBER_OF_BLOCKS-1]);
 }
-#endif
+#else
 
   TYPED_TEST(SafexBlockchainDBTest, RetrieveTokenLockData)
   {
@@ -1036,6 +1039,10 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
         std::cout << "10 block"<<std::endl;
       }
 
+      if (i==11) {
+        std::cout << "11 block"<<std::endl;
+      }
+
 
       //ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
       try
@@ -1049,10 +1056,7 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
 
     std::cout << "All blocks added"<<std::endl;
 
-
-
-
-
   }
+#endif
 
 }  // anonymous namespace
