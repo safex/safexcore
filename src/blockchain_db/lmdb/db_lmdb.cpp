@@ -43,6 +43,8 @@
 #include "profile_tools.h"
 #include "ringct/rctOps.h"
 
+#include "safex/safex_core.h"
+
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "blockchain.db.lmdb"
 
@@ -970,6 +972,70 @@ uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t
   return ok.amount_index;
 }
 
+void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  uint64_t m_height = height();
+
+  if (static_cast<cryptonote::tx_out_type>(output_type) == cryptonote::tx_out_type::out_locked_token)
+  {
+
+    MDB_cursor *cur_token_locked_sum;
+    //MDB_cursor *cur_token_lock_expiry;
+
+    CURSOR(token_locked_sum);
+    CURSOR(token_lock_expiry);
+    cur_token_locked_sum = m_cur_token_locked_sum;
+    //cur_token_lock_expiry = m_cur_token_lock_expiry;
+
+    uint64_t locked_tokens = 0; //locked tokens in interval
+    uint64_t interval = safex::calculate_interval_for_height(m_height); // interval for currently processed output
+
+    MDB_val_set(k, interval);
+    MDB_val_set(v, locked_tokens);
+
+    //get already locked tokens for this period
+    bool existing_interval = false;
+    auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
+    if (result == MDB_NOTFOUND) {
+      locked_tokens = 0;
+    }
+    else if (result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
+    } else if (result == MDB_SUCCESS) {
+      uint64_t *ptr = (uint64_t *)v.mv_data;
+      locked_tokens = *ptr;
+      existing_interval = true;
+    }
+
+    uint64_t newly_locked_tokens = locked_tokens + tx_output.token_amount;
+
+    std::cout << " Current locked tokens is:" << locked_tokens<<" newly locked tokens:" << newly_locked_tokens << std::endl;
+
+    //update sum of locked tokens for interval
+    MDB_val_set(k2, interval);
+    MDB_val_set(vupdate, newly_locked_tokens);
+    if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval?(unsigned int)MDB_CURRENT:(unsigned int)MDB_APPEND)))
+      throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+
+    std::cout << " Values updated" << std::endl;
+
+
+
+
+
+
+
+
+    // update token lock expiry
+
+  }
+
+}
+
 
 uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint64_t output_id)
 {
@@ -996,11 +1062,13 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
 
 
   //cache output id per type
-  const uint64_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
+  const uint8_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
   MDB_val_set(k_output_type, output_type);
   MDB_val value = {sizeof(uint64_t), (void *)&output_id};
   if ((result = mdb_cursor_put(cur_advanced_output_type, &k_output_type, &value, MDB_APPENDDUP)))
     throw0(DB_ERROR(lmdb_error("Failed to add advanced output index: ", result).c_str()));
+
+  process_advanced_output(tx_output, output_id, output_type);
 
 
   return output_id;
@@ -1373,7 +1441,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   //safex related
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED, MDB_INTEGERKEY | MDB_CREATE, m_output_advanced, "Failed to open db handle for m_output_advanced");
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED_TYPE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED , m_output_advanced_type, "Failed to open db handle for m_output_advanced_type");
-  lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_locked_sum, "Failed to open db handle for m_token_locked_sum"); //use zero key
+  lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM, MDB_INTEGERKEY | MDB_CREATE, m_token_locked_sum, "Failed to open db handle for m_token_locked_sum"); //use zero key
   lmdb_db_open(txn, LMDB_NETWORK_FEE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_network_fee, "Failed to open db handle for m_network_fee");//use zero key
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
 

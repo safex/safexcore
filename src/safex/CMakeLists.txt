@@ -32,6 +32,7 @@
 set(safex_core_sources
         command.cpp
         fee_distribution.cpp
+        safex_core.cpp
         )
 
 set(safex_core_headers

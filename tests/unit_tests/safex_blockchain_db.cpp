@@ -216,7 +216,7 @@ bool compare_txs(const transaction& a, const transaction& b)
             tx_list.resize(tx_list.size()+1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 100*SAFEX_TOKEN, default_miner_fee, 0);
-            std::cout << "tx 10 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
+//            std::cout << "tx 10 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 11) {
@@ -224,7 +224,6 @@ bool compare_txs(const transaction& a, const transaction& b)
             tx_list.resize(tx_list.size()+1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(tx, m_users_acc[0],  m_users_acc[0], 400*SAFEX_TOKEN, default_miner_fee, 0);
-            std::cout << "tx 11 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 17) {
@@ -845,7 +844,7 @@ bool compare_txs(const transaction& a, const transaction& b)
       ~SafexBlockchainDBTest()
       {
         delete m_db;
-        remove_files();
+        //remove_files();
       }
 
       BlockchainDB *m_db;
@@ -1037,9 +1036,7 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
     for (int i=0;i<NUMBER_OF_BLOCKS-1; i++) {
       if (i==10) {
         std::cout << "10 block"<<std::endl;
-      }
-
-      if (i==11) {
+      } else if (i==11) {
         std::cout << "11 block"<<std::endl;
       }
 
@@ -1055,6 +1052,7 @@ TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
     }
 
     std::cout << "All blocks added"<<std::endl;
+    ASSERT_NO_THROW(this->m_db->close());
 
   }
 #endif

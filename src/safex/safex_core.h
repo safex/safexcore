@@ -64,6 +64,20 @@ namespace safex
 #define SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type) {LOG_ERROR(message); std::stringstream ss; ss << message; throw safex::command_exception(command_type, ss.str());}
 #define SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(expr, message, command_type) do {if(!(expr)) SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type);} while(0)
 
+  /**
+ * Calculates locking interval for block with height
+ *
+ * For example, blocks with height from 1-1000 will be first locked belong to interval 1,
+ * and will be first locked from interval 2 (from block 1001)
+ * @param height - block height
+ * @return Starting block of the interval
+ */
+  inline uint64_t calculate_interval_for_height(const uint64_t height)
+  {
+    uint64_t interval = height > 0 ? (height - 1) / 1000 : 0;
+    return (interval*1000 + 1);
+  }
+
 }
 
 #endif //SAFEX_SAFEX_CORE_H

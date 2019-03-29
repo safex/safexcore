@@ -404,6 +404,8 @@ private:
 
   uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
 
+  void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
+
 private:
   MDB_env* m_env;
 
