@@ -37,7 +37,7 @@ namespace {
             safex::txin_to_key* item = new safex::txin_to_key();
 
             item->set_amount(in.amount);
-            item->set_k_image(epee::string_tools::pod_to_hex(in.k_image));
+            item->set_k_image(in.k_image.data, 32*sizeof(char));
 
             for(uint64_t offset : in.key_offsets) {
                 item->add_key_offsets(offset);
@@ -53,7 +53,7 @@ namespace {
 
             item->set_token_amount(in.token_amount);
             item->set_bitcoin_burn_transaction(epee::string_tools::pod_to_hex(in.bitcoin_burn_transaction));
-            item->set_k_image(epee::string_tools::pod_to_hex(in.k_image));
+            item->set_k_image(in.k_image.data, 32*sizeof(char));
 
             vin->set_allocated_txin_token_migration(item);
         }
@@ -63,7 +63,7 @@ namespace {
             safex::txin_token_to_key* item = new safex::txin_token_to_key();
 
             item->set_token_amount(in.token_amount);
-            item->set_k_image(epee::string_tools::pod_to_hex(in.k_image));
+            item->set_k_image(in.k_image.data, 32*sizeof(char));
 
             for(uint64_t offset : in.key_offsets) {
                 item->add_key_offsets(offset);
@@ -89,7 +89,7 @@ namespace {
             safex::txout_target_v* target = new safex::txout_target_v();
             safex::txout_to_key* item = new safex::txout_to_key();
 
-            item->set_key(epee::string_tools::pod_to_hex(in.key));
+            item->set_key(in.key.data, 32*sizeof(char));
 
             target->set_allocated_txout_to_key(item);
             txout->set_allocated_target(target);
@@ -99,7 +99,7 @@ namespace {
             safex::txout_target_v* target = new safex::txout_target_v();
             safex::txout_token_to_key* item = new safex::txout_token_to_key();
 
-            item->set_key(epee::string_tools::pod_to_hex(in.key));
+            item->set_key(in.key.data, 32*sizeof(char));
 
             target->set_allocated_txout_token_to_key(item);
             txout->set_allocated_target(target);

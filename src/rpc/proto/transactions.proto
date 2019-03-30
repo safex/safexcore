@@ -13,20 +13,20 @@ message txin_gen {
 
 message txin_to_key {
 	uint64 amount = 1;
-	string k_image = 2;
+	bytes k_image = 2;
 	repeated uint64 key_offsets = 3;
 }
 
 message txin_token_to_key {
 	uint64 token_amount = 1;
-	string k_image = 2;
+	bytes k_image = 2;
 	repeated uint64 key_offsets = 3;
 }
 
 message txin_token_migration {
 	uint64 token_amount = 1;
 	string bitcoin_burn_transaction = 2;
-	string k_image = 3;
+	bytes k_image = 3;
 }
 
 /* Variants are implemented with optional fields */
@@ -43,11 +43,11 @@ message txin_v {
  */
 
 message txout_to_key {
-	string key = 1;
+	bytes key = 1;
 }
 
 message txout_token_to_key {
-	string key = 1;
+	bytes key = 1;
 }
 
 message txout_target_v {
