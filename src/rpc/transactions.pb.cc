@@ -350,19 +350,19 @@ void protobuf_AddDesc_transactions_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\022transactions.proto\022\005safex\"\032\n\010txin_gen\022"
     "\016\n\006height\030\001 \001(\004\"C\n\013txin_to_key\022\016\n\006amount"
-    "\030\001 \001(\004\022\017\n\007k_image\030\002 \001(\t\022\023\n\013key_offsets\030\003"
+    "\030\001 \001(\004\022\017\n\007k_image\030\002 \001(\014\022\023\n\013key_offsets\030\003"
     " \003(\004\"O\n\021txin_token_to_key\022\024\n\014token_amoun"
-    "t\030\001 \001(\004\022\017\n\007k_image\030\002 \001(\t\022\023\n\013key_offsets\030"
+    "t\030\001 \001(\004\022\017\n\007k_image\030\002 \001(\014\022\023\n\013key_offsets\030"
     "\003 \003(\004\"_\n\024txin_token_migration\022\024\n\014token_a"
     "mount\030\001 \001(\004\022 \n\030bitcoin_burn_transaction\030"
-    "\002 \001(\t\022\017\n\007k_image\030\003 \001(\t\"\304\001\n\006txin_v\022!\n\010txi"
+    "\002 \001(\t\022\017\n\007k_image\030\003 \001(\014\"\304\001\n\006txin_v\022!\n\010txi"
     "n_gen\030\001 \001(\0132\017.safex.txin_gen\022\'\n\013txin_to_"
     "key\030\002 \001(\0132\022.safex.txin_to_key\0223\n\021txin_to"
     "ken_to_key\030\003 \001(\0132\030.safex.txin_token_to_k"
     "ey\0229\n\024txin_token_migration\030\004 \001(\0132\033.safex"
     ".txin_token_migration\"\033\n\014txout_to_key\022\013\n"
-    "\003key\030\001 \001(\t\"!\n\022txout_token_to_key\022\013\n\003key\030"
-    "\001 \001(\t\"r\n\016txout_target_v\022)\n\014txout_to_key\030"
+    "\003key\030\001 \001(\014\"!\n\022txout_token_to_key\022\013\n\003key\030"
+    "\001 \001(\014\"r\n\016txout_target_v\022)\n\014txout_to_key\030"
     "\001 \001(\0132\023.safex.txout_to_key\0225\n\022txout_toke"
     "n_to_key\030\002 \001(\0132\031.safex.txout_token_to_ke"
     "y\"T\n\005txout\022\016\n\006amount\030\001 \001(\004\022\024\n\014token_amou"
@@ -753,16 +753,12 @@ bool txin_to_key::MergePartialFromCodedStream(
         break;
       }
 
-      // optional string k_image = 2;
+      // optional bytes k_image = 2;
       case 2: {
         if (tag == 18) {
          parse_k_image:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_k_image()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->k_image().data(), this->k_image().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.txin_to_key.k_image"));
         } else {
           goto handle_unusual;
         }
@@ -817,13 +813,9 @@ void txin_to_key::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->amount(), output);
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_to_key.k_image");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
       2, this->k_image(), output);
   }
 
@@ -848,14 +840,10 @@ void txin_to_key::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->amount(), target);
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_to_key.k_image");
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         2, this->k_image(), target);
   }
 
@@ -888,10 +876,10 @@ int txin_to_key::ByteSize() const {
         this->amount());
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->k_image());
   }
 
@@ -1006,7 +994,7 @@ void txin_to_key::clear_amount() {
   // @@protoc_insertion_point(field_set:safex.txin_to_key.amount)
 }
 
-// optional string k_image = 2;
+// optional bytes k_image = 2;
 void txin_to_key::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1024,7 +1012,7 @@ void txin_to_key::clear_k_image() {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_to_key.k_image)
 }
- void txin_to_key::set_k_image(const char* value, size_t size) {
+ void txin_to_key::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1183,16 +1171,12 @@ bool txin_token_to_key::MergePartialFromCodedStream(
         break;
       }
 
-      // optional string k_image = 2;
+      // optional bytes k_image = 2;
       case 2: {
         if (tag == 18) {
          parse_k_image:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_k_image()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->k_image().data(), this->k_image().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.txin_token_to_key.k_image"));
         } else {
           goto handle_unusual;
         }
@@ -1247,13 +1231,9 @@ void txin_token_to_key::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->token_amount(), output);
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_token_to_key.k_image");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
       2, this->k_image(), output);
   }
 
@@ -1278,14 +1258,10 @@ void txin_token_to_key::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->token_amount(), target);
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_token_to_key.k_image");
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         2, this->k_image(), target);
   }
 
@@ -1318,10 +1294,10 @@ int txin_token_to_key::ByteSize() const {
         this->token_amount());
   }
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   if (this->k_image().size() > 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->k_image());
   }
 
@@ -1436,7 +1412,7 @@ void txin_token_to_key::clear_token_amount() {
   // @@protoc_insertion_point(field_set:safex.txin_token_to_key.token_amount)
 }
 
-// optional string k_image = 2;
+// optional bytes k_image = 2;
 void txin_token_to_key::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1454,7 +1430,7 @@ void txin_token_to_key::clear_k_image() {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_token_to_key.k_image)
 }
- void txin_token_to_key::set_k_image(const char* value, size_t size) {
+ void txin_token_to_key::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1632,16 +1608,12 @@ bool txin_token_migration::MergePartialFromCodedStream(
         break;
       }
 
-      // optional string k_image = 3;
+      // optional bytes k_image = 3;
       case 3: {
         if (tag == 26) {
          parse_k_image:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_k_image()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->k_image().data(), this->k_image().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.txin_token_migration.k_image"));
         } else {
           goto handle_unusual;
         }
@@ -1688,13 +1660,9 @@ void txin_token_migration::SerializeWithCachedSizes(
       2, this->bitcoin_burn_transaction(), output);
   }
 
-  // optional string k_image = 3;
+  // optional bytes k_image = 3;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_token_migration.k_image");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
       3, this->k_image(), output);
   }
 
@@ -1720,14 +1688,10 @@ void txin_token_migration::SerializeWithCachedSizes(
         2, this->bitcoin_burn_transaction(), target);
   }
 
-  // optional string k_image = 3;
+  // optional bytes k_image = 3;
   if (this->k_image().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->k_image().data(), this->k_image().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txin_token_migration.k_image");
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         3, this->k_image(), target);
   }
 
@@ -1753,10 +1717,10 @@ int txin_token_migration::ByteSize() const {
         this->bitcoin_burn_transaction());
   }
 
-  // optional string k_image = 3;
+  // optional bytes k_image = 3;
   if (this->k_image().size() > 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->k_image());
   }
 
@@ -1901,7 +1865,7 @@ void txin_token_migration::clear_bitcoin_burn_transaction() {
   // @@protoc_insertion_point(field_set_allocated:safex.txin_token_migration.bitcoin_burn_transaction)
 }
 
-// optional string k_image = 3;
+// optional bytes k_image = 3;
 void txin_token_migration::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1919,7 +1883,7 @@ void txin_token_migration::clear_k_image() {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_token_migration.k_image)
 }
- void txin_token_migration::set_k_image(const char* value, size_t size) {
+ void txin_token_migration::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -2538,15 +2502,11 @@ bool txout_to_key::MergePartialFromCodedStream(
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string key = 1;
+      // optional bytes key = 1;
       case 1: {
         if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_key()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->key().data(), this->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.txout_to_key.key"));
         } else {
           goto handle_unusual;
         }
@@ -2578,13 +2538,9 @@ failure:
 void txout_to_key::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:safex.txout_to_key)
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->key().data(), this->key().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txout_to_key.key");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
       1, this->key(), output);
   }
 
@@ -2594,14 +2550,10 @@ void txout_to_key::SerializeWithCachedSizes(
 ::google::protobuf::uint8* txout_to_key::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:safex.txout_to_key)
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->key().data(), this->key().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txout_to_key.key");
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         1, this->key(), target);
   }
 
@@ -2613,10 +2565,10 @@ int txout_to_key::ByteSize() const {
 // @@protoc_insertion_point(message_byte_size_start:safex.txout_to_key)
   int total_size = 0;
 
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->key());
   }
 
@@ -2694,7 +2646,7 @@ void txout_to_key::InternalSwap(txout_to_key* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // txout_to_key
 
-// optional string key = 1;
+// optional bytes key = 1;
 void txout_to_key::clear_key() {
   key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -2712,7 +2664,7 @@ void txout_to_key::clear_key() {
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txout_to_key.key)
 }
- void txout_to_key::set_key(const char* value, size_t size) {
+ void txout_to_key::set_key(const void* value, size_t size) {
   
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -2822,15 +2774,11 @@ bool txout_token_to_key::MergePartialFromCodedStream(
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string key = 1;
+      // optional bytes key = 1;
       case 1: {
         if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_key()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->key().data(), this->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.txout_token_to_key.key"));
         } else {
           goto handle_unusual;
         }
@@ -2862,13 +2810,9 @@ failure:
 void txout_token_to_key::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:safex.txout_token_to_key)
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->key().data(), this->key().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txout_token_to_key.key");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
       1, this->key(), output);
   }
 
@@ -2878,14 +2822,10 @@ void txout_token_to_key::SerializeWithCachedSizes(
 ::google::protobuf::uint8* txout_token_to_key::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:safex.txout_token_to_key)
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->key().data(), this->key().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.txout_token_to_key.key");
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         1, this->key(), target);
   }
 
@@ -2897,10 +2837,10 @@ int txout_token_to_key::ByteSize() const {
 // @@protoc_insertion_point(message_byte_size_start:safex.txout_token_to_key)
   int total_size = 0;
 
-  // optional string key = 1;
+  // optional bytes key = 1;
   if (this->key().size() > 0) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
         this->key());
   }
 
@@ -2978,7 +2918,7 @@ void txout_token_to_key::InternalSwap(txout_token_to_key* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // txout_token_to_key
 
-// optional string key = 1;
+// optional bytes key = 1;
 void txout_token_to_key::clear_key() {
   key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -2996,7 +2936,7 @@ void txout_token_to_key::clear_key() {
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txout_token_to_key.key)
 }
- void txout_token_to_key::set_key(const char* value, size_t size) {
+ void txout_token_to_key::set_key(const void* value, size_t size) {
   
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
