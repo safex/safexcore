@@ -199,13 +199,13 @@ class txin_to_key : public ::google::protobuf::Message /* @@protoc_insertion_poi
   ::google::protobuf::uint64 amount() const;
   void set_amount(::google::protobuf::uint64 value);
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   void clear_k_image();
   static const int kKImageFieldNumber = 2;
   const ::std::string& k_image() const;
   void set_k_image(const ::std::string& value);
   void set_k_image(const char* value);
-  void set_k_image(const char* value, size_t size);
+  void set_k_image(const void* value, size_t size);
   ::std::string* mutable_k_image();
   ::std::string* release_k_image();
   void set_allocated_k_image(::std::string* k_image);
@@ -307,13 +307,13 @@ class txin_token_to_key : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::uint64 token_amount() const;
   void set_token_amount(::google::protobuf::uint64 value);
 
-  // optional string k_image = 2;
+  // optional bytes k_image = 2;
   void clear_k_image();
   static const int kKImageFieldNumber = 2;
   const ::std::string& k_image() const;
   void set_k_image(const ::std::string& value);
   void set_k_image(const char* value);
-  void set_k_image(const char* value, size_t size);
+  void set_k_image(const void* value, size_t size);
   ::std::string* mutable_k_image();
   ::std::string* release_k_image();
   void set_allocated_k_image(::std::string* k_image);
@@ -426,13 +426,13 @@ class txin_token_migration : public ::google::protobuf::Message /* @@protoc_inse
   ::std::string* release_bitcoin_burn_transaction();
   void set_allocated_bitcoin_burn_transaction(::std::string* bitcoin_burn_transaction);
 
-  // optional string k_image = 3;
+  // optional bytes k_image = 3;
   void clear_k_image();
   static const int kKImageFieldNumber = 3;
   const ::std::string& k_image() const;
   void set_k_image(const ::std::string& value);
   void set_k_image(const char* value);
-  void set_k_image(const char* value, size_t size);
+  void set_k_image(const void* value, size_t size);
   ::std::string* mutable_k_image();
   ::std::string* release_k_image();
   void set_allocated_k_image(::std::string* k_image);
@@ -630,13 +630,13 @@ class txout_to_key : public ::google::protobuf::Message /* @@protoc_insertion_po
 
   // accessors -------------------------------------------------------
 
-  // optional string key = 1;
+  // optional bytes key = 1;
   void clear_key();
   static const int kKeyFieldNumber = 1;
   const ::std::string& key() const;
   void set_key(const ::std::string& value);
   void set_key(const char* value);
-  void set_key(const char* value, size_t size);
+  void set_key(const void* value, size_t size);
   ::std::string* mutable_key();
   ::std::string* release_key();
   void set_allocated_key(::std::string* key);
@@ -717,13 +717,13 @@ class txout_token_to_key : public ::google::protobuf::Message /* @@protoc_insert
 
   // accessors -------------------------------------------------------
 
-  // optional string key = 1;
+  // optional bytes key = 1;
   void clear_key();
   static const int kKeyFieldNumber = 1;
   const ::std::string& key() const;
   void set_key(const ::std::string& value);
   void set_key(const char* value);
-  void set_key(const char* value, size_t size);
+  void set_key(const void* value, size_t size);
   ::std::string* mutable_key();
   ::std::string* release_key();
   void set_allocated_key(::std::string* key);
@@ -1367,7 +1367,7 @@ inline void txin_to_key::set_amount(::google::protobuf::uint64 value) {
   // @@protoc_insertion_point(field_set:safex.txin_to_key.amount)
 }
 
-// optional string k_image = 2;
+// optional bytes k_image = 2;
 inline void txin_to_key::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1385,7 +1385,7 @@ inline void txin_to_key::set_k_image(const char* value) {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_to_key.k_image)
 }
-inline void txin_to_key::set_k_image(const char* value, size_t size) {
+inline void txin_to_key::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1459,7 +1459,7 @@ inline void txin_token_to_key::set_token_amount(::google::protobuf::uint64 value
   // @@protoc_insertion_point(field_set:safex.txin_token_to_key.token_amount)
 }
 
-// optional string k_image = 2;
+// optional bytes k_image = 2;
 inline void txin_token_to_key::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1477,7 +1477,7 @@ inline void txin_token_to_key::set_k_image(const char* value) {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_token_to_key.k_image)
 }
-inline void txin_token_to_key::set_k_image(const char* value, size_t size) {
+inline void txin_token_to_key::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1595,7 +1595,7 @@ inline void txin_token_migration::set_allocated_bitcoin_burn_transaction(::std::
   // @@protoc_insertion_point(field_set_allocated:safex.txin_token_migration.bitcoin_burn_transaction)
 }
 
-// optional string k_image = 3;
+// optional bytes k_image = 3;
 inline void txin_token_migration::clear_k_image() {
   k_image_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1613,7 +1613,7 @@ inline void txin_token_migration::set_k_image(const char* value) {
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txin_token_migration.k_image)
 }
-inline void txin_token_migration::set_k_image(const char* value, size_t size) {
+inline void txin_token_migration::set_k_image(const void* value, size_t size) {
   
   k_image_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1799,7 +1799,7 @@ inline void txin_v::set_allocated_txin_token_migration(::safex::txin_token_migra
 
 // txout_to_key
 
-// optional string key = 1;
+// optional bytes key = 1;
 inline void txout_to_key::clear_key() {
   key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1817,7 +1817,7 @@ inline void txout_to_key::set_key(const char* value) {
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txout_to_key.key)
 }
-inline void txout_to_key::set_key(const char* value, size_t size) {
+inline void txout_to_key::set_key(const void* value, size_t size) {
   
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
@@ -1847,7 +1847,7 @@ inline void txout_to_key::set_allocated_key(::std::string* key) {
 
 // txout_token_to_key
 
-// optional string key = 1;
+// optional bytes key = 1;
 inline void txout_token_to_key::clear_key() {
   key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1865,7 +1865,7 @@ inline void txout_token_to_key::set_key(const char* value) {
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:safex.txout_token_to_key.key)
 }
-inline void txout_token_to_key::set_key(const char* value, size_t size) {
+inline void txout_token_to_key::set_key(const void* value, size_t size) {
   
   key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
