@@ -65,7 +65,7 @@ namespace safex
 #define SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(expr, message, command_type) do {if(!(expr)) SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type);} while(0)
 
   /**
- * Calculates locking interval for block with height
+ * Calculates locking interval starting block for block with height
  *
  * For example, blocks with height from 1-1000 will be first locked belong to interval 1,
  * and will be first locked from interval 2 (from block 1001)
@@ -75,8 +75,33 @@ namespace safex
   inline uint64_t calculate_interval_for_height(const uint64_t height)
   {
     uint64_t interval = height > 0 ? (height - 1) / 1000 : 0;
-    return (interval*1000 + 1);
+    return (interval*1000 + 1); //returns interval starting block
   }
+
+  /**
+  * Check if block is valid interval representation (interval starting block)
+  *
+  * For first interval, value is 1, for second 1001, for third 2001, etc
+  * @param block_height - block height
+  * @return true or false
+  */
+  inline bool is_interval_starting_block(const uint64_t block_height)
+  {
+    return ((block_height - 1) % 1000 == 0);
+  }
+
+  /**
+  * Check if block is valid interval representation (interval starting block)
+  *
+  * For first interval, value is 1, for second 1001, for third 2001, etc
+  * @param block_height - block height
+  * @return true or false
+  */
+  inline uint64_t calulate_starting_block_for_interval(const uint64_t interval)
+  {
+    return interval*1000 + 1;
+  }
+
 
 }
 

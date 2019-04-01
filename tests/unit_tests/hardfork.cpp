@@ -126,6 +126,8 @@ public:
   virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
 
+  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+
   virtual void add_block( const block& blk
                         , const size_t& block_size
                         , const difficulty_type& cumulative_difficulty

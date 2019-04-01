@@ -281,6 +281,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash &, const cryptonote::txpool_tx_meta_t &, const cryptonote::blobdata *)>, bool include_blob = false, bool include_unrelayed_txes = false) const
     { return false; }
 
+    virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty, const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash
     )
     {
@@ -469,7 +471,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
   }
   catch (safex::command_exception &exception)
   {
-    ASSERT_STREQ(std::string("Minumum amount of tokens to lock is " + std::to_string(MINIMUM_TOKEN_LOCK_AMOUNT)).c_str(), std::string(exception.what()).c_str());
+    ASSERT_STREQ(std::string("Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)).c_str(), std::string(exception.what()).c_str());
   }
   catch (std::exception &exception)
   {
