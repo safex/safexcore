@@ -1483,6 +1483,17 @@ public:
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const = 0;
 
 
+  /* Safex related db api */
+  /**
+   * Returns number of locked tokens for interval.
+   *
+   *
+   * @param interval block that represents interval, for example 1001 for second interval
+   * @return number of locked tokens in interval
+   */
+  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+
+
 
   //
   // Hard fork related storage

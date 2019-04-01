@@ -29,26 +29,27 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 
-set(safex_basic_sources
+set(safex_core_sources
         command.cpp
         fee_distribution.cpp
+        safex_core.cpp
         )
 
-set(safex_basic_headers
+set(safex_core_headers
         command.h
         fee_distribution.h)
 
-set(safex_basic_private_headers)
+set(safex_core_private_headers)
 
-safex_private_headers(safex_basic
-        ${safex_basic_private_headers})
+safex_private_headers(safex_core
+        ${safex_core_private_headers})
 
-safex_add_library(safex_basic
-        ${safex_basic_sources}
-        ${safex_basic_headers}
-        ${safex_basic_private_headers})
+safex_add_library(safex_core
+        ${safex_core_sources}
+        ${safex_core_headers}
+        ${safex_core_private_headers})
 
-target_link_libraries(safex_basic
+target_link_libraries(safex_core
         PUBLIC
         blockchain_db
         cryptonote_core

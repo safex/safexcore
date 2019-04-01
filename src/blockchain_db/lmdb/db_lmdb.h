@@ -283,6 +283,9 @@ public:
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const;
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
 
+
+  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
+
   virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
                             , const difficulty_type& cumulative_difficulty
@@ -403,6 +406,8 @@ private:
   uint64_t add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
 
   uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
+
+  void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
 
 private:
   MDB_env* m_env;

@@ -44,6 +44,9 @@ namespace safex
     return true;
   }
 
+  bool dummy_command::store(epee::serialization::portable_storage &ps) const {return false;};
+  bool dummy_command::load(epee::serialization::portable_storage &ps) {return false;};
+
 
   bool token_lock::store(epee::serialization::portable_storage &ps) const
   {
@@ -71,7 +74,7 @@ namespace safex
   {
 
 
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= MINIMUM_TOKEN_LOCK_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(MINIMUM_TOKEN_LOCK_AMOUNT), this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT), this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token lock command amount", this->command_type);
 
 

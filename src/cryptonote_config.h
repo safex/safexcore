@@ -42,7 +42,7 @@
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
-#define CURRENT_TRANSACTION_VERSION                     1 //do not use ringct
+#define CURRENT_TRANSACTION_VERSION                     2
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -164,8 +164,10 @@
 
 
 //Safex related constants
-#define MINIMUM_TOKEN_LOCK_AMOUNT               10000
 #define SAFEX_COMMAND_PROTOCOL_VERSION          1
+#define SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT         10000
+#define SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD  500000
+
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 

@@ -34,6 +34,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/utility.hpp>
 #include "ringct/rctOps.h"
+#include "safex/safex_core.h"
 
 namespace cryptonote
 {
@@ -56,9 +57,8 @@ namespace cryptonote
     size_t real_output_in_tx_index = 0;  //index in transaction outputs vector
     uint64_t amount = 0;                //money
     uint64_t token_amount = 0;          //tokens
-    //bool token_transaction = false;     //source with safex tokens, not safex cash
-    //bool migration = false;             //this transaction is migration from bitcoin network
     cryptonote::tx_out_type referenced_output_type = tx_out_type::out_cash;
+    safex::command_t command_type = safex::command_t::nop;
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 
@@ -70,9 +70,9 @@ namespace cryptonote
       FIELD(real_output_in_tx_index)
       FIELD(amount)
       FIELD(token_amount)
-      //FIELD(token_transaction)
-//      FIELD(migration)
       FIELD(referenced_output_type)
+      FIELD(command_type)
+
 
       if (real_output >= outputs.size())
         return false;
@@ -99,10 +99,14 @@ namespace cryptonote
     tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, tx_out_type _out_type = tx_out_type::out_cash) :
     amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)), output_type(_out_type)
     {
-      if (token_transaction)
+      if ((_out_type == tx_out_type::out_token)
+          || (_out_type == tx_out_type::out_locked_token))
+      {
         token_amount = a;
-      else
+      } else {
         amount = a;
+      }
+
     }
 
     constexpr bool is_token_output(tx_out_type _out_type) const { return _out_type == tx_out_type::out_token;}
@@ -127,6 +131,9 @@ namespace cryptonote
   bool construct_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool shuffle_outs = true);
   bool construct_advanced_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool shuffle_outs = true);
   bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys);
+
+
+  inline bool is_advanced_transaction(const std::vector<tx_destination_entry>& destinations);
 
   bool generate_genesis_block(
       block& bl
@@ -160,9 +167,8 @@ namespace boost
       a & x.real_out_additional_tx_keys;
       a & x.amount;
       a & x.token_amount;
-      //a & x.token_transaction;
-//      a & x.migration;
       a & x.referenced_output_type;
+      a & x.command_type;
 
     }
 

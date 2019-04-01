@@ -125,7 +125,6 @@ void BlockchainDB::pop_block()
 
 void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash* tx_hash_ptr)
 {
-  bool miner_tx = false;
   crypto::hash tx_hash;
   if (!tx_hash_ptr)
   {
@@ -140,39 +139,38 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
 
   for (const txin_v& tx_input : tx.vin)
   {
-    if (tx_input.type() == typeid(txin_to_key))
+
+    if ((tx_input.type() == typeid(txin_to_key))
+        || (tx_input.type() == typeid(txin_token_to_key))
+        || (tx_input.type() == typeid(txin_token_migration))
+        || (tx_input.type() == typeid(txin_to_script))
+            )
     {
-      add_spent_key(boost::get<txin_to_key>(tx_input).k_image);
-    }
-    else if (tx_input.type() == typeid(txin_token_to_key))
-    {
-      add_spent_key(boost::get<txin_token_to_key>(tx_input).k_image);
-    }
-    else if (tx_input.type() == typeid(txin_token_migration))
-    {
-      add_spent_key(boost::get<txin_token_migration>(tx_input).k_image);
+      auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
+      if (!k_image_opt)
+        DB_ERROR("Output does not have proper key image");
+      const crypto::key_image &k_image = *k_image_opt;
+      add_spent_key(k_image);
     }
     else if (tx_input.type() == typeid(txin_gen))
     {
       /* nothing to do here */
-      miner_tx = true;
     }
     else
     {
       LOG_PRINT_L1("Unsupported input type, removing key images and aborting transaction addition");
-      for (const txin_v& tx_input : tx.vin)
+      for (const txin_v &tx_input : tx.vin)
       {
-        if (tx_input.type() == typeid(txin_to_key))
+        if ((tx_input.type() == typeid(txin_to_key))
+            || (tx_input.type() == typeid(txin_token_to_key))
+            || (tx_input.type() == typeid(txin_token_migration))
+            || (tx_input.type() == typeid(txin_to_script))
+                )
         {
-          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
-        }
-        else if (tx_input.type() == typeid(txin_token_to_key))
-        {
-          remove_spent_key(boost::get<txin_token_to_key>(tx_input).k_image);
-        }
-        else if (tx_input.type() == typeid(txin_token_migration))
-        {
-          remove_spent_key(boost::get<txin_token_migration>(tx_input).k_image);
+          auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
+          if (!k_image_opt) continue;
+          const crypto::key_image &k_image = *k_image_opt;
+          remove_spent_key(k_image);
         }
       }
       return;
@@ -187,21 +185,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
   // we need the index
   for (uint64_t i = 0; i < tx.vout.size(); ++i)
   {
-    // miner v2 txes have their coinbase output in one single out to save space,
-    // and we store them as rct outputs with an identity mask
-    if (miner_tx && tx.version == 2)
-    {
-      cryptonote::tx_out vout = tx.vout[i];
-      rct::key commitment = rct::zeroCommit(vout.amount);
-      vout.amount = 0;
-      amount_output_indices.push_back(add_output(tx_hash, vout, i, tx.unlock_time,
-        &commitment));
-    }
-    else
-    {
-      amount_output_indices.push_back(add_output(tx_hash, tx.vout[i], i, tx.unlock_time,
-        tx.version > 1 ? &tx.rct_signatures.outPk[i].mask : NULL));
-    }
+    amount_output_indices.push_back(add_output(tx_hash, tx.vout[i], i, tx.unlock_time, NULL));
   }
   add_tx_amount_output_indices(tx_id, amount_output_indices);
 }
