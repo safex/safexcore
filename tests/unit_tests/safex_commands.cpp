@@ -179,14 +179,15 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual uint64_t get_num_outputs(const uint64_t &amount, const cryptonote::tx_out_type output_type) const
     { return 1; }
 
+    virtual uint64_t get_num_outputs(const cryptonote::tx_out_type output_type) const {return 1;}
+
     virtual uint64_t get_indexing_base() const
     { return 0; }
 
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type)
     { return cryptonote::output_data_t(); }
 
-    virtual cryptonote::output_data_t get_output_key(const uint64_t &global_index) const
-    { return cryptonote::output_data_t(); }
+    virtual cryptonote::output_data_t get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return cryptonote::output_data_t();}
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -282,6 +283,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     { return false; }
 
     virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+    virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty, const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash
     )

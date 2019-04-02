@@ -1203,6 +1203,21 @@ public:
    */
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const = 0;
 
+  // returns the total number of outputs of type
+  /**
+   * @brief fetches the number advanced outputs of particular type
+   *
+   * The subclass should return a count of outputs of particular tx_out_type,
+   * or zero if there are none.
+   *
+   * For cash and token outputs, use overloading function that also specifies amount
+   *
+   * @param output_type utxo type (locked token outputs, ...)
+   *
+   * @return the number of advanced outputs of given type
+   */
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const = 0;
+
   /**
    * @brief return index of the first element (should be hidden, but isn't)
    *
@@ -1240,11 +1255,12 @@ public:
    * If any of these parts cannot be found, but some are, the subclass
    * should throw DB_ERROR with a message stating as much.
    *
-   * @param global_index the output's index (global)
+   * @param output_type type of output(e.g. token lock output
+   * @param global_index output id of output (output_id)
    *
    * @return the requested output data
    */
-  virtual output_data_t get_output_key(const uint64_t& global_index) const = 0;
+  virtual output_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) = 0;
 
   /**
    * @brief gets an output's tx hash and index
@@ -1492,6 +1508,18 @@ public:
    * @return number of locked tokens in interval
    */
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+
+
+
+
+  /**
+   * Returns array of output id-s which lock expires on particular block
+   *
+   *
+   * @param block_height block height
+   * @return array of output id-s
+   */
+  virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const = 0;
 
 
 

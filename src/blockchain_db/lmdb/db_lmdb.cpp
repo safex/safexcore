@@ -1024,7 +1024,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 
     //Add tocken lock expiry values
     //SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD
-    const uint64_t expiry_block = m_height + SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD + 1;
+    const uint64_t expiry_block = m_height + SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD;
 
     MDB_val data;
     MDB_val_copy<uint64_t> block_number(expiry_block);
@@ -1036,6 +1036,8 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     data.mv_data = (void*)(&output_id);
     if ((result = mdb_cursor_put(cur_token_lock_expiry, &block_number, &data, MDB_APPENDDUP)))
       throw0(DB_ERROR(lmdb_error("Failed to add locked token output expiry entry: ", result).c_str()));
+
+    std::cout << " Added to block " << expiry_block << " output " << output_id<<std::endl;
 
     std::cout << " Values updated" << std::endl;
 
@@ -1078,7 +1080,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
 
 
   //cache output id per type
-  const uint8_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
+  const uint64_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
   MDB_val_set(k_output_type, output_type);
   MDB_val value = {sizeof(uint64_t), (void *)&output_id};
   if ((result = mdb_cursor_put(cur_advanced_output_type, &k_output_type, &value, MDB_APPENDDUP)))
@@ -2525,6 +2527,10 @@ uint64_t BlockchainLMDB::get_num_outputs(const uint64_t& amount, const tx_out_ty
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
 
+  if (!(output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid))
+    throw0(DB_ERROR("Unknown advanced output type"));
+
+
   TXN_PREFIX_RDONLY();
 
   MDB_cursor *cur_output_amount;
@@ -2562,55 +2568,82 @@ uint64_t BlockchainLMDB::get_num_outputs(const uint64_t& amount, const tx_out_ty
   return num_elems;
 }
 
-// This is a lot harder now that we've removed the output_keys index
-output_data_t BlockchainLMDB::get_output_key(const uint64_t &global_index) const
+
+uint64_t BlockchainLMDB::get_num_outputs(const tx_out_type output_type) const
 {
-  LOG_PRINT_L3("BlockchainLMDB::" << __func__ << " (unused version - does nothing)");
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
+
   TXN_PREFIX_RDONLY();
-  RCURSOR(output_txs);
-  RCURSOR(tx_indices);
-  RCURSOR(txs);
 
-  output_data_t od;
-  MDB_val_set(v, global_index);
-  auto get_result = mdb_cursor_get(m_cur_output_txs, (MDB_val *)&zerokval, &v, MDB_GET_BOTH);
-  if (get_result == MDB_NOTFOUND)
-    throw1(OUTPUT_DNE("output with given index not in db"));
-  else if (get_result)
-    throw0(DB_ERROR("DB error attempting to fetch output tx hash"));
+  MDB_cursor *cur_output_advanced_type;
+  RCURSOR(output_advanced_type);
+  cur_output_advanced_type = m_cur_output_advanced_type;
 
-  outtx *ot = (outtx *)v.mv_data;
-
-  MDB_val_set(val_h, ot->tx_hash);
-  get_result = mdb_cursor_get(m_cur_tx_indices, (MDB_val *)&zerokval, &val_h, MDB_GET_BOTH);
-  if (get_result)
-    throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch transaction index from hash ") + epee::string_tools::pod_to_hex(ot->tx_hash) + ": ", get_result).c_str()));
-
-  txindex *tip = (txindex *)val_h.mv_data;
-  MDB_val_set(val_tx_id, tip->data.tx_id);
-  MDB_val result;
-  get_result = mdb_cursor_get(m_cur_txs, &val_tx_id, &result, MDB_SET);
-  if (get_result == MDB_NOTFOUND)
-    throw1(TX_DNE(std::string("tx with hash ").append(epee::string_tools::pod_to_hex(ot->tx_hash)).append(" not found in db").c_str()));
-  else if (get_result)
-    throw0(DB_ERROR(lmdb_error("DB error attempting to fetch tx from hash", get_result).c_str()));
-
-  blobdata bd;
-  bd.assign(reinterpret_cast<char*>(result.mv_data), result.mv_size);
-
-  transaction tx;
-  if (!parse_and_validate_tx_from_blob(bd, tx))
-    throw0(DB_ERROR("Failed to parse tx from blob retrieved from the db"));
-
-  const tx_out tx_output = tx.vout[ot->local_index];
-  od.unlock_time = tip->data.unlock_time;
-  od.height = tip->data.block_id;
-  od.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
+  MDB_val_copy<uint64_t> k_output_type(static_cast<uint64_t >(output_type));
+  MDB_val v;
+  mdb_size_t num_elems = 0;
+  auto result = mdb_cursor_get(cur_output_advanced_type, &k_output_type, &v, MDB_SET);
+  if (result == MDB_SUCCESS)
+  {
+    mdb_cursor_count(cur_output_advanced_type, &num_elems);
+  } else if (result != MDB_NOTFOUND)
+    throw0(DB_ERROR("DB error attempting to get number of outputs of an amount"));
 
   TXN_POSTFIX_RDONLY();
-  return od;
+
+  return num_elems;
 }
+//
+//// This is a lot harder now that we've removed the output_keys index
+//output_data_t BlockchainLMDB::get_output_key(const uint64_t &global_index) const
+//{
+//  LOG_PRINT_L3("BlockchainLMDB::" << __func__ << " (unused version - does nothing)");
+//  check_open();
+//  TXN_PREFIX_RDONLY();
+//  RCURSOR(output_txs);
+//  RCURSOR(tx_indices);
+//  RCURSOR(txs);
+//
+//  output_data_t od;
+//  MDB_val_set(v, global_index);
+//  auto get_result = mdb_cursor_get(m_cur_output_txs, (MDB_val *)&zerokval, &v, MDB_GET_BOTH);
+//  if (get_result == MDB_NOTFOUND)
+//    throw1(OUTPUT_DNE("output with given index not in db"));
+//  else if (get_result)
+//    throw0(DB_ERROR("DB error attempting to fetch output tx hash"));
+//
+//  outtx *ot = (outtx *)v.mv_data;
+//
+//  MDB_val_set(val_h, ot->tx_hash);
+//  get_result = mdb_cursor_get(m_cur_tx_indices, (MDB_val *)&zerokval, &val_h, MDB_GET_BOTH);
+//  if (get_result)
+//    throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch transaction index from hash ") + epee::string_tools::pod_to_hex(ot->tx_hash) + ": ", get_result).c_str()));
+//
+//  txindex *tip = (txindex *)val_h.mv_data;
+//  MDB_val_set(val_tx_id, tip->data.tx_id);
+//  MDB_val result;
+//  get_result = mdb_cursor_get(m_cur_txs, &val_tx_id, &result, MDB_SET);
+//  if (get_result == MDB_NOTFOUND)
+//    throw1(TX_DNE(std::string("tx with hash ").append(epee::string_tools::pod_to_hex(ot->tx_hash)).append(" not found in db").c_str()));
+//  else if (get_result)
+//    throw0(DB_ERROR(lmdb_error("DB error attempting to fetch tx from hash", get_result).c_str()));
+//
+//  blobdata bd;
+//  bd.assign(reinterpret_cast<char*>(result.mv_data), result.mv_size);
+//
+//  transaction tx;
+//  if (!parse_and_validate_tx_from_blob(bd, tx))
+//    throw0(DB_ERROR("Failed to parse tx from blob retrieved from the db"));
+//
+//  const tx_out tx_output = tx.vout[ot->local_index];
+//  od.unlock_time = tip->data.unlock_time;
+//  od.height = tip->data.block_id;
+//  od.pubkey = *boost::apply_visitor(destination_public_key_visitor(), tx_output.target);
+//
+//  TXN_POSTFIX_RDONLY();
+//  return od;
+//}
 
 output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type)
 {
@@ -2659,6 +2692,56 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
   TXN_POSTFIX_RDONLY();
   return ret;
 }
+
+
+
+  output_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+//    MDB_cursor *cur_output_amount;
+//    switch (output_type)
+//    {
+//      case tx_out_type::out_cash:
+//        RCURSOR(output_amounts);
+//        cur_output_amount = m_cur_output_amounts;
+//        break;
+//      case tx_out_type::out_token:
+//        RCURSOR(output_token_amounts);
+//        cur_output_amount = m_cur_output_token_amounts;
+//        break;
+//      default:
+//        throw0(DB_ERROR("Unknown utxo output type"));
+//        break;
+//    }
+
+
+//    MDB_val_set(k, amount);
+//    MDB_val_set(v, index);
+//    auto get_result = mdb_cursor_get(cur_output_amount, &k, &v, MDB_GET_BOTH);
+//    if (get_result == MDB_NOTFOUND)
+//      throw1(OUTPUT_DNE("Attempting to get output pubkey by index, but key does not exist"));
+//    else if (get_result)
+//      throw0(DB_ERROR("Error attempting to retrieve an output pubkey from the db"));
+//
+    output_data_t ret;
+//    if (amount == 0)
+//    {
+//      const outkey *okp = (const outkey *)v.mv_data;
+//      ret = okp->data;
+//    }
+//    else
+//    {
+//      const pre_rct_outkey *okp = (const pre_rct_outkey *)v.mv_data;
+//      memcpy(&ret, &okp->data, sizeof(pre_rct_output_data_t));;
+//      ret.commitment = rct::zeroCommit(amount);
+//    }
+    TXN_POSTFIX_RDONLY();
+    return ret;
+  }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
 {
@@ -3722,6 +3805,69 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     return num_locked_tokens;
 
   }
+
+  std::vector<uint64_t> BlockchainLMDB::get_token_lock_expiry_outputs(const uint64_t block_height) const
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_token_lock_expiry;
+    RCURSOR(token_lock_expiry);
+    cur_token_lock_expiry = m_cur_token_lock_expiry;
+
+    std::vector<uint64_t> data;
+    uint64_t buf = 0;
+
+    MDB_val_set(k, block_height);
+    MDB_val_set(v, buf);
+
+    mdb_size_t num_elems = 0;
+
+    auto get_result = mdb_cursor_get(cur_token_lock_expiry, &k, &v, MDB_SET);
+    if (get_result == MDB_NOTFOUND)
+    {
+
+    } else if (get_result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", get_result).c_str()));
+    }
+    else if (get_result == MDB_SUCCESS)
+    {
+      uint64_t *ptr = (uint64_t *) v.mv_data;
+      data.push_back(*ptr);
+
+
+      get_result = mdb_cursor_count(cur_token_lock_expiry, &num_elems);
+        if (get_result)
+          throw0(DB_ERROR(std::string("Failed to get number locked epiry outputs: ").append(mdb_strerror(get_result)).c_str()));
+    }
+
+    for (uint64_t i=0;i<num_elems-1;i++)
+    {
+      get_result = mdb_cursor_get(cur_token_lock_expiry, &k, &v, MDB_NEXT_DUP);
+      if (get_result == MDB_NOTFOUND)
+      {
+        break;
+      }
+      else if (get_result)
+      {
+        throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", get_result).c_str()));
+      }
+      else if (get_result == MDB_SUCCESS)
+      {
+        uint64_t *ptr = (uint64_t *) v.mv_data;
+        data.push_back(*ptr);
+      }
+    }
+
+
+    TXN_POSTFIX_RDONLY();
+
+    return data;
+
+  };
 
 
 }  // namespace cryptonote

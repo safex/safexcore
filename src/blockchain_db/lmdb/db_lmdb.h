@@ -251,10 +251,11 @@ public:
   virtual uint64_t get_tx_block_height(const crypto::hash& h) const;
 
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const;
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const;
 
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type);
-  virtual output_data_t get_output_key(const uint64_t& global_index) const;
   virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false);
+  virtual output_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
@@ -285,6 +286,8 @@ public:
 
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
+  virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
+
 
   virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
