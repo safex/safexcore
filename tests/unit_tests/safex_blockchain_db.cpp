@@ -1072,11 +1072,32 @@ bool compare_txs(const transaction& a, const transaction& b)
     uint64_t test_output_id = data[0]; //first tx in 11 block
 
     crypto::public_key pkey = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id)[0];
-    crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), this->m_txs[11][0].vout[0].target); //get public key of first output of first tx in 11 block
-    ASSERT_EQ(pkey, check);
+    bool match = false;
+    crypto::hash matching_tx_hash;
+
+    //find pkey key in transaction output of block 11
+    for (transaction& tx: this->m_txs[11])
+    {
+      for (tx_out out: tx.vout)
+      {
+        crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target); //get public key of first output of first tx in 11 block
+        if (memcmp(pkey.data, check.data, sizeof(pkey.data)) == 0) {
+          match = true;
+          matching_tx_hash = tx.hash;
+        }
+      }
+    }
+    ASSERT_EQ(match, true);
+
+    tx_out_index index1 = this->m_db->get_output_tx_and_index_from_global(test_output_id);
+    ASSERT_EQ(matching_tx_hash, index1.first);
+
 
     ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_locked_token, 313), DB_ERROR);
     ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
+
+
+
 
 
 
