@@ -92,7 +92,7 @@ public:
   virtual uint64_t get_num_outputs(const tx_out_type output_type) const {return 1;}
   virtual uint64_t get_indexing_base() const { return 0; }
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) { return output_data_t(); }
-  virtual output_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id)  { return output_data_t(); }
+  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id)  { return std::vector<crypto::public_key>{}; }
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return tx_out_index(); }
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return tx_out_index(); }
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const {}

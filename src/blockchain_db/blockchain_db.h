@@ -1258,9 +1258,9 @@ public:
    * @param output_type type of output(e.g. token lock output
    * @param global_index output id of output (output_id)
    *
-   * @return the requested output data
+   * @return list of public keys that can use this output
    */
-  virtual output_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) = 0;
+  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id) = 0;
 
   /**
    * @brief gets an output's tx hash and index

@@ -196,12 +196,6 @@ bool compare_txs(const transaction& a, const transaction& b)
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_migration_tx_to_key(tx, m_miner_acc, m_users_acc[0], m_test_tokens[0], default_miner_fee, get_hash_from_string(bitcoin_tx_hashes_str[0]));
             m_txmap[get_transaction_hash(tx)] = tx;
-
-//            tx_list.resize(tx_list.size() + 1);
-//            cryptonote::transaction &tx2 = tx_list.back();                                                           \
-//            construct_migration_tx_to_key(tx2, m_miner_acc, m_users_acc[1], m_test_tokens[1], default_miner_fee, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-//            m_txmap[get_transaction_hash(tx)] = tx2;
-
           } else if (i == 2)
           {
             tx_list.resize(tx_list.size() + 1);
@@ -1074,6 +1068,17 @@ bool compare_txs(const transaction& a, const transaction& b)
 
     uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_locked_token);
     ASSERT_EQ(token_lock_output_num, 3);
+
+    uint64_t test_output_id = data[0]; //first tx in 11 block
+
+    crypto::public_key pkey = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id)[0];
+    crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), this->m_txs[11][0].vout[0].target); //get public key of first output of first tx in 11 block
+    ASSERT_EQ(pkey, check);
+
+    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_locked_token, 313), DB_ERROR);
+    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
+
+
 
 
 
