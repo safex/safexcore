@@ -249,6 +249,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const cryptonote::tx_out_type output_type) const
     { return true; }
 
+    virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const cryptonote::tx_out_type output_type) const { return true;}
+
     virtual bool is_read_only() const
     { return false; }
 

@@ -1097,11 +1097,26 @@ bool compare_txs(const transaction& a, const transaction& b)
     ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
 
 
+    uint64_t tx_index;
+    if (!this->m_db->tx_exists(matching_tx_hash, tx_index))
+    {
+      ASSERT_TRUE(false);
+    }
+
+    std::vector<uint64_t> output_indexs;
+
+    // get amount or output id for outputs, currently referred to in parts as "output global indices", but they are actually specific to amounts for cash and token outputs
+    output_indexs = this->m_db->get_tx_amount_output_indices(tx_index);
+    if (output_indexs.empty())
+    {
+      ASSERT_TRUE(false);
+    }
 
 
-
-
-
+    this->m_db->for_all_advanced_outputs([](const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout){
+      std::cout << "Height: " << height << " txid: " << output_id << " txout type: "<< static_cast<uint64_t>(txout.output_type) << std::endl;
+      return true;
+    }, cryptonote::tx_out_type::out_locked_token);
 
 
     std::cout << "All blocks added" << std::endl;

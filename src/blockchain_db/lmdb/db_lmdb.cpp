@@ -2923,16 +2923,16 @@ bool BlockchainLMDB::for_all_outputs(std::function<bool(uint64_t amount, const c
   check_open();
 
   TXN_PREFIX_RDONLY();
-  MDB_cursor *cur_output_amount;
+  MDB_cursor *cur_output;
   switch (output_type)
   {
     case tx_out_type::out_cash:
       RCURSOR(output_amounts);
-      cur_output_amount = m_cur_output_amounts;
+      cur_output = m_cur_output_amounts;
       break;
     case tx_out_type::out_token:
       RCURSOR(output_token_amounts);
-      cur_output_amount = m_cur_output_token_amounts;
+      cur_output = m_cur_output_token_amounts;
       break;
     default:
       throw0(DB_ERROR("Unknown utxo output type"));
@@ -2946,7 +2946,7 @@ bool BlockchainLMDB::for_all_outputs(std::function<bool(uint64_t amount, const c
   MDB_cursor_op op = MDB_FIRST;
   while (1)
   {
-    int ret = mdb_cursor_get(cur_output_amount, &k, &v, op);
+    int ret = mdb_cursor_get(cur_output, &k, &v, op);
     op = MDB_NEXT;
     if (ret == MDB_NOTFOUND)
       break;
@@ -2965,6 +2965,59 @@ bool BlockchainLMDB::for_all_outputs(std::function<bool(uint64_t amount, const c
 
   return fret;
 }
+
+//TODO optimize this function, take output ids of output type from output_advanced_type
+//and then interate trough them
+bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout)> f, const tx_out_type output_type) const
+{
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+    MDB_cursor *cur_output_advanced;
+    RCURSOR(output_advanced);
+    cur_output_advanced = m_cur_output_advanced;
+
+    MDB_val k;
+    MDB_val v;
+    bool fret = true;
+
+    MDB_cursor_op op = MDB_FIRST;
+    while (1)
+    {
+      int ret = mdb_cursor_get(cur_output_advanced, &k, &v, op);
+      op = MDB_NEXT;
+      if (ret == MDB_NOTFOUND)
+        break;
+      if (ret)
+        throw0(DB_ERROR("Failed to enumerate outputs"));
+
+      txout_to_script txout;
+      blobdata blb;
+      blb.resize(v.mv_size);
+      memcpy((void*)(&blb[0]), v.mv_data, v.mv_size);
+      cryptonote::parse_and_validate_txout_to_script_from_blob(blb, txout);
+
+      const uint64_t output_id = *(const uint64_t*)k.mv_data;
+
+
+      if (static_cast<tx_out_type>(txout.output_type) == output_type) {
+        tx_out_index toi = get_output_tx_and_index_from_global(output_id);
+        const uint64_t block_height = get_tx_block_height(toi.first);
+        if (!f(toi.first, block_height, output_id, txout)) {
+          fret = false;
+          break;
+        }
+
+      }
+    }
+
+    TXN_POSTFIX_RDONLY();
+
+    return fret;
+  }
+};
 
 bool BlockchainLMDB::for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const
 {

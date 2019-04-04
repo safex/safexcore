@@ -257,15 +257,15 @@ public:
   virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false);
   virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
-  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const;
+  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
       std::vector<tx_out_index> &tx_out_indices) const;
 
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const;
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const;
-  //virtual tx_out_index get_output_tx_and_index(const tx_out_type output_type, const uint64_t output_id) const; //todo
 
-  virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_id) const; //todo
+
+  virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_id) const;
 
   virtual bool has_key_image(const crypto::key_image& img) const;
 
@@ -282,8 +282,9 @@ public:
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const;
   virtual bool for_blocks_range(const uint64_t& h1, const uint64_t& h2, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const;
   virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const;
-  virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const; //todo
-  virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const; //todo
+  virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const;
+  virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;

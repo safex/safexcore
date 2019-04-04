@@ -457,7 +457,11 @@ private:
   virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) = 0;
 
   /**
-   * @brief store amount output indices for a tx's outputs
+   * @brief store amount output indices for a tx's outputs.
+   *
+   * For cash and token outputs, their amount output indice in output_amounts
+   * and output_token_amounts tables is stored. For advanced outputs,
+   * output id from output_advanced table is stored.
    *
    * The subclass implementing this will add the amount output indices to its
    * backing store in a suitable manner. The tx_id will be the same one that
@@ -1497,6 +1501,8 @@ public:
    */
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const = 0;
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const = 0;
+
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const = 0; //todo
 
 
   /* Safex related db api */
