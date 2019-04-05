@@ -837,6 +837,7 @@ uint64_t BlockchainLMDB::add_transaction_data(const crypto::hash& blk_hash, cons
   return tx_id;
 }
 
+
 // TODO: compare pros and cons of looking up the tx hash's tx index once and
 // passing it in to functions like this
 void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx)
@@ -972,6 +973,8 @@ uint64_t BlockchainLMDB::add_cash_output(const tx_out& tx_output, const uint64_t
   return ok.amount_index;
 }
 
+
+
 void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -982,44 +985,12 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   if (static_cast<cryptonote::tx_out_type>(output_type) == cryptonote::tx_out_type::out_locked_token)
   {
 
-    MDB_cursor *cur_token_locked_sum;
     MDB_cursor *cur_token_lock_expiry;
-
-    CURSOR(token_locked_sum);
     CURSOR(token_lock_expiry);
-    cur_token_locked_sum = m_cur_token_locked_sum;
     cur_token_lock_expiry = m_cur_token_lock_expiry;
 
-    uint64_t locked_tokens = 0; //locked tokens in interval
-    uint64_t interval = safex::calculate_interval_for_height(m_height); // interval for currently processed output
-
-    MDB_val_set(k, interval);
-    MDB_val_set(v, locked_tokens);
-
-    //get already locked tokens for this period
-    bool existing_interval = false;
-    auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
-    if (result == MDB_NOTFOUND) {
-      locked_tokens = 0;
-    }
-    else if (result)
-    {
-      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
-    } else if (result == MDB_SUCCESS) {
-      uint64_t *ptr = (uint64_t *)v.mv_data;
-      locked_tokens = *ptr;
-      existing_interval = true;
-    }
-
-    uint64_t newly_locked_tokens = locked_tokens + tx_output.token_amount;
-
-    std::cout << " Current locked tokens is:" << locked_tokens<<" newly locked tokens:" << newly_locked_tokens << std::endl;
-
-    //update sum of locked tokens for interval
-    MDB_val_set(k2, interval);
-    MDB_val_set(vupdate, newly_locked_tokens);
-    if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval?(unsigned int)MDB_CURRENT:(unsigned int)MDB_APPEND)))
-      throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
+    update_locked_token_sum_for_interval(interval_block, tx_output.token_amount);
 
 
     //Add tocken lock expiry values
@@ -1028,7 +999,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 
     MDB_val data;
     MDB_val_copy<uint64_t> block_number(expiry_block);
-    result = mdb_cursor_get(cur_token_lock_expiry, &block_number, &data, MDB_SET);
+    auto result = mdb_cursor_get(cur_token_lock_expiry, &block_number, &data, MDB_SET);
     if (result != MDB_SUCCESS && result != MDB_NOTFOUND)
       throw0(DB_ERROR(lmdb_error("Failed to get data for locked token output expiry: ", result).c_str()));
 
@@ -1041,15 +1012,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 
     std::cout << " Values updated" << std::endl;
 
-
-
-
-
-
-
-
     // update token lock expiry
-
   }
 
 }
@@ -1275,6 +1238,11 @@ void BlockchainLMDB::remove_spent_key(const crypto::key_image& k_image)
     if (result)
         throw1(DB_ERROR(lmdb_error("Error adding removal of key image to db transaction", result).c_str()));
   }
+}
+
+void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txin) {
+  //todo
+
 }
 
 blobdata BlockchainLMDB::output_to_blob(const tx_out& output) const
@@ -3773,7 +3741,59 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 }
 
 
-/* Safex related functions */
+/* Safex related private functions */
+
+
+uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  uint64_t m_height = height();
+
+  MDB_cursor *cur_token_locked_sum;
+  CURSOR(token_locked_sum);
+  cur_token_locked_sum = m_cur_token_locked_sum;
+
+  uint64_t locked_tokens = 0; //locked tokens in interval
+
+  MDB_val_set(k, interval_starting_block);
+  MDB_val_set(v, locked_tokens);
+
+  //get already locked tokens for this period
+  bool existing_interval = false;
+  auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
+  if (result == MDB_NOTFOUND) {
+    locked_tokens = 0;
+  }
+  else if (result)
+  {
+    throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
+  } else if (result == MDB_SUCCESS) {
+    uint64_t *ptr = (uint64_t *)v.mv_data;
+    locked_tokens = *ptr;
+    existing_interval = true;
+  }
+
+  if ((int64_t)locked_tokens + delta < 0)
+    throw0(DB_ERROR(lmdb_error("Locked token sum for interval negative: ", result).c_str()));
+
+
+  uint64_t newly_locked_tokens = locked_tokens + delta;
+
+  std::cout << " Current locked tokens is:" << locked_tokens<< " newly locked tokens:" << newly_locked_tokens << std::endl;
+
+  //update sum of locked tokens for interval
+  MDB_val_set(k2, interval_starting_block);
+  MDB_val_set(vupdate, newly_locked_tokens);
+  if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval?(unsigned int)MDB_CURRENT:(unsigned int)MDB_APPEND)))
+    throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+
+  return newly_locked_tokens;
+}
+
+
+/* Safex related public functions */
   uint64_t BlockchainLMDB::get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const
   {
 

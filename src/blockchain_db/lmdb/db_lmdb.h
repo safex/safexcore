@@ -286,7 +286,6 @@ public:
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
-
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
 
@@ -366,6 +365,8 @@ private:
 
   virtual void remove_spent_key(const crypto::key_image& k_image);
 
+  virtual void process_command_input(const cryptonote::txin_to_script &txin);
+
   uint64_t num_outputs() const;
 
   // Hard fork
@@ -413,6 +414,10 @@ private:
   uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
 
   void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
+
+  void process_advanced_input(const cryptonote::txin_to_script &txin);
+
+  uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) override;
 
 private:
   MDB_env* m_env;

@@ -500,6 +500,35 @@ private:
   virtual void remove_spent_key(const crypto::key_image& k_image) = 0;
 
 
+
+   /* Safex related private db api */
+   /********************************/
+
+
+   /**
+   * @brief function that takes into account data changes as consequence of input command execution
+   *
+   * This function is called by add_transactions() txin_to_script
+   * with command
+   *
+   * @param txin input with safex command
+   */
+   virtual void process_command_input(const cryptonote::txin_to_script &txin) = 0;
+
+
+    /**
+    * Changes token locked sum for delta
+    *
+    * Delta could be positive or negative
+    *
+    *
+    * @param interval_starting_block block that represents interval, for example 1001 for second interval
+    * @return new number of locked tokens for interval
+    */
+    virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) = 0;
+
+
+
   /*********************************************************************
    * private concrete members
    *********************************************************************/
@@ -540,6 +569,7 @@ protected:
    * @param tx_hash_ptr the hash of the transaction, if already calculated
    */
   void add_transaction(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash* tx_hash_ptr = NULL);
+
 
   mutable uint64_t time_tx_exists = 0;  //!< a performance metric
   uint64_t time_commit1 = 0;  //!< a performance metric
@@ -1505,7 +1535,12 @@ public:
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const = 0; //todo
 
 
+
+
+
   /* Safex related db api */
+  /***********************/
+
   /**
    * Returns number of locked tokens for interval.
    *

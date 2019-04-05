@@ -234,6 +234,10 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void remove_spent_key(const crypto::key_image &k_image)
     {}
 
+    virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
+
+    virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) {return 0;}
+
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
 
