@@ -62,9 +62,9 @@ namespace cryptonote
 
   struct txout_to_script
   {
-    uint8_t output_type;
     std::vector<crypto::public_key> keys;
     std::vector<uint8_t> data; //Local output data and state
+    uint8_t output_type;
 
 
     BEGIN_SERIALIZE_OBJECT()
@@ -219,6 +219,7 @@ namespace cryptonote
     out_bitcoin_migration = 2,
     out_advanced = 10, //generic advanced utxo
     out_locked_token = 11,
+    out_network_fee = 12, //safex cash collected as network trading fee
     out_invalid = 100
   };
 

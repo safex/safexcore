@@ -30,6 +30,7 @@ namespace safex
       token_lock = 0x01,
       token_unlock = 0x02,
       token_collect = 0x03,
+      donate_network_fee = 0x04, /* Donate safex cash to newtork token holders */
       invalid_command
   };
 

@@ -601,9 +601,6 @@ namespace cryptonote
     }
     else if (src_entr.command_type == safex::command_t::token_unlock)
     {
-
-      //todo put this into function
-
       input.token_amount = src_entr.token_amount;
       input.k_image = img;
 
@@ -615,6 +612,21 @@ namespace cryptonote
 
       //here, prepare data of transaction command execution and serialize command
       safex::token_unlock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+      safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+    }
+    else if (src_entr.command_type == safex::command_t::donate_network_fee)
+    {
+      input.amount = src_entr.amount;
+      input.k_image = img;
+
+      //fill outputs array and use relative offsets
+      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+        input.key_offsets.push_back(out_entry.first);
+
+      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+      //here, prepare data of transaction command execution and serialize command
+      safex::donate_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else

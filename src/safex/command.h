@@ -20,8 +20,7 @@
 
 #include "misc_log_ex.h"
 
-
-
+#define CHECK_COMMAND_TYPE(TYPE_TO_CHECK,EXPECTED_TYPE) SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((TYPE_TO_CHECK == EXPECTED_TYPE), "Could not create command, wrong command type", TYPE_TO_CHECK);
 
 namespace safex
 {
@@ -31,6 +30,7 @@ namespace safex
   static const std::string FIELD_COMMAND = "command";
   static const std::string FIELD_LOCK_TOKEN_AMOUNT = "lock_token_amount";
   static const std::string FIELD_LOCKED_TOKEN_OUTPUT_INDEX = "locked_token_output_index";
+
 
   struct token_lock_result
   {
@@ -54,7 +54,6 @@ namespace safex
     uint64_t token_amount; //unlocked token amount
     uint64_t interest; //collected interest from network fees over period
     uint32_t block_number; //block where it is unlocked
-
     bool valid;
   };
 
@@ -63,7 +62,12 @@ namespace safex
     uint64_t token_amount; //amount of tokens that is relocked
     uint64_t interest; //collected interest from network fees over period
     uint32_t block_number; //block where it is unlocked
+    bool valid;
+  };
 
+  struct donate_fee_result
+  {
+    uint64_t amount; //cash amount do donate to newtork token holders
     bool valid;
   };
 
@@ -81,14 +85,11 @@ namespace safex
   {
     public:
 
-
       friend class safex_command_serializer;
-
 
       /**
        * @param _version Safex command protocol version
        * @param _command_type actuall command, like token lock
-       *
       * */
       command(const uint32_t _version, const command_t _command_type) : version(_version), command_type(_command_type)
       {
@@ -132,10 +133,7 @@ namespace safex
 
       friend class safex_command_serializer;
 
-      dummy_command() :  command<dummy_struct>(0, command_t::nop)
-      {
-
-      }
+      dummy_command() :  command<dummy_struct>(0, command_t::nop) {}
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, dummy_struct &cr) override { return false;};
 
@@ -160,31 +158,22 @@ namespace safex
       /**
        * @param _version Safex command protocol version
        * @param _token_amount amount of tokens to lock
-       *
       * */
-      token_lock(const uint32_t _version, const uint64_t _token_amount) : command<token_lock_result>(_version, command_t::token_lock), lock_token_amount(_token_amount)
-      {
+      token_lock(const uint32_t _version, const uint64_t _token_amount) : command<token_lock_result>(_version, command_t::token_lock), lock_token_amount(_token_amount) {}
 
-      }
+      token_lock() : command<token_lock_result>(0, command_t::token_lock), lock_token_amount(0) {}
 
-      token_lock() : command<token_lock_result>(0, command_t::token_lock), lock_token_amount(0)
-      {
-
-      }
-
-      uint64_t get_lock_token_amount() const
-      { return lock_token_amount; }
+      uint64_t get_lock_token_amount() const { return lock_token_amount; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_lock_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command<token_lock_result> *>(this))
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_lock), "Could not create command, wrong command type", this->command_type);
+        CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_lock);
         VARINT_FIELD(lock_token_amount)
       END_SERIALIZE()
 
     protected:
-
       virtual bool store(epee::serialization::portable_storage &ps) const override;
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
@@ -202,27 +191,19 @@ namespace safex
       /**
        * @param _version Safex command protocol version
        * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
-       *
       * */
       token_unlock(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_unlock_result>(_version, command_t::token_unlock),
-              locked_token_output_index(_locked_token_output_index)
-      {
+              locked_token_output_index(_locked_token_output_index) {}
 
-      }
+      token_unlock() : command<token_unlock_result>(0, command_t::token_unlock), locked_token_output_index(0) {}
 
-      token_unlock() : command<token_unlock_result>(0, command_t::token_unlock), locked_token_output_index(0)
-      {
-
-      }
-
-      uint64_t get_locked_token_output_index() const
-      { return locked_token_output_index; }
+      uint64_t get_locked_token_output_index() const { return locked_token_output_index; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command<token_unlock_result> *>(this))
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_unlock), "Could not create command, wrong command type", this->command_type);
+        CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unlock);
         VARINT_FIELD(locked_token_output_index)
       END_SERIALIZE()
 
@@ -248,24 +229,17 @@ namespace safex
        *
       * */
       token_collect(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
-                                                                                          locked_token_output_index(_locked_token_output_index)
-      {
+                                                                                          locked_token_output_index(_locked_token_output_index) {}
 
-      }
+      token_collect() : command<token_collect_result>(0, command_t::token_collect), locked_token_output_index(0) {}
 
-      token_collect() : command<token_collect_result>(0, command_t::token_collect), locked_token_output_index(0)
-      {
-
-      }
-
-      uint64_t get_locked_token_output_index() const
-      { return locked_token_output_index; }
+      uint64_t get_locked_token_output_index() const { return locked_token_output_index; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command<token_collect_result> *>(this))
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_command_type() == command_t::token_collect), "Could not create command, wrong command type", this->command_type);
+        CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
         VARINT_FIELD(locked_token_output_index)
       END_SERIALIZE()
 
@@ -275,6 +249,38 @@ namespace safex
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t locked_token_output_index;
+  };
+
+  class donate_fee : public command<donate_fee_result>
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _donate_amount //amount of safex cash that will be donated to the network token holder to be distributed as interest
+      * */
+      donate_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command<donate_fee_result>(_version, command_t::donate_network_fee),
+                                                                                       donation_safex_cash_amount(_donation_safex_cash_amount) {}
+
+      donate_fee() : command<donate_fee_result>(0, command_t::donate_network_fee), donation_safex_cash_amount(0) {}
+
+      uint64_t get_locked_token_output_index() const { return donation_safex_cash_amount; }
+
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, donate_fee_result &cr) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<donate_fee_result> *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::donate_network_fee);
+        VARINT_FIELD(donation_safex_cash_amount)
+      END_SERIALIZE()
+
+    protected:
+
+      virtual bool store(epee::serialization::portable_storage &ps) const override;
+      virtual bool load(epee::serialization::portable_storage &ps) override;
+
+      uint64_t donation_safex_cash_amount;
   };
 
 
