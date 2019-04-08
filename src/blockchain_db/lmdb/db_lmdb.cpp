@@ -44,6 +44,7 @@
 #include "ringct/rctOps.h"
 
 #include "safex/safex_core.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "blockchain.db.lmdb"
@@ -1008,11 +1009,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     if ((result = mdb_cursor_put(cur_token_lock_expiry, &block_number, &data, MDB_APPENDDUP)))
       throw0(DB_ERROR(lmdb_error("Failed to add locked token output expiry entry: ", result).c_str()));
 
-    std::cout << " Added to block " << expiry_block << " output " << output_id<<std::endl;
-
-    std::cout << " Values updated" << std::endl;
-
-    // update token lock expiry
+    LOG_PRINT_L2("Updated db lock expiry data, to block height: " << expiry_block << " added output: " << output_id);
   }
 
 }
@@ -1241,7 +1238,24 @@ void BlockchainLMDB::remove_spent_key(const crypto::key_image& k_image)
 }
 
 void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txin) {
-  //todo
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  uint64_t m_height = height();
+
+  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
+
+  if (command_type == safex::command_t::token_lock) {
+
+
+  }
+  else if (command_type == safex::command_t::token_unlock) {
+
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
+    update_locked_token_sum_for_interval(interval_block, -1 * txin.token_amount);
+  }
+  else {
+    throw1(DB_ERROR("Unknown safex command type"));
+  }
 
 }
 
@@ -3781,7 +3795,7 @@ uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t int
 
   uint64_t newly_locked_tokens = locked_tokens + delta;
 
-  std::cout << " Current locked tokens is:" << locked_tokens<< " newly locked tokens:" << newly_locked_tokens << std::endl;
+  LOG_PRINT_L2("Current locked tokens is:" << locked_tokens<< " newly locked tokens:" << newly_locked_tokens);
 
   //update sum of locked tokens for interval
   MDB_val_set(k2, interval_starting_block);

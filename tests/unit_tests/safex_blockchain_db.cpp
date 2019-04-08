@@ -238,17 +238,25 @@ bool compare_txs(const transaction& a, const transaction& b)
           {
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
-            cryptonote::transaction &tx = tx_list.back();                                                           \
+            cryptonote::transaction &tx = tx_list.back();
             construct_token_unlock_transaction(tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 19)
           {
             //token lock transaction
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_lock_transaction(tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 20)
           {
             //token unlock transaction
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_unlock_transaction(tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
 
 
@@ -556,11 +564,12 @@ bool compare_txs(const transaction& a, const transaction& b)
 
                   ts.real_output = realOutput;
 
-                  sources.push_back(ts);
+                  sources_locked_token_amount = ts.token_amount;
+                  sources_found = value_amount == sources_locked_token_amount;
+
+                  if (sources_found) sources.push_back(ts);
 
 
-                  sources_locked_token_amount += ts.token_amount;
-                  sources_found = value_amount <= sources_locked_token_amount;
                 }
 
                 if (sources_found)
@@ -1036,7 +1045,7 @@ bool compare_txs(const transaction& a, const transaction& b)
 
   TYPED_TEST_CASE(SafexBlockchainDBTest, implementations);
 
-#if 0
+#if 1
 
   TYPED_TEST(SafexBlockchainDBTest, OpenAndClose)
   {
@@ -1170,6 +1179,9 @@ bool compare_txs(const transaction& a, const transaction& b)
       } else if (i==11) {
         std::cout << "11 block"<<std::endl;
       }
+      else if (i==20) {
+        std::cout << "11 block"<<std::endl;
+      }
       try
       {
         this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
@@ -1180,16 +1192,22 @@ bool compare_txs(const transaction& a, const transaction& b)
     }
 
     uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0));
-    ASSERT_EQ(number_of_locked_tokens, 600 * SAFEX_TOKEN);
+    ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100+200 - 100 - 400
 
     //vector<uint64_t> block 500012
 
     std::vector<uint64_t> data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+11);
     ASSERT_EQ(data.size(), 2);
 
+    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+15);
+    ASSERT_EQ(data.size(), 0);
+
+    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+19);
+    ASSERT_EQ(data.size(), 1);
+
 
     uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_locked_token);
-    ASSERT_EQ(token_lock_output_num, 3);
+    ASSERT_EQ(token_lock_output_num, 4);
 
     uint64_t test_output_id = data[0]; //first tx in 11 block
 
@@ -1197,8 +1215,8 @@ bool compare_txs(const transaction& a, const transaction& b)
     bool match = false;
     crypto::hash matching_tx_hash;
 
-    //find pkey key in transaction output of block 11
-    for (transaction& tx: this->m_txs[11])
+    //find pkey key in transaction output of block 19
+    for (transaction& tx: this->m_txs[19])
     {
       for (tx_out out: tx.vout)
       {
