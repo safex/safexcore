@@ -328,6 +328,46 @@ extern "C" DLL_MAGIC void* win_history(void* self) {
   return static_cast<void*>(wallet->history());
 }
 
+
+extern "C" DLL_MAGIC const char* win_addrbook_get_all(void* self) {
+  static std::string result;
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  std::vector<Safex::AddressBookRow*> rows = wallet->addressBook()->getAll();
+
+  result.clear();
+  std::string delimeter{"$@"};
+  for(auto row : rows) {
+    std::string serialized_row = std::to_string(row->getRowId()) + delimeter;
+    serialized_row += row->getAddress() + delimeter;
+    serialized_row += row->getPaymentId() + delimeter;
+    serialized_row += row->getDescription() + delimeter;
+
+    result += serialized_row;
+  }
+
+  return result.c_str();
+}
+
+extern "C" DLL_MAGIC uint8_t win_addrbook_add_row(void* self, const char* addr, const char* pid, const char* desc) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return static_cast<uint8_t>(wallet->addressBook()->addRow(addr, pid, desc));
+}
+
+extern "C" DLL_MAGIC uint8_t win_addrbook_del_row(void* self, uint32_t row_id) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return static_cast<uint8_t>(wallet->addressBook()->deleteRow(row_id));
+}
+
+extern "C" DLL_MAGIC const char* win_addrbook_err_str(void* self) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->addressBook()->errorString().c_str();
+}
+
+extern "C" DLL_MAGIC int32_t win_addrbook_look_for_pid(void* self, const char* pid) {
+  Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
+  return wallet->addressBook()->lookupPaymentID(pid);
+}
+
 /****************************** PENDING TRANSACTION API ***************************************************************/
 extern "C" DLL_MAGIC  void *win_pt_create(void *in)
 {
@@ -418,6 +458,7 @@ extern "C" DLL_MAGIC  uint8_t win_pt_commit(void *self)
 
   return static_cast<uint8_t>(ptx->commit());
 }
+
 /****************************** END PENDING TRANSACTION API ***********************************************************/
 
 
@@ -512,6 +553,12 @@ extern "C" DLL_MAGIC  uint64_t win_txinfo_amount(void *self)
 {
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
   return txInfo->amount();
+}
+
+extern "C" DLL_MAGIC  uint64_t win_txinfo_token_amount(void *self)
+{
+  Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
+  return txInfo->token_amount();
 }
 
 extern "C" DLL_MAGIC  uint64_t win_txinfo_fee(void *self)

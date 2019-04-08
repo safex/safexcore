@@ -1187,8 +1187,11 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
     // indicates if dst_addr is integrated address (address + payment_id)
     // TODO:  (https://bitcointalk.org/index.php?topic=753252.msg9985441#msg9985441)
     size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
-    if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIXIN;
+
+    //Enable 0 mixin, network is still young, not many token outputs
+    // Sweep unmixable is not available in GUI wallet yet
+//    if (fake_outs_count == 0)
+//        fake_outs_count = DEFAULT_MIXIN;
 
     uint32_t adjusted_priority = m_wallet->adjust_priority(static_cast<uint32_t>(priority));
 
