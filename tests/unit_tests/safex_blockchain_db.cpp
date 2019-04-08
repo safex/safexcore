@@ -51,7 +51,7 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 20;
+  const int NUMBER_OF_BLOCKS = 22;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
@@ -166,7 +166,8 @@ bool compare_txs(const transaction& a, const transaction& b)
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
         m_test_coins[0] = 2000 * SAFEX_CASH_COIN; //genesis tx airdrop
         m_test_tokens = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 0);
-        m_test_tokens[1] = 1000 * SAFEX_TOKEN;
+        m_test_tokens[0] = 1000 * SAFEX_TOKEN;
+        m_test_tokens[1] = 100 * SAFEX_TOKEN;
         m_test_diffs = std::vector<difficulty_type>(NUMBER_OF_BLOCKS, 200);
         m_test_diffs[0] = 1;
         m_test_diffs[1] = 100;
@@ -193,7 +194,7 @@ bool compare_txs(const transaction& a, const transaction& b)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_migration_tx_to_key(tx, m_miner_acc, m_users_acc[0], m_test_tokens[1], default_miner_fee, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+            construct_migration_tx_to_key(tx, m_miner_acc, m_users_acc[0], m_test_tokens[0], default_miner_fee, get_hash_from_string(bitcoin_tx_hashes_str[0]));
             m_txmap[get_transaction_hash(tx)] = tx;
           } else if (i == 2)
           {
@@ -201,6 +202,11 @@ bool compare_txs(const transaction& a, const transaction& b)
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_tx_to_key(tx, m_users_acc[0], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_tx_to_key(tx2, m_miner_acc, m_users_acc[1], 10 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx2)] = tx2;
           } else if (i == 3)
           {
             tx_list.resize(tx_list.size() + 1);
@@ -222,13 +228,35 @@ bool compare_txs(const transaction& a, const transaction& b)
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_token_lock_transaction(tx2, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx2)] = tx2;
+
           } else if (i == 17)
           {
             //token unlock transaction
-            std::cout << "Token unlock transaction here" << std::endl;
-          } else if (i == 19)
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_unlock_transaction(tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 19)
+          {
+            //token lock transaction
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_lock_transaction(tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 20)
           {
             //token unlock transaction
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_unlock_transaction(tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
 
 
@@ -298,8 +326,25 @@ bool compare_txs(const transaction& a, const transaction& b)
                           outs_mine[out.token_amount].push_back(tx_global_idx);
                         }
                       }
-
-                    } else if (out_type == cryptonote::tx_out_type::out_cash)
+                      else if (out.target.type() == typeid(cryptonote::txout_to_script))
+                      {
+                        const txout_to_script &temp = boost::get<txout_to_script>(out.target);
+                        if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
+                        {
+                          //cast tx_out_type and use it as imaginary amount for advanced outputs
+                          output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
+                          outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].push_back(oi);
+                          size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].size() - 1;
+                          outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].idx = tx_global_idx;
+                          // Is out to me?
+                          if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
+                          {
+                            outs_mine[static_cast<uint64_t>(tx_out_type::out_locked_token)].push_back(tx_global_idx);
+                          }
+                        }
+                      }
+                    }
+                    else if (out_type == cryptonote::tx_out_type::out_cash)
                     {
                       if (out.target.type() == typeid(cryptonote::txout_to_key))
                       { // out_to_key
@@ -475,6 +520,65 @@ bool compare_txs(const transaction& a, const transaction& b)
         return sources_found;
       }
 
+      bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const cryptonote::account_base &from, uint64_t value_amount, size_t nmix,
+                           cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_locked_token)
+      {
+        map_output_idx_t outs;
+        map_output_t outs_mine;
+        if (!init_output_indices(outs, outs_mine, m_blocks, from, cryptonote::tx_out_type::out_locked_token))
+          return false;
+
+        if (!init_spent_output_indices(outs, outs_mine, m_blocks, from))
+          return false;
+
+        // Iterate in reverse is more efficiency
+        uint64_t sources_locked_token_amount = 0;
+        bool sources_found = false;
+        BOOST_REVERSE_FOREACH(const map_output_t::value_type o, outs_mine)
+              {
+                for (size_t i = 0; i < o.second.size() && !sources_found; ++i)
+                {
+                  size_t sender_out = o.second[i];
+                  const output_index &oi = outs[o.first][sender_out];
+                  if ((oi.spent) || (oi.token_amount > 0 && out_type == cryptonote::tx_out_type::out_cash)
+                      || (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_locked_token))
+                      || (oi.out.type() != typeid(txout_to_script)))
+                    continue;
+
+
+                  const cryptonote::txout_to_script &out = boost::get<txout_to_script>(oi.out);
+
+                  if (out.output_type != static_cast<uint8_t >(cryptonote::tx_out_type::out_locked_token))
+                    continue;
+
+                  cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
+                  ts.token_amount = oi.token_amount;
+                  ts.referenced_output_type = cryptonote::tx_out_type::out_locked_token;
+                  ts.command_type = safex::command_t::token_unlock;
+
+                  ts.real_output_in_tx_index = oi.out_no;
+                  ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
+                  size_t realOutput;
+                  if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
+                    continue;
+
+                  ts.real_output = realOutput;
+
+                  sources_locked_token_amount = ts.token_amount;
+                  sources_found = value_amount == sources_locked_token_amount;
+
+                  if (sources_found) sources.push_back(ts);
+
+
+                }
+
+                if (sources_found)
+                  break;
+              }
+
+        return sources_found;
+      }
+
       bool fill_migration_tx_sources(std::vector<tx_source_entry> &sources, const cryptonote::account_base &from,
                                      uint64_t token_amount, uint64_t cash_airdrop_amount, const crypto::hash &bitcoin_transaction_hash)
       {
@@ -556,8 +660,7 @@ bool compare_txs(const transaction& a, const transaction& b)
       }
 
 
-      void fill_tx_sources_and_destinations(const block &blk_head,
-                                            const cryptonote::account_base &from, const cryptonote::account_base &to,
+      void fill_tx_sources_and_destinations(const cryptonote::account_base &from, const cryptonote::account_base &to,
                                             uint64_t amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                             std::vector<tx_destination_entry> &destinations)
       {
@@ -567,13 +670,13 @@ bool compare_txs(const transaction& a, const transaction& b)
         if (!fill_tx_sources(sources, from, amount + fee, nmix))
           throw std::runtime_error("couldn't fill transaction sources");
 
-        tx_destination_entry de = create_tx_destination(de, to, amount);
+        tx_destination_entry de = create_tx_destination(to, amount);
         destinations.push_back(de);
 
         uint64_t cache_back = get_inputs_amount(sources) - (amount + fee);
         if (0 < cache_back)
         {
-          tx_destination_entry de_change = create_tx_destination(de_change, from, cache_back);
+          tx_destination_entry de_change = create_tx_destination(from, cache_back);
           destinations.push_back(de_change);
         }
       }
@@ -681,6 +784,35 @@ bool compare_txs(const transaction& a, const transaction& b)
         }
       }
 
+      void fill_token_unlock_tx_sources_and_destinations(const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                                       uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
+                                                       std::vector<tx_destination_entry> &destinations)
+      {
+        sources.clear();
+        destinations.clear();
+
+        //fill cache sources for fee
+        if (!fill_tx_sources(sources, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+          throw std::runtime_error("couldn't fill transaction sources");
+
+        //locked token source
+        if (!fill_unlock_token_sources(sources, from, token_amount, nmix))
+          throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
+
+        //locked token destination, there is no token change, all tokens are unlocked
+        tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
+        destinations.push_back(de_token);
+
+        //sender change for fee
+
+        uint64_t cache_back = get_inputs_amount(sources) - fee;
+        if (0 < cache_back)
+        {
+          tx_destination_entry de_change = create_tx_destination(from, cache_back);
+          destinations.push_back(de_change);
+        }
+      }
+
       crypto::hash get_hash_from_string(const std::string hashstr)
       {
         //parse bitcoin transaction hash
@@ -695,13 +827,12 @@ bool compare_txs(const transaction& a, const transaction& b)
       }
 
 
-      bool construct_tx_to_key(cryptonote::transaction &tx, const block &blk_head,
-                               const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t amount,
+      bool construct_tx_to_key(cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t amount,
                                uint64_t fee, size_t nmix)
       {
         std::vector<tx_source_entry> sources;
         std::vector<tx_destination_entry> destinations;
-        fill_tx_sources_and_destinations(blk_head, from, to, amount, fee, nmix, sources, destinations);
+        fill_tx_sources_and_destinations(from, to, amount, fee, nmix, sources, destinations);
 
         return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
       }
@@ -745,6 +876,16 @@ bool compare_txs(const transaction& a, const transaction& b)
         std::vector<tx_source_entry> sources;
         std::vector<tx_destination_entry> destinations;
         fill_token_lock_tx_sources_and_destinations(from, to, token_amount, fee, nmix, sources, destinations);
+
+        return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+      }
+
+      bool construct_token_unlock_transaction(cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                            uint64_t token_amount, uint64_t fee, size_t nmix)
+      {
+        std::vector<tx_source_entry> sources;
+        std::vector<tx_destination_entry> destinations;
+        fill_token_unlock_tx_sources_and_destinations(from, to, token_amount, fee, nmix, sources, destinations);
 
         return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
       }
@@ -1031,24 +1172,91 @@ bool compare_txs(const transaction& a, const transaction& b)
 
     for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
     {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
 
-//      if (i==10) {
-//        std::cout << "10 block"<<std::endl;
-//      } else if (i==11) {
-//        std::cout << "11 block"<<std::endl;
-//      }
-//      try
-//      {
-//        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
-//      }
-//      catch (std::exception &e) {
-//        std::cout << "Error: " << e.what() << std::endl;
-//      }
+      if (i==10) {
+        std::cout << "10 block"<<std::endl;
+      } else if (i==11) {
+        std::cout << "11 block"<<std::endl;
+      }
+      else if (i==20) {
+        std::cout << "11 block"<<std::endl;
+      }
+      try
+      {
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &e) {
+        std::cout << "Error: " << e.what() << std::endl;
+      }
     }
 
     uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0));
-    ASSERT_EQ(number_of_locked_tokens, 500 * SAFEX_TOKEN);
+    ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100+200 - 100 - 400
+
+    //vector<uint64_t> block 500012
+
+    std::vector<uint64_t> data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+11);
+    ASSERT_EQ(data.size(), 2);
+
+    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+15);
+    ASSERT_EQ(data.size(), 0);
+
+    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+19);
+    ASSERT_EQ(data.size(), 1);
+
+
+    uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_locked_token);
+    ASSERT_EQ(token_lock_output_num, 4);
+
+    uint64_t test_output_id = data[0]; //first tx in 11 block
+
+    crypto::public_key pkey = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id)[0];
+    bool match = false;
+    crypto::hash matching_tx_hash;
+
+    //find pkey key in transaction output of block 19
+    for (transaction& tx: this->m_txs[19])
+    {
+      for (tx_out out: tx.vout)
+      {
+        crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target); //get public key of first output of first tx in 11 block
+        if (memcmp(pkey.data, check.data, sizeof(pkey.data)) == 0) {
+          match = true;
+          matching_tx_hash = tx.hash;
+        }
+      }
+    }
+    ASSERT_EQ(match, true);
+
+    tx_out_index index1 = this->m_db->get_output_tx_and_index_from_global(test_output_id);
+    ASSERT_EQ(matching_tx_hash, index1.first);
+
+
+    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_locked_token, 313), DB_ERROR);
+    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
+
+
+    uint64_t tx_index;
+    if (!this->m_db->tx_exists(matching_tx_hash, tx_index))
+    {
+      ASSERT_TRUE(false);
+    }
+
+    std::vector<uint64_t> output_indexs;
+
+    // get amount or output id for outputs, currently referred to in parts as "output global indices", but they are actually specific to amounts for cash and token outputs
+    output_indexs = this->m_db->get_tx_amount_output_indices(tx_index);
+    if (output_indexs.empty())
+    {
+      ASSERT_TRUE(false);
+    }
+
+
+    this->m_db->for_all_advanced_outputs([](const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout){
+      std::cout << "Height: " << height << " txid: " << output_id << " txout type: "<< static_cast<uint64_t>(txout.output_type) << std::endl;
+      return true;
+    }, cryptonote::tx_out_type::out_locked_token);
 
 
     std::cout << "All blocks added" << std::endl;

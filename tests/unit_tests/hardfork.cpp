@@ -89,9 +89,10 @@ public:
   virtual std::vector<transaction> get_tx_list(const std::vector<crypto::hash>& hlist) const { return std::vector<transaction>(); }
   virtual uint64_t get_tx_block_height(const crypto::hash& h) const { return 0; }
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const { return 1; }
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const {return 1;}
   virtual uint64_t get_indexing_base() const { return 0; }
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) { return output_data_t(); }
-  virtual output_data_t get_output_key(const uint64_t& global_index) const { return output_data_t(); }
+  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id)  { return std::vector<crypto::public_key>{}; }
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return tx_out_index(); }
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return tx_out_index(); }
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const {}
@@ -107,12 +108,15 @@ public:
   virtual void add_tx_amount_output_indices(const uint64_t tx_index, const std::vector<uint64_t>& amount_output_indices) {}
   virtual void add_spent_key(const crypto::key_image& k_image) {}
   virtual void remove_spent_key(const crypto::key_image& k_image) {}
+  virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
+  virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){}
 
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }
   virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const { return true; }
   virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const { return true; }
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const { return true; }
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const { return true; }
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout)> f, const tx_out_type output_type) const { return true;}
   virtual bool is_read_only() const { return false; }
   virtual std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> get_output_histogram(const std::vector<uint64_t> &amounts, bool unlocked, uint64_t recent_cutoff, const tx_out_type output_type) const { return std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>>(); }
 
@@ -127,6 +131,7 @@ public:
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+  virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
 
   virtual void add_block( const block& blk
                         , const size_t& block_size

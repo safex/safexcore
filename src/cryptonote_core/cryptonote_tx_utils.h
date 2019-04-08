@@ -133,7 +133,7 @@ namespace cryptonote
   bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys);
 
 
-  inline bool is_advanced_transaction(const std::vector<tx_destination_entry>& destinations);
+  inline bool is_advanced_transaction(const std::vector<tx_source_entry>& sources);
 
   bool generate_genesis_block(
       block& bl

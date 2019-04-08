@@ -457,7 +457,11 @@ private:
   virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) = 0;
 
   /**
-   * @brief store amount output indices for a tx's outputs
+   * @brief store amount output indices for a tx's outputs.
+   *
+   * For cash and token outputs, their amount output indice in output_amounts
+   * and output_token_amounts tables is stored. For advanced outputs,
+   * output id from output_advanced table is stored.
    *
    * The subclass implementing this will add the amount output indices to its
    * backing store in a suitable manner. The tx_id will be the same one that
@@ -494,6 +498,35 @@ private:
    * @param k_image the spent key image to remove
    */
   virtual void remove_spent_key(const crypto::key_image& k_image) = 0;
+
+
+
+   /* Safex related private db api */
+   /********************************/
+
+
+   /**
+   * @brief function that takes into account data changes as consequence of input command execution
+   *
+   * This function is called by add_transactions() txin_to_script
+   * with command
+   *
+   * @param txin input with safex command
+   */
+   virtual void process_command_input(const cryptonote::txin_to_script &txin) = 0;
+
+
+    /**
+    * Changes token locked sum for delta
+    *
+    * Delta could be positive or negative
+    *
+    *
+    * @param interval_starting_block block that represents interval, for example 1001 for second interval
+    * @return new number of locked tokens for interval
+    */
+    virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) = 0;
+
 
 
   /*********************************************************************
@@ -536,6 +569,7 @@ protected:
    * @param tx_hash_ptr the hash of the transaction, if already calculated
    */
   void add_transaction(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash* tx_hash_ptr = NULL);
+
 
   mutable uint64_t time_tx_exists = 0;  //!< a performance metric
   uint64_t time_commit1 = 0;  //!< a performance metric
@@ -1203,6 +1237,21 @@ public:
    */
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const = 0;
 
+  // returns the total number of outputs of type
+  /**
+   * @brief fetches the number advanced outputs of particular type
+   *
+   * The subclass should return a count of outputs of particular tx_out_type,
+   * or zero if there are none.
+   *
+   * For cash and token outputs, use overloading function that also specifies amount
+   *
+   * @param output_type utxo type (locked token outputs, ...)
+   *
+   * @return the number of advanced outputs of given type
+   */
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const = 0;
+
   /**
    * @brief return index of the first element (should be hidden, but isn't)
    *
@@ -1240,11 +1289,12 @@ public:
    * If any of these parts cannot be found, but some are, the subclass
    * should throw DB_ERROR with a message stating as much.
    *
-   * @param global_index the output's index (global)
+   * @param output_type type of output(e.g. token lock output
+   * @param global_index output id of output (output_id)
    *
-   * @return the requested output data
+   * @return list of public keys that can use this output
    */
-  virtual output_data_t get_output_key(const uint64_t& global_index) const = 0;
+  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id) = 0;
 
   /**
    * @brief gets an output's tx hash and index
@@ -1482,8 +1532,15 @@ public:
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const = 0;
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const = 0;
 
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const = 0; //todo
+
+
+
+
 
   /* Safex related db api */
+  /***********************/
+
   /**
    * Returns number of locked tokens for interval.
    *
@@ -1492,6 +1549,18 @@ public:
    * @return number of locked tokens in interval
    */
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+
+
+
+
+  /**
+   * Returns array of output id-s which lock expires on particular block
+   *
+   *
+   * @param block_height block height
+   * @return array of output id-s
+   */
+  virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const = 0;
 
 
 

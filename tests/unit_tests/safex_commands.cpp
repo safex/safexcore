@@ -179,14 +179,15 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual uint64_t get_num_outputs(const uint64_t &amount, const cryptonote::tx_out_type output_type) const
     { return 1; }
 
+    virtual uint64_t get_num_outputs(const cryptonote::tx_out_type output_type) const {return 1;}
+
     virtual uint64_t get_indexing_base() const
     { return 0; }
 
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type)
     { return cryptonote::output_data_t(); }
 
-    virtual cryptonote::output_data_t get_output_key(const uint64_t &global_index) const
-    { return cryptonote::output_data_t(); }
+    virtual std::vector<crypto::public_key> get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return std::vector<crypto::public_key>{};}
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -233,6 +234,10 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void remove_spent_key(const crypto::key_image &k_image)
     {}
 
+    virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
+
+    virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) {return 0;}
+
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
 
@@ -247,6 +252,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
 
     virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const cryptonote::tx_out_type output_type) const
     { return true; }
+
+    virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const cryptonote::tx_out_type output_type) const { return true;}
 
     virtual bool is_read_only() const
     { return false; }
@@ -282,6 +289,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     { return false; }
 
     virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+    virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty, const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash
     )

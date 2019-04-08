@@ -251,17 +251,19 @@ public:
   virtual uint64_t get_tx_block_height(const crypto::hash& h) const;
 
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const;
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const;
 
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type);
-  virtual output_data_t get_output_key(const uint64_t& global_index) const;
   virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false);
+  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
-  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const;
+  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
       std::vector<tx_out_index> &tx_out_indices) const;
 
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const;
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const;
+
 
   virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_id) const;
 
@@ -282,9 +284,11 @@ public:
   virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const;
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const;
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
-
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
+  virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
+
 
   virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
@@ -361,6 +365,8 @@ private:
 
   virtual void remove_spent_key(const crypto::key_image& k_image);
 
+  virtual void process_command_input(const cryptonote::txin_to_script &txin);
+
   uint64_t num_outputs() const;
 
   // Hard fork
@@ -408,6 +414,10 @@ private:
   uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
 
   void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
+
+  void process_advanced_input(const cryptonote::txin_to_script &txin);
+
+  uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) override;
 
 private:
   MDB_env* m_env;
