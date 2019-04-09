@@ -71,6 +71,15 @@ namespace safex
     bool valid;
   };
 
+  struct donate_fee_data
+  {
+    uint32_t reserved;
+
+    BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(reserved)
+    END_SERIALIZE()
+  };
+
 
   /**
   * @brief script command representation

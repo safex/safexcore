@@ -252,6 +252,11 @@ bool compare_txs(const transaction& a, const transaction& b)
           else if (i == 15)
           {
             //add more network fee
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_fee_donation_transaction(tx, m_miner_acc, 12.5 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            std::cout << "tx 15 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 17)
           {
@@ -857,7 +862,7 @@ bool compare_txs(const transaction& a, const transaction& b)
         destinations.clear();
 
         //fill cache sources for fee
-        if (!fill_tx_sources(sources, from, fee, nmix, cryptonote::tx_out_type::out_network_fee))
+        if (!fill_tx_sources(sources, from, fee+cash_amount, nmix, cryptonote::tx_out_type::out_network_fee))
           throw std::runtime_error("couldn't fill transaction sources");
 
         //fee donation, txout_to_script
@@ -866,7 +871,7 @@ bool compare_txs(const transaction& a, const transaction& b)
 
         //sender change for fee
 
-        uint64_t cache_back = get_inputs_amount(sources) - fee;
+        uint64_t cache_back = get_inputs_amount(sources) - fee - cash_amount;
         if (0 < cache_back)
         {
           tx_destination_entry de_change = create_tx_destination(from, cache_back);
@@ -1121,8 +1126,6 @@ bool compare_txs(const transaction& a, const transaction& b)
 
   TYPED_TEST_CASE(SafexBlockchainDBTest, implementations);
 
-#if 0
-
   TYPED_TEST(SafexBlockchainDBTest, OpenAndClose)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
@@ -1233,7 +1236,6 @@ bool compare_txs(const transaction& a, const transaction& b)
   }
 
 
-
   TYPED_TEST(SafexBlockchainDBTest, RetrieveTokenLockData)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
@@ -1320,8 +1322,6 @@ bool compare_txs(const transaction& a, const transaction& b)
 
   }
 
-#else
-
   TYPED_TEST(SafexBlockchainDBTest, RetrieveCollectedFee)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
@@ -1350,13 +1350,14 @@ bool compare_txs(const transaction& a, const transaction& b)
     uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0));
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
+    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0));
+    ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
+
 
 
     ASSERT_NO_THROW(this->m_db->close());
 
   }
-
-#endif
 
 
 }  // anonymous namespace

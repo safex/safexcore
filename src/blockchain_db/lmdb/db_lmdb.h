@@ -110,7 +110,7 @@ typedef struct mdb_rflags
   bool m_rf_output_advanced;
   bool m_rf_output_advanced_type;
   bool m_rf_token_locked_sum;
-  bool m_rf_network_fee;
+  bool m_rf_network_fee_sum;
   bool m_rf_token_lock_expiry;
 } mdb_rflags;
 
@@ -367,6 +367,11 @@ private:
 
   virtual void remove_spent_key(const crypto::key_image& k_image);
 
+  /**
+   * Process command input for db related changes
+   *
+   * @param txin advanced input with command
+   */
   virtual void process_command_input(const cryptonote::txin_to_script &txin);
 
   uint64_t num_outputs() const;

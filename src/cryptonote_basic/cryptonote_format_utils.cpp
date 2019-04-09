@@ -304,14 +304,14 @@ namespace cryptonote
   {
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
+
     for(auto& in: tx.vin)
     {
-      if (in.type() != typeid(txin_to_key))
-      {
-        continue; //skip non safex cash inputs when calculating fee
-      }
-      amount_in += boost::get<txin_to_key>(in).amount;
+      auto cash_amount_opt = boost::apply_visitor(amount_visitor(), in);
+      if (!cash_amount_opt) continue;
+      amount_in += *cash_amount_opt;
     }
+
     for(auto& o: tx.vout)
       amount_out += o.amount;
 

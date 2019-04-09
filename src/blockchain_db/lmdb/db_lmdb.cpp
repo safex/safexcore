@@ -983,19 +983,19 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   mdb_txn_cursors *m_cursors = &m_wcursors;
   uint64_t m_height = height();
 
-  if (static_cast<cryptonote::tx_out_type>(output_type) == cryptonote::tx_out_type::out_locked_token)
-  {
+  const cryptonote::tx_out_type output_type_c = static_cast<cryptonote::tx_out_type>(output_type);
 
-    MDB_cursor *cur_token_lock_expiry;
-    CURSOR(token_lock_expiry);
-    cur_token_lock_expiry = m_cur_token_lock_expiry;
+  if (output_type_c == cryptonote::tx_out_type::out_locked_token)
+  {
 
     uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
     update_locked_token_sum_for_interval(interval_block, tx_output.token_amount);
 
-
     //Add tocken lock expiry values
     //SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD
+    MDB_cursor *cur_token_lock_expiry;
+    CURSOR(token_lock_expiry);
+    cur_token_lock_expiry = m_cur_token_lock_expiry;
     const uint64_t expiry_block = m_height + SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD;
 
     MDB_val data;
@@ -1011,6 +1011,15 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 
     LOG_PRINT_L2("Updated db lock expiry data, to block height: " << expiry_block << " added output: " << output_id);
   }
+  else if (output_type_c == cryptonote::tx_out_type::out_network_fee)
+  {
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
+    update_network_fee_sum_for_interval(interval_block, tx_output.amount);
+  }
+
+
+
+
 
 }
 
@@ -1244,14 +1253,19 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
 
   safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
 
-  if (command_type == safex::command_t::token_lock) {
-
-
+  if (command_type == safex::command_t::token_lock)
+  {
+    //locked token sum is updated when processing outputs
   }
-  else if (command_type == safex::command_t::token_unlock) {
-
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
+  else if (command_type == safex::command_t::token_unlock)
+  {
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
     update_locked_token_sum_for_interval(interval_block, -1 * txin.token_amount);
+  }
+  else if (command_type == safex::command_t::donate_network_fee)
+  {
+    //network_fee_sum is updated at place of output processing
+
   }
   else {
     throw1(DB_ERROR("Unknown safex command type"));
@@ -3922,7 +3936,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     TXN_PREFIX_RDONLY();
 
     MDB_cursor *cur_network_fee_sum;
-    RCURSOR(token_locked_sum);
+    RCURSOR(network_fee_sum);
     cur_network_fee_sum = m_cur_network_fee_sum;
 
     uint64_t network_fee_sum = 0;
