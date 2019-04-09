@@ -86,6 +86,12 @@ extern "C" DLL_MAGIC void win_setSeedLanguage(void* self, const char* seedLangua
 
 extern "C" DLL_MAGIC uint8_t win_static_addressValid(const char* address, uint32_t nettype);
 extern "C" DLL_MAGIC void* win_history(void* self);
+
+extern "C" DLL_MAGIC const char* win_addrbook_get_all(void* self);
+extern "C" DLL_MAGIC uint8_t win_addrbook_add_row(void* self, const char* addr, const char* pid, const char* desc);
+extern "C" DLL_MAGIC uint8_t win_addrbook_del_row(void* self, uint32_t row_id);
+extern "C" DLL_MAGIC const char* win_addrbook_err_str(void* self);
+extern "C" DLL_MAGIC int32_t win_addrbook_look_for_pid(void* self, const char* pid);
 /****************************** END WALLET API ************************************************************************/
 
 /****************************** PENDING TRANSACTION API ***************************************************************/
@@ -132,6 +138,7 @@ extern "C" DLL_MAGIC int32_t win_txinfo_direction(void* self);
 extern "C" DLL_MAGIC uint8_t win_txinfo_isPendingB(void* self);
 extern "C" DLL_MAGIC uint8_t win_txinfo_isFailedB(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_amount(void* self);
+extern "C" DLL_MAGIC uint64_t win_txinfo_token_amount(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_fee(void* self);
 extern "C" DLL_MAGIC uint64_t win_txinfo_blockHeight(void* self);
 extern "C" DLL_MAGIC const char* win_txinfo_label(void* self);

@@ -48,6 +48,7 @@ public:
     virtual bool isPending() const;
     virtual bool isFailed() const;
     virtual uint64_t amount() const;
+    virtual uint64_t token_amount() const;
     //! always 0 for incoming txes
     virtual uint64_t fee() const;
     virtual uint64_t blockHeight() const;

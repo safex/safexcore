@@ -128,6 +128,7 @@ void TransactionHistoryImpl::refresh()
         TransactionInfoImpl * ti = new TransactionInfoImpl();
         ti->m_paymentid = payment_id;
         ti->m_amount    = pd.m_amount;
+        ti->m_token_amount  = pd.m_token_amount;
         ti->m_direction = TransactionInfo::Direction_In;
         ti->m_hash      = string_tools::pod_to_hex(pd.m_tx_hash);
         ti->m_blockheight = pd.m_block_height;
@@ -170,6 +171,7 @@ void TransactionHistoryImpl::refresh()
         TransactionInfoImpl * ti = new TransactionInfoImpl();
         ti->m_paymentid = payment_id;
         ti->m_amount = pd.m_amount_in - change - fee;
+        ti->m_token_amount  = pd.m_token_amount_in - (pd.m_token_change == (uint64_t)-1 ? 0 : pd.m_token_change);
         ti->m_fee    = fee;
         ti->m_direction = TransactionInfo::Direction_Out;
         ti->m_hash = string_tools::pod_to_hex(hash);
@@ -203,6 +205,7 @@ void TransactionHistoryImpl::refresh()
         TransactionInfoImpl * ti = new TransactionInfoImpl();
         ti->m_paymentid = payment_id;
         ti->m_amount = amount - pd.m_change - fee;
+        ti->m_token_amount = pd.m_token_amount_in - pd.m_token_change;
         ti->m_fee    = fee;
         ti->m_direction = TransactionInfo::Direction_Out;
         ti->m_failed = is_failed;
@@ -228,6 +231,7 @@ void TransactionHistoryImpl::refresh()
         TransactionInfoImpl * ti = new TransactionInfoImpl();
         ti->m_paymentid = payment_id;
         ti->m_amount    = pd.m_amount;
+        ti->m_token_amount = pd.m_token_amount;
         ti->m_direction = TransactionInfo::Direction_In;
         ti->m_hash      = string_tools::pod_to_hex(pd.m_tx_hash);
         ti->m_blockheight = pd.m_block_height;
