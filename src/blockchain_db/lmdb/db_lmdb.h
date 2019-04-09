@@ -66,7 +66,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_output_advanced;
   MDB_cursor *m_txc_output_advanced_type;
   MDB_cursor *m_txc_token_locked_sum;
-  MDB_cursor *m_txc_network_fee;
+  MDB_cursor *m_txc_network_fee_sum;
   MDB_cursor *m_txc_token_lock_expiry;
 
 
@@ -88,7 +88,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_output_advanced	m_cursors->m_txc_output_advanced
 #define m_cur_output_advanced_type	m_cursors->m_txc_output_advanced_type
 #define m_cur_token_locked_sum	m_cursors->m_txc_token_locked_sum
-#define m_cur_network_fee	m_cursors->m_txc_network_fee
+#define m_cur_network_fee_sum	m_cursors->m_txc_network_fee_sum
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 
 typedef struct mdb_rflags
@@ -287,7 +287,9 @@ public:
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
+  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
+
 
 
   virtual uint64_t add_block( const block& blk
@@ -418,6 +420,7 @@ private:
   void process_advanced_input(const cryptonote::txin_to_script &txin);
 
   uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) override;
+  uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
 
 private:
   MDB_env* m_env;
@@ -449,7 +452,7 @@ private:
   MDB_dbi m_output_advanced;
   MDB_dbi m_output_advanced_type;
   MDB_dbi m_token_locked_sum;
-  MDB_dbi m_network_fee;
+  MDB_dbi m_network_fee_sum;
   MDB_dbi m_token_lock_expiry;
 
 

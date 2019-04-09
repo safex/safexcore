@@ -109,7 +109,9 @@ public:
   virtual void add_spent_key(const crypto::key_image& k_image) {}
   virtual void remove_spent_key(const crypto::key_image& k_image) {}
   virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
-  virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){}
+  virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){return 0;}
+  virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
+
 
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }
   virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const { return true; }
@@ -131,6 +133,7 @@ public:
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
 
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override {return 0;}
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
 
   virtual void add_block( const block& blk

@@ -519,13 +519,26 @@ private:
     /**
     * Changes token locked sum for delta
     *
-    * Delta could be positive or negative
     *
     *
     * @param interval_starting_block block that represents interval, for example 1001 for second interval
+    * @param delta number of tokens locked or unlocked, delta could be positive or negative
     * @return new number of locked tokens for interval
     */
     virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) = 0;
+
+
+    /**
+    * Changes collected fee sum for delta
+    *
+    * Delta could only be positive
+    *
+    *
+    * @param interval_starting_block block that represents interval, for example 1001 for second interval
+    * @param collected_fee newly collected fee
+    * @return new total collected fee value for interval
+    */
+    virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) = 0;
 
 
 
@@ -1541,14 +1554,24 @@ public:
   /* Safex related db api */
   /***********************/
 
-  /**
-   * Returns number of locked tokens for interval.
-   *
-   *
-   * @param interval block that represents interval, for example 1001 for second interval
-   * @return number of locked tokens in interval
-   */
-  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+    /**
+     * Returns number of locked tokens for interval.
+     *
+     *
+     * @param interval block that represents interval, for example 1001 for second interval
+     * @return number of locked tokens in interval
+     */
+    virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+
+
+    /**
+     * Returns collecte network fee sum for particular interval
+     *
+     *
+     * @param interval block that represents interval, for example 1001 for second interval
+     * @return amount of collected fee sum
+     */
+    virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const = 0;
 
 
 

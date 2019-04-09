@@ -185,7 +185,7 @@ int compare_string(const MDB_val *a, const MDB_val *b)
  * output_advanced       output ID    {output type specific data}...
  * output_advanced_type  output type  {Output Id of outputs from `output_advanced` table}...
  * token_locked_sum      interval     token sum
- * network_fee           interval     collected fee sum
+ * network_fee_sum           interval     collected fee sum
  * token_lock_expiry     block_number {list of loked outputs that expiry on this block number}
  *
  * Note: where the data items are of uniform size, DUPFIXED tables have
@@ -220,7 +220,7 @@ const char* const LMDB_HF_VERSIONS = "hf_versions";
 const char* const LMDB_OUTPUT_ADVANCED = "output_advanced";
 const char* const LMDB_OUTPUT_ADVANCED_TYPE = "output_advanced_type";
 const char* const LMDB_TOKEN_LOCKED_SUM = "token_locked_sum";
-const char* const LMDB_NETWORK_FEE = "network_fee";
+const char* const LMDB_NETWORK_FEE_SUM = "network_fee_sum";
 const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
 
 const char* const LMDB_PROPERTIES = "properties";
@@ -1442,7 +1442,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED, MDB_INTEGERKEY | MDB_CREATE, m_output_advanced, "Failed to open db handle for m_output_advanced");
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED_TYPE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED , m_output_advanced_type, "Failed to open db handle for m_output_advanced_type");
   lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM, MDB_INTEGERKEY | MDB_CREATE, m_token_locked_sum, "Failed to open db handle for m_token_locked_sum"); //use zero key
-  lmdb_db_open(txn, LMDB_NETWORK_FEE, MDB_INTEGERKEY | MDB_CREATE, m_network_fee, "Failed to open db handle for m_network_fee");//use zero key
+  lmdb_db_open(txn, LMDB_NETWORK_FEE_SUM, MDB_INTEGERKEY | MDB_CREATE, m_network_fee_sum, "Failed to open db handle for m_network_fee_sum");//use zero key
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
 
 
@@ -1619,7 +1619,7 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_locked_sum, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
-  if (auto result = mdb_drop(txn, m_network_fee, 0))
+  if (auto result = mdb_drop(txn, m_network_fee_sum, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_lock_expiry, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
@@ -3758,56 +3758,121 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 /* Safex related private functions */
 
 
-uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta)
-{
-  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  check_open();
-  mdb_txn_cursors *m_cursors = &m_wcursors;
-  uint64_t m_height = height();
-
-  MDB_cursor *cur_token_locked_sum;
-  CURSOR(token_locked_sum);
-  cur_token_locked_sum = m_cur_token_locked_sum;
-
-  uint64_t locked_tokens = 0; //locked tokens in interval
-
-  MDB_val_set(k, interval_starting_block);
-  MDB_val_set(v, locked_tokens);
-
-  //get already locked tokens for this period
-  bool existing_interval = false;
-  auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
-  if (result == MDB_NOTFOUND) {
-    locked_tokens = 0;
-  }
-  else if (result)
+  uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta)
   {
-    throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
-  } else if (result == MDB_SUCCESS) {
-    uint64_t *ptr = (uint64_t *)v.mv_data;
-    locked_tokens = *ptr;
-    existing_interval = true;
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    uint64_t m_height = height();
+
+    MDB_cursor *cur_token_locked_sum;
+    CURSOR(token_locked_sum);
+    cur_token_locked_sum = m_cur_token_locked_sum;
+
+    uint64_t locked_tokens = 0; //locked tokens in interval
+
+    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(v, locked_tokens);
+
+    //get already locked tokens for this period
+    bool existing_interval = false;
+    auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
+    if (result == MDB_NOTFOUND)
+    {
+      locked_tokens = 0;
+    }
+    else if (result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
+    }
+    else if (result == MDB_SUCCESS)
+    {
+      uint64_t *ptr = (uint64_t *) v.mv_data;
+      locked_tokens = *ptr;
+      existing_interval = true;
+    }
+
+    if ((int64_t) locked_tokens + delta < 0)
+      throw0(DB_ERROR(lmdb_error("Locked token sum could not be negative: ", result).c_str()));
+
+    //check for overflow
+    if (locked_tokens > 0 && delta > 0 && (int64_t) locked_tokens + delta < (int64_t) locked_tokens)
+      throw0(DB_ERROR(lmdb_error("Token locked sum overflow: ", result).c_str()));
+
+
+    uint64_t newly_locked_tokens = locked_tokens + delta;
+
+    LOG_PRINT_L2("Current locked tokens is:" << locked_tokens << " newly locked tokens:" << newly_locked_tokens);
+
+    //update sum of locked tokens for interval
+    MDB_val_set(k2, interval_starting_block);
+    MDB_val_set(vupdate, newly_locked_tokens);
+    if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
+      throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+
+    return newly_locked_tokens;
   }
 
-  if ((int64_t)locked_tokens + delta < 0)
-    throw0(DB_ERROR(lmdb_error("Locked token sum for interval negative: ", result).c_str()));
+
+  uint64_t BlockchainLMDB::update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    uint64_t m_height = height();
+
+    MDB_cursor *cur_network_fee_sum;
+    CURSOR(network_fee_sum);
+    cur_network_fee_sum = m_cur_network_fee_sum;
+
+    uint64_t newtork_fee_sum = 0; //locked tokens in interval
+
+    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(v, newtork_fee_sum);
+
+    //get already locked tokens for this period
+    bool existing_interval = false;
+    auto result = mdb_cursor_get(cur_network_fee_sum, &k, &v, MDB_SET);
+    if (result == MDB_NOTFOUND)
+    {
+      newtork_fee_sum = 0;
+    }
+    else if (result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
+    }
+    else if (result == MDB_SUCCESS)
+    {
+      uint64_t *ptr = (uint64_t *) v.mv_data;
+      newtork_fee_sum = *ptr;
+      existing_interval = true;
+    }
+
+    if ((int64_t) newtork_fee_sum + collected_fee < newtork_fee_sum)
+      throw0(DB_ERROR(lmdb_error("Collected fee sum overflow: ", result).c_str()));
 
 
-  uint64_t newly_locked_tokens = locked_tokens + delta;
+    uint64_t new_network_fee_sum = newtork_fee_sum + collected_fee;
 
-  LOG_PRINT_L2("Current locked tokens is:" << locked_tokens<< " newly locked tokens:" << newly_locked_tokens);
+    LOG_PRINT_L2("Current locked tokens is:" << newtork_fee_sum << " newly locked tokens:" << new_network_fee_sum);
 
-  //update sum of locked tokens for interval
-  MDB_val_set(k2, interval_starting_block);
-  MDB_val_set(vupdate, newly_locked_tokens);
-  if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval?(unsigned int)MDB_CURRENT:(unsigned int)MDB_APPEND)))
-    throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+    //update sum of locked tokens for interval
+    MDB_val_set(k2, interval_starting_block);
+    MDB_val_set(vupdate, new_network_fee_sum);
+    if ((result = mdb_cursor_put(cur_network_fee_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
+      throw0(DB_ERROR(lmdb_error("Failed to update network fee sum for interval: ", result).c_str()));
 
-  return newly_locked_tokens;
-}
+    return new_network_fee_sum;
+  }
 
 
-/* Safex related public functions */
+
+
+/*****************************************************/
+/************ Safex related public functions *********/
+/*****************************************************/
+
+
   uint64_t BlockchainLMDB::get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const
   {
 
@@ -3828,10 +3893,12 @@ uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t int
     if (get_result == MDB_NOTFOUND)
     {
       num_locked_tokens = 0;
-    } else if (get_result)
+    }
+    else if (get_result)
     {
       throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", get_result).c_str()));
-    } else if (get_result == MDB_SUCCESS)
+    }
+    else if (get_result == MDB_SUCCESS)
     {
       uint64_t *ptr = (uint64_t *) v.mv_data;
       num_locked_tokens = *ptr;
@@ -3843,6 +3910,47 @@ uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t int
     return num_locked_tokens;
 
   }
+
+
+
+  uint64_t BlockchainLMDB::get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const
+  {
+
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_network_fee_sum;
+    RCURSOR(token_locked_sum);
+    cur_network_fee_sum = m_cur_network_fee_sum;
+
+    uint64_t network_fee_sum = 0;
+
+    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(v, network_fee_sum);
+    auto get_result = mdb_cursor_get(cur_network_fee_sum, &k, &v, MDB_SET);
+    if (get_result == MDB_NOTFOUND)
+    {
+      network_fee_sum = 0;
+    }
+    else if (get_result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch network fee sum for interval: ", get_result).c_str()));
+    }
+    else if (get_result == MDB_SUCCESS)
+    {
+      uint64_t *ptr = (uint64_t *) v.mv_data;
+      network_fee_sum = *ptr;
+    }
+
+
+    TXN_POSTFIX_RDONLY();
+
+    return network_fee_sum;
+  }
+
+
 
   std::vector<uint64_t> BlockchainLMDB::get_token_lock_expiry_outputs(const uint64_t block_height) const
   {
