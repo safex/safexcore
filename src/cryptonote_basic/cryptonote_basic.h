@@ -293,7 +293,7 @@ namespace cryptonote
       }
   };
 
-  //For easier retrieval of input/output cash or token amount from variant
+  //For easier retrieval of input mixed cash or token amount from variant
   class amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
   {
     public:
@@ -325,6 +325,77 @@ namespace cryptonote
       boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
       {
         return {};
+      }
+  };
+
+
+  //For easier retrieval of input token amount from variant
+  class token_amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
+  {
+    public:
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_key &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_migration &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_to_key &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_scripthash &txin) const
+      {
+        return {};
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
+      {
+        return 0;
+      }
+  };
+
+  //For easier retrieval of input cash amount from variant
+  class cash_amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
+  {
+    public:
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_key &txin) const
+      {
+        return txin.amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_migration &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_to_key &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_scripthash &txin) const
+      {
+        return {};
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
+      {
+        return txin.amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
+      {
+        return 0;
       }
   };
 

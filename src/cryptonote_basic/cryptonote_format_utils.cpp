@@ -307,7 +307,7 @@ namespace cryptonote
 
     for(auto& in: tx.vin)
     {
-      auto cash_amount_opt = boost::apply_visitor(amount_visitor(), in);
+      auto cash_amount_opt = boost::apply_visitor(cash_amount_visitor(), in);
       if (!cash_amount_opt) continue;
       amount_in += *cash_amount_opt;
     }
