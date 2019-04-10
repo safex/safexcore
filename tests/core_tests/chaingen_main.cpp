@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
+#if 1
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -163,19 +164,28 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<false>);
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<true>);
 
-    //todo rewrite overflow tests as requirements are changed with
+    //todo ATANA rewrite overflow tests as requirements are changed with
     // fixed total money supply which is lower than max unit64_t
     //GENERATE_AND_PLAY(gen_uint_overflow_1);
     //GENERATE_AND_PLAY(gen_uint_overflow_2);
 
     GENERATE_AND_PLAY(gen_block_reward);
-
     GENERATE_AND_PLAY(gen_v2_tx_mixable_0_mixin);
     GENERATE_AND_PLAY(gen_v2_tx_mixable_low_mixin);
+    GENERATE_AND_PLAY(gen_v2_tx_dust);
+
+    //todo ATANA check those tests if they are viable or remove them
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_only);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
-    GENERATE_AND_PLAY(gen_v2_tx_dust);
+
+#endif
+
+    /* safex advanced functionality related tests */
+    GENERATE_AND_PLAY(gen_token_lock_001);
+
+
+
 
     el::Level level = (failed_tests.empty() ? el::Level::Info : el::Level::Error);
     MLOG(level, "\nREPORT:");

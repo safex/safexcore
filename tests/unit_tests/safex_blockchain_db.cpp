@@ -1059,7 +1059,7 @@ bool compare_txs(const transaction& a, const transaction& b)
       ~SafexBlockchainDBTest()
       {
         delete m_db;
-        //remove_files();
+        remove_files();
       }
 
       BlockchainDB *m_db;

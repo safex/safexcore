@@ -54,10 +54,10 @@ using namespace cryptonote;
 
 // class token_lock_001;
 
-const int64_t token_lock_001::expected_alice_cash_balance = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
-const int64_t token_lock_001::expected_bob_cash_balance = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;
+const int64_t gen_token_lock_001::expected_alice_cash_balance = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
+const int64_t gen_token_lock_001::expected_bob_cash_balance = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;
 
-crypto::hash token_lock_001::get_hash_from_string(const std::string hashstr) {
+crypto::hash gen_token_lock_001::get_hash_from_string(const std::string hashstr) {
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;
     if (!epee::string_tools::parse_hexstr_to_binbuff(std::string(hashstr), expected_bitcoin_hash_data) || expected_bitcoin_hash_data.size() != sizeof(crypto::hash))
@@ -69,12 +69,12 @@ crypto::hash token_lock_001::get_hash_from_string(const std::string hashstr) {
     return bitcoin_transaction_hash;
 }
 
-token_lock_001::token_lock_001()
+gen_token_lock_001::gen_token_lock_001()
 {
-  REGISTER_CALLBACK("verify_token_lock", token_lock_001::verify_token_lock);
+  REGISTER_CALLBACK("verify_token_lock", gen_token_lock_001::verify_token_lock);
 }
 
-bool token_lock_001::generate(std::vector<test_event_entry> &events)
+bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
 {
     uint64_t ts_start = 1530720632;
 
@@ -93,15 +93,18 @@ bool token_lock_001::generate(std::vector<test_event_entry> &events)
     MAKE_ACCOUNT(events, jack);
 
     MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
-    MAKE_NEXT_BLOCK(events, blk_1_side, blk_0, miner2);
     MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
 
     REWIND_BLOCKS(events, blk_2r, blk_2, miner);
-    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(1000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(10), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(2), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(20000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(100), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
-    REWIND_BLOCKS(events, blk_3r, blk_3, miner);
+    REWIND_BLOCKS(events, blk_4, blk_3, miner);
+
+    //REWIND_BLOCKS_N(events, blk_5, blk_4, miner, 1200);
+    //lock some transactions
+
 
     //todo add token lock/unlcok transactions
 
@@ -111,7 +114,7 @@ bool token_lock_001::generate(std::vector<test_event_entry> &events)
     return true;
 }
 
-bool token_lock_001::verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_token_lock_001::verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
   DEFINE_TESTS_ERROR_CONTEXT("token_lock_001::verify_token_lock");
   std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
