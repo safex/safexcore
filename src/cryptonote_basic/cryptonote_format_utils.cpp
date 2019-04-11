@@ -607,10 +607,9 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_key)) || (in.type() == typeid(txin_token_migration))
-          || (in.type() == typeid(txin_token_to_key)), false, "wrong variant type: "
-              << in.type().name() << ", expected " << typeid(txin_to_key).name()
-              << ", in transaction id=" << get_transaction_hash(tx));
+      CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_script)) || (in.type() == typeid(txin_to_key))
+      || (in.type() == typeid(txin_token_migration)) || (in.type() == typeid(txin_token_to_key)),
+      false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", in transaction id=" << get_transaction_hash(tx));
 
     }
     return true;
@@ -620,9 +619,8 @@ namespace cryptonote
   {
     for(const tx_out& out: tx.vout)
     {
-      CHECK_AND_ASSERT_MES((out.target.type() == typeid(txout_to_key) ||
-          (out.target.type() == typeid(txout_token_to_key))), false, "wrong variant type: "
-          << out.target.type().name() << ", expected " << typeid(txout_to_key).name() << " or " << typeid(txout_token_to_key).name()
+      CHECK_AND_ASSERT_MES((out.target.type() == typeid(txout_to_key) || (out.target.type() == typeid(txout_token_to_key)) ||(out.target.type() == typeid(txout_to_script))),
+              false, "wrong variant type: " << out.target.type().name() << ", expected " << typeid(txout_to_key).name() << " or " << typeid(txout_token_to_key).name()
           << ", in transaction id=" << get_transaction_hash(tx));
 
       CHECK_AND_NO_ASSERT_MES(0 < out.amount || 0 < out.token_amount , false, "zero amount output in transaction id=" << get_transaction_hash(tx));

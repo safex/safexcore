@@ -102,8 +102,8 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_4, blk_3, miner);
 
-    //REWIND_BLOCKS_N(events, blk_5, blk_4, miner, 1200);
-    //lock some transactions
+    //lock some tokens
+    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(100000), blk_4);
 
 
     //todo add token lock/unlcok transactions
@@ -114,12 +114,29 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
     return true;
 }
 
-bool gen_token_lock_001::verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_token_lock_001::verify_token_lock(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("token_lock_001::verify_token_lock");
-  std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
+    DEFINE_TESTS_ERROR_CONTEXT("token_lock_001::verify_token_lock");
+    std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
 
-  //todo implement condition check
+    std::list<cryptonote::block> block_list;
+    bool r = c.get_blocks((uint64_t)0, gen_token_lock_001::expected_blockchain_height-1, block_list);
+    CHECK_TEST_CONDITION(r);
 
-  return true;
+    cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
+    cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
+    cryptonote::account_base daniel_account = boost::get<cryptonote::account_base>(events[3]);
+    cryptonote::account_base jack_account = boost::get<cryptonote::account_base>(events[4]);
+
+    std::vector<cryptonote::block> chain;
+    map_hash2tx_t mtx;
+    std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
+    r = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
+    CHECK_TEST_CONDITION(r);
+
+    cout << "check_token_lock_balance: alice = " << get_balance(alice_account, blocks, mtx) << " token balance= " << get_token_balance(alice_account, blocks, mtx) << endl;
+
+    //todo implement condition check
+
+    return true;
 }
