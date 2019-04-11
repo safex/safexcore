@@ -823,7 +823,7 @@ namespace cryptonote
         return false;
       }
     }
-    else if (tx.version >= 2) {
+    else if (tx.version >= HF_VERSION_MAX_SUPPORTED_TX_VERSION) {
       //ATANA todo, here goes tx version 2 semantic check
       MERROR_VER("tx with version 2 not yet supported");
       return false;

@@ -592,7 +592,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(version == 0 || CURRENT_TRANSACTION_VERSION < version) return false;
+      if(version == 0 || version > HF_VERSION_MAX_SUPPORTED_TX_VERSION) return false;
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
