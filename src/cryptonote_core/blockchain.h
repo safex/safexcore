@@ -1086,6 +1086,8 @@ namespace cryptonote
 
     bool check_tx_input_migration(size_t tx_version, const txin_token_migration& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
+    bool check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+
 
     /**
      * @brief validate a transaction's inputs and their keys

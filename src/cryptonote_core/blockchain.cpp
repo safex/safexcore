@@ -2511,35 +2511,25 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   {
     for (auto &o: tx.vout)
     {
-      if (tx.version == 1)
+      if (!is_valid_decomposed_amount(o.amount) && !is_valid_decomposed_amount(o.token_amount))
       {
-        if (!is_valid_decomposed_amount(o.amount) && !is_valid_decomposed_amount(o.token_amount))
-        {
-          tvc.m_invalid_output = true;
-          return false;
-        }
-      } else {
-        //todo ATANA implement check
-        MERROR("Transaction version 2 outputs not yet supported");
+        tvc.m_invalid_output = true;
         return false;
       }
     }
   }
 
   // check that the outputs are whole amounts for token transfers
-  if (tx.version == 1) {
-    for (auto &o: tx.vout) {
-      if ((o.target.type() == typeid(txout_token_to_key))) {
-        if (!tools::is_whole_coin_amount(o.token_amount)) {
-          tvc.m_invalid_output = true;
-          return false;
-        }
+  for (auto &o: tx.vout)
+  {
+    if ((o.target.type() == typeid(txout_token_to_key)))
+    {
+      if (!tools::is_whole_coin_amount(o.token_amount))
+      {
+        tvc.m_invalid_output = true;
+        return false;
       }
     }
-  } else {
-    //todo ATANA implement check
-    MERROR("Transaction version 2 outputs not yet supported");
-    return false;
   }
 
   //forbid invalid pubkeys
@@ -2576,7 +2566,7 @@ bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
   for (const txin_v& in: tx.vin)
   {
     //CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
-    if (cryptonote::is_valid_transaction_input_type(in)) {
+    if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
       auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);  //key image boost optional of currently checked input
       CHECK_AND_ASSERT_MES(k_image_opt, true, "key image is not available in input");
       const crypto::key_image &k_image = *k_image_opt;
@@ -2752,7 +2742,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   for (size_t n = 0; n < tx.vin.size(); ++n)
   {
     const txin_v &txin = tx.vin[n];
-    if (is_valid_transaction_input_type(txin))
+    if (is_valid_transaction_input_type(txin, tx.version))
     {
       const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
       if ((last_key_image != boost::value_initialized<crypto::key_image>()) && (memcmp(&k_image, &last_key_image, sizeof(last_key_image)) >= 0))
@@ -2784,41 +2774,41 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
   uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0;  //whole number of tokens, without decimals
   CHECK_AND_ASSERT_MES((already_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "wrong number of migrated tokens, please purge and rebuild database");
-
   MDEBUG("already_migrated_tokens: " << already_migrated_tokens);
   uint64_t newly_migrated_tokens = 0;
-
-
-
-
 
   for (const auto& txin : tx.vin)
   {
 
     // make sure output being spent is of allow input type (txin_to_key,txin_token_to_key) ...
-    CHECK_AND_ASSERT_MES(is_valid_transaction_input_type(txin), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
+    CHECK_AND_ASSERT_MES(is_valid_transaction_input_type(txin, tx.version), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
 
     // make sure that the input amount is a while number
-    if (tx.version == 1 && ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration))))
+    if ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration)))
     {
-      auto amount = boost::apply_visitor(amount_visitor(), txin);
-      CHECK_AND_ASSERT_MES(tools::is_whole_coin_amount(*amount), false, "token amount not a whole number");
+      auto token_amount = boost::apply_visitor(token_amount_visitor(), txin);
+      CHECK_AND_ASSERT_MES(tools::is_whole_coin_amount(*token_amount), false, "token amount not a whole number");
 
       //Check for maximum of migrated tokens
       if (txin.type() == typeid(txin_token_migration))
       {
-        newly_migrated_tokens += *amount/SAFEX_TOKEN; //don't keep decimals
+        newly_migrated_tokens += *token_amount/SAFEX_TOKEN; //don't keep decimals
         //note: we are duing calculations with whole number of tokens. Database keeps whole number of tokens
         CHECK_AND_ASSERT_MES((already_migrated_tokens+newly_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "max number of migrated tokens exceeded");
-
       }
     }
+
+    if ((txin.type() == typeid(txin_to_script)))
+    {
+      //todo ATANA check advanced input logic
+    }
+
 
     // make sure tx output has key offset(s) (is signed to be used)
     CHECK_AND_ASSERT_MES(is_valid_txin_key_offsets(txin), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
-    const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
 
+    const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
     if (have_tx_keyimg_as_spent(k_image))
     {
       MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
@@ -2826,27 +2816,27 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      // basically, make sure number of inputs == number of signatures
-      CHECK_AND_ASSERT_MES(sig_index < tx.signatures.size(), false, "wrong transaction: not signature entry for input with index= " << sig_index);
+
+    // basically, make sure number of inputs == number of signatures
+    CHECK_AND_ASSERT_MES(sig_index < tx.signatures.size(), false, "wrong transaction: not signature entry for input with index= " << sig_index);
+
 
 #if defined(CACHE_VIN_RESULTS)
-      auto itk = it->second.find(k_image);
-      if(itk != it->second.end())
+    auto itk = it->second.find(k_image);
+    if(itk != it->second.end())
+    {
+      if(!itk->second)
       {
-        if(!itk->second)
-        {
-          MERROR_VER("Failed ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
-          return false;
-        }
-
-        // txin has been verified already, skip
-        sig_index++;
-        continue;
+        MERROR_VER("Failed ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
+        return false;
       }
-#endif
+
+      // txin has been verified already, skip
+      sig_index++;
+      continue;
     }
+#endif
+
 
     // make sure that output being spent matches up correctly with the
     // signature spending it.
@@ -2928,11 +2918,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   }
   else
   {
-
     //todo ATANA implement input check for transaction version 2
     MERROR_VER("Transaction version >=1 not yet supported");
-
+    return false;
   }
+
   return true;
 }
 
@@ -3131,24 +3121,85 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
 
   output_keys.clear();
 
-  uint64_t value_amount = get_tx_input_amount(txin);
+  uint64_t cash_amount = get_tx_input_amount(txin);
+  uint64_t token_amount = get_tx_input_amount(txin);
 
   // collect output keys
   outputs_visitor vi(output_keys, *this);
   if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
   {
-    MERROR_VER("Failed to get output keys for tx with amount = " << print_money(value_amount) << " and count indexes " << txin.key_offsets.size());
+    MERROR_VER("Failed to get output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
     return false;
   }
 
   if(txin.key_offsets.size() != output_keys.size())
   {
-    MERROR_VER("Output keys for tx with amount = " << value_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
+    MERROR_VER("Output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
     return false;
   }
-  if (tx_version == 1) {
-    CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
+
+  CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
+
+
+  return true;
+}
+//------------------------------------------------------------------
+// This function locates all outputs associated with a given input (mixins)
+// and validates that they exist and are usable for advanced inputs
+// with comamnds.  It also checks the ring
+// signature for each input.
+bool Blockchain::check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  // ND:
+  // 1. Disable locking and make method private.
+  //CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+  struct outputs_visitor
+  {
+    std::vector<rct::ctkey >& m_output_keys;
+    const Blockchain& m_bch;
+    outputs_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
+            m_output_keys(output_keys), m_bch(bch)
+    {
+    }
+
+    bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
+    {
+      //check tx unlock time
+      if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
+      {
+        MERROR_VER("One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
+        return false;
+      }
+
+      m_output_keys.push_back(rct::ctkey({rct::pk2rct(pubkey), commitment}));
+      return true;
+    }
+  };
+
+  output_keys.clear();
+
+
+  uint64_t cash_amount = get_tx_input_amount(txin);
+  uint64_t token_amount = get_tx_input_amount(txin);
+
+  // collect output keys
+  outputs_visitor vi(output_keys, *this);
+  if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
+  {
+    MERROR_VER("Failed to get output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
+    return false;
   }
+
+  if(txin.key_offsets.size() != output_keys.size())
+  {
+    MERROR_VER("Output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
+    return false;
+  }
+
+  CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
 
   return true;
 }
@@ -3174,7 +3225,7 @@ bool Blockchain::check_tx_input(size_t tx_version, const txin_v& txin, const cry
       bool operator()(const txin_to_key & _txin) const {return that->check_tx_input_generic<txin_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_token_to_key & _txin) const {return that->check_tx_input_generic<txin_token_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_token_migration & _txin) const {return that->check_tx_input_migration(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
-      bool operator()(const txin_to_script & _txin) const {return false;}
+      bool operator()(const txin_to_script & _txin) const {return that->check_tx_input_script(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_to_scripthash & _txin) const {return false;}
 
   };

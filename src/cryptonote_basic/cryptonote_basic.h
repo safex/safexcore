@@ -447,15 +447,15 @@ namespace cryptonote
    * other checks for specialized types
    *
    */
-  inline bool is_valid_transaction_input_type(const txin_v &txin)
+  inline bool is_valid_transaction_input_type(const txin_v &txin, const int tx_version)
   {
     // check if valid input type  , txin_token_migration, txin_token_to_key
-    if ((txin.type() == typeid(txin_to_key))
-        || (txin.type() == typeid(txin_token_to_key))
-        || (txin.type() == typeid(txin_token_migration))
-        || (txin.type() == typeid(txin_to_script))
-    )
+    if (tx_version == 1 && ((txin.type() == typeid(txin_to_key)) || (txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration))))
     {
+      return true;
+    }
+    else if (tx_version == 2 && ((txin.type() == typeid(txin_to_key)) || (txin.type() == typeid(txin_token_to_key))
+     || (txin.type() == typeid(txin_to_script)))) {
       return true;
     }
 

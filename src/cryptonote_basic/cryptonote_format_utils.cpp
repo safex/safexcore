@@ -555,16 +555,13 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool get_inputs_money_amount(const transaction& tx, uint64_t& money)
+  bool get_inputs_cash_amount(const transaction &tx, uint64_t &money)
   {
     money = 0;
     for(const auto& in: tx.vin)
     {
-      if (in.type() == typeid(const txin_to_key)) {
-        uint64_t amount = *boost::apply_visitor(amount_visitor(), in);
+        uint64_t amount = *boost::apply_visitor(cash_amount_visitor(), in);
         money += amount;
-      }
-
     }
     return true;
   }
@@ -574,11 +571,8 @@ namespace cryptonote
     tokens = 0;
     for(const auto& in: tx.vin)
     {
-      if ((in.type() == typeid(const txin_token_to_key)) || (in.type() == typeid(const txin_token_migration))) {
-        uint64_t amount = *boost::apply_visitor(amount_visitor(), in);
-        tokens += amount;
-      }
-
+        uint64_t token_amount = *boost::apply_visitor(token_amount_visitor(), in);
+        tokens += token_amount;
     }
     return true;
   }
@@ -615,22 +609,35 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
-  bool check_outs_valid(const transaction& tx)
-  {
-    for(const tx_out& out: tx.vout)
-    {
-      CHECK_AND_ASSERT_MES((out.target.type() == typeid(txout_to_key) || (out.target.type() == typeid(txout_token_to_key)) ||(out.target.type() == typeid(txout_to_script))),
-              false, "wrong variant type: " << out.target.type().name() << ", expected " << typeid(txout_to_key).name() << " or " << typeid(txout_token_to_key).name()
-          << ", in transaction id=" << get_transaction_hash(tx));
+  bool check_outs_valid(const transaction &tx) {
+      for (const tx_out &out: tx.vout) {
 
-      CHECK_AND_NO_ASSERT_MES(0 < out.amount || 0 < out.token_amount , false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+          if (tx.version == 1) {
+              CHECK_AND_ASSERT_MES(((out.target.type() == typeid(txout_to_key)) || (out.target.type() == typeid(txout_token_to_key))),
+                      false, "wrong variant type: " << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+                      << " or " << typeid(txout_token_to_key).name() << ", in transaction id=" << get_transaction_hash(tx));
+          } else if (tx.version == 2) {
+              CHECK_AND_ASSERT_MES(((out.target.type() == typeid(txout_to_key)) ||
+                                    (out.target.type() == typeid(txout_token_to_key)) ||
+                                    (out.target.type() == typeid(txout_to_script))),
+                                   false, "wrong variant type for advanced transaction: " << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+                                    << " or " << typeid(txout_token_to_key).name() << " or " << typeid(txout_to_script).name() << ", in transaction id="
+                                    << get_transaction_hash(tx));
+
+          }
+
+          CHECK_AND_NO_ASSERT_MES(0 < out.amount || 0 < out.token_amount, false,
+                                  "zero amount output in transaction id=" << get_transaction_hash(tx));
 
 
-      const crypto::public_key &pkey = *boost::apply_visitor(destination_public_key_visitor(), out.target);
-      if(!check_key(pkey))
-        return false;
-    }
-    return true;
+          auto pkey_opt = boost::apply_visitor(destination_public_key_visitor(), out.target);
+          if (!pkey_opt)
+              return false;
+
+          if (!check_key(*pkey_opt))
+              return false;
+      }
+      return true;
   }
   //-----------------------------------------------------------------------------------------------
   bool check_money_overflow(const transaction& tx)
@@ -662,17 +669,22 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool check_outs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t cash_amount = 0;
+    uint64_t token_amount = 0;
     for(const auto& o: tx.vout)
     {
-      if(money > o.amount + money)
+      if(cash_amount > o.amount + cash_amount)
         return false;
-      money += o.amount;
+      cash_amount += o.amount;
+
+      if(token_amount > o.token_amount + token_amount)
+        return false;
+      token_amount += o.token_amount;
     }
     return true;
   }
   //---------------------------------------------------------------
-  uint64_t get_outs_money_amount(const transaction& tx)
+  uint64_t get_outs_cash_amount(const transaction &tx)
   {
     uint64_t outputs_amount = 0;
     for(const auto& o: tx.vout)

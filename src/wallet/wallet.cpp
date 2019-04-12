@@ -1293,7 +1293,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   // check all outputs for spending (compare key images)
   for(auto& in: tx.vin)
   {
-    if(!cryptonote::is_valid_transaction_input_type(in))
+    if(!cryptonote::is_valid_transaction_input_type(in, tx.version))
       continue;
 
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
@@ -1357,7 +1357,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     }
   }
 
-  uint64_t fee = miner_tx ? 0 : tx.version == 1 ? tx_money_spent_in_ins - get_outs_money_amount(tx) : tx.rct_signatures.txnFee;
+  uint64_t fee = miner_tx ? 0 : tx.version == 1 ? tx_money_spent_in_ins - get_outs_cash_amount(tx) : tx.rct_signatures.txnFee;
 
   if ((tx_money_spent_in_ins > 0 || tx_tokens_spent_in_ins > 0) && !pool)
   {
@@ -1544,7 +1544,7 @@ void wallet::process_outgoing(const crypto::hash &txid, const cryptonote::transa
     entry.first->second.m_token_amount_in = tokens_spent;
     if (tx.version == 1)
     {
-      entry.first->second.m_amount_out = get_outs_money_amount(tx);
+      entry.first->second.m_amount_out = get_outs_cash_amount(tx);
       entry.first->second.m_token_amount_out = get_outs_token_amount(tx);
     }
     else
@@ -9848,7 +9848,7 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
         bool is_spent_tx = false;
         for(const cryptonote::txin_v& in : it->m_tx.vin)
         {
-          if (cryptonote::is_valid_transaction_input_type(in))
+          if (cryptonote::is_valid_transaction_input_type(in,  it->m_tx.version))
           {
             auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);
             if (k_image_opt && td.m_key_image == *k_image_opt)
@@ -9941,7 +9941,7 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
       std::set<uint32_t> subaddr_indices;
       for (const cryptonote::txin_v& in : spent_tx.vin)
       {
-        if (!cryptonote::is_valid_transaction_input_type(in))
+        if (!cryptonote::is_valid_transaction_input_type(in, spent_tx.version))
           continue;
 
         const auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);
