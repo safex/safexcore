@@ -518,7 +518,7 @@ namespace cryptonote
    * @param transaction input varible
    */
   template<class TxInput>
-  inline tx_out_type get_tx_out_type_from_input(const TxInput &txin)
+  inline tx_out_type derive_tx_out_type_from_input(const TxInput &txin)
   {
     if (typeid(txin) == typeid(txin_to_key)) {
       return tx_out_type::out_cash;
@@ -672,20 +672,6 @@ namespace cryptonote
     {
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1)
-      {
-      }
-      else
-      {
-        ar.tag("rct_signatures");
-        if (!vin.empty())
-        {
-          ar.begin_object();
-          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), vout.size());
-          if (!r || !ar.stream().good()) return false;
-          ar.end_object();
-        }
-      }
       return true;
     }
 

@@ -191,8 +191,8 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
   {
     try
     {
-      tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
-      m_db->get_output_key(value_amount, absolute_offsets, outputs, txout_type, true);
+      tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
+      m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, txout_type, true);
       if (absolute_offsets.size() != outputs.size())
       {
         MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -217,8 +217,8 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
         add_offsets.push_back(absolute_offsets[i]);
       try
       {
-        tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
-        m_db->get_output_key(value_amount, add_offsets, add_outputs, txout_type, true);
+        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
+        m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, txout_type, true);
         if (add_offsets.size() != add_outputs.size())
         {
           MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -242,7 +242,7 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
       output_data_t output_index;
       try
       {
-        tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
+        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
 
         // get tx hash and output index for output
         if (count < outputs.size())
@@ -3933,7 +3933,7 @@ void Blockchain::output_scan_worker(const uint64_t amount, const tx_out_type out
 {
   try
   {
-    m_db->get_output_key(amount, offsets, outputs, output_type, true);
+    m_db->get_amount_output_key(amount, offsets, outputs, output_type, true);
   }
   catch (const std::exception& e)
   {

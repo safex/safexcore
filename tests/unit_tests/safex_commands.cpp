@@ -198,7 +198,9 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void get_output_tx_and_index(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::tx_out_index> &indices, const cryptonote::tx_out_type output_type) const
     {}
 
-    virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::output_data_t> &outputs, const cryptonote::tx_out_type output_type, bool allow_partial = false)
+    virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
+                                       std::vector<cryptonote::output_data_t> &outputs,
+                                       const cryptonote::tx_out_type output_type, bool allow_partial = false)
     {}
 
     virtual bool can_thread_bulk_indices() const

@@ -989,7 +989,7 @@ namespace cryptonote
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key))) {
+      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key)) || (in.type() == typeid(const txin_to_script))) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))

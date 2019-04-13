@@ -3432,10 +3432,11 @@ void BlockchainLMDB::get_output_tx_and_index_from_global(const std::vector<uint6
   TXN_POSTFIX_RDONLY();
 }
 
-void BlockchainLMDB::get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial)
+void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
+                                           std::vector<output_data_t> &outputs, const tx_out_type output_type,
+                                           bool allow_partial)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  TIME_MEASURE_START(db3);
   check_open();
   outputs.clear();
 
@@ -3446,16 +3447,18 @@ void BlockchainLMDB::get_output_key(const uint64_t &amount, const std::vector<ui
   {
     case tx_out_type::out_cash:
       RCURSOR(output_amounts);
-      cur_output_amount = m_cur_output_amounts;
-      break;
+          cur_output_amount = m_cur_output_amounts;
+          break;
     case tx_out_type::out_token:
       RCURSOR(output_token_amounts);
-      cur_output_amount = m_cur_output_token_amounts;
-      break;
+          cur_output_amount = m_cur_output_token_amounts;
+          break;
     default:
       throw0(DB_ERROR("Unknown utxo output type"));
-      break;
+          break;
   }
+
+  TIME_MEASURE_START(db3);
 
   MDB_val_set(k, amount);
   for (const uint64_t &index : offsets)
