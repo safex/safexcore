@@ -172,7 +172,7 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
   std::vector<uint64_t> absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
   std::vector<output_data_t> outputs;
 
-  uint64_t value_amount = get_tx_input_amount(txin); //token or cash amount depending of input type
+  uint64_t value_amount = get_tx_input_value_amount(txin); //token or cash amount depending of input type
   //todo ATANA double check token vs cash amount differentiation
 
   bool found = false;
@@ -3121,8 +3121,8 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
 
   output_keys.clear();
 
-  uint64_t cash_amount = get_tx_input_amount(txin);
-  uint64_t token_amount = get_tx_input_amount(txin);
+  uint64_t cash_amount = get_tx_input_cash_amount(txin);
+  uint64_t token_amount = get_tx_input_token_amount(txin);
 
   // collect output keys
   outputs_visitor vi(output_keys, *this);
@@ -3182,8 +3182,8 @@ bool Blockchain::check_tx_input_script(size_t tx_version, const txin_to_script& 
   output_keys.clear();
 
 
-  uint64_t cash_amount = get_tx_input_amount(txin);
-  uint64_t token_amount = get_tx_input_amount(txin);
+  uint64_t cash_amount = get_tx_input_cash_amount(txin);
+  uint64_t token_amount = get_tx_input_token_amount(txin);
 
   // collect output keys
   outputs_visitor vi(output_keys, *this);

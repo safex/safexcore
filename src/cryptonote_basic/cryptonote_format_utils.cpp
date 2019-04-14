@@ -647,49 +647,49 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool check_inputs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
-    uint64_t tokens = 0;
+    uint64_t total_cash = 0;
+    uint64_t total_tokens = 0;
     for(const auto& in: tx.vin)
     {
-      uint64_t amount = *boost::apply_visitor(amount_visitor(), in);
+      uint64_t cash_amount = *boost::apply_visitor(cash_amount_visitor(), in);
+      uint64_t token_amount = *boost::apply_visitor(token_amount_visitor(), in);
 
-      if (in.type() == typeid(const txin_to_key)) {
-        if(money > amount + money)
-          return false;
-        money += amount;
-      } else if ((in.type() == typeid(const txin_token_migration))
-          || (in.type() == typeid(const txin_token_to_key))) {
-        if(tokens > amount + tokens)
-          return false;
-        tokens += amount;
-      }
+      if(total_cash > cash_amount + total_cash)
+        return false;
+
+      if(total_tokens > token_amount + total_tokens)
+        return false;
+
+      total_cash += cash_amount;
+      total_tokens += token_amount;
     }
+
     return true;
   }
   //---------------------------------------------------------------
   bool check_outs_overflow(const transaction& tx)
   {
-    uint64_t cash_amount = 0;
-    uint64_t token_amount = 0;
+    uint64_t total_cash = 0;
+    uint64_t total_tokens = 0;
     for(const auto& o: tx.vout)
     {
-      if(cash_amount > o.amount + cash_amount)
+      if(total_cash > o.amount + total_cash)
         return false;
-      cash_amount += o.amount;
+      total_cash += o.amount;
 
-      if(token_amount > o.token_amount + token_amount)
+      if(total_tokens > o.token_amount + total_tokens)
         return false;
-      token_amount += o.token_amount;
+      total_tokens += o.token_amount;
     }
     return true;
   }
   //---------------------------------------------------------------
   uint64_t get_outs_cash_amount(const transaction &tx)
   {
-    uint64_t outputs_amount = 0;
+    uint64_t outputs_cash = 0;
     for(const auto& o: tx.vout)
-      outputs_amount += o.amount;
-    return outputs_amount;
+      outputs_cash += o.amount;
+    return outputs_cash;
   }
   //---------------------------------------------------------------
   uint64_t get_outs_token_amount(const transaction& tx)
