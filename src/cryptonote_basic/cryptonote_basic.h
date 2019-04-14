@@ -431,6 +431,11 @@ namespace cryptonote
       return txin.amount;
   }
 
+  template <>
+  inline uint64_t get_tx_input_cash_amount<txin_to_script>(const txin_to_script &txin) {
+      return txin.amount;
+  }
+
   //Gets token input amount, depending of tx input type
   template <class TXInput>
   inline uint64_t get_tx_input_token_amount(const TXInput &txin) {
@@ -447,7 +452,10 @@ namespace cryptonote
     return txin.token_amount;
   }
 
-
+  template <>
+  inline uint64_t get_tx_input_token_amount<txin_to_script>(const txin_to_script &txin) {
+      return txin.token_amount;
+  }
 
   /**
    * @brief check if transaction output is of valid type

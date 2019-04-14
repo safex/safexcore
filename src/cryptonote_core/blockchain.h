@@ -967,6 +967,34 @@ namespace cryptonote
 
   private:
 
+    struct outputs_generic_visitor
+    {
+        std::vector<rct::ctkey >& m_output_keys;
+        const Blockchain& m_bch;
+        outputs_generic_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
+                m_output_keys(output_keys), m_bch(bch)
+        {
+        }
+
+        bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
+        {
+          //check tx unlock time
+          if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
+          {
+            MCERROR("verify", "One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
+            return false;
+          }
+
+          // The original code includes a check for the output corresponding to this input
+          // to be a txout_to_key. This is removed, as the database does not store this info,
+          // but only txout_to_key outputs are stored in the DB in the first place, done in
+          // Blockchain*::add_output
+
+          m_output_keys.push_back(rct::ctkey({rct::pk2rct(pubkey), commitment}));
+          return true;
+        }
+    };
+
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage
     typedef std::unordered_map<crypto::hash, size_t> blocks_by_id_index;
 
