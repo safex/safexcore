@@ -195,7 +195,7 @@ bool gen_tx_big_version::generate(std::vector<test_event_entry>& events) const
   fill_tx_sources_and_destinations(events, blk_0, miner_account, miner_account, MK_COINS(1), TESTS_DEFAULT_FEE, 0, sources, destinations);
 
   tx_builder builder;
-  builder.step1_init(1 + 1, 0);
+  builder.step1_init(HF_VERSION_MAX_SUPPORTED_TX_VERSION + 1, 0);
   builder.step2_fill_inputs(miner_account.get_keys(), sources);
   builder.step3_fill_outputs(destinations);
   builder.step4_calc_hash();
