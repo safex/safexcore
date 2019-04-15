@@ -303,24 +303,17 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   // ND: Disable locking and make method private.
   //CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
-  //Helper enum to clasify if we are dealing
-  //with token or cash outputs or advanced script outputs
-  enum class output_id_getter_type {
-      amount_type = 0,
-      advanced_type = 1
-  };
-  output_id_getter_type outputs_type;
-
+  tx_out_type output_type{tx_out_type::out_invalid}; //type which the input is referencing
 
   //check command type
   safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
   switch (command_type)
   {
     case safex::command_t::token_lock:
-      outputs_type = output_id_getter_type::amount_type;
+      output_type = tx_out_type::out_token;
       break;
     case safex::command_t::token_unlock:
-      outputs_type = output_id_getter_type::advanced_type;
+      output_type = tx_out_type::out_locked_token;
       break;
     default:
       MERROR_VER("Unknown command type");
@@ -330,6 +323,34 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
 
   if (!txin.key_offsets.size())
     return false;
+
+
+  std::vector<uint64_t> absolute_offsets;
+  uint64_t value_amount = 0;
+  switch (output_type)
+  {
+    case tx_out_type::out_locked_token:
+    {
+      absolute_offsets = txin.key_offsets;
+      break;
+    }
+    case tx_out_type::out_token:
+    {
+      absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
+      value_amount = get_tx_input_token_amount(txin);
+      break;
+    }
+
+    case tx_out_type::out_cash:
+    {
+      absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
+      value_amount = get_tx_input_cash_amount(txin);
+      break;
+    }
+    default:
+      MERROR_VER("Unknown command type");
+      return false;
+  }
 
   std::vector<output_data_t> outputs;
   bool found = false;
@@ -344,18 +365,18 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
   }
 
-  if (outputs_type == output_id_getter_type::amount_type)
-    std::cout << " AMount type" << std::endl;
-
-
-  std::vector<uint64_t> absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
-  uint64_t value_amount = get_tx_input_value_amount(txin); //token or cash amount depending of input type
   if (!found)
   {
     try
     {
-      tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
-      m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, txout_type, true);
+      if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash) {
+        m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, output_type, true);
+      } else {
+        //get advanced output key
+        MERROR_VER("get advanced output key not implemented");
+        return false;
+      }
+
       if (absolute_offsets.size() != outputs.size())
       {
         MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -380,8 +401,13 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
         add_offsets.push_back(absolute_offsets[i]);
       try
       {
-        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
-        m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, txout_type, true);
+        if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash) {
+          m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, output_type, true);
+        } else {
+          //get advanced output key
+          MERROR_VER("get advanced output key not implemented");
+          return false;
+        }
         if (add_offsets.size() != add_outputs.size())
         {
           MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -405,13 +431,13 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       output_data_t output_index;
       try
       {
-        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
+        //tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
 
         // get tx hash and output index for output
         if (count < outputs.size())
           output_index = outputs.at(count);
         else
-          output_index = m_db->get_output_key(value_amount, i, txout_type);
+          output_index = m_db->get_output_key(value_amount, i, output_type);
 
         // call to the passed boost visitor to grab the public key for the output
         if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment))
@@ -3015,7 +3041,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version == 1)
+    if (tx.version >=HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <=HF_VERSION_MAX_SUPPORTED_TX_VERSION)
     {
       if (threads > 1)
       {
@@ -3053,10 +3079,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     sig_index++;
   }
-  if (tx.version == 1 && threads > 1)
+
+  if ((tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION) && threads > 1)
     waiter.wait();
 
-  if (tx.version == 1)
+  if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
   {
     if (threads > 1)
     {
@@ -3081,8 +3108,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   }
   else
   {
-    //todo ATANA implement input check for transaction version 2
-    MERROR_VER("Transaction version >=1 not yet supported");
+    MERROR_VER("Transaction of version " << tx.version<<" not yet supported");
     return false;
   }
 

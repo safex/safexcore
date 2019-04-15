@@ -57,7 +57,7 @@ public:
   crypto::hash get_hash_from_string(const std::string hashstr);
 
   static const size_t expected_blockchain_total_transactions = 378;
-  static const size_t expected_blockchain_height = 131;
+  static const size_t expected_blockchain_height = 192;
 
   static const uint64_t expected_alice_token_balance = 980 * COIN;
   static const uint64_t expected_bob_token_balance = 8 * COIN;

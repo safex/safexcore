@@ -346,6 +346,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
             vtx.push_back(cit->second);
         }
 
+
         //vtx.insert(vtx.end(), blk.);
         // TODO: add all other txes
         for (size_t i = 0; i < vtx.size(); i++)
@@ -947,6 +948,8 @@ uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vect
   uint64_t res = 0;
   std::map<uint64_t, std::vector<output_index> > token_outs;
   std::map<uint64_t, std::vector<size_t> > token_outs_mine;
+  std::map<uint64_t, std::vector<output_index> > locked_token_outs;
+  std::map<uint64_t, std::vector<output_index> > locked_token_outs_mine;
 
   map_hash2tx_t confirmed_txs;
   get_confirmed_txs(blockchain, mtx, confirmed_txs);
@@ -957,12 +960,44 @@ uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vect
   if (!init_spent_output_indices(token_outs, token_outs_mine, blockchain, confirmed_txs, addr))
     return false;
 
-  BOOST_FOREACH (const map_output_t::value_type &o, token_outs_mine) {
-          for (size_t i = 0; i < o.second.size(); ++i) {
+  BOOST_FOREACH (const map_output_t::value_type &o, token_outs_mine)
+        {
+          if (o.first == static_cast<uint8_t>(tx_out_type::out_locked_token)) continue;
+          for (size_t i = 0; i < o.second.size(); ++i)
+          {
             if (token_outs[o.first][o.second[i]].spent)
               continue;
 
             res += token_outs[o.first][o.second[i]].token_amount;
+          }
+        }
+
+  return res;
+}
+
+uint64_t get_locked_token_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx) {
+  uint64_t res = 0;
+  std::map<uint64_t, std::vector<output_index> > locked_token_outs;
+  std::map<uint64_t, std::vector<size_t> > locked_token_outs_mine;
+
+  map_hash2tx_t confirmed_txs;
+  get_confirmed_txs(blockchain, mtx, confirmed_txs);
+
+  if (!init_output_indices(locked_token_outs, locked_token_outs_mine, blockchain, confirmed_txs, addr, cryptonote::tx_out_type::out_locked_token))
+    return false;
+
+  if (!init_spent_output_indices(locked_token_outs, locked_token_outs_mine, blockchain, confirmed_txs, addr))
+    return false;
+
+  BOOST_FOREACH (const map_output_t::value_type &o, locked_token_outs_mine)
+        {
+          if (o.first != static_cast<uint8_t>(tx_out_type::out_locked_token)) continue;
+          for (size_t i = 0; i < o.second.size(); ++i)
+          {
+            if (locked_token_outs[o.first][o.second[i]].spent)
+              continue;
+
+            res += locked_token_outs[o.first][o.second[i]].token_amount;
           }
         }
 
