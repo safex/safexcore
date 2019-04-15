@@ -48,7 +48,7 @@ namespace cryptonote
     bool m_too_big;
     bool m_overspend;
     bool m_fee_too_low;
-    bool m_not_rct;
+    bool m_non_supported_version;
   };
 
   struct block_verification_context

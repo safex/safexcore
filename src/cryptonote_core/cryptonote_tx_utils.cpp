@@ -681,6 +681,35 @@ namespace cryptonote
         return matched_inputs;
 
       }
+      case tx_out_type::out_network_fee:
+      {
+        counter = std::count_if(sources.begin(), sources.end(), [](const tx_source_entry &entry)
+        { return entry.command_type == safex::command_t::donate_network_fee; });
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter > 0, "There must be donate fee command for this output", safex::command_t::donate_network_fee) ;
+
+        std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
+        {
+          if ((txin.type() == typeid(txin_to_script))
+              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::donate_network_fee))
+          {
+            matched_inputs.push_back(&boost::get<txin_to_script>(txin));
+          };
+
+
+        });
+
+        //count amount to donate
+        uint64_t amount_to_donate = 0;
+        for (auto txin: matched_inputs)
+        {
+          amount_to_donate += txin->amount;
+        }
+
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(amount_to_donate >= dst_entr.amount, "Not enough safex cash to donate", safex::command_t::donate_network_fee);
+
+        return matched_inputs;
+
+      }
       default:
         SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex output type", safex::command_t::invalid_command);
     }
@@ -970,6 +999,24 @@ namespace cryptonote
         out.target = txs;
         tx.vout.push_back(out);
       }
+      else if (dst_entr.output_type == tx_out_type::out_network_fee)
+      {
+        out.amount = dst_entr.amount;
+        out.token_amount = 0;
+
+        txout_to_script txs = AUTO_VAL_INIT(txs);
+        txs.output_type = static_cast<uint8_t>(tx_out_type::out_network_fee);
+        txs.keys.push_back(out_eph_public_key);
+        //find matching script input
+        const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create newtork fee output", safex::command_t::donate_network_fee);
+
+        //nothing else to do with matched inputs, create txout data field
+        safex::safex_command_serializer::serialize_safex_object(safex::donate_fee_data{0}, txs.data);
+
+        out.target = txs;
+        tx.vout.push_back(out);
+      }
       else
       {
         LOG_ERROR("Wrong transaction output type");
@@ -1016,7 +1063,7 @@ namespace cryptonote
       MDEBUG("Null secret key, skipping signatures");
     }
 
-    if (tx.version == 2)
+    if (tx.version == 2) //transaction with safex entities
     {
       //generate ring signatures
       crypto::hash tx_prefix_hash = AUTO_VAL_INIT(tx_prefix_hash);

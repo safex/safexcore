@@ -220,6 +220,10 @@ private:
 inline cryptonote::difficulty_type get_test_difficulty() {return 1;}
 void fill_nonce(cryptonote::block& blk, const cryptonote::difficulty_type& diffic, uint64_t height);
 
+cryptonote::tx_destination_entry create_tx_destination(const cryptonote::account_base &to, uint64_t amount);
+cryptonote::tx_destination_entry create_token_tx_destination(const cryptonote::account_base &to, uint64_t token_amount);
+cryptonote::tx_destination_entry create_locked_token_tx_destination(const cryptonote::account_base &to, uint64_t token_amount);
+
 bool construct_miner_tx_manually(size_t height, uint64_t already_generated_coins,
                                  const cryptonote::account_public_address& miner_address, cryptonote::transaction& tx,
                                  uint64_t fee, cryptonote::keypair* p_txkey = 0);
@@ -240,6 +244,9 @@ bool construct_token_tx_to_key(const std::vector<test_event_entry>& events, cryp
                                const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
                                uint64_t fee, size_t nmix);
 
+bool construct_token_lock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const cryptonote::block& blk_head,
+                             const cryptonote::account_base& user_account, uint64_t token_amount, uint64_t fee, size_t nmix);
+
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs);
 bool find_block_chain(const std::vector<test_event_entry>& events, std::vector<cryptonote::block>& blockchain, map_hash2tx_t& mtx, const crypto::hash& head);
 void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
@@ -256,6 +263,11 @@ void fill_token_tx_sources_and_destinations(const std::vector<test_event_entry>&
                                       uint64_t token_amount, uint64_t fee, size_t nmix,
                                       std::vector<cryptonote::tx_source_entry>& sources,
                                       std::vector<cryptonote::tx_destination_entry>& destinations);
+
+void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
+        const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<cryptonote::tx_source_entry> &sources,
+        std::vector<cryptonote::tx_destination_entry> &destinations);
+
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
 uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
 
@@ -724,6 +736,22 @@ inline bool do_replay_file(const std::string& filename)
   if (!construct_miner_tx_manually(get_block_height(BLK) + 1, generator.get_already_generated_coins(BLK), \
     miner_account.get_keys().m_account_address, TX, 0, KEY))                                              \
     return false;
+
+
+#define MAKE_TOKEN_LOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, NMIX, HEAD)             \
+  {                                                                                      \
+    cryptonote::transaction t;                                                           \
+    construct_token_lock_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+    SET_NAME.push_back(t);                                                               \
+    VEC_EVENTS.push_back(t);                                                             \
+  }
+
+#define MAKE_TOKEN_LOCK_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD) MAKE_TOKEN_LOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, 0, HEAD)
+
+#define MAKE_TX_TOKEN_LOCK_LIST_START(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD) \
+    std::list<cryptonote::transaction> SET_NAME; \
+    MAKE_TOKEN_LOCK_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD);
+
 
 #define MAKE_MINER_TX_MANUALLY(TX, BLK) MAKE_MINER_TX_AND_KEY_MANUALLY(TX, BLK, 0)
 

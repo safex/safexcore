@@ -1362,7 +1362,9 @@ public:
    * @param outputs return-by-reference a list of outputs' metadata
    * @param output_type a utxo type (cash, token, ...)
    */
-  virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) = 0;
+  virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
+                                     std::vector<output_data_t> &outputs, const tx_out_type output_type,
+                                     bool allow_partial = false) = 0;
   
   /*
    * FIXME: Need to check with git blame and ask what this does to

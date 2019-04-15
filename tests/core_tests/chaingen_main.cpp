@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
+#if 0
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -130,8 +131,10 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_block_is_too_big);
     //GENERATE_AND_PLAY(gen_block_invalid_binary_format); // Takes up to 3 hours, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 500, up to 30 minutes, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10
 
+
     // Transaction verification tests
     GENERATE_AND_PLAY(gen_tx_big_version);
+
     GENERATE_AND_PLAY(gen_tx_unlock_time);
     GENERATE_AND_PLAY(gen_tx_input_is_not_txin_to_key);
     GENERATE_AND_PLAY(gen_tx_no_inputs_no_outputs);
@@ -145,7 +148,9 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_tx_key_image_not_derive_from_tx_key);
     GENERATE_AND_PLAY(gen_tx_key_image_is_invalid);
     GENERATE_AND_PLAY(gen_tx_check_input_unlock_time);
+
     GENERATE_AND_PLAY(gen_tx_txout_to_key_has_invalid_key);
+
     GENERATE_AND_PLAY(gen_tx_output_with_zero_amount);
     GENERATE_AND_PLAY(gen_tx_output_is_not_txout_to_key);
     GENERATE_AND_PLAY(gen_tx_signatures_are_invalid);
@@ -163,19 +168,31 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<false>);
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<true>);
 
-    //todo rewrite overflow tests as requirements are changed with
+    //todo ATANA rewrite overflow tests as requirements are changed with
     // fixed total money supply which is lower than max unit64_t
     //GENERATE_AND_PLAY(gen_uint_overflow_1);
     //GENERATE_AND_PLAY(gen_uint_overflow_2);
 
     GENERATE_AND_PLAY(gen_block_reward);
-
     GENERATE_AND_PLAY(gen_v2_tx_mixable_0_mixin);
     GENERATE_AND_PLAY(gen_v2_tx_mixable_low_mixin);
+    GENERATE_AND_PLAY(gen_v2_tx_dust);
+
+    //todo ATANA check those tests if they are viable or remove them
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_only);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
-    GENERATE_AND_PLAY(gen_v2_tx_dust);
+
+#endif
+
+#if 1
+
+    /* safex advanced functionality related tests */
+    GENERATE_AND_PLAY(gen_token_lock_001);
+#endif
+
+
+
 
     el::Level level = (failed_tests.empty() ? el::Level::Info : el::Level::Error);
     MLOG(level, "\nREPORT:");

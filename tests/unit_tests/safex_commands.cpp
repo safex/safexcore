@@ -198,7 +198,9 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void get_output_tx_and_index(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::tx_out_index> &indices, const cryptonote::tx_out_type output_type) const
     {}
 
-    virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<cryptonote::output_data_t> &outputs, const cryptonote::tx_out_type output_type, bool allow_partial = false)
+    virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
+                                       std::vector<cryptonote::output_data_t> &outputs,
+                                       const cryptonote::tx_out_type output_type, bool allow_partial = false)
     {}
 
     virtual bool can_thread_bulk_indices() const
@@ -237,7 +239,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
 
     virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) {return 0;}
-    virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){}
+    virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
 
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }

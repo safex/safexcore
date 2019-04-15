@@ -64,7 +64,7 @@ namespace cryptonote
   {
     std::vector<crypto::public_key> keys;
     std::vector<uint8_t> data; //Local output data and state
-    uint8_t output_type;
+    uint8_t output_type{0};
 
 
     BEGIN_SERIALIZE_OBJECT()
@@ -293,7 +293,7 @@ namespace cryptonote
       }
   };
 
-  //For easier retrieval of input/output cash or token amount from variant
+  //For easier retrieval of input mixed cash or token amount from variant
   class amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
   {
     public:
@@ -319,7 +319,7 @@ namespace cryptonote
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
       {
-        return txin.amount;
+        return {};
       }
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
@@ -328,23 +328,133 @@ namespace cryptonote
       }
   };
 
-  //Gets cash or token amount, depending of tx input type
-  template<class TxInput>
-  inline  uint64_t get_tx_input_amount(const TxInput &txin)
+
+  //For easier retrieval of input token amount from variant
+  class token_amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
   {
+    public:
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_key &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_migration &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_to_key &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_scripthash &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
+      {
+        return txin.token_amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
+      {
+        return 0;
+      }
+  };
+
+  //For easier retrieval of input cash amount from variant
+  class cash_amount_visitor : public boost::static_visitor<boost::optional<uint64_t>>
+  {
+    public:
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_key &txin) const
+      {
+        return txin.amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_migration &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_token_to_key &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_scripthash &txin) const
+      {
+        return 0;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
+      {
+        return txin.amount;
+      }
+
+      boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
+      {
+        return 0;
+      }
+  };
+
+  //Gets cash or token amount, what is relevant for that input
+  template <class TXInput>
+  inline uint64_t get_tx_input_value_amount(const TXInput &txin) {
+      return 0;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_value_amount<txin_to_key>(const txin_to_key &txin) {
       return txin.amount;
   }
 
-  template<>
-  inline  uint64_t get_tx_input_amount<txin_token_to_key>(const txin_token_to_key &txin)
-  {
+  template <>
+  inline uint64_t get_tx_input_value_amount<txin_token_to_key>(const txin_token_to_key &txin) {
+      return txin.token_amount;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_value_amount<txin_token_migration>(const txin_token_migration &txin) {
+      return txin.token_amount;
+  }
+
+  //Gets cash input amount, depending of tx input type
+  template <class TXInput>
+  inline uint64_t get_tx_input_cash_amount(const TXInput &txin) {
+      return 0;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_cash_amount<txin_to_key>(const txin_to_key &txin) {
+      return txin.amount;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_cash_amount<txin_to_script>(const txin_to_script &txin) {
+      return txin.amount;
+  }
+
+  //Gets token input amount, depending of tx input type
+  template <class TXInput>
+  inline uint64_t get_tx_input_token_amount(const TXInput &txin) {
+      return 0;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_token_amount<txin_token_to_key>(const txin_token_to_key &txin) {
     return txin.token_amount;
   }
 
-  template<>
-  inline  uint64_t get_tx_input_amount<txin_token_migration>(const txin_token_migration &txin)
-  {
+  template <>
+  inline uint64_t get_tx_input_token_amount<txin_token_migration>(const txin_token_migration &txin) {
     return txin.token_amount;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_token_amount<txin_to_script>(const txin_to_script &txin) {
+      return txin.token_amount;
   }
 
   /**
@@ -376,15 +486,15 @@ namespace cryptonote
    * other checks for specialized types
    *
    */
-  inline bool is_valid_transaction_input_type(const txin_v &txin)
+  inline bool is_valid_transaction_input_type(const txin_v &txin, const int tx_version)
   {
     // check if valid input type  , txin_token_migration, txin_token_to_key
-    if ((txin.type() == typeid(txin_to_key))
-        || (txin.type() == typeid(txin_token_to_key))
-        || (txin.type() == typeid(txin_token_migration))
-        || (txin.type() == typeid(txin_to_script))
-    )
+    if (tx_version == 1 && ((txin.type() == typeid(txin_to_key)) || (txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration))))
     {
+      return true;
+    }
+    else if (tx_version == 2 && ((txin.type() == typeid(txin_to_key)) || (txin.type() == typeid(txin_token_to_key))
+     || (txin.type() == typeid(txin_to_script)))) {
       return true;
     }
 
@@ -447,7 +557,7 @@ namespace cryptonote
    * @param transaction input varible
    */
   template<class TxInput>
-  inline tx_out_type get_tx_out_type_from_input(const TxInput &txin)
+  inline tx_out_type derive_tx_out_type_from_input(const TxInput &txin)
   {
     if (typeid(txin) == typeid(txin_to_key)) {
       return tx_out_type::out_cash;
@@ -521,7 +631,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(version == 0 || CURRENT_TRANSACTION_VERSION < version) return false;
+      if(version == 0 || version > HF_VERSION_MAX_SUPPORTED_TX_VERSION) return false;
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
@@ -601,20 +711,6 @@ namespace cryptonote
     {
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1)
-      {
-      }
-      else
-      {
-        ar.tag("rct_signatures");
-        if (!vin.empty())
-        {
-          ar.begin_object();
-          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), vout.size());
-          if (!r || !ar.stream().good()) return false;
-          ar.end_object();
-        }
-      }
       return true;
     }
 
@@ -664,7 +760,7 @@ namespace cryptonote
     struct txin_signature_size_visitor : public boost::static_visitor<size_t>
     {
       size_t operator()(const txin_gen& txin) const{return 0;}
-      size_t operator()(const txin_to_script& txin) const{return 0;}
+      size_t operator()(const txin_to_script& txin) const{return txin.key_offsets.size();}
       size_t operator()(const txin_to_scripthash& txin) const{return 0;}
       size_t operator()(const txin_to_key& txin) const {return txin.key_offsets.size();}
       size_t operator()(const txin_token_migration& txin) const {return 1;}

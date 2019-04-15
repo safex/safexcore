@@ -769,6 +769,15 @@ namespace cryptonote
     return true;
   }
 
+  bool check_advanced_tx_semantic(const transaction& tx)
+  {
+    //todo Atana implement for various usecases
+
+
+    return true;
+  }
+
+
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_semantic(const transaction& tx, bool keeped_by_block) const
   {
@@ -801,13 +810,13 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
+    if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
     {
       uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+      get_inputs_cash_amount(tx, amount_in);
+      uint64_t amount_out = get_outs_cash_amount(tx);
 
-      if(amount_in <= amount_out)
+      if (amount_in <= amount_out)
       {
         MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
@@ -817,18 +826,17 @@ namespace cryptonote
       get_inputs_token_amount(tx, tokens_in);
       uint64_t tokens_out = get_outs_token_amount(tx);
 
-      if(tokens_in < tokens_out)
+      if (tokens_in < tokens_out)
       {
         MERROR_VER("tx with wrong token amounts: ins " << tokens_in << ", outs " << tokens_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
       }
     }
-    else if (tx.version >= 2) {
-      //ATANA todo, here goes tx version 2 semantic check
-      MERROR_VER("tx with version 2 not yet supported");
+    else
+    {
+      MERROR_VER("Unsuported transaction version");
       return false;
     }
-
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -854,6 +862,14 @@ namespace cryptonote
       MERROR_VER("tx uses key image not in the valid domain");
       return false;
     }
+
+    //check tx version 2 semantics
+    if (!check_advanced_tx_semantic(tx))
+    {
+      MERROR_VER("Advanced transaction is not valid");
+      return false;
+    }
+
 
     return true;
   }
@@ -896,7 +912,7 @@ namespace cryptonote
         [this, &emission_amount, &total_fee_amount](uint64_t, const crypto::hash& hash, const block& b){
       std::list<transaction> txs;
       std::list<crypto::hash> missed_txs;
-      uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
+      uint64_t coinbase_amount = get_outs_cash_amount(b.miner_tx);
       this->get_transactions(b.tx_hashes, txs, missed_txs);      
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
@@ -941,7 +957,7 @@ namespace cryptonote
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if (cryptonote::is_valid_transaction_input_type(in)) {
+      if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         if(!ki.insert(k_image).second)
           return false;
@@ -973,7 +989,7 @@ namespace cryptonote
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key))) {
+      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key)) || (in.type() == typeid(const txin_to_script))) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
