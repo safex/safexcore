@@ -117,6 +117,7 @@ private:
   std::unique_ptr<char[]> data;
 };
 
+
 template<>
 struct MDB_val_copy<const char*>: public MDB_val
 {
@@ -132,6 +133,26 @@ private:
   size_t size;
   std::unique_ptr<char[]> data;
 };
+
+
+template<>
+struct MDB_val_copy<cryptonote::outkey_advanced>: public MDB_val
+{
+    MDB_val_copy(const cryptonote::outkey_advanced &okadv) :
+            data(new char[okadv.size()])
+    {
+      memcpy(data.get(), (void *)&okadv, 4*sizeof(uint64_t));
+      memcpy(data.get()+4*sizeof(uint64_t), (void *)&okadv.pubkey, sizeof(okadv.pubkey));
+      memcpy(data.get()+4*sizeof(uint64_t)+sizeof(okadv.pubkey), (void *)&okadv.data[0], okadv.data.size());
+      mv_size = okadv.size();
+      mv_data = data.get();
+    }
+  private:
+    std::unique_ptr<char[]> data;
+};
+
+
+
 
 int compare_uint64(const MDB_val *a, const MDB_val *b)
 {
@@ -306,10 +327,6 @@ typedef struct outtx {
     uint64_t local_index;
 } outtx;
 
-typedef struct outkey_advanced {
-  uint64_t output_id; //Output ID
-  std::vector<uint8_t> data; //Blob of txoutput
-} outkey_advanced;
 
 
 
@@ -1024,13 +1041,14 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 }
 
 
-uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint64_t output_id)
+uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t output_id, const tx_out_type out_type)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
   MDB_cursor *cur_output_advanced;
   MDB_cursor *cur_output_advanced_type;
+  uint64_t blockchain_height = height();
   int result = 0;
 
   //put advanced output blob to the output_advanced table, then update output_advanced_type table with id of new output
@@ -1041,9 +1059,22 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   cur_output_advanced_type = m_cur_output_advanced_type;
 
   MDB_val_set(val_output_id, output_id);
+
+
+
   const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
-  MDB_val_copy<blobdata> blob(txout_script_to_blob(txout));
-  result = mdb_cursor_put(cur_output_advanced, &val_output_id, &blob, MDB_APPEND);
+
+  outkey_advanced okadv = AUTO_VAL_INIT(okadv);
+  okadv.output_type = static_cast<uint64_t>(out_type);
+  okadv.height = blockchain_height;
+  okadv.unlock_time = unlock_time;
+  okadv.output_id = output_id;
+  okadv.pubkey = txout.keys[0]; //todo if there are multiple keys, rest will go to data
+  okadv.data = t_serializable_object_to_blob(txout.data);
+
+  MDB_val_copy<cryptonote::outkey_advanced> adv_value(okadv);
+
+  result = mdb_cursor_put(cur_output_advanced, &val_output_id, &adv_value, MDB_APPEND);
   if (result)
     throw0(DB_ERROR(lmdb_error("Failed to add advanced output to database: ", result).c_str()));
 
@@ -1098,7 +1129,7 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   }
   else if (output_type >= tx_out_type::out_advanced && output_type < tx_out_type::out_invalid)
   {
-    return add_advanced_output(tx_output, m_num_outputs);
+    return add_advanced_output(tx_output, unlock_time, m_num_outputs, output_type);
   }
   else
   {
@@ -2663,22 +2694,20 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     RCURSOR(output_advanced);
     cur_output_advanced = m_cur_output_advanced;
 
-    txout_to_script txout;
-
     MDB_val_set(key, output_id);
 
     blobdata blob;
     MDB_val_set(value_blob, blob);
 
+    std::vector<crypto::public_key> keys;
 
     auto result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
     if (result == MDB_SUCCESS)
     {
-      blobdata blb;
-      blb.resize(value_blob.mv_size);
-      memcpy((void*)(&blb[0]), value_blob.mv_data, value_blob.mv_size);
-
-      cryptonote::parse_and_validate_txout_to_script_from_blob(blb, txout);
+      const outkey_advanced *okadv =  (const outkey_advanced *)value_blob.mv_data;
+      crypto::public_key pkey;
+      memcpy((void*)(&pkey), (void*)&okadv->pubkey, sizeof(crypto::public_key));
+      keys.push_back(pkey);
     }
     else if (result == MDB_NOTFOUND)
       throw0(DB_ERROR(lmdb_error("Attemting to get keys from output with ID " + std::to_string(output_id) + " but not found: ", result).c_str()));
@@ -2687,7 +2716,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
     TXN_POSTFIX_RDONLY();
-    return txout.keys;
+    return keys;
   }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
@@ -2989,23 +3018,23 @@ bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::h
       if (ret)
         throw0(DB_ERROR("Failed to enumerate outputs"));
 
-      txout_to_script txout;
-      blobdata blb;
-      blb.resize(v.mv_size);
-      memcpy((void*)(&blb[0]), v.mv_data, v.mv_size);
-      cryptonote::parse_and_validate_txout_to_script_from_blob(blb, txout);
+      outkey_advanced *okadv =  (outkey_advanced *)v.mv_data;
+      txout_to_script txout = AUTO_VAL_INIT(txout);
+      txout.output_type = static_cast<uint8_t>(okadv->output_type);
+      txout.keys.push_back(okadv->pubkey); //todo handle case where there are multiple keys, and some are in data
 
-      const uint64_t output_id = *(const uint64_t*)k.mv_data;
+      blobdata bd;
+      bd.assign(reinterpret_cast<char*>(&okadv->data), v.mv_size-4*sizeof(uint64_t)-sizeof(okadv->pubkey));
+      parse_and_validate_byte_array_from_blob(bd,txout.data);
 
 
-      if (static_cast<tx_out_type>(txout.output_type) == output_type) {
-        tx_out_index toi = get_output_tx_and_index_from_global(output_id);
+      if (static_cast<tx_out_type >(txout.output_type) == output_type) {
+        tx_out_index toi = get_output_tx_and_index_from_global(okadv->output_id);
         const uint64_t block_height = get_tx_block_height(toi.first);
-        if (!f(toi.first, block_height, output_id, txout)) {
+        if (!f(toi.first, block_height, okadv->output_id, txout)) {
           fret = false;
           break;
         }
-
       }
     }
 

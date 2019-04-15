@@ -1235,7 +1235,6 @@ bool compare_txs(const transaction& a, const transaction& b)
     ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS - 1]), hashes[NUMBER_OF_BLOCKS - 1]);
   }
 
-
   TYPED_TEST(SafexBlockchainDBTest, RetrieveTokenLockData)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();

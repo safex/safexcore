@@ -130,6 +130,16 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
+  bool parse_and_validate_byte_array_from_blob(const blobdata& bytes_blob, std::vector<uint8_t> &data)
+  {
+    std::stringstream ss;
+    ss << bytes_blob;
+    binary_archive<false> ba(ss);
+    bool r = ::serialization::serialize(ba, data);
+    CHECK_AND_ASSERT_MES(r, false, "Failed to parse byte array from blob");
+    return true;
+  }
+  //---------------------------------------------------------------
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx)
   {
     std::stringstream ss;

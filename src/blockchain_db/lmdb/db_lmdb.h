@@ -163,6 +163,23 @@ struct mdb_txn_safe
   static std::atomic_flag creation_gate;
 };
 
+/** Struct that holds info about advanced output
+ *
+ */
+typedef struct outkey_advanced {
+  uint64_t           unlock_time;  //!< the output's unlock time (or height)
+  uint64_t           height;       //!< the height of the block which created the output
+  uint64_t           output_id;
+  uint64_t           output_type;
+  crypto::public_key pubkey;
+  blobdata data; //Blob of txoutput
+
+  size_t size() const {
+    return 4*sizeof(uint64_t)+sizeof(pubkey)+data.size();
+  }
+
+} outkey_advanced;
+
 
 // If m_batch_active is set, a batch transaction exists beyond this class, such
 // as a batch import with verification enabled, or possibly (later) a batch
@@ -421,7 +438,7 @@ private:
 
   uint64_t add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
 
-  uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t output_id);
+  uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t output_id, const tx_out_type out_type);
 
   void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
 

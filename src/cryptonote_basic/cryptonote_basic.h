@@ -64,7 +64,7 @@ namespace cryptonote
   {
     std::vector<crypto::public_key> keys;
     std::vector<uint8_t> data; //Local output data and state
-    uint8_t output_type;
+    uint8_t output_type{0};
 
 
     BEGIN_SERIALIZE_OBJECT()
