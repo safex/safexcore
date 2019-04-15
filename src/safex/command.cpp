@@ -19,30 +19,6 @@
 namespace safex
 {
 
-  template<typename CommandResult>
-  bool command<CommandResult>::store(epee::serialization::portable_storage &ps) const
-  {
-    ps.set_value(FIELD_VERSION, (uint32_t) this->version, nullptr);
-    ps.set_value(FIELD_COMMAND, (uint32_t) this->command_type, nullptr);
-    return true;
-  }
-
-
-  template<typename CommandResult>
-  bool command<CommandResult>::load(epee::serialization::portable_storage &ps)
-  {
-    uint32_t _command_type = 0;
-
-    ps.get_value(FIELD_VERSION, this->version, nullptr);
-    ps.get_value(FIELD_COMMAND, _command_type, nullptr);
-    this->command_type = static_cast<command_t>(_command_type);
-
-    return true;
-  }
-
-  bool dummy_command::store(epee::serialization::portable_storage &ps) const {return false;};
-  bool dummy_command::load(epee::serialization::portable_storage &ps) {return false;};
-
 
   bool token_lock::store(epee::serialization::portable_storage &ps) const
   {

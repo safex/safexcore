@@ -738,6 +738,13 @@ namespace cryptonote
       * @return number of migrated tokens in the range of blocks
       */
      uint64_t get_migrated_tokens(const uint64_t start_offset, const size_t count);
+
+     /**
+      * @brief get the delta of locked and unloced tokens in block range
+      *
+      * @return if >0, number of newly locked tokens, if <0, number of unlocked tokens in total for range of blocks
+      */
+     int64_t get_locked_tokens(const uint64_t start_offset, const size_t count);
      
      /**
       * @brief get the network type we're on

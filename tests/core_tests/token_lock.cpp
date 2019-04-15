@@ -139,6 +139,9 @@ bool gen_token_lock_001::verify_token_lock(cryptonote::core &c, size_t ev_index,
     cout << "check_token_lock_balance: alice token balance= " << get_token_balance(alice_account, blocks, mtx) << endl;
     cout << "check_token_lock_balance: alice locked token balance= " << get_locked_token_balance(alice_account, blocks, mtx) << endl;
 
+    int64_t locked_tokens = c.get_locked_tokens(0, gen_token_lock_001::expected_blockchain_height-1);
+    cout << "check_token_lock_balance: core locked tokens: " << locked_tokens << endl;
+
 
     //todo implement condition check
 
