@@ -136,9 +136,9 @@ private:
 
 
 template<>
-struct MDB_val_copy<cryptonote::outkey_advanced>: public MDB_val
+struct MDB_val_copy<cryptonote::output_advanced_data_t>: public MDB_val
 {
-    MDB_val_copy(const cryptonote::outkey_advanced &okadv) :
+    MDB_val_copy(const cryptonote::output_advanced_data_t &okadv) :
             data(new char[okadv.size()])
     {
       memcpy(data.get(), (void *)&okadv, 4*sizeof(uint64_t));
@@ -151,7 +151,15 @@ struct MDB_val_copy<cryptonote::outkey_advanced>: public MDB_val
     std::unique_ptr<char[]> data;
 };
 
-
+cryptonote::output_advanced_data_t parse_output_advanced_data_from_mdb(const MDB_val& val) {
+  cryptonote::output_advanced_data_t result = AUTO_VAL_INIT(result);
+  memcpy((void *)&result, val.mv_data, 4*sizeof(uint64_t));
+  memcpy((void *)&result.pubkey, (char *)val.mv_data+4*sizeof(uint64_t), sizeof(result.pubkey));
+  const size_t data_size = val.mv_size-4*sizeof(uint64_t)-sizeof(result.pubkey);
+  result.data.resize(data_size);
+  memcpy((void *)&result.data[0], (char *)val.mv_data+4*sizeof(uint64_t)+sizeof(result.pubkey), data_size);
+  return result;
+}
 
 
 int compare_uint64(const MDB_val *a, const MDB_val *b)
@@ -1064,7 +1072,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
 
   const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
 
-  outkey_advanced okadv = AUTO_VAL_INIT(okadv);
+  output_advanced_data_t okadv = AUTO_VAL_INIT(okadv);
   okadv.output_type = static_cast<uint64_t>(out_type);
   okadv.height = blockchain_height;
   okadv.unlock_time = unlock_time;
@@ -1072,7 +1080,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   okadv.pubkey = txout.keys[0]; //todo if there are multiple keys, rest will go to data
   okadv.data = t_serializable_object_to_blob(txout.data);
 
-  MDB_val_copy<cryptonote::outkey_advanced> adv_value(okadv);
+  MDB_val_copy<cryptonote::output_advanced_data_t> adv_value(okadv);
 
   result = mdb_cursor_put(cur_output_advanced, &val_output_id, &adv_value, MDB_APPEND);
   if (result)
@@ -2680,7 +2688,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
 
-  std::vector<crypto::public_key> BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
+  output_advanced_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
 
@@ -2694,20 +2702,16 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     RCURSOR(output_advanced);
     cur_output_advanced = m_cur_output_advanced;
 
-    MDB_val_set(key, output_id);
+    output_advanced_data_t output = AUTO_VAL_INIT(output);
 
+    MDB_val_set(key, output_id);
     blobdata blob;
     MDB_val_set(value_blob, blob);
-
-    std::vector<crypto::public_key> keys;
 
     auto result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
     if (result == MDB_SUCCESS)
     {
-      const outkey_advanced *okadv =  (const outkey_advanced *)value_blob.mv_data;
-      crypto::public_key pkey;
-      memcpy((void*)(&pkey), (void*)&okadv->pubkey, sizeof(crypto::public_key));
-      keys.push_back(pkey);
+      output = parse_output_advanced_data_from_mdb(value_blob);
     }
     else if (result == MDB_NOTFOUND)
       throw0(DB_ERROR(lmdb_error("Attemting to get keys from output with ID " + std::to_string(output_id) + " but not found: ", result).c_str()));
@@ -2716,7 +2720,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
     TXN_POSTFIX_RDONLY();
-    return keys;
+    return output;
   }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
@@ -3018,7 +3022,7 @@ bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::h
       if (ret)
         throw0(DB_ERROR("Failed to enumerate outputs"));
 
-      outkey_advanced *okadv =  (outkey_advanced *)v.mv_data;
+      output_advanced_data_t *okadv =  (output_advanced_data_t *)v.mv_data;
       txout_to_script txout = AUTO_VAL_INIT(txout);
       txout.output_type = static_cast<uint8_t>(okadv->output_type);
       txout.keys.push_back(okadv->pubkey); //todo handle case where there are multiple keys, and some are in data

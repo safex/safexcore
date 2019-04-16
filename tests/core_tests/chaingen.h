@@ -247,6 +247,9 @@ bool construct_token_tx_to_key(const std::vector<test_event_entry>& events, cryp
 bool construct_token_lock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const cryptonote::block& blk_head,
                              const cryptonote::account_base& user_account, uint64_t token_amount, uint64_t fee, size_t nmix);
 
+bool construct_token_unlock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head,
+                               const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix);
+
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs);
 bool find_block_chain(const std::vector<test_event_entry>& events, std::vector<cryptonote::block>& blockchain, map_hash2tx_t& mtx, const crypto::hash& head);
 void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
@@ -753,6 +756,20 @@ inline bool do_replay_file(const std::string& filename)
     std::list<cryptonote::transaction> SET_NAME; \
     MAKE_TOKEN_LOCK_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD);
 
+
+#define MAKE_TOKEN_UNLOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, NMIX, HEAD)             \
+  {                                                                                      \
+    cryptonote::transaction t;                                                           \
+    construct_token_unlock_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+    SET_NAME.push_back(t);                                                               \
+    VEC_EVENTS.push_back(t);                                                             \
+  }
+
+#define MAKE_TOKEN_UNLOCK_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD) MAKE_TOKEN_UNLOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, 0, HEAD)
+
+#define MAKE_TX_TOKEN_UNLOCK_LIST_START(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD) \
+    std::list<cryptonote::transaction> SET_NAME; \
+    MAKE_TOKEN_UNLOCK_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, HEAD);
 
 #define MAKE_MINER_TX_MANUALLY(TX, BLK) MAKE_MINER_TX_AND_KEY_MANUALLY(TX, BLK, 0)
 

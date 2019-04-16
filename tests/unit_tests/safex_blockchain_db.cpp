@@ -1270,7 +1270,7 @@ bool compare_txs(const transaction& a, const transaction& b)
 
     uint64_t test_output_id = data[0]; //first tx in 11 block
 
-    crypto::public_key pkey = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id)[0];
+    output_advanced_data_t outd = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id);
     bool match = false;
     crypto::hash matching_tx_hash;
 
@@ -1280,7 +1280,7 @@ bool compare_txs(const transaction& a, const transaction& b)
       for (tx_out out: tx.vout)
       {
         crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target); //get public key of first output of first tx in 11 block
-        if (memcmp(pkey.data, check.data, sizeof(pkey.data)) == 0) {
+        if (memcmp(outd.pubkey.data, check.data, sizeof(outd.pubkey.data)) == 0) {
           match = true;
           matching_tx_hash = tx.hash;
         }

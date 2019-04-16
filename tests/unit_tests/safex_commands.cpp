@@ -187,7 +187,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type)
     { return cryptonote::output_data_t(); }
 
-    virtual std::vector<crypto::public_key> get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return std::vector<crypto::public_key>{};}
+    virtual cryptonote::output_advanced_data_t get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return cryptonote::output_advanced_data_t{};}
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -432,8 +432,8 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
 
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-    txinput.token_amount = 10000;
-    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000};
+    txinput.token_amount = 10000*SAFEX_TOKEN;
+    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
 

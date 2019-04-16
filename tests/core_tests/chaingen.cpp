@@ -580,6 +580,72 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     return sources_found;
 }
 
+bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std::vector<test_event_entry>& events,  const block& blk_head,
+        const cryptonote::account_base &from, uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_locked_token)
+{
+  map_output_idx_t outs;
+  map_output_t outs_mine;
+
+  std::vector<cryptonote::block> blockchain;
+  map_hash2tx_t mtx;
+  if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
+    return false;
+
+  if (!init_output_indices(outs, outs_mine, blockchain, mtx, from, out_type))
+    return false;
+
+  if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from))
+    return false;
+
+  // Iterate in reverse is more efficiency
+  uint64_t sources_locked_token_amount = 0;
+  bool sources_found = false;
+  BOOST_REVERSE_FOREACH(const map_output_t::value_type o, outs_mine)
+        {
+          for (size_t i = 0; i < o.second.size() && !sources_found; ++i)
+          {
+            size_t sender_out = o.second[i];
+            const output_index &oi = outs[o.first][sender_out];
+            if ((oi.spent) || (oi.token_amount > 0 && out_type == cryptonote::tx_out_type::out_cash)
+                || (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_locked_token))
+                || (oi.out.type() != typeid(txout_to_script)))
+              continue;
+
+
+            const cryptonote::txout_to_script &out = boost::get<txout_to_script>(oi.out);
+
+            if (out.output_type != static_cast<uint8_t >(cryptonote::tx_out_type::out_locked_token))
+              continue;
+
+            cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
+            ts.token_amount = oi.token_amount;
+            ts.referenced_output_type = cryptonote::tx_out_type::out_locked_token;
+            ts.command_type = safex::command_t::token_unlock;
+
+            ts.real_output_in_tx_index = oi.out_no;
+            ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
+            size_t realOutput;
+            if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
+              continue;
+
+            ts.real_output = realOutput;
+
+            sources_locked_token_amount = ts.token_amount;
+            sources_found = value_amount == sources_locked_token_amount;
+
+            if (sources_found) sources.push_back(ts);
+
+
+          }
+
+          if (sources_found)
+            break;
+        }
+
+  return sources_found;
+}
+
+
 bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<test_event_entry>& events,
                      const block& blk_head, const cryptonote::account_base& from, uint64_t token_amount, uint64_t cash_airdrop_amount,
                      const crypto::hash &bitcoin_transaction_hash)
@@ -815,6 +881,35 @@ void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_en
   }
 }
 
+void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head, const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                                   uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
+                                                   std::vector<tx_destination_entry> &destinations)
+{
+  sources.clear();
+  destinations.clear();
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(sources, events, blk_head, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //locked token source
+  if (!fill_unlock_token_sources(sources,  events, blk_head, from, token_amount, nmix))
+    throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
+
+  //locked token destination, there is no token change, all tokens are unlocked
+  tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
+  destinations.push_back(de_token);
+
+  //sender change for fee
+
+  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    tx_destination_entry de_change = create_tx_destination(from, cache_back);
+    destinations.push_back(de_change);
+  }
+}
+
 
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
 {
@@ -916,6 +1011,16 @@ bool construct_token_lock_tx(const std::vector<test_event_entry>& events, crypto
   fill_token_lock_tx_sources_and_destinations(events, blk_head, user_account, user_account, token_amount, fee, nmix, sources, destinations);
 
   return construct_tx(user_account.get_keys(), sources, destinations, user_account.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+}
+
+bool construct_token_unlock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const block& blk_head,
+                               const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix)
+{
+  std::vector<tx_source_entry> sources;
+  std::vector<tx_destination_entry> destinations;
+  fill_token_unlock_tx_sources_and_destinations(events, blk_head, from, from, token_amount, fee, nmix, sources, destinations);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
 
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx) {

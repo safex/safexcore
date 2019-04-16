@@ -163,23 +163,6 @@ struct mdb_txn_safe
   static std::atomic_flag creation_gate;
 };
 
-/** Struct that holds info about advanced output
- *
- */
-typedef struct outkey_advanced {
-  uint64_t           unlock_time;  //!< the output's unlock time (or height)
-  uint64_t           height;       //!< the height of the block which created the output
-  uint64_t           output_id;
-  uint64_t           output_type;
-  crypto::public_key pubkey;
-  blobdata data; //Blob of txoutput
-
-  size_t size() const {
-    return 4*sizeof(uint64_t)+sizeof(pubkey)+data.size();
-  }
-
-} outkey_advanced;
-
 
 // If m_batch_active is set, a batch transaction exists beyond this class, such
 // as a batch import with verification enabled, or possibly (later) a batch
@@ -275,7 +258,7 @@ public:
                                      std::vector<output_data_t> &outputs, const tx_out_type output_type,
                                      bool allow_partial = false);
 
-  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id);
+  virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,

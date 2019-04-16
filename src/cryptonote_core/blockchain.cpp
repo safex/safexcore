@@ -2749,7 +2749,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   return true;
 }
 //------------------------------------------------------------------
-bool Blockchain::check_safex_tx(transaction &tx, tx_verification_context &tvc)
+bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &tvc)
 {
 
   if (tx.version == 1) return true;
@@ -2762,8 +2762,10 @@ bool Blockchain::check_safex_tx(transaction &tx, tx_verification_context &tvc)
     {
       safex::command_t tmp = safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script);
       //multiple different commands on input, error
-      if (command_type != safex::command_t::invalid_command && command_type != tmp)
+      if (command_type != safex::command_t::invalid_command && command_type != tmp) {
+        tvc.m_safex_verification_failed = true;
         return false;
+      }
 
       if (command_type == safex::command_t::invalid_command)
         command_type = tmp;
@@ -2771,25 +2773,53 @@ bool Blockchain::check_safex_tx(transaction &tx, tx_verification_context &tvc)
   }
 
   //there is no valid command found on input
-  if (command_type == safex::command_t::invalid_command)
+  if (command_type == safex::command_t::invalid_command) {
+    tvc.m_safex_invalid_command = true;
     return false;
+  }
 
 
-  if (command_type == safex::command_t::token_lock) {
-      //find amount of output locked tokens
-      uint64_t outputs_locked_token_amount = 0;
-      for (const auto &vout: tx.vout)
-        if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_locked_token)
-        {
-          const txout_to_script& out = boost::get<txout_to_script>(vout.target);
-          if (out.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
-            outputs_locked_token_amount += vout.token_amount;
-        }
+  if (command_type == safex::command_t::token_lock)
+  {
+    /* Find amount of output locked tokens */
+    uint64_t outputs_locked_token_amount = 0;
+    for (const auto &vout: tx.vout)
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_locked_token)
+      {
+        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
+          outputs_locked_token_amount += vout.token_amount;
+      }
 
-      //there is minumum token lock command
-      if (outputs_locked_token_amount < SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)
-        return false;
+    /* Check if minumum amount of tokens is locked */
+    if (outputs_locked_token_amount < SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)
+    {
+      tvc.m_safex_invalid_command_params = true;
+      return false;
+    }
+  }
+  else if (command_type == safex::command_t::token_unlock)
+  {
+    //Check if tokens are locked long enough
+    for (const txin_v &txin: tx.vin)
+    {
+      if (txin.type() == typeid(txin_to_script))
+      {
+        const txin_to_script &in = boost::get<txin_to_script>(txin);
 
+
+      }
+
+    }
+
+
+  }
+
+
+  else {
+    MERROR("Unsuported safex command");
+    tvc.m_safex_invalid_command = true;
+    return false;
   }
 
 

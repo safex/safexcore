@@ -590,7 +590,7 @@ namespace cryptonote
      *
      * @return returns false if tx does not hold safex related invariants, otherwise true
      */
-    bool check_safex_tx(transaction &tx, tx_verification_context &tvc);
+    bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
 
     /**
      * @brief get dynamic per kB fee for a given block size

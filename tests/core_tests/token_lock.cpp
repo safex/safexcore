@@ -106,6 +106,13 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(80000), blk_4);
     MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(20000), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_1);
+    REWIND_BLOCKS(events, blk_6, blk_5, miner);
+
+    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(15000), blk_6);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_2);
+
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_3, alice, MK_TOKENS(80000), blk_7);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_8, blk_7, miner, txlist_3);
 
 
     //todo add token lock/unlcok transactions
