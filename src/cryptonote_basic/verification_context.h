@@ -49,6 +49,7 @@ namespace cryptonote
     bool m_overspend;
     bool m_fee_too_low;
     bool m_non_supported_version;
+    bool m_safex_verification_failed;
   };
 
   struct block_verification_context

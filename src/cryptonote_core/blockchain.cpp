@@ -2749,6 +2749,53 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   return true;
 }
 //------------------------------------------------------------------
+bool Blockchain::check_safex_tx(transaction &tx, tx_verification_context &tvc)
+{
+
+  if (tx.version == 1) return true;
+
+  //Transaction must have commands of only one type:
+  safex::command_t command_type = safex::command_t::invalid_command;
+  for (const txin_v &txin: tx.vin)
+  {
+    if ((txin.type() == typeid(txin_to_script)))
+    {
+      safex::command_t tmp = safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script);
+      //multiple different commands on input, error
+      if (command_type != safex::command_t::invalid_command && command_type != tmp)
+        return false;
+
+      if (command_type == safex::command_t::invalid_command)
+        command_type = tmp;
+    }
+  }
+
+  //there is no valid command found on input
+  if (command_type == safex::command_t::invalid_command)
+    return false;
+
+
+  if (command_type == safex::command_t::token_lock) {
+      //find amount of output locked tokens
+      uint64_t outputs_locked_token_amount = 0;
+      for (const auto &vout: tx.vout)
+        if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_locked_token)
+        {
+          const txout_to_script& out = boost::get<txout_to_script>(vout.target);
+          if (out.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
+            outputs_locked_token_amount += vout.token_amount;
+        }
+
+      //there is minumum token lock command
+      if (outputs_locked_token_amount < SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)
+        return false;
+
+  }
+
+
+  return true;
+}
+//------------------------------------------------------------------
 bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
 {
   LOG_PRINT_L3("Blockchain::" << __func__);

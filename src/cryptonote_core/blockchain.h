@@ -581,6 +581,17 @@ namespace cryptonote
      */
     bool check_tx_inputs(transaction& tx, uint64_t& pmax_used_block_height, crypto::hash& max_used_block_id, tx_verification_context &tvc, bool kept_by_block = false);
 
+
+    /**
+     * @brief check transaction safex related invariants
+     *
+     * @param tx the transaction to validate
+     * @param tvc transaction verification context
+     *
+     * @return returns false if tx does not hold safex related invariants, otherwise true
+     */
+    bool check_safex_tx(transaction &tx, tx_verification_context &tvc);
+
     /**
      * @brief get dynamic per kB fee for a given block size
      *

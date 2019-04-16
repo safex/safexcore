@@ -104,6 +104,7 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
 
     //lock some tokens
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(80000), blk_4);
+    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(20000), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_1);
 
 
@@ -136,11 +137,11 @@ bool gen_token_lock_001::verify_token_lock(cryptonote::core &c, size_t ev_index,
     CHECK_TEST_CONDITION(re);
 
     //cout << "check_token_lock_balance: cash alice = " << get_balance(alice_account, blocks, mtx) << endl;
-    cout << "check_token_lock_balance: alice token balance= " << get_token_balance(alice_account, blocks, mtx) << endl;
-    cout << "check_token_lock_balance: alice locked token balance= " << get_locked_token_balance(alice_account, blocks, mtx) << endl;
+    cout << "final alice token balance= " << print_money(get_token_balance(alice_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(alice_account, blocks, mtx)) << endl;
+    cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
 
     int64_t locked_tokens = c.get_locked_tokens(0, gen_token_lock_001::expected_blockchain_height-1);
-    cout << "check_token_lock_balance: core locked tokens: " << locked_tokens << endl;
+    cout << "total core locked tokens: " << locked_tokens << endl;
 
 
     //todo implement condition check

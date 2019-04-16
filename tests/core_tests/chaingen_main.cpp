@@ -134,7 +134,6 @@ int main(int argc, char* argv[])
 
     // Transaction verification tests
     GENERATE_AND_PLAY(gen_tx_big_version);
-
     GENERATE_AND_PLAY(gen_tx_unlock_time);
     GENERATE_AND_PLAY(gen_tx_input_is_not_txin_to_key);
     GENERATE_AND_PLAY(gen_tx_no_inputs_no_outputs);
@@ -189,6 +188,12 @@ int main(int argc, char* argv[])
 
     /* safex advanced functionality related tests */
     GENERATE_AND_PLAY(gen_token_lock_001);
+#endif
+
+
+#if 0
+    /* safex tx validation */
+    GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
 #endif
 
 

@@ -1072,3 +1072,17 @@ bool test_chain_unit_base::verify(const std::string& cb_name, cryptonote::core& 
   }
   return cb_it->second(c, ev_index, events);
 }
+
+
+
+crypto::hash get_hash_from_string(const std::string hashstr) {
+  //parse bitcoin transaction hash
+  cryptonote::blobdata expected_bitcoin_hash_data;
+  if (!epee::string_tools::parse_hexstr_to_binbuff(std::string(hashstr), expected_bitcoin_hash_data) || expected_bitcoin_hash_data.size() != sizeof(crypto::hash))
+  {
+    std::cerr << "failed to parse bitcoin transaction hash" << endl;
+    return boost::value_initialized<crypto::hash>();
+  }
+  const crypto::hash bitcoin_transaction_hash = *reinterpret_cast<const crypto::hash*>(expected_bitcoin_hash_data.data());
+  return bitcoin_transaction_hash;
+}

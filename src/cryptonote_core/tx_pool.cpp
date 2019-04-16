@@ -108,7 +108,9 @@ namespace cryptonote
 
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::add_tx(transaction &tx, /*const crypto::hash& tx_prefix_hash,*/ const crypto::hash &id, size_t blob_size, tx_verification_context& tvc, bool kept_by_block, bool relayed, bool do_not_relay, uint8_t version)
+
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::add_tx(transaction &tx, const crypto::hash &id, size_t blob_size, tx_verification_context& tvc, bool kept_by_block, bool relayed, bool do_not_relay, uint8_t version)
   {
     // this should already be called with that lock, but let's make it explicit for clarity
     CRITICAL_REGION_LOCAL(m_transactions_lock);
@@ -182,6 +184,14 @@ namespace cryptonote
         LOG_PRINT_L1("Transaction must use same amount of tokens on input and output - output: " << print_money(outputs_token_amount) << ", input " << print_money(inputs_token_amount));
         tvc.m_verifivation_failed = true;
         tvc.m_overspend = true;
+        return false;
+      }
+
+      //Here check for tx related safex logic
+      if ((tx.version > HF_VERSION_MIN_SUPPORTED_TX_VERSION) && !m_blockchain.check_safex_tx(tx, tvc))
+      {
+        tvc.m_verifivation_failed = true;
+        tvc.m_safex_verification_failed = true;
         return false;
       }
     }
@@ -282,7 +292,8 @@ namespace cryptonote
         tvc.m_invalid_input = true;
         return false;
       }
-    }else
+    }
+    else
     {
       //update transactions container
       meta.blob_size = blob_size;
