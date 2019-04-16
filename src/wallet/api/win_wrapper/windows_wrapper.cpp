@@ -333,8 +333,9 @@ extern "C" DLL_MAGIC const char* win_addrbook_get_all(void* self) {
   static std::string result;
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
   std::vector<Safex::AddressBookRow*> rows = wallet->addressBook()->getAll();
-
+  
   result.clear();
+  result = "";
   std::string delimeter{"$@"};
   for(auto row : rows) {
     std::string serialized_row = std::to_string(row->getRowId()) + delimeter;
