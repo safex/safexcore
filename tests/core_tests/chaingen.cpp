@@ -270,6 +270,7 @@ struct output_index {
     size_t tx_no; // index of transaction in block
     size_t out_no; // index of out in transaction
     size_t idx;
+    size_t advanced_output_id{0};
     bool spent;
     const cryptonote::block *p_blk;
     const cryptonote::transaction *p_tx;
@@ -278,7 +279,8 @@ struct output_index {
         : out(_out), amount(_a), token_amount(_t_a), blk_height(_h), tx_no(tno), out_no(ono), idx(0), spent(false), p_blk(_pb), p_tx(_pt) { }
 
     output_index(const output_index &other)
-        : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx), spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx) {  }
+        : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx),
+        spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx), advanced_output_id{other.advanced_output_id} {  }
 
     const std::string toString() const {
         std::stringstream ss;
@@ -334,6 +336,7 @@ namespace
 bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<size_t> >& outs_mine, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx,
                          const cryptonote::account_base& from, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) {
 
+    int output_id_counter = 0;
     BOOST_FOREACH (const block& blk, blockchain) {
         vector<const transaction*> vtx;
         vtx.push_back(&blk.miner_tx);
@@ -352,9 +355,11 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
         for (size_t i = 0; i < vtx.size(); i++)
         {
             const transaction &tx = *vtx[i];
+            crypto::hash txhash =  get_transaction_hash(tx);
 
           for (size_t j = 0; j < tx.vout.size(); ++j)
           {
+            output_id_counter+=1;
             const tx_out &out = tx.vout[j];
             const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
@@ -382,6 +387,8 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                   outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].push_back(oi);
                   size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].size() - 1;
                   outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].idx = tx_global_idx;
+                  outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].advanced_output_id = output_id_counter-1;
+
                   // Is out to me?
                   if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
                   {
@@ -482,6 +489,42 @@ bool fill_output_entries(std::vector<output_index>& out_indices, size_t sender_o
     {
       const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
       output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+    }
+  }
+
+  return 0 == rest && sender_out_found;
+}
+
+bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t sender_out, size_t nmix, size_t& real_entry_idx, std::vector<tx_source_entry::output_entry>& output_entries)
+{
+  if (out_indices.size() <= nmix)
+    return false;
+
+  bool sender_out_found = false;
+  size_t rest = nmix;
+  for (size_t i = 0; i < out_indices.size() && (0 < rest || !sender_out_found); ++i)
+  {
+    const output_index& oi = out_indices[i];
+    if (oi.spent)
+      continue;
+
+    bool append = false;
+    if (i == sender_out)
+    {
+      append = true;
+      sender_out_found = true;
+      real_entry_idx = output_entries.size();
+    }
+    else if (0 < rest)
+    {
+      --rest;
+      append = true;
+    }
+
+    if (append)
+    {
+      const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
+      output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
     }
   }
 
@@ -625,7 +668,7 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
             size_t realOutput;
-            if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
+            if (!fill_output_entries_advanced(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
               continue;
 
             ts.real_output = realOutput;

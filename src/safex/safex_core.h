@@ -6,6 +6,8 @@
 #include <string>
 #include <exception>
 
+#include "cryptonote_config.h"
+
 #ifndef SAFEX_SAFEX_CORE_H
 #define SAFEX_SAFEX_CORE_H
 
@@ -102,6 +104,23 @@ namespace safex
   {
     return interval*1000 + 1;
   }
+
+  /**
+  * Return minimal token lock period
+  *
+  * @return number of blocks that is munimum token lock period
+  */
+  inline uint64_t get_safex_minumum_token_lock_period(cryptonote::network_type nettype = cryptonote::network_type::MAINNET)
+  {
+
+    if (nettype == cryptonote::network_type::FAKECHAIN)
+      return 100;
+    else
+      return SAFEX_DEFAULT_MINUMUM_TOKEN_LOCK_PERIOD;
+  }
+
+
+
 
 
 }
