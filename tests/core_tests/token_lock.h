@@ -56,13 +56,16 @@ public:
   bool verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   crypto::hash get_hash_from_string(const std::string hashstr);
 
-  static const size_t expected_blockchain_total_transactions = 378;
-  static const size_t expected_blockchain_height = 192;
+  static const size_t expected_blockchain_total_transactions = 199;
+  static const size_t expected_blockchain_height = 188;
 
-  static const uint64_t expected_alice_token_balance = 980 * COIN;
-  static const uint64_t expected_bob_token_balance = 8 * COIN;
-  static const uint64_t expected_daniel_token_balance = 12 * COIN;
-  static const uint64_t expected_jack_token_balance = 12 * COIN;
+  static const uint64_t expected_alice_token_balance = 160000 * SAFEX_TOKEN;
+  static const uint64_t expected_bob_token_balance = 20000 * SAFEX_TOKEN;
+  static const uint64_t expected_daniel_token_balance = 10000 * SAFEX_TOKEN;
+
+  static const uint64_t expected_locked_tokens = 40000 * SAFEX_TOKEN;
+
+
 
   static const int64_t expected_alice_cash_balance;// = (uint64_t)(1002*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - 3*TESTS_DEFAULT_FEE + 5*SAFEX_CASH_COIN;
   static const int64_t expected_bob_cash_balance;// = (uint64_t)(10*llround(AIRDROP_TOKEN_TO_CASH_REWARD_RATE*COIN)) - TESTS_DEFAULT_FEE + 10*SAFEX_CASH_COIN;

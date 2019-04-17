@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
-#if 1
+#if 0
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -187,7 +187,9 @@ int main(int argc, char* argv[])
 #if 1
     /* safex advanced functionality related tests */
     GENERATE_AND_PLAY(gen_token_lock_001);
+#endif
 
+#if 0
     /* safex tx validation */
     GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
 #endif

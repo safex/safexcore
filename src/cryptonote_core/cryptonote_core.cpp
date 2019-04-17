@@ -965,7 +965,7 @@ namespace cryptonote
                                               this->get_transactions(b.tx_hashes, txs, missed_txs);
                                               for(const auto& tx: txs)
                                               {
-                                                total_locked_tokens_amount += get_token_locked_amount(tx)/SAFEX_TOKEN; //remove decimals
+                                                total_locked_tokens_amount += get_token_locked_amount(tx);
                                               }
 
                                               return true;
