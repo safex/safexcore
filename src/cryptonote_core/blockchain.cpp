@@ -352,63 +352,27 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       return false;
   }
 
-  std::vector<output_data_t> outputs;
-  bool found = false;
-  auto it = m_scan_table.find(tx_prefix_hash);
-  if (it != m_scan_table.end())
+  if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash)
   {
-    auto its = it->second.find(txin.k_image);
-    if (its != it->second.end())
+    std::vector<output_data_t> outputs;
+    bool found = false;
+    auto it = m_scan_table.find(tx_prefix_hash);
+    if (it != m_scan_table.end())
     {
-      outputs = its->second;
-      found = true;
-    }
-  }
-
-  if (!found)
-  {
-    try
-    {
-      if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash) {
-        m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, output_type, true);
-      } else {
-        //get advanced output key
-        MERROR_VER("get advanced output key not implemented");
-        return false;
-      }
-
-      if (absolute_offsets.size() != outputs.size())
+      auto its = it->second.find(txin.k_image);
+      if (its != it->second.end())
       {
-        MERROR_VER("Output does not exist! amount = " << value_amount);
-        return false;
+        outputs = its->second;
+        found = true;
       }
     }
-    catch (...)
+
+    if (!found)
     {
-      MERROR_VER("Output does not exist! amount = " << value_amount);
-      return false;
-    }
-  }
-  else
-  {
-    // check for partial results and add the rest if needed;
-    if (outputs.size() < absolute_offsets.size() && outputs.size() > 0)
-    {
-      MDEBUG("Additional outputs needed: " << absolute_offsets.size() - outputs.size());
-      std::vector<uint64_t> add_offsets;
-      std::vector<output_data_t> add_outputs;
-      for (size_t i = outputs.size(); i < absolute_offsets.size(); i++)
-        add_offsets.push_back(absolute_offsets[i]);
       try
       {
-        if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash) {
-          m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, output_type, true);
-        } else {
-          //get advanced output key
-          MERROR_VER("get advanced output key not implemented");
-          return false;
-        }
-        if (add_offsets.size() != add_outputs.size())
+        m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, output_type, true);
+        if (absolute_offsets.size() != outputs.size())
         {
           MERROR_VER("Output does not exist! amount = " << value_amount);
           return false;
@@ -419,62 +383,203 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
         MERROR_VER("Output does not exist! amount = " << value_amount);
         return false;
       }
-      outputs.insert(outputs.end(), add_outputs.begin(), add_outputs.end());
     }
-  }
-
-  size_t count = 0;
-  for (const uint64_t &i : absolute_offsets)
-  {
-    try
+    else
     {
-      output_data_t output_index;
+      // check for partial results and add the rest if needed;
+      if (outputs.size() < absolute_offsets.size() && outputs.size() > 0)
+      {
+        MDEBUG("Additional outputs needed: " << absolute_offsets.size() - outputs.size());
+        std::vector<uint64_t> add_offsets;
+        std::vector<output_data_t> add_outputs;
+        for (size_t i = outputs.size(); i < absolute_offsets.size(); i++)
+          add_offsets.push_back(absolute_offsets[i]);
+        try
+        {
+          m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, output_type, true);
+          if (add_offsets.size() != add_outputs.size())
+          {
+            MERROR_VER("Output does not exist! amount = " << value_amount);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount);
+          return false;
+        }
+        outputs.insert(outputs.end(), add_outputs.begin(), add_outputs.end());
+      }
+    }
+
+    size_t count = 0;
+    for (const uint64_t &i : absolute_offsets)
+    {
       try
       {
-        //tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
-
-        // get tx hash and output index for output
-        if (count < outputs.size())
-          output_index = outputs.at(count);
-        else
-          output_index = m_db->get_output_key(value_amount, i, output_type);
-
-        // call to the passed boost visitor to grab the public key for the output
-        if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment))
+        output_data_t output_index;
+        try
         {
-          MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
+          // get tx hash and output index for output
+          if (count < outputs.size())
+            output_index = outputs.at(count);
+          else
+            output_index = m_db->get_output_key(value_amount, i, output_type);
+
+          // call to the passed boost visitor to grab the public key for the output
+          if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment))
+          {
+            MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount << ", absolute_offset = " << i);
+          return false;
+        }
+
+        // if on last output and pmax_related_block_height not null pointer
+        if (++count == absolute_offsets.size() && pmax_related_block_height)
+        {
+          // set *pmax_related_block_height to tx block height for this output
+          auto h = output_index.height;
+          if (*pmax_related_block_height < h)
+          {
+            *pmax_related_block_height = h;
+          }
+        }
+      }
+      catch (const OUTPUT_DNE &e)
+      {
+        MERROR_VER("Output does not exist: " << e.what());
+        return false;
+      }
+      catch (const TX_DNE &e)
+      {
+        MERROR_VER("Transaction does not exist: " << e.what());
+        return false;
+      }
+
+    }
+  }
+/* Handle advanced outputs that should be spend in the transaction */
+  else if (output_type == tx_out_type::out_locked_token) {
+
+    std::vector<output_advanced_data_t> outputs;
+    bool found = false;
+    auto it = m_scan_table_adv.find(tx_prefix_hash);
+    if (it != m_scan_table_adv.end())
+    {
+      auto its = it->second.find(txin.k_image);
+      if (its != it->second.end())
+      {
+        outputs = its->second;
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      try
+      {
+        m_db->get_advanced_output_key(value_amount, absolute_offsets, outputs, output_type, true);
+        if (absolute_offsets.size() != outputs.size())
+        {
+          MERROR_VER("Advanced outputs do not exist!");
           return false;
         }
       }
       catch (...)
       {
-        MERROR_VER("Output does not exist! amount = " << value_amount << ", absolute_offset = " << i);
+        MERROR_VER("Advanced outputs do not exist");
+        return false;
+      }
+    }
+    else
+    {
+      // check for partial results and add the rest if needed;
+      if (outputs.size() < absolute_offsets.size() && outputs.size() > 0)
+      {
+        MDEBUG("Additional advanced outputs needed: " << absolute_offsets.size() - outputs.size());
+        std::vector<uint64_t> add_offsets;
+        std::vector<output_advanced_data_t> add_outputs;
+        for (size_t i = outputs.size(); i < absolute_offsets.size(); i++)
+          add_offsets.push_back(absolute_offsets[i]);
+        try
+        {
+          m_db->get_advanced_output_key(value_amount, add_offsets, add_outputs, output_type, true);
+          if (add_offsets.size() != add_outputs.size())
+          {
+            MERROR_VER("Advanced outputs do not exist");
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Advanced output does not exist!");
+          return false;
+        }
+        outputs.insert(outputs.end(), add_outputs.begin(), add_outputs.end());
+      }
+    }
+
+    size_t count = 0;
+    for (const uint64_t &i : absolute_offsets)
+    {
+      try
+      {
+        output_advanced_data_t output_data;
+        try
+        {
+          // get tx hash and output index for output
+          if (count < outputs.size())
+            output_data = outputs.at(count);
+          else
+            output_data = m_db->get_output_key(output_type, i);
+
+          // call to the passed boost visitor to grab the public key for the output
+          if (!vis.handle_output(output_data.unlock_time, output_data.pubkey, rct::key{}))
+          {
+            MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount << ", absolute_offset = " << i);
+          return false;
+        }
+
+        // if on last output and pmax_related_block_height not null pointer
+        if (++count == absolute_offsets.size() && pmax_related_block_height)
+        {
+          // set *pmax_related_block_height to tx block height for this output
+          auto h = output_data.height;
+          if (*pmax_related_block_height < h)
+          {
+            *pmax_related_block_height = h;
+          }
+        }
+
+      }
+      catch (const OUTPUT_DNE &e)
+      {
+        MERROR_VER("Output does not exist: " << e.what());
+        return false;
+      }
+      catch (const TX_DNE &e)
+      {
+        MERROR_VER("Transaction does not exist: " << e.what());
         return false;
       }
 
-      // if on last output and pmax_related_block_height not null pointer
-      if (++count == absolute_offsets.size() && pmax_related_block_height)
-      {
-        // set *pmax_related_block_height to tx block height for this output
-        auto h = output_index.height;
-        if (*pmax_related_block_height < h)
-        {
-          *pmax_related_block_height = h;
-        }
-      }
-
-    }
-    catch (const OUTPUT_DNE &e)
-    {
-      MERROR_VER("Output does not exist: " << e.what());
-      return false;
-    }
-    catch (const TX_DNE &e)
-    {
-      MERROR_VER("Transaction does not exist: " << e.what());
-      return false;
     }
 
+  }
+  else {
+    MERROR_VER("Unknown output type.");
+    return false;
   }
 
   return true;
@@ -3412,13 +3517,13 @@ bool Blockchain::check_tx_input_script(size_t tx_version, const txin_to_script& 
   Blockchain::outputs_generic_visitor vi(output_keys, *this);
   if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
   {
-    MERROR_VER("Failed to get output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
+    MERROR_VER("Failed to get advanced output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
     return false;
   }
 
   if(txin.key_offsets.size() != output_keys.size())
   {
-    MERROR_VER("Output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
+    MERROR_VER("Advanced output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
     return false;
   }
 

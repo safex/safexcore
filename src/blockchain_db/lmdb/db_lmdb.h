@@ -258,6 +258,10 @@ public:
                                      std::vector<output_data_t> &outputs, const tx_out_type output_type,
                                      bool allow_partial = false);
 
+  virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+                                         std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
+                                         bool allow_partial = false);
+
   virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;

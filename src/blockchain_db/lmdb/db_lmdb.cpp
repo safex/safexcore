@@ -3022,20 +3022,21 @@ bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::h
       if (ret)
         throw0(DB_ERROR("Failed to enumerate outputs"));
 
-      output_advanced_data_t *okadv =  (output_advanced_data_t *)v.mv_data;
+      output_advanced_data_t output = parse_output_advanced_data_from_mdb(v);
+
       txout_to_script txout = AUTO_VAL_INIT(txout);
-      txout.output_type = static_cast<uint8_t>(okadv->output_type);
-      txout.keys.push_back(okadv->pubkey); //todo handle case where there are multiple keys, and some are in data
+      txout.output_type = static_cast<uint8_t>(output.output_type);
+      txout.keys.push_back(output.pubkey); //todo handle case where there are multiple keys, and some are in data
 
       blobdata bd;
-      bd.assign(reinterpret_cast<char*>(&okadv->data), v.mv_size-4*sizeof(uint64_t)-sizeof(okadv->pubkey));
-      parse_and_validate_byte_array_from_blob(bd,txout.data);
+      bd.assign(reinterpret_cast<char*>(&output.data), v.mv_size-4*sizeof(uint64_t)-sizeof(output.pubkey));
+      parse_and_validate_byte_array_from_blob(bd, txout.data);
 
 
       if (static_cast<tx_out_type >(txout.output_type) == output_type) {
-        tx_out_index toi = get_output_tx_and_index_from_global(okadv->output_id);
+        tx_out_index toi = get_output_tx_and_index_from_global(output.output_id);
         const uint64_t block_height = get_tx_block_height(toi.first);
-        if (!f(toi.first, block_height, okadv->output_id, txout)) {
+        if (!f(toi.first, block_height, output.output_id, txout)) {
           fret = false;
           break;
         }
@@ -3531,6 +3532,57 @@ void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::ve
   TIME_MEASURE_FINISH(db3);
   LOG_PRINT_L3("db3: " << db3);
 }
+
+
+  void BlockchainLMDB::get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+                                             std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
+                                             bool allow_partial)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    outputs.clear();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_output_advanced;
+    RCURSOR(output_advanced);
+    cur_output_advanced = m_cur_output_advanced;
+
+    TIME_MEASURE_START(db3);
+
+    for (const uint64_t &output_id : output_ids)
+    {
+      output_advanced_data_t current = AUTO_VAL_INIT(current);
+
+      MDB_val_set(key, output_id);
+      blobdata blob;
+      MDB_val_set(value_blob, blob);
+
+      auto result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
+      if (result == MDB_SUCCESS)
+      {
+        current = parse_output_advanced_data_from_mdb(value_blob);
+        outputs.push_back(current);
+      }
+      else if (result == MDB_NOTFOUND)
+      {
+        if (allow_partial)
+        {
+          MDEBUG("Partial result: " << outputs.size() << "/" << output_ids.size());
+          break;
+        }
+        throw0(DB_ERROR(lmdb_error("Attemting to get keys from advanced output with current id " + std::to_string(output_id) + " but not found: ", result).c_str()));
+      }
+      else
+        throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", result).c_str()));
+    }
+
+    TXN_POSTFIX_RDONLY();
+
+    TIME_MEASURE_FINISH(db3);
+    LOG_PRINT_L3("db3: " << db3);
+  }
+
 
 void BlockchainLMDB::get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const
 {

@@ -354,8 +354,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
         // TODO: add all other txes
         for (size_t i = 0; i < vtx.size(); i++)
         {
-            const transaction &tx = *vtx[i];
-            crypto::hash txhash =  get_transaction_hash(tx);
+          const transaction &tx = *vtx[i];
 
           for (size_t j = 0; j < tx.vout.size(); ++j)
           {

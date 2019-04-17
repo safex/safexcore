@@ -144,10 +144,7 @@ namespace cryptonote
     crypto::public_key pubkey;
     blobdata data; //Blob of txoutput
 
-    size_t size() const
-    {
-      return 4 * sizeof(uint64_t) + sizeof(pubkey) + data.size();
-    }
+    size_t size() const { return 4 * sizeof(uint64_t) + sizeof(pubkey) + data.size();}
   } outkey_advanced;
 #pragma pack(pop)
 /**
@@ -1418,6 +1415,22 @@ namespace cryptonote
        */
       virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
                                          std::vector<output_data_t> &outputs, const tx_out_type output_type,
+                                         bool allow_partial = false) = 0;
+
+      /**
+       * @brief gets outputs' data
+       *
+       * This function is a mirror of
+       * get_output_data(const uint64_t& amount, const uint64_t& index)
+       * but for a list of outputs rather than just one.
+       *
+       * @param amount an output amount
+       * @param output_ids a list of output ids
+       * @param outputs return-by-reference a list of outputs' metadata
+       * @param output_type a utxo type (locked token, ...)
+       */
+      virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+                                         std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                          bool allow_partial = false) = 0;
 
       /*
