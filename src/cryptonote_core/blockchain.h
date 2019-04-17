@@ -1128,6 +1128,16 @@ namespace cryptonote
 
     bool check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
+    /**
+   * @brief validates one safex input
+   *
+   *
+   * @param txin input
+   * @param tvc returned information about tx verification
+   *
+   * @return false if any validation step fails, otherwise true
+   */
+    bool check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc);
 
     /**
      * @brief validate a transaction's inputs and their keys

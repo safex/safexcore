@@ -539,7 +539,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
             output_data = m_db->get_output_key(output_type, i);
 
           // call to the passed boost visitor to grab the public key for the output
-          if (!vis.handle_output(output_data.unlock_time, output_data.pubkey, rct::key{}))
+          if (!vis.handle_output(output_data.unlock_time, output_data.pubkey, rct::key{0}))
           {
             MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
             return false;
@@ -3029,7 +3029,33 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 
   return true;
 }
-//------------------------------------------------------------------
+//------------------------------------------------------------------.
+
+
+bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc)
+{
+
+  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
+
+  if (command_type == safex::command_t::token_lock)
+  {
+    if (txin.amount > 0 || txin.token_amount == 0)
+      return false;
+  }
+  else if (command_type == safex::command_t::token_unlock)
+  {
+    if (txin.amount > 0 || txin.token_amount == 0)
+      return false;
+  }
+  else
+  {
+    MERROR_VER("Unknown command type");
+    return false;
+  }
+
+  return true;
+}
+//------------------------------------------------------------------.
 // This function validates transaction inputs and their keys.
 // FIXME: consider moving functionality specific to one input into
 //        check_tx_input() rather than here, and use this function simply
@@ -3176,9 +3202,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
 
-    if ((txin.type() == typeid(txin_to_script)))
+    /* Check advaced command intput validity */
+    if ((txin.type() == typeid(txin_to_script)) && !check_advanced_tx_input(boost::get<txin_to_script>(txin), tvc))
     {
-      //todo ATANA check advanced input logic
+      MERROR_VER("Error in advanced input");
+      tvc.m_safex_invalid_input = true;
+      return false;
     }
 
 

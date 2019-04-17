@@ -610,12 +610,12 @@ namespace cryptonote
       if (vin.type() == typeid(txin_to_script))
       {
         const txin_to_script& in = boost::get<txin_to_script>(vin);
-
         if (safex::safex_command_serializer::get_command_type(in.script) == safex::command_t::token_unlock) {
           locked_tokens -= in.token_amount;
         }
       }
     }
+
     //count locked tokens
     for (const auto &vout: tx.vout)
     {
