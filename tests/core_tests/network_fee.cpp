@@ -108,11 +108,14 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(15000), blk_6);
+    MAKE_DONATE_FEE_TX_LIST(events, txlist_2, miner, MK_COINS(4), blk_6);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_2);
 
     //
 
     MAKE_TX_DONATE_FEE_LIST_START(events, txlist_3, miner, MK_COINS(1000), blk_7);
+    MAKE_DONATE_FEE_TX_LIST(events, txlist_3, miner, 14000, blk_7);
+    MAKE_DONATE_FEE_TX_LIST(events, txlist_3, miner, 2800000, blk_7);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_8, blk_7, miner, txlist_3);
 
 
@@ -150,6 +153,9 @@ bool gen_network_fee_001::verify_network_fee(cryptonote::core &c, size_t ev_inde
 
     int64_t locked_tokens = c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height);
     cout << "total core locked tokens: " << print_money(locked_tokens) << endl;
+
+  int64_t network_fee = c.get_network_fee(0, gen_network_fee_001::expected_blockchain_height);
+  cout << "total network fee collected: " << print_money(network_fee) << endl;
 
 
 //    CHECK_EQ(gen_network_fee_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));

@@ -975,6 +975,29 @@ namespace cryptonote
     return total_locked_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
+  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count)
+  {
+    int64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
   {
     std::unordered_set<crypto::key_image> ki;
