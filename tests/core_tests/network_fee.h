@@ -45,15 +45,15 @@
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-class gen_token_lock_001: public test_chain_unit_base
+class gen_network_fee_001: public test_chain_unit_base
 {
 public:
-    gen_token_lock_001();
+    gen_network_fee_001();
 
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c", "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182", "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
 
   bool generate(std::vector<test_event_entry> &events);
-  bool verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool verify_network_fee(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events);
   crypto::hash get_hash_from_string(const std::string hashstr);
 
   static const size_t expected_blockchain_total_transactions = 199;
@@ -64,5 +64,6 @@ public:
   static const uint64_t expected_daniel_token_balance = 10000 * SAFEX_TOKEN;
 
   static const uint64_t expected_locked_tokens = 40000 * SAFEX_TOKEN;
+
 };
 

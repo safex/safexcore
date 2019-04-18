@@ -44,7 +44,8 @@ set(core_tests_sources
   transaction_tests.cpp
   tx_validation.cpp
   v2_tests.cpp
-  chain_migration.cpp)
+  chain_migration.cpp
+  network_fee.cpp)
 
 set(core_tests_headers
   block_reward.h
@@ -62,7 +63,8 @@ set(core_tests_headers
   v2_tests.h
   chain_migration.h
   token_transactions.h
-  token_lock.h)
+  token_lock.h
+  network_fee.h)
 
 add_executable(core_tests
   ${core_tests_sources}

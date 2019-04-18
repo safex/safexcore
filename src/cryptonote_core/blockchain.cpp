@@ -315,6 +315,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::token_unlock:
       output_type = tx_out_type::out_locked_token;
       break;
+    case safex::command_t::donate_network_fee:
+      output_type = tx_out_type::out_cash;
+      break;
     default:
       MERROR_VER("Unknown command type");
       return false;
@@ -342,6 +345,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
 
     case tx_out_type::out_cash:
+    case tx_out_type::out_network_fee:
     {
       absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
       value_amount = get_tx_input_cash_amount(txin);
@@ -2899,6 +2903,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     /* Check if minumum amount of tokens is locked */
     if (outputs_locked_token_amount < SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)
     {
+      MERROR("Safex token lock amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT);
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
@@ -2914,6 +2919,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         for (auto index: in.key_offsets) {
           output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_locked_token, index);
           if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) < m_db->height()) {
+            MERROR("Safex token lock period not expired");
             tvc.m_safex_invalid_command_params = true;
             return false;
           }
@@ -2923,12 +2929,37 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       }
 
     }
-
-
   }
+  else if (command_type == safex::command_t::donate_network_fee)
+  {
+    /* Find cash amount on output that is donated */
+    uint64_t outputs_donated_cash_amount = 0;
+    for (const auto &vout: tx.vout)
+    {
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+      {
+        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee))
+          outputs_donated_cash_amount += vout.amount;
+      }
+    }
 
+    uint64_t input_cash_amount = 0;
+    for (const auto &txin: tx.vin)
+    {
+      input_cash_amount += get_tx_input_cash_amount(txin);
+    }
 
-  else {
+    /* Check if donated cash amount matches */
+    if (outputs_donated_cash_amount >= input_cash_amount)
+    {
+      MERROR("Invalid safex cash input amount");
+      tvc.m_safex_invalid_input = true;
+      return false;
+    }
+  }
+  else
+  {
     MERROR("Unsuported safex command");
     tvc.m_safex_invalid_command = true;
     return false;
@@ -3047,9 +3078,14 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
+  else if (command_type == safex::command_t::donate_network_fee)
+  {
+    if (txin.amount == 0 || txin.token_amount > 0)
+      return false;
+  }
   else
   {
-    MERROR_VER("Unknown command type");
+    MERROR_VER("Unknown input command type");
     return false;
   }
 

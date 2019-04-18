@@ -885,6 +885,12 @@ tx_destination_entry create_locked_token_tx_destination(const cryptonote::accoun
   return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_locked_token};
 }
 
+tx_destination_entry create_network_fee_tx_destination(uint64_t cash_amount)
+{
+  account_public_address dummy = AUTO_VAL_INIT(dummy);
+  return tx_destination_entry{cash_amount, dummy, false, tx_out_type::out_network_fee};
+}
+
 void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
         const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
         std::vector<tx_destination_entry> &destinations)
@@ -945,6 +951,31 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   //sender change for fee
 
   uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    tx_destination_entry de_change = create_tx_destination(from, cache_back);
+    destinations.push_back(de_change);
+  }
+}
+
+void fill_donation_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+        const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix,
+        std::vector<tx_source_entry> &sources, std::vector<tx_destination_entry> &destinations)
+{
+  sources.clear();
+  destinations.clear();
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(sources, events, blk_head, from, fee+cash_amount, nmix, cryptonote::tx_out_type::out_network_fee))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //fee donation, txout_to_script
+  tx_destination_entry de_donation_fee = create_network_fee_tx_destination(cash_amount);
+  destinations.push_back(de_donation_fee);
+
+  //sender change for fee
+
+  uint64_t cache_back = get_inputs_amount(sources) - fee - cash_amount;
   if (0 < cache_back)
   {
     tx_destination_entry de_change = create_tx_destination(from, cache_back);
@@ -1061,6 +1092,17 @@ bool construct_token_unlock_tx(const std::vector<test_event_entry>& events, cryp
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_token_unlock_tx_sources_and_destinations(events, blk_head, from, from, token_amount, fee, nmix, sources, destinations);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+}
+
+bool construct_fee_donation_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const block& blk_head,
+        const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix)
+{
+  std::vector<tx_source_entry> sources;
+  std::vector<tx_destination_entry> destinations;
+
+  fill_donation_tx_sources_and_destinations(events, blk_head, from, cash_amount, fee, nmix, sources, destinations);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
