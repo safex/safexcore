@@ -510,6 +510,9 @@ void fill_token_unlock_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
   if (!fill_unlock_token_sources(txmap, blocks, sources, from, token_amount, nmix))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
 
+  //collect interest source
+  //uint64_t fee_interest =
+
   //locked token destination, there is no token change, all tokens are unlocked
   tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
   destinations.push_back(de_token);

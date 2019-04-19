@@ -169,6 +169,27 @@ namespace
             construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
+          else if (i == 157)
+          {
+            //add network fee
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx, m_miner_acc, 1 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 243)
+          {
+            //add network fee
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx, m_miner_acc, 1 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx2, m_miner_acc, 60404980, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx2)] = tx2;
+          }
           else if (i == 517)
           {
             //token unlock transaction
@@ -384,12 +405,12 @@ namespace
       }
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0));
+    uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
     std::cout << "Locked tokens:" << print_money(number_of_locked_tokens) << std::endl;
 
-    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0));
-    ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
+    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
+//    ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
     std::cout << "Cash collected fee:" << print_money(fee_sum) << std::endl;
 
 

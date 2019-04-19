@@ -1013,7 +1013,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   if (output_type_c == cryptonote::tx_out_type::out_locked_token)
   {
 
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height, m_nettype); // interval for currently processed output
     update_locked_token_sum_for_interval(interval_block, tx_output.token_amount);
 
     //Add tocken lock expiry values
@@ -1038,7 +1038,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   }
   else if (output_type_c == cryptonote::tx_out_type::out_network_fee)
   {
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height, m_nettype);
     update_network_fee_sum_for_interval(interval_block, tx_output.amount);
   }
 
@@ -1298,7 +1298,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   }
   else if (command_type == safex::command_t::token_unlock)
   {
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
+    uint64_t interval_block = safex::calculate_interval_for_height(m_height, m_nettype);
     update_locked_token_sum_for_interval(interval_block, -1 * txin.token_amount);
   }
   else if (command_type == safex::command_t::donate_network_fee)
@@ -1353,7 +1353,7 @@ BlockchainLMDB::~BlockchainLMDB()
     close();
 }
 
-BlockchainLMDB::BlockchainLMDB(bool batch_transactions): BlockchainDB()
+BlockchainLMDB::BlockchainLMDB(bool batch_transactions, cryptonote::network_type nettype): BlockchainDB(), m_nettype(nettype)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   // initialize folder to something "safe" just in case

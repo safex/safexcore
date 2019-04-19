@@ -1479,5 +1479,18 @@ namespace cryptonote
      *
      */
     uint64_t count_new_migration_tokens(const std::vector<transaction>& txs) const;
+
+      /**
+       * @brief Calculates cash amount that token holder receives when unlocking
+       * tokens that are locked at start_block until the end block
+       *
+       * @param token_amount token amount that is locked
+       * @param start block height, where tokens are locked
+       * @end_block last known end block, where token unlock operation is set
+       *
+       */
+      uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+
+
   };
 }  // namespace cryptonote

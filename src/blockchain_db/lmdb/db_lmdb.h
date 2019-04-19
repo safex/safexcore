@@ -180,7 +180,7 @@ struct mdb_txn_safe
 class BlockchainLMDB : public BlockchainDB
 {
 public:
-  BlockchainLMDB(bool batch_transactions=false);
+  BlockchainLMDB(bool batch_transactions=false, cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
   ~BlockchainLMDB();
 
   virtual void open(const std::string& filename, const int mdb_flags=0);
@@ -480,6 +480,8 @@ private:
 
   mdb_txn_cursors m_wcursors;
   mutable boost::thread_specific_ptr<mdb_threadinfo> m_tinfo;
+
+  cryptonote::network_type m_nettype;
 
 #if defined(__arm__)
   // force a value so it can compile with 32-bit ARM
