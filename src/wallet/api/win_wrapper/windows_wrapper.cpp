@@ -333,7 +333,7 @@ extern "C" DLL_MAGIC const char* win_addrbook_get_all(void* self) {
   static std::string result;
   Safex::WalletImpl *wallet = static_cast<Safex::WalletImpl *>(self);
   std::vector<Safex::AddressBookRow*> rows = wallet->addressBook()->getAll();
-  
+
   result.clear();
   result = "";
   std::string delimeter{"$@"};
@@ -589,6 +589,7 @@ extern "C" DLL_MAGIC const char *win_txinfo_hash(void *self)
   static unsigned char buffer[128];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, txInfo->hash().c_str(),txInfo->hash().length());
+  buffer[64] = '\0';
   return (const char *) buffer;
 }
 
@@ -624,8 +625,7 @@ extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
     offset += sizeof(uint64_t);
     memcpy(buffer + offset, &(tx.token_amount), sizeof(uint64_t));
     offset += sizeof(uint64_t);
-    memcpy(buffer + offset, tx.address.c_str(), tx.address.size()+1);
-    offset += tx.address.size()+1;
+    offset++;
   }
 
   return static_cast<char *>(buffer);
@@ -727,6 +727,7 @@ extern "C" DLL_MAGIC void* win_txhist_Create(void* wallet) {
 }
 
 extern "C" DLL_MAGIC void win_txhist_Delete(void* self) {
+  if (self == nullptr) { return ;}
   Safex::TransactionHistoryImpl* txHist = static_cast<Safex::TransactionHistoryImpl*>(self);
   delete txHist;
 }
