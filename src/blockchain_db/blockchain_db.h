@@ -567,16 +567,16 @@ namespace cryptonote
 
 
       /**
-      * Changes token locked sum for delta
+      * Updates token lock sum
       *
       *
       *
-      * @param interval_starting_block block that represents interval, for example 1001 for second interval
-      * @param delta number of tokens locked or unlocked, delta could be positive or negative
-      * @return new number of locked tokens for interval
+      *
+      * @param delta amount of locked or unlocked tokens
+      * @param sign positive if tokens are locked, otherwise negative
+      * @return new total current token locked sum
       */
-      virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) = 0;
-
+      uint64_t update_current_locked_token_sum(const uint64_t delta, int sign);
 
       /**
       * Changes collected fee sum for delta
@@ -589,6 +589,7 @@ namespace cryptonote
       * @return new total collected fee value for interval
       */
       virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) = 0;
+
 
 
 
@@ -1624,12 +1625,21 @@ namespace cryptonote
       /* Safex related db api */
       /***********************/
 
+
       /**
-       * Returns number of locked tokens for interval.
+       * Returns current number of locked tokens
+       *
+       *
+       * @return number of locked tokens at current height
+       */
+      virtual uint64_t get_current_locked_token_sum() const = 0;
+
+      /**
+       * Returns number of locked tokens in interval.
        *
        *
        * @param interval block that represents interval, for example 1001 for second interval
-       * @return number of locked tokens in interval
+       * @return number of locked tokens in that interval, used for interest calculation
        */
       virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
 

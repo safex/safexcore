@@ -63,7 +63,7 @@ namespace
   class SafexBlockchainDBTest : public testing::Test
   {
     protected:
-      SafexBlockchainDBTest() : m_db(new T()), m_hardfork(*m_db, 1, 0)
+      SafexBlockchainDBTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
       {
         m_test_sizes = std::vector<size_t>(NUMBER_OF_BLOCKS, 0);
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
@@ -486,7 +486,7 @@ namespace
       ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
+    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
     std::vector<uint64_t> data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+11);
@@ -576,10 +576,11 @@ namespace
       ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
+    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
-    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
+    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(1, network_type::FAKECHAIN));
+    std::cout << "Fee sum:" << fee_sum << std::endl;
     ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
 
 

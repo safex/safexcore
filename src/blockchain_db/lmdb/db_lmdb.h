@@ -293,6 +293,7 @@ public:
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
+  virtual uint64_t get_current_locked_token_sum() const override;
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
@@ -431,7 +432,9 @@ private:
 
   void process_advanced_input(const cryptonote::txin_to_script &txin);
 
-  uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) override;
+
+  uint64_t update_current_locked_token_sum(const uint64_t delta, int sign);
+  uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval);
   uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
 
 private:

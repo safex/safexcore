@@ -63,7 +63,7 @@ namespace
   class SafexBlockchainFeeTest : public testing::Test
   {
     protected:
-      SafexBlockchainFeeTest() : m_db(new T()), m_hardfork(*m_db, 1, 0)
+      SafexBlockchainFeeTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
       {
         m_test_sizes = std::vector<size_t>(NUMBER_OF_BLOCKS, 0);
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
