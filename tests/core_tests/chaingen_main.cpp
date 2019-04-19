@@ -189,8 +189,8 @@ int main(int argc, char* argv[])
     /* safex tx validation */
     GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
 #else
-
     GENERATE_AND_PLAY(gen_network_fee_001);
+
 
 #endif
 

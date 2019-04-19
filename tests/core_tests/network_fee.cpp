@@ -118,6 +118,11 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_DONATE_FEE_TX_LIST(events, txlist_3, miner, 2800000, blk_7);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_8, blk_7, miner, txlist_3);
 
+    REWIND_BLOCKS(events, blk_9, blk_8, miner);
+    MAKE_TX_DONATE_FEE_LIST_START(events, txlist_4, miner, MK_COINS(500), blk_8);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_10, blk_9, miner, txlist_4);
+    REWIND_BLOCKS(events, blk_11, blk_10, miner);
+    REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
     DO_CALLBACK(events, "verify_network_fee");
 

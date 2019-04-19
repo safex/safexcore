@@ -3028,9 +3028,7 @@ bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::h
       txout.output_type = static_cast<uint8_t>(output.output_type);
       txout.keys.push_back(output.pubkey); //todo handle case where there are multiple keys, and some are in data
 
-      blobdata bd;
-      bd.assign(reinterpret_cast<char*>(&output.data), v.mv_size-4*sizeof(uint64_t)-sizeof(output.pubkey));
-      parse_and_validate_byte_array_from_blob(bd, txout.data);
+      parse_and_validate_byte_array_from_blob(output.data, txout.data);
 
 
       if (static_cast<tx_out_type >(txout.output_type) == output_type) {
