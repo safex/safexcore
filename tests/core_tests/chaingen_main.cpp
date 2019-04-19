@@ -182,14 +182,16 @@ int main(int argc, char* argv[])
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
 
+#endif
 
+#if 1
     /* safex advanced functionality related tests */
     GENERATE_AND_PLAY(gen_token_lock_001);
 
     /* safex tx validation */
     GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
 #else
-    GENERATE_AND_PLAY(gen_network_fee_001);
+    --GENERATE_AND_PLAY(gen_network_fee_001);
 
 
 #endif

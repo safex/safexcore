@@ -98,10 +98,10 @@ const command_line::arg_descriptor<bool> arg_db_salvage  = {
 , false
 };
 
-BlockchainDB *new_db(const std::string& db_type)
+BlockchainDB *new_db(const std::string& db_type, cryptonote::network_type nettype)
 {
   if (db_type == "lmdb")
-    return new BlockchainLMDB();
+    return new BlockchainLMDB(false, nettype);
 #if defined(BERKELEY_DB)
   if (db_type == "berkeley")
     return new BlockchainBDB();

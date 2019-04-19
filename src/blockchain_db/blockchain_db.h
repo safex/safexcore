@@ -1739,7 +1739,7 @@ namespace cryptonote
 
   };  // class BlockchainDB
 
-  BlockchainDB *new_db(const std::string &db_type);
+  BlockchainDB *new_db(const std::string &db_type, cryptonote::network_type nettype);
 
 }  // namespace cryptonote
 

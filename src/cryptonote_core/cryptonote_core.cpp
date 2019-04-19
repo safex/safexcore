@@ -417,7 +417,7 @@ namespace cryptonote
     // folder might not be a directory, etc, etc
     catch (...) { }
 
-    std::unique_ptr<BlockchainDB> db(new_db(db_type));
+    std::unique_ptr<BlockchainDB> db(new_db(db_type, m_nettype));
     if (db == NULL)
     {
       LOG_ERROR("Attempted to use non-existent database type");
