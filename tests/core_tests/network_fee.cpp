@@ -124,6 +124,10 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_11, blk_10, miner);
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
+
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_5, alice, MK_TOKENS(15000), blk_12);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_5);
+
     DO_CALLBACK(events, "verify_network_fee");
 
     return true;

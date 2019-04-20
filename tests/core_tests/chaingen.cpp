@@ -307,6 +307,7 @@ struct output_index {
 typedef std::map<uint64_t, std::vector<size_t> > map_output_t;
 typedef std::map<uint64_t, std::vector<output_index> > map_output_idx_t;
 typedef pair<uint64_t, size_t>  outloc_t;
+typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interst
 
 namespace
 {
@@ -929,6 +930,47 @@ void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_en
   }
 }
 
+uint64_t create_network_token_lock_interest_map(const std::vector<test_event_entry> &events, const block &blk_head, map_interval_interest &interest_map)
+{
+
+  std::vector<cryptonote::block> blockchain;
+  map_hash2tx_t mtx;
+  if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
+    return false;
+
+  int block_height_counter = 0;
+
+  BOOST_FOREACH (const block &blk, blockchain)
+        {
+          vector<const transaction *> vtx;
+          vtx.push_back(&blk.miner_tx);
+
+          BOOST_FOREACH(const crypto::hash &h, blk.tx_hashes)
+                {
+                  const map_hash2tx_t::const_iterator cit = mtx.find(h);
+                  if (mtx.end() == cit)
+                    throw std::runtime_error("block contains an unknown tx hash");
+
+                  vtx.push_back(cit->second);
+                }
+
+          for (size_t i = 0; i < vtx.size(); i++)
+          {
+            const transaction &tx = *vtx[i];
+
+            for (size_t j = 0; j < tx.vout.size(); ++j)
+            {
+              const tx_out &out = tx.vout[j];
+              const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
+
+
+            }
+          }
+          block_height_counter++;
+        }
+
+}
+
 void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head, const cryptonote::account_base &from, const cryptonote::account_base &to,
                                                    uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                                    std::vector<tx_destination_entry> &destinations)
@@ -944,12 +986,16 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   if (!fill_unlock_token_sources(sources,  events, blk_head, from, token_amount, nmix))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
 
+  //insert fee calculation here
+  map_interval_interest interest_map;
+  uint64_t interest_fee = create_network_token_lock_interest_map(events, blk_head, interest_map);
+
+
   //locked token destination, there is no token change, all tokens are unlocked
   tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
   destinations.push_back(de_token);
 
   //sender change for fee
-
   uint64_t cache_back = get_inputs_amount(sources) - fee;
   if (0 < cache_back)
   {
