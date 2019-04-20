@@ -3961,8 +3961,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
 
-    std::cout << "Locked tokens in interval:" << interval_starting_block <<" is "<<locked_tokens<<std::endl;
-
     return locked_tokens;
   }
 
