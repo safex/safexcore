@@ -66,6 +66,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_output_advanced;
   MDB_cursor *m_txc_output_advanced_type;
   MDB_cursor *m_txc_token_locked_sum;
+  MDB_cursor *m_txc_token_locked_sum_total;
   MDB_cursor *m_txc_network_fee_sum;
   MDB_cursor *m_txc_token_lock_expiry;
 
@@ -88,6 +89,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_output_advanced	m_cursors->m_txc_output_advanced
 #define m_cur_output_advanced_type	m_cursors->m_txc_output_advanced_type
 #define m_cur_token_locked_sum	m_cursors->m_txc_token_locked_sum
+#define m_cur_token_locked_sum_total	m_cursors->m_txc_token_locked_sum_total
 #define m_cur_network_fee_sum	m_cursors->m_txc_network_fee_sum
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 
@@ -110,6 +112,7 @@ typedef struct mdb_rflags
   bool m_rf_output_advanced;
   bool m_rf_output_advanced_type;
   bool m_rf_token_locked_sum;
+  bool m_rf_token_locked_sum_total;
   bool m_rf_network_fee_sum;
   bool m_rf_token_lock_expiry;
 } mdb_rflags;
@@ -438,7 +441,7 @@ private:
 
 protected:
 
-    uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) override;
+    uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t locked_tokens) override;
 
 private:
   MDB_env* m_env;
@@ -470,6 +473,7 @@ private:
   MDB_dbi m_output_advanced;
   MDB_dbi m_output_advanced_type;
   MDB_dbi m_token_locked_sum;
+  MDB_dbi m_token_locked_sum_total;
   MDB_dbi m_network_fee_sum;
   MDB_dbi m_token_lock_expiry;
 

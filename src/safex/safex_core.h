@@ -94,10 +94,12 @@ namespace safex
  * @param nettype network type, main, test or fake
  * @return Starting block of the interval
  */
-  inline uint64_t calculate_interval_for_height(const uint64_t height, const cryptonote::network_type nettype)
+  inline uint64_t calculate_interval_block_for_height(const uint64_t height, const cryptonote::network_type nettype)
   {
-    uint64_t interval = height > 0 ? (height - 1) / get_safex_interval_period(nettype) : 0;
-    return (interval * get_safex_interval_period(nettype) + 1); //returns interval starting block
+    if (height == 0) return 0; //zero height is zero interval
+    uint64_t interval = height > 0 ? ((height - 1) / get_safex_interval_period(nettype)) + 1 : 0; //blocks 1-1000 first interval, 1001-2000 second etc.
+    uint64_t result = (interval-1) * get_safex_interval_period(nettype) + 1;
+    return result; //returns interval starting block
   }
 
   /**
@@ -132,7 +134,8 @@ namespace safex
   */
   inline uint64_t calulate_starting_block_for_interval(const uint64_t interval, const cryptonote::network_type nettype)
   {
-    return interval * get_safex_interval_period(nettype) + 1;
+    uint64_t result = (interval-1) * get_safex_interval_period(nettype) + 1;
+    return result;
   }
 
   /**
@@ -148,18 +151,6 @@ namespace safex
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_LOCK_PERIOD;
   }
-
-  /**
-    * Calculate starting block for interval from interval belonging block with height
-    *
-    * @return number of blocks that is munimum token lock period
-    */
-  inline uint64_t get_safex_starting_block_interval_from_height(const uint64_t height, const cryptonote::network_type nettype)
-  {
-
-    return calulate_starting_block_for_interval(calculate_interval_for_height(height, nettype), nettype);
-  }
-
 
 }
 

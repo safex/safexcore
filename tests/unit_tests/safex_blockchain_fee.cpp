@@ -405,9 +405,19 @@ namespace
       }
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(1, network_type::FAKECHAIN));
-    std::cout << "Locked tokens in first interval:" << print_money(number_of_locked_tokens) << std::endl;
-    ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
+    uint64_t number_of_locked_tokens1 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(1, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens1, 100 * SAFEX_TOKEN);
+
+    uint64_t number_of_locked_tokens11 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(2, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens11, 800 * SAFEX_TOKEN);
+
+    uint64_t number_of_locked_tokens2 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(10, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens2, 800 * SAFEX_TOKEN);
+
+    uint64_t number_of_locked_tokens3 = this->m_db->get_current_locked_token_sum();
+    ASSERT_EQ(number_of_locked_tokens3, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
+
+
 
 
     uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
