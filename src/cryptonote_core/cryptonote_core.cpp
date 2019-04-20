@@ -417,7 +417,7 @@ namespace cryptonote
     // folder might not be a directory, etc, etc
     catch (...) { }
 
-    std::unique_ptr<BlockchainDB> db(new_db(db_type));
+    std::unique_ptr<BlockchainDB> db(new_db(db_type, m_nettype));
     if (db == NULL)
     {
       LOG_ERROR("Attempted to use non-existent database type");
@@ -950,6 +950,57 @@ namespace cryptonote
     }
 
     return total_migrated_tokens_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  int64_t core::get_locked_tokens(const uint64_t start_offset, const size_t count)
+  {
+    int64_t total_locked_tokens_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_locked_tokens_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_locked_tokens_amount += get_token_locked_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_locked_tokens_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_locked_tokens() const
+  {
+    return this->m_blockchain_storage.get_current_locked_token_sum();
+  }
+  //-----------------------------------------------------------------------------------------------
+  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    int64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const

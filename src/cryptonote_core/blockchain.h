@@ -581,6 +581,17 @@ namespace cryptonote
      */
     bool check_tx_inputs(transaction& tx, uint64_t& pmax_used_block_height, crypto::hash& max_used_block_id, tx_verification_context &tvc, bool kept_by_block = false);
 
+
+    /**
+     * @brief check transaction safex related invariants
+     *
+     * @param tx the transaction to validate
+     * @param tvc transaction verification context
+     *
+     * @return returns false if tx does not hold safex related invariants, otherwise true
+     */
+    bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
+
     /**
      * @brief get dynamic per kB fee for a given block size
      *
@@ -965,6 +976,15 @@ namespace cryptonote
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
+    /**
+     * @brief Returns last known token locked sum
+     *
+     * @return locked token amount
+     */
+      uint64_t get_current_locked_token_sum() const;
+
+      uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+
   private:
 
     struct outputs_generic_visitor
@@ -1024,6 +1044,7 @@ namespace cryptonote
 
     // metadata containers
     std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, std::vector<output_data_t>>> m_scan_table;
+    std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, std::vector<output_advanced_data_t>>> m_scan_table_adv;
     std::unordered_map<crypto::hash, crypto::hash> m_blocks_longhash_table;
     std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, bool>> m_check_txin_table;
 
@@ -1116,6 +1137,16 @@ namespace cryptonote
 
     bool check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
+    /**
+   * @brief validates one safex input
+   *
+   *
+   * @param txin input
+   * @param tvc returned information about tx verification
+   *
+   * @return false if any validation step fails, otherwise true
+   */
+    bool check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc);
 
     /**
      * @brief validate a transaction's inputs and their keys
@@ -1457,5 +1488,19 @@ namespace cryptonote
      *
      */
     uint64_t count_new_migration_tokens(const std::vector<transaction>& txs) const;
+
+      /**
+       * @brief Calculates cash amount that token holder receives when unlocking
+       * tokens that are locked at start_block until the end block
+       *
+       * @param token_amount token amount that is locked
+       * @param start block height, where tokens are locked
+       * @end_block last known end block, where token unlock operation is set
+       *
+       */
+
+
+
+
   };
 }  // namespace cryptonote

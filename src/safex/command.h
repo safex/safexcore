@@ -125,9 +125,9 @@ namespace safex
 
     protected:
 
-      virtual bool store(epee::serialization::portable_storage &ps) const;
+      virtual bool store(epee::serialization::portable_storage &ps) const { return false;};
 
-      virtual bool load(epee::serialization::portable_storage &ps);
+      virtual bool load(epee::serialization::portable_storage &ps) {return false;};
 
       uint32_t version;
       command_t command_type;
@@ -144,16 +144,11 @@ namespace safex
 
       dummy_command() :  command<dummy_struct>(0, command_t::nop) {}
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, dummy_struct &cr) override { return false;};
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, dummy_struct &cr) override {return false;};
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command<dummy_struct> *>(this))
       END_SERIALIZE()
-
-    protected:
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
-
   };
 
 

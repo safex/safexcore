@@ -405,6 +405,7 @@ namespace cryptonote
       return 0;
   }
 
+
   template <>
   inline uint64_t get_tx_input_value_amount<txin_to_key>(const txin_to_key &txin) {
       return txin.amount;
@@ -427,6 +428,11 @@ namespace cryptonote
   }
 
   template <>
+  inline uint64_t get_tx_input_cash_amount<txin_v>(const txin_v &txin) {
+    return *boost::apply_visitor(cash_amount_visitor(), txin);
+  }
+
+  template <>
   inline uint64_t get_tx_input_cash_amount<txin_to_key>(const txin_to_key &txin) {
       return txin.amount;
   }
@@ -440,6 +446,11 @@ namespace cryptonote
   template <class TXInput>
   inline uint64_t get_tx_input_token_amount(const TXInput &txin) {
       return 0;
+  }
+
+  template <>
+  inline uint64_t get_tx_input_token_amount<txin_v>(const txin_v &txin) {
+    return *boost::apply_visitor(token_amount_visitor(), txin);
   }
 
   template <>

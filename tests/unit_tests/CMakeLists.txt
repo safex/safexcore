@@ -71,11 +71,15 @@ set(unit_tests_sources
   output_selection.cpp
   vercmp.cpp
   safex_commands.cpp
-  safex_blockchain_db.cpp)
+  safex_blockchain_db.cpp
+  safex_test_common.cpp
+  safex_blockchain_fee.cpp
+  )
 
 
 set(unit_tests_headers
-  unit_tests_utils.h)
+  unit_tests_utils.h
+  safex_test_common.h)
 
 add_executable(unit_tests
   ${unit_tests_sources}

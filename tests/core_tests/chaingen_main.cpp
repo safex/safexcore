@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
-#if 0
+#if 1
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -134,7 +134,6 @@ int main(int argc, char* argv[])
 
     // Transaction verification tests
     GENERATE_AND_PLAY(gen_tx_big_version);
-
     GENERATE_AND_PLAY(gen_tx_unlock_time);
     GENERATE_AND_PLAY(gen_tx_input_is_not_txin_to_key);
     GENERATE_AND_PLAY(gen_tx_no_inputs_no_outputs);
@@ -186,9 +185,15 @@ int main(int argc, char* argv[])
 #endif
 
 #if 1
-
     /* safex advanced functionality related tests */
     GENERATE_AND_PLAY(gen_token_lock_001);
+
+    /* safex tx validation */
+    GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
+#else
+    GENERATE_AND_PLAY(gen_network_fee_001);
+
+
 #endif
 
 

@@ -164,8 +164,10 @@
 
 //Safex related constants
 #define SAFEX_COMMAND_PROTOCOL_VERSION          1
-#define SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT         10000
+#define SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT         10000 * SAFEX_TOKEN
 #define SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD  500000
+#define SAFEX_DEFAULT_INTERVAL_PERIOD           1000 //blocks
+#define SAFEX_DEFAULT_MINUMUM_TOKEN_LOCK_PERIOD SAFEX_DEFAULT_INTERVAL_PERIOD*10 //blocks
 
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions

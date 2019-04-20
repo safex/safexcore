@@ -30,37 +30,40 @@
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 #pragma once
-namespace cryptonote
-{
-  /************************************************************************/
-  /*                                                                      */
-  /************************************************************************/
-  struct tx_verification_context
-  {
-    bool m_should_be_relayed;
-    bool m_verifivation_failed; //bad tx, should drop connection
-    bool m_verifivation_impossible; //the transaction is related with an alternative blockchain
-    bool m_added_to_pool; 
-    bool m_low_mixin;
-    bool m_double_spend;
-    bool m_invalid_input;
-    bool m_invalid_output;
-    bool m_too_big;
-    bool m_overspend;
-    bool m_fee_too_low;
-    bool m_non_supported_version;
-    bool m_safex_verification_failed;
-    bool m_safex_invalid_command;
-    bool m_safex_invalid_command_params;
-    bool m_safex_invalid_input;
-  };
 
-  struct block_verification_context
-  {
-    bool m_added_to_main_chain;
-    bool m_verifivation_failed; //bad block, should drop connection
-    bool m_marked_as_orphaned;
-    bool m_already_exists;
-    bool m_partial_block_reward;
-  };
-}
+#include "chaingen.h"
+#include "block_reward.h"
+#include "block_validation.h"
+#include "chain_split_1.h"
+#include "chain_switch_1.h"
+#include "double_spend.h"
+#include "integer_overflow.h"
+#include "ring_signature_1.h"
+#include "tx_validation.h"
+#include "v2_tests.h"
+
+/************************************************************************/
+/*                                                                      */
+/************************************************************************/
+class gen_network_fee_001: public test_chain_unit_base
+{
+public:
+    gen_network_fee_001();
+
+  const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c", "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182", "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
+
+  bool generate(std::vector<test_event_entry> &events);
+  bool verify_network_fee(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events);
+  crypto::hash get_hash_from_string(const std::string hashstr);
+
+  static const size_t expected_blockchain_total_transactions = 199;
+  static const size_t expected_blockchain_height = 188;
+
+  static const uint64_t expected_alice_token_balance = 160000 * SAFEX_TOKEN;
+  static const uint64_t expected_bob_token_balance = 20000 * SAFEX_TOKEN;
+  static const uint64_t expected_daniel_token_balance = 10000 * SAFEX_TOKEN;
+
+  static const uint64_t expected_locked_tokens = 40000 * SAFEX_TOKEN;
+
+};
+

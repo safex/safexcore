@@ -136,9 +136,9 @@ private:
 
 
 template<>
-struct MDB_val_copy<cryptonote::outkey_advanced>: public MDB_val
+struct MDB_val_copy<cryptonote::output_advanced_data_t>: public MDB_val
 {
-    MDB_val_copy(const cryptonote::outkey_advanced &okadv) :
+    MDB_val_copy(const cryptonote::output_advanced_data_t &okadv) :
             data(new char[okadv.size()])
     {
       memcpy(data.get(), (void *)&okadv, 4*sizeof(uint64_t));
@@ -151,7 +151,15 @@ struct MDB_val_copy<cryptonote::outkey_advanced>: public MDB_val
     std::unique_ptr<char[]> data;
 };
 
-
+cryptonote::output_advanced_data_t parse_output_advanced_data_from_mdb(const MDB_val& val) {
+  cryptonote::output_advanced_data_t result = AUTO_VAL_INIT(result);
+  memcpy((void *)&result, val.mv_data, 4*sizeof(uint64_t));
+  memcpy((void *)&result.pubkey, (char *)val.mv_data+4*sizeof(uint64_t), sizeof(result.pubkey));
+  const size_t data_size = val.mv_size-4*sizeof(uint64_t)-sizeof(result.pubkey);
+  result.data.resize(data_size);
+  memcpy((void *)&result.data[0], (char *)val.mv_data+4*sizeof(uint64_t)+sizeof(result.pubkey), data_size);
+  return result;
+}
 
 
 int compare_uint64(const MDB_val *a, const MDB_val *b)
@@ -206,6 +214,7 @@ int compare_string(const MDB_val *a, const MDB_val *b)
  * output_advanced       output ID    {output type specific data}...
  * output_advanced_type  output type  {Output Id of outputs from `output_advanced` table}...
  * token_locked_sum      interval     token sum
+ * token_locked_sum_total 0           total_token sum
  * network_fee_sum           interval     collected fee sum
  * token_lock_expiry     block_number {list of loked outputs that expiry on this block number}
  *
@@ -241,6 +250,7 @@ const char* const LMDB_HF_VERSIONS = "hf_versions";
 const char* const LMDB_OUTPUT_ADVANCED = "output_advanced";
 const char* const LMDB_OUTPUT_ADVANCED_TYPE = "output_advanced_type";
 const char* const LMDB_TOKEN_LOCKED_SUM = "token_locked_sum";
+const char* const LMDB_TOKEN_LOCKED_SUM_TOTAL = "token_locked_sum_total";
 const char* const LMDB_NETWORK_FEE_SUM = "network_fee_sum";
 const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
 
@@ -1005,8 +1015,8 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   if (output_type_c == cryptonote::tx_out_type::out_locked_token)
   {
 
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height); // interval for currently processed output
-    update_locked_token_sum_for_interval(interval_block, tx_output.token_amount);
+    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype); // interval for currently processed output
+    update_current_locked_token_sum(tx_output.token_amount, +1);
 
     //Add tocken lock expiry values
     //SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD
@@ -1030,7 +1040,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   }
   else if (output_type_c == cryptonote::tx_out_type::out_network_fee)
   {
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
+    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype);
     update_network_fee_sum_for_interval(interval_block, tx_output.amount);
   }
 
@@ -1064,7 +1074,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
 
   const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
 
-  outkey_advanced okadv = AUTO_VAL_INIT(okadv);
+  output_advanced_data_t okadv = AUTO_VAL_INIT(okadv);
   okadv.output_type = static_cast<uint64_t>(out_type);
   okadv.height = blockchain_height;
   okadv.unlock_time = unlock_time;
@@ -1072,7 +1082,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   okadv.pubkey = txout.keys[0]; //todo if there are multiple keys, rest will go to data
   okadv.data = t_serializable_object_to_blob(txout.data);
 
-  MDB_val_copy<cryptonote::outkey_advanced> adv_value(okadv);
+  MDB_val_copy<cryptonote::output_advanced_data_t> adv_value(okadv);
 
   result = mdb_cursor_put(cur_output_advanced, &val_output_id, &adv_value, MDB_APPEND);
   if (result)
@@ -1290,8 +1300,8 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   }
   else if (command_type == safex::command_t::token_unlock)
   {
-    uint64_t interval_block = safex::calculate_interval_for_height(m_height);
-    update_locked_token_sum_for_interval(interval_block, -1 * txin.token_amount);
+    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype);
+    update_current_locked_token_sum(txin.token_amount, -1);
   }
   else if (command_type == safex::command_t::donate_network_fee)
   {
@@ -1345,7 +1355,7 @@ BlockchainLMDB::~BlockchainLMDB()
     close();
 }
 
-BlockchainLMDB::BlockchainLMDB(bool batch_transactions): BlockchainDB()
+BlockchainLMDB::BlockchainLMDB(bool batch_transactions, cryptonote::network_type nettype): BlockchainDB(nettype)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   // initialize folder to something "safe" just in case
@@ -1405,7 +1415,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   // set up lmdb environment
   if ((result = mdb_env_create(&m_env)))
     throw0(DB_ERROR(lmdb_error("Failed to create lmdb environment: ", result).c_str()));
-  if ((result = mdb_env_set_maxdbs(m_env, 20)))
+  if ((result = mdb_env_set_maxdbs(m_env, 24)))
     throw0(DB_ERROR(lmdb_error("Failed to set max number of dbs: ", result).c_str()));
 
   int threads = tools::get_max_concurrency();
@@ -1487,6 +1497,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED, MDB_INTEGERKEY | MDB_CREATE, m_output_advanced, "Failed to open db handle for m_output_advanced");
   lmdb_db_open(txn, LMDB_OUTPUT_ADVANCED_TYPE, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED , m_output_advanced_type, "Failed to open db handle for m_output_advanced_type");
   lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM, MDB_INTEGERKEY | MDB_CREATE, m_token_locked_sum, "Failed to open db handle for m_token_locked_sum"); //use zero key
+  lmdb_db_open(txn, LMDB_TOKEN_LOCKED_SUM_TOTAL, MDB_INTEGERKEY | MDB_CREATE, m_token_locked_sum_total, "Failed to open db handle for m_token_locked_sum_total");
   lmdb_db_open(txn, LMDB_NETWORK_FEE_SUM, MDB_INTEGERKEY | MDB_CREATE, m_network_fee_sum, "Failed to open db handle for m_network_fee_sum");//use zero key
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
 
@@ -1502,6 +1513,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   mdb_set_dupsort(txn, m_block_info, compare_uint64);
   mdb_set_dupsort(txn, m_output_advanced_type, compare_uint64);
   mdb_set_dupsort(txn, m_token_lock_expiry, compare_uint64);
+
 
   mdb_set_compare(txn, m_txpool_meta, compare_hash32);
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
@@ -1663,6 +1675,8 @@ void BlockchainLMDB::reset()
   if (auto result = mdb_drop(txn, m_output_advanced_type, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_locked_sum, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_token_locked_sum_total, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_network_fee_sum, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
@@ -2680,7 +2694,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
 
-  std::vector<crypto::public_key> BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
+  output_advanced_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
 
@@ -2694,20 +2708,16 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     RCURSOR(output_advanced);
     cur_output_advanced = m_cur_output_advanced;
 
-    MDB_val_set(key, output_id);
+    output_advanced_data_t output = AUTO_VAL_INIT(output);
 
+    MDB_val_set(key, output_id);
     blobdata blob;
     MDB_val_set(value_blob, blob);
-
-    std::vector<crypto::public_key> keys;
 
     auto result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
     if (result == MDB_SUCCESS)
     {
-      const outkey_advanced *okadv =  (const outkey_advanced *)value_blob.mv_data;
-      crypto::public_key pkey;
-      memcpy((void*)(&pkey), (void*)&okadv->pubkey, sizeof(crypto::public_key));
-      keys.push_back(pkey);
+      output = parse_output_advanced_data_from_mdb(value_blob);
     }
     else if (result == MDB_NOTFOUND)
       throw0(DB_ERROR(lmdb_error("Attemting to get keys from output with ID " + std::to_string(output_id) + " but not found: ", result).c_str()));
@@ -2716,7 +2726,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
     TXN_POSTFIX_RDONLY();
-    return keys;
+    return output;
   }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
@@ -3018,20 +3028,19 @@ bool BlockchainLMDB::for_all_advanced_outputs(std::function<bool(const crypto::h
       if (ret)
         throw0(DB_ERROR("Failed to enumerate outputs"));
 
-      outkey_advanced *okadv =  (outkey_advanced *)v.mv_data;
-      txout_to_script txout = AUTO_VAL_INIT(txout);
-      txout.output_type = static_cast<uint8_t>(okadv->output_type);
-      txout.keys.push_back(okadv->pubkey); //todo handle case where there are multiple keys, and some are in data
+      output_advanced_data_t output = parse_output_advanced_data_from_mdb(v);
 
-      blobdata bd;
-      bd.assign(reinterpret_cast<char*>(&okadv->data), v.mv_size-4*sizeof(uint64_t)-sizeof(okadv->pubkey));
-      parse_and_validate_byte_array_from_blob(bd,txout.data);
+      txout_to_script txout = AUTO_VAL_INIT(txout);
+      txout.output_type = static_cast<uint8_t>(output.output_type);
+      txout.keys.push_back(output.pubkey); //todo handle case where there are multiple keys, and some are in data
+
+      parse_and_validate_byte_array_from_blob(output.data, txout.data);
 
 
       if (static_cast<tx_out_type >(txout.output_type) == output_type) {
-        tx_out_index toi = get_output_tx_and_index_from_global(okadv->output_id);
+        tx_out_index toi = get_output_tx_and_index_from_global(output.output_id);
         const uint64_t block_height = get_tx_block_height(toi.first);
-        if (!f(toi.first, block_height, okadv->output_id, txout)) {
+        if (!f(toi.first, block_height, output.output_id, txout)) {
           fret = false;
           break;
         }
@@ -3528,6 +3537,57 @@ void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::ve
   LOG_PRINT_L3("db3: " << db3);
 }
 
+
+  void BlockchainLMDB::get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+                                             std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
+                                             bool allow_partial)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    outputs.clear();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_output_advanced;
+    RCURSOR(output_advanced);
+    cur_output_advanced = m_cur_output_advanced;
+
+    TIME_MEASURE_START(db3);
+
+    for (const uint64_t &output_id : output_ids)
+    {
+      output_advanced_data_t current = AUTO_VAL_INIT(current);
+
+      MDB_val_set(key, output_id);
+      blobdata blob;
+      MDB_val_set(value_blob, blob);
+
+      auto result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
+      if (result == MDB_SUCCESS)
+      {
+        current = parse_output_advanced_data_from_mdb(value_blob);
+        outputs.push_back(current);
+      }
+      else if (result == MDB_NOTFOUND)
+      {
+        if (allow_partial)
+        {
+          MDEBUG("Partial result: " << outputs.size() << "/" << output_ids.size());
+          break;
+        }
+        throw0(DB_ERROR(lmdb_error("Attemting to get keys from advanced output with current id " + std::to_string(output_id) + " but not found: ", result).c_str()));
+      }
+      else
+        throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", result).c_str()));
+    }
+
+    TXN_POSTFIX_RDONLY();
+
+    TIME_MEASURE_FINISH(db3);
+    LOG_PRINT_L3("db3: " << db3);
+  }
+
+
 void BlockchainLMDB::get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -3801,28 +3861,28 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 }
 
 
-/* Safex related private functions */
-
-
-  uint64_t BlockchainLMDB::update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta)
+/* Keep the currently locked sum in interval 0 */
+  uint64_t BlockchainLMDB::update_current_locked_token_sum(const uint64_t delta, int sign)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
     uint64_t m_height = height();
 
-    MDB_cursor *cur_token_locked_sum;
-    CURSOR(token_locked_sum);
-    cur_token_locked_sum = m_cur_token_locked_sum;
+    const uint64_t db_total_sum_position = 0;
+
+    MDB_cursor *cur_token_locked_sum_total;
+    CURSOR(token_locked_sum_total);
+    cur_token_locked_sum_total = m_cur_token_locked_sum_total;
 
     uint64_t locked_tokens = 0; //locked tokens in interval
 
-    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(k, db_total_sum_position);
     MDB_val_set(v, locked_tokens);
 
     //get already locked tokens for this period
     bool existing_interval = false;
-    auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
+    auto result = mdb_cursor_get(cur_token_locked_sum_total, &k, &v, MDB_SET);
     if (result == MDB_NOTFOUND)
     {
       locked_tokens = 0;
@@ -3838,25 +3898,70 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       existing_interval = true;
     }
 
-    if ((int64_t) locked_tokens + delta < 0)
+    if (sign<0 &&  (locked_tokens - delta > locked_tokens))
       throw0(DB_ERROR(lmdb_error("Locked token sum could not be negative: ", result).c_str()));
 
     //check for overflow
-    if (locked_tokens > 0 && delta > 0 && (int64_t) locked_tokens + delta < (int64_t) locked_tokens)
+    if (sign>0 && locked_tokens + delta < locked_tokens)
       throw0(DB_ERROR(lmdb_error("Token locked sum overflow: ", result).c_str()));
 
-
-    uint64_t newly_locked_tokens = locked_tokens + delta;
+    uint64_t newly_locked_tokens = locked_tokens;
+    if (sign < 0)
+      newly_locked_tokens = newly_locked_tokens - delta;
+    else
+      newly_locked_tokens = newly_locked_tokens + delta;
 
     LOG_PRINT_L2("Current locked tokens is:" << locked_tokens << " newly locked tokens:" << newly_locked_tokens);
 
+    const uint64_t db_total_sum_position2 = 0;
     //update sum of locked tokens for interval
-    MDB_val_set(k2, interval_starting_block);
+    MDB_val_set(k2, db_total_sum_position2);
     MDB_val_set(vupdate, newly_locked_tokens);
-    if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
+    if ((result = mdb_cursor_put(cur_token_locked_sum_total, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
 
     return newly_locked_tokens;
+  }
+
+
+  uint64_t BlockchainLMDB::update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t locked_tokens)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    MDB_cursor *cur_token_locked_sum;
+    CURSOR(token_locked_sum);
+    cur_token_locked_sum = m_cur_token_locked_sum;
+
+
+    //Check if current interval already exists
+    uint64_t interval_locked_tokens = 0; //locked tokens in interval
+    //get already locked tokens for this period
+    bool existing_interval = false;
+    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(v, interval_locked_tokens);
+    auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
+    if (result == MDB_NOTFOUND)
+    {
+      interval_locked_tokens = 0;
+    }
+    else if (result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", result).c_str()));
+    }
+    else if (result == MDB_SUCCESS)
+    {
+      existing_interval = true;
+    }
+
+    //update sum of locked tokens for interval
+    MDB_val_set(k2, interval_starting_block);
+    MDB_val_set(vupdate, locked_tokens);
+    if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
+      throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
+
+    return locked_tokens;
   }
 
 
@@ -3918,6 +4023,45 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 /************ Safex related public functions *********/
 /*****************************************************/
 
+  /* Keep total sum in block 0 */
+  uint64_t BlockchainLMDB::get_current_locked_token_sum() const
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_token_locked_sum_total;
+    RCURSOR(token_locked_sum_total);
+    cur_token_locked_sum_total = m_cur_token_locked_sum_total;
+
+    uint64_t num_locked_tokens = 0;
+
+    uint64_t key_value = 0;
+
+    MDB_val_set(k, key_value);
+    MDB_val_set(v, num_locked_tokens);
+    auto get_result = mdb_cursor_get(cur_token_locked_sum_total, &k, &v, MDB_SET);
+    if (get_result == MDB_NOTFOUND)
+    {
+      num_locked_tokens = 0;
+    }
+    else if (get_result)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to fetch locked sum for interval: ", get_result).c_str()));
+    }
+    else if (get_result == MDB_SUCCESS)
+    {
+      uint64_t *ptr = (uint64_t *) v.mv_data;
+      num_locked_tokens = *ptr;
+    }
+
+
+    TXN_POSTFIX_RDONLY();
+
+    return num_locked_tokens;
+  }
+
 
   uint64_t BlockchainLMDB::get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const
   {
@@ -3954,7 +4098,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     TXN_POSTFIX_RDONLY();
 
     return num_locked_tokens;
-
   }
 
 

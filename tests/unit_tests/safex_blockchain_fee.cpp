@@ -52,7 +52,7 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 22;
+  const int NUMBER_OF_BLOCKS = 543;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
@@ -60,10 +60,10 @@ namespace
 
 
   template<typename T>
-  class SafexBlockchainDBTest : public testing::Test
+  class SafexBlockchainFeeTest : public testing::Test
   {
     protected:
-      SafexBlockchainDBTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
+      SafexBlockchainFeeTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
       {
         m_test_sizes = std::vector<size_t>(NUMBER_OF_BLOCKS, 0);
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
@@ -161,14 +161,6 @@ namespace
             std::cout << "tx 15 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 17)
-          {
-            //token unlock transaction
-            tx_list.resize(tx_list.size() + 1);
-            cryptonote::transaction &tx = tx_list.back();
-            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
-            m_txmap[get_transaction_hash(tx)] = tx;
-          }
           else if (i == 19)
           {
             //token lock transaction
@@ -177,7 +169,36 @@ namespace
             construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 20)
+          else if (i == 157)
+          {
+            //add network fee
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx, m_miner_acc, 1 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 243)
+          {
+            //add network fee
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx, m_miner_acc, 1 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx)] = tx;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_fee_donation_transaction(m_txmap, m_blocks, tx2, m_miner_acc, 60404980, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx2)] = tx2;
+          }
+          else if (i == 517)
+          {
+            //token unlock transaction
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();
+            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 520)
           {
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
@@ -287,7 +308,7 @@ namespace
         return construct_block(blk, height, prev_id, miner_acc, timestamp, 0, block_sizes, tx_list, block_size);
       }
 
-      ~SafexBlockchainDBTest()
+      ~SafexBlockchainFeeTest()
       {
         delete m_db;
         remove_files();
@@ -355,121 +376,11 @@ namespace
 
   typedef Types<BlockchainLMDB> implementations;
 
-  TYPED_TEST_CASE(SafexBlockchainDBTest, implementations);
+  TYPED_TEST_CASE(SafexBlockchainFeeTest, implementations);
 
 #if 1
-  TYPED_TEST(SafexBlockchainDBTest, OpenAndClose)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
 
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-
-    // make sure open when already open DOES throw
-    ASSERT_THROW(this->m_db->open(dirPath), DB_OPEN_FAILURE);
-
-    ASSERT_NO_THROW(this->m_db->close());
-  }
-
-  TYPED_TEST(SafexBlockchainDBTest, AddBlock)
-  {
-
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
-
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
-
-    // adding a block with no parent in the blockchain should throw.
-    // note: this shouldn't be possible, but is a good (and cheap) failsafe.
-    //
-    // TODO: need at least one more block to make this reasonable, as the
-    // BlockchainDB implementation should not check for parent if
-    // no blocks have been added yet (because genesis has no parent).
-    //ASSERT_THROW(this->m_db->add_block(this->m_blocks[1], m_test_sizes[1], t_diffs[1], t_coins[1], this->m_txs[1]), BLOCK_PARENT_DNE);
-
-    for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-
-
-    block b;
-    ASSERT_TRUE(this->m_db->block_exists(get_block_hash(this->m_blocks[0])));
-    ASSERT_NO_THROW(b = this->m_db->get_block(get_block_hash(this->m_blocks[0])));
-
-    ASSERT_TRUE(compare_blocks(this->m_blocks[0], b));
-
-    ASSERT_NO_THROW(b = this->m_db->get_block_from_height(0));
-
-    ASSERT_TRUE(compare_blocks(this->m_blocks[0], b));
-
-    // assert that we can't add the same block twice
-    ASSERT_THROW(this->m_db->add_block(this->m_blocks[0], this->m_test_sizes[0], this->m_test_diffs[0], this->m_test_coins[0], this->m_test_tokens[0], this->m_txs[0]), TX_EXISTS);
-
-    for (auto &h : this->m_blocks[NUMBER_OF_BLOCKS - 1].tx_hashes)
-    {
-      transaction tx;
-      ASSERT_TRUE(this->m_db->tx_exists(h));
-      ASSERT_NO_THROW(tx = this->m_db->get_tx(h));
-      ASSERT_HASH_EQ(h, get_transaction_hash(tx));
-    }
-  }
-
-  TYPED_TEST(SafexBlockchainDBTest, RetrieveBlockData)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
-
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
-
-    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-
-    ASSERT_EQ(this->m_test_sizes[0], this->m_db->get_block_size(0));
-    ASSERT_EQ(this->m_test_diffs[0], this->m_db->get_block_cumulative_difficulty(0));
-    ASSERT_EQ(this->m_test_diffs[0], this->m_db->get_block_difficulty(0));
-    ASSERT_EQ(this->m_test_coins[0], this->m_db->get_block_already_generated_coins(0));
-
-    ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[NUMBER_OF_BLOCKS - 1], this->m_test_sizes[NUMBER_OF_BLOCKS - 1], this->m_test_diffs[NUMBER_OF_BLOCKS - 1], this->m_test_coins[NUMBER_OF_BLOCKS - 1], this->m_test_tokens[NUMBER_OF_BLOCKS - 1],
-                                          this->m_txs[NUMBER_OF_BLOCKS - 1]));
-    ASSERT_EQ(this->m_test_diffs[1] - this->m_test_diffs[0], this->m_db->get_block_difficulty(1));
-
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[0]), this->m_db->get_block_hash_from_height(0));
-
-    std::vector<block> blks;
-    ASSERT_NO_THROW(blks = this->m_db->get_blocks_range(0, NUMBER_OF_BLOCKS - 1));
-    ASSERT_EQ(NUMBER_OF_BLOCKS, blks.size());
-
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[0]), get_block_hash(blks[0]));
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[1]), get_block_hash(blks[1]));
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[10]), get_block_hash(blks[10]));
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS - 1]), get_block_hash(blks[NUMBER_OF_BLOCKS - 1]));
-
-    std::vector<crypto::hash> hashes;
-    ASSERT_NO_THROW(hashes = this->m_db->get_hashes_range(0, NUMBER_OF_BLOCKS - 1));
-    ASSERT_EQ(NUMBER_OF_BLOCKS, hashes.size());
-
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[0]), hashes[0]);
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[1]), hashes[1]);
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[10]), hashes[10]);
-    ASSERT_HASH_EQ(get_block_hash(this->m_blocks[NUMBER_OF_BLOCKS - 1]), hashes[NUMBER_OF_BLOCKS - 1]);
-  }
-
-#endif
-
-  TYPED_TEST(SafexBlockchainDBTest, RetrieveTokenLockData)
+  TYPED_TEST(SafexBlockchainFeeTest, RetrieveCollectedFee)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     std::string dirPath = tempPath.string();
@@ -483,105 +394,35 @@ namespace
 
     for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
     {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-    }
-
-    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
-    ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
-
-    std::vector<uint64_t> data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+11);
-    ASSERT_EQ(data.size(), 2);
-
-    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+15);
-    ASSERT_EQ(data.size(), 0);
-
-    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+19);
-    ASSERT_EQ(data.size(), 1);
-
-    uint64_t test_output_id = data[0]; //first tx in 11 block
-
-
-    uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_locked_token);
-    ASSERT_EQ(token_lock_output_num, 4);
-
-
-
-    output_advanced_data_t outd = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id);
-    bool match = false;
-    crypto::hash matching_tx_hash;
-
-    //find pkey key in transaction output of block 19
-    for (transaction& tx: this->m_txs[19])
-    {
-      for (tx_out out: tx.vout)
+      //ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+      try
       {
-        crypto::public_key check = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target); //get public key of first output of first tx in 11 block
-        if (memcmp(outd.pubkey.data, check.data, sizeof(outd.pubkey.data)) == 0) {
-          match = true;
-          matching_tx_hash = tx.hash;
-        }
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &e)
+      {
+        std::cout << "Error: " << e.what() << std::endl;
       }
     }
-    ASSERT_EQ(match, true);
 
-    tx_out_index index1 = this->m_db->get_output_tx_and_index_from_global(test_output_id);
-    ASSERT_EQ(matching_tx_hash, index1.first);
+    uint64_t number_of_locked_tokens1 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(1, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens1, 100 * SAFEX_TOKEN);
 
+    uint64_t number_of_locked_tokens11 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(2, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens11, 800 * SAFEX_TOKEN);
 
-    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_locked_token, 5913), DB_ERROR);
-    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
+    uint64_t number_of_locked_tokens2 = this->m_db->get_locked_token_sum_for_interval(safex::calulate_starting_block_for_interval(10, network_type::FAKECHAIN));
+    ASSERT_EQ(number_of_locked_tokens2, 800 * SAFEX_TOKEN);
 
-
-    uint64_t tx_index;
-    if (!this->m_db->tx_exists(matching_tx_hash, tx_index))
-    {
-      ASSERT_TRUE(false);
-    }
-
-    std::vector<uint64_t> output_indexs;
-
-    // get amount or output id for outputs, currently referred to in parts as "output global indices", but they are actually specific to amounts for cash and token outputs
-    output_indexs = this->m_db->get_tx_amount_output_indices(tx_index);
-    if (output_indexs.empty())
-    {
-      ASSERT_TRUE(false);
-    }
+    uint64_t number_of_locked_tokens3 = this->m_db->get_current_locked_token_sum();
+    ASSERT_EQ(number_of_locked_tokens3, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
 
 
-    this->m_db->for_all_advanced_outputs([](const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout){
-      std::cout << "Height: " << height << " txid: " << output_id << " txout type: "<< static_cast<uint64_t>(txout.output_type) << std::endl;
-      return true;
-    }, cryptonote::tx_out_type::out_locked_token);
 
-    ASSERT_NO_THROW(this->m_db->close());
 
-  }
-
-#if 1
-
-  TYPED_TEST(SafexBlockchainDBTest, RetrieveCollectedFee)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
-
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
-
-    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
-    {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-    }
-
-    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
-    ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
-
-    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(2, network_type::FAKECHAIN));
-    std::cout << "Fee sum:" << fee_sum << std::endl;
-    ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
+    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(0, network_type::FAKECHAIN));
+//    ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
+    std::cout << "Cash collected fee:" << print_money(fee_sum) << std::endl;
 
 
 

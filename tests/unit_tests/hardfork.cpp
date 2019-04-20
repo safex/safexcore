@@ -92,11 +92,12 @@ public:
   virtual uint64_t get_num_outputs(const tx_out_type output_type) const {return 1;}
   virtual uint64_t get_indexing_base() const { return 0; }
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) { return output_data_t(); }
-  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id)  { return std::vector<crypto::public_key>{}; }
+  virtual output_advanced_data_t  get_output_key(const tx_out_type output_type, const uint64_t output_id)  { return output_advanced_data_t{}; }
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return tx_out_index(); }
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return tx_out_index(); }
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const {}
   virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) {}
+  virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids, std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) {}
   virtual bool can_thread_bulk_indices() const { return false; }
   virtual std::vector<uint64_t> get_tx_output_indices(const crypto::hash& h) const { return std::vector<uint64_t>(); }
   virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_index) const { return std::vector<uint64_t>(); }
@@ -110,6 +111,7 @@ public:
   virtual void remove_spent_key(const crypto::key_image& k_image) {}
   virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
   virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){return 0;}
+  virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
   virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
 
 
@@ -132,6 +134,7 @@ public:
   virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
 
+  virtual uint64_t get_current_locked_token_sum() const { return 0;}
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override {return 0;}
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}

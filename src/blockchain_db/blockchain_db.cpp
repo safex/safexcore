@@ -30,11 +30,14 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
+
 #include "string_tools.h"
 #include "blockchain_db.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "profile_tools.h"
 #include "ringct/rctOps.h"
+
+#include "safex/safex_core.h"
 
 #include "lmdb/db_lmdb.h"
 #ifdef BERKELEY_DB
@@ -98,10 +101,10 @@ const command_line::arg_descriptor<bool> arg_db_salvage  = {
 , false
 };
 
-BlockchainDB *new_db(const std::string& db_type)
+BlockchainDB *new_db(const std::string& db_type, cryptonote::network_type nettype)
 {
   if (db_type == "lmdb")
-    return new BlockchainLMDB();
+    return new BlockchainLMDB(false, nettype);
 #if defined(BERKELEY_DB)
   if (db_type == "berkeley")
     return new BlockchainBDB();
@@ -247,9 +250,17 @@ uint64_t BlockchainDB::add_block( const block& blk
   TIME_MEASURE_FINISH(time1);
   time_add_block1 += time1;
 
+  uint64_t blk_height = get_block_height(blk_hash);
+  if (safex::is_interval_last_block(blk_height, m_nettype))
+  {
+    //update locked token sum for interval for whitch this blok is last
+    update_locked_token_for_interval(safex::calculate_interval_block_for_height(blk_height, m_nettype), get_current_locked_token_sum());
+  }
+
   m_hardfork->add(blk, prev_height);
 
   block_txn_stop();
+
 
   ++num_calls;
 

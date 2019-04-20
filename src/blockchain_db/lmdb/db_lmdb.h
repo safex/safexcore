@@ -66,6 +66,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_output_advanced;
   MDB_cursor *m_txc_output_advanced_type;
   MDB_cursor *m_txc_token_locked_sum;
+  MDB_cursor *m_txc_token_locked_sum_total;
   MDB_cursor *m_txc_network_fee_sum;
   MDB_cursor *m_txc_token_lock_expiry;
 
@@ -88,6 +89,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_output_advanced	m_cursors->m_txc_output_advanced
 #define m_cur_output_advanced_type	m_cursors->m_txc_output_advanced_type
 #define m_cur_token_locked_sum	m_cursors->m_txc_token_locked_sum
+#define m_cur_token_locked_sum_total	m_cursors->m_txc_token_locked_sum_total
 #define m_cur_network_fee_sum	m_cursors->m_txc_network_fee_sum
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 
@@ -110,6 +112,7 @@ typedef struct mdb_rflags
   bool m_rf_output_advanced;
   bool m_rf_output_advanced_type;
   bool m_rf_token_locked_sum;
+  bool m_rf_token_locked_sum_total;
   bool m_rf_network_fee_sum;
   bool m_rf_token_lock_expiry;
 } mdb_rflags;
@@ -163,23 +166,6 @@ struct mdb_txn_safe
   static std::atomic_flag creation_gate;
 };
 
-/** Struct that holds info about advanced output
- *
- */
-typedef struct outkey_advanced {
-  uint64_t           unlock_time;  //!< the output's unlock time (or height)
-  uint64_t           height;       //!< the height of the block which created the output
-  uint64_t           output_id;
-  uint64_t           output_type;
-  crypto::public_key pubkey;
-  blobdata data; //Blob of txoutput
-
-  size_t size() const {
-    return 4*sizeof(uint64_t)+sizeof(pubkey)+data.size();
-  }
-
-} outkey_advanced;
-
 
 // If m_batch_active is set, a batch transaction exists beyond this class, such
 // as a batch import with verification enabled, or possibly (later) a batch
@@ -197,7 +183,7 @@ typedef struct outkey_advanced {
 class BlockchainLMDB : public BlockchainDB
 {
 public:
-  BlockchainLMDB(bool batch_transactions=false);
+  BlockchainLMDB(bool batch_transactions=false, cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
   ~BlockchainLMDB();
 
   virtual void open(const std::string& filename, const int mdb_flags=0);
@@ -275,7 +261,11 @@ public:
                                      std::vector<output_data_t> &outputs, const tx_out_type output_type,
                                      bool allow_partial = false);
 
-  virtual std::vector<crypto::public_key> get_output_key(const tx_out_type output_type, const uint64_t output_id);
+  virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+                                         std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
+                                         bool allow_partial = false);
+
+  virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id);
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
@@ -306,6 +296,7 @@ public:
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
+  virtual uint64_t get_current_locked_token_sum() const override;
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override;
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
@@ -444,8 +435,13 @@ private:
 
   void process_advanced_input(const cryptonote::txin_to_script &txin);
 
-  uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) override;
+
+  uint64_t update_current_locked_token_sum(const uint64_t delta, int sign);
   uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
+
+protected:
+
+    uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t locked_tokens) override;
 
 private:
   MDB_env* m_env;
@@ -477,6 +473,7 @@ private:
   MDB_dbi m_output_advanced;
   MDB_dbi m_output_advanced_type;
   MDB_dbi m_token_locked_sum;
+  MDB_dbi m_token_locked_sum_total;
   MDB_dbi m_network_fee_sum;
   MDB_dbi m_token_lock_expiry;
 
@@ -493,6 +490,7 @@ private:
 
   mdb_txn_cursors m_wcursors;
   mutable boost::thread_specific_ptr<mdb_threadinfo> m_tinfo;
+
 
 #if defined(__arm__)
   // force a value so it can compile with 32-bit ARM

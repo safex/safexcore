@@ -187,7 +187,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type)
     { return cryptonote::output_data_t(); }
 
-    virtual std::vector<crypto::public_key> get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return std::vector<crypto::public_key>{};}
+    virtual cryptonote::output_advanced_data_t get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) {return cryptonote::output_advanced_data_t{};}
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -201,6 +201,10 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
                                        std::vector<cryptonote::output_data_t> &outputs,
                                        const cryptonote::tx_out_type output_type, bool allow_partial = false)
+    {}
+
+    virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids, std::vector<cryptonote::output_advanced_data_t> &outputs,
+            const cryptonote::tx_out_type output_type, bool allow_partial = false)
     {}
 
     virtual bool can_thread_bulk_indices() const
@@ -238,8 +242,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
 
     virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
 
-    virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) {return 0;}
     virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
+    virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
 
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
@@ -291,6 +295,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash &, const cryptonote::txpool_tx_meta_t &, const cryptonote::blobdata *)>, bool include_blob = false, bool include_unrelayed_txes = false) const
     { return false; }
 
+    virtual uint64_t get_current_locked_token_sum()  const override { return 0;}
     virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
     virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override {return 0;}
     virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
@@ -432,8 +437,8 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
 
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-    txinput.token_amount = 10000;
-    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000};
+    txinput.token_amount = 10000*SAFEX_TOKEN;
+    token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
 

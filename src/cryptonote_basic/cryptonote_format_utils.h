@@ -118,6 +118,8 @@ namespace cryptonote
   bool get_inputs_cash_amount(const transaction &tx, uint64_t &money);
   bool get_inputs_token_amount(const transaction& tx, uint64_t& tokens);
   uint64_t get_input_token_migration_amount(const transaction& tx);
+  int64_t get_token_locked_amount(const transaction &tx);
+  int64_t get_network_fee_amount(const transaction &tx);
   uint64_t get_outs_cash_amount(const transaction &tx);
   uint64_t get_outs_token_amount(const transaction& tx);
   bool check_inputs_types_supported(const transaction& tx);
