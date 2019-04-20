@@ -746,12 +746,21 @@ namespace cryptonote
       */
      int64_t get_locked_tokens(const uint64_t start_offset, const size_t count);
 
+
+
+     /**
+     * @brief get last known token locked sum
+     *
+     * @return amount of locked tokens
+     */
+     uint64_t get_locked_tokens() const;
+
      /**
      * @brief get the delta of network fee in block range
      *
      * @return if >0, number of newly collected netowork fee, if <0, amount of distributed network fee to tokenholders
      */
-     int64_t get_network_fee(const uint64_t start_offset, const size_t count);
+     int64_t get_network_fee(const uint64_t start_offset, const size_t count) const;
      
      /**
       * @brief get the network type we're on

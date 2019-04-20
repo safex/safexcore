@@ -976,6 +976,15 @@ namespace cryptonote
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
+    /**
+     * @brief Returns last known token locked sum
+     *
+     * @return locked token amount
+     */
+      uint64_t get_current_locked_token_sum() const;
+
+      uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+
   private:
 
     struct outputs_generic_visitor
@@ -1489,7 +1498,8 @@ namespace cryptonote
        * @end_block last known end block, where token unlock operation is set
        *
        */
-      uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+
+
 
 
   };

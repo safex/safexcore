@@ -975,7 +975,12 @@ namespace cryptonote
     return total_locked_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
-  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count)
+  uint64_t core::get_locked_tokens() const
+  {
+    return this->m_blockchain_storage.get_current_locked_token_sum();
+  }
+  //-----------------------------------------------------------------------------------------------
+  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count) const
   {
     int64_t total_network_fee_amount = 0;
     if (count)

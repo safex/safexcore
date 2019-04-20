@@ -1353,7 +1353,7 @@ BlockchainLMDB::~BlockchainLMDB()
     close();
 }
 
-BlockchainLMDB::BlockchainLMDB(bool batch_transactions, cryptonote::network_type nettype): BlockchainDB(), m_nettype(nettype)
+BlockchainLMDB::BlockchainLMDB(bool batch_transactions, cryptonote::network_type nettype): BlockchainDB(nettype)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   // initialize folder to something "safe" just in case
@@ -3907,8 +3907,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     LOG_PRINT_L2("Current locked tokens is:" << locked_tokens << " newly locked tokens:" << newly_locked_tokens);
 
+    const uint64_t db_total_sum_position2 = 0;
     //update sum of locked tokens for interval
-    MDB_val_set(k2, db_total_sum_position);
+    MDB_val_set(k2, db_total_sum_position2);
     MDB_val_set(vupdate, newly_locked_tokens);
     if ((result = mdb_cursor_put(cur_token_locked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update token locked sum for interval: ", result).c_str()));
@@ -3938,6 +3939,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     auto result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
     if (result == MDB_NOTFOUND)
     {
+      interval_locked_tokens = 0;
     }
     else if (result)
     {

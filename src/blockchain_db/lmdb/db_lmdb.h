@@ -434,8 +434,11 @@ private:
 
 
   uint64_t update_current_locked_token_sum(const uint64_t delta, int sign);
-  uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval);
   uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
+
+protected:
+
+    uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) override;
 
 private:
   MDB_env* m_env;
@@ -484,7 +487,6 @@ private:
   mdb_txn_cursors m_wcursors;
   mutable boost::thread_specific_ptr<mdb_threadinfo> m_tinfo;
 
-  cryptonote::network_type m_nettype;
 
 #if defined(__arm__)
   // force a value so it can compile with 32-bit ARM

@@ -634,12 +634,21 @@ namespace cryptonote
        */
       void add_transaction(const crypto::hash &blk_hash, const transaction &tx, const crypto::hash *tx_hash_ptr = NULL);
 
+      /**
+        * Updates token lock sum for interval
+        *
+        * @return token locked sum for this interval
+        */
+      virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) = 0;
+
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
       uint64_t time_commit1 = 0;  //!< a performance metric
       bool m_auto_remove_logs = true;  //!< whether or not to automatically remove old logs
 
       HardFork *m_hardfork;
+
+      cryptonote::network_type m_nettype{cryptonote::network_type::MAINNET}; //for which network is database
 
     public:
 
@@ -648,6 +657,14 @@ namespace cryptonote
        */
       BlockchainDB() : m_open(false)
       {}
+
+      /**
+        * @brief Constructor specifiying network type
+      */
+      BlockchainDB(cryptonote::network_type nettype) : m_open(false), m_nettype(nettype)
+      {}
+
+
 
       /**
        * @brief An empty destructor.

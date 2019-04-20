@@ -111,6 +111,7 @@ public:
   virtual void remove_spent_key(const crypto::key_image& k_image) {}
   virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
   virtual uint64_t update_locked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){return 0;}
+  virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
   virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
 
 
