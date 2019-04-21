@@ -52,8 +52,6 @@ using namespace epee;
 using namespace cryptonote;
 
 
-// class token_lock_001;
-
 crypto::hash gen_network_fee_001::get_hash_from_string(const std::string hashstr) {
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;

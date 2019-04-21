@@ -579,7 +579,7 @@ namespace
     uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
-    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(safex::calulate_starting_block_for_interval(2, network_type::FAKECHAIN));
+    uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(2);
     std::cout << "Fee sum:" << fee_sum << std::endl;
     ASSERT_EQ(fee_sum, 14.5 * SAFEX_CASH_COIN); // 2 + 12.5
 

@@ -534,7 +534,8 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
 
                     }
                     block_height_counter++;
-                    current_interval = safex::calculate_interval_block_for_height(block_height_counter, cryptonote::network_type::FAKECHAIN);
+                    current_interval = safex::calculate_interval_for_height(block_height_counter,
+                                                                            cryptonote::network_type::FAKECHAIN);
 
                     if (safex::is_interval_last_block(block_height_counter, cryptonote::network_type::FAKECHAIN)) {
                         uint64_t whole_token_amount = previously_locked_tokens/SAFEX_TOKEN;

@@ -254,7 +254,7 @@ uint64_t BlockchainDB::add_block( const block& blk
   if (safex::is_interval_last_block(blk_height, m_nettype))
   {
     //update locked token sum for interval for whitch this blok is last
-    update_locked_token_for_interval(safex::calculate_interval_block_for_height(blk_height, m_nettype), get_current_locked_token_sum());
+    update_locked_token_for_interval(safex::calculate_interval_for_height(blk_height, m_nettype), get_current_locked_token_sum());
   }
 
   m_hardfork->add(blk, prev_height);
