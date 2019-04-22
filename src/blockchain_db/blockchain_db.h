@@ -1655,7 +1655,7 @@ namespace cryptonote
        * Returns number of locked tokens in interval.
        *
        *
-       * @param interval block that represents interval, for example 1001 for second interval
+       * @param interval interval number
        * @return number of locked tokens in that interval, used for interest calculation
        */
       virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
@@ -1665,10 +1665,10 @@ namespace cryptonote
        * Returns collecte network fee sum for particular interval
        *
        *
-       * @param interval block that represents interval, for example 1001 for second interval
+       * @param interval interval number
        * @return amount of collected fee sum
        */
-      virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const = 0;
+      virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const = 0;
 
 
       /**

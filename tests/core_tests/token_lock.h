@@ -56,8 +56,8 @@ public:
   bool verify_token_lock(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   crypto::hash get_hash_from_string(const std::string hashstr);
 
-  static const size_t expected_blockchain_total_transactions = 199;
-  static const size_t expected_blockchain_height = 188;
+  static const size_t expected_blockchain_total_transactions = 319;
+  static const size_t expected_blockchain_height = 308;
 
   static const uint64_t expected_alice_token_balance = 160000 * SAFEX_TOKEN;
   static const uint64_t expected_bob_token_balance = 20000 * SAFEX_TOKEN;

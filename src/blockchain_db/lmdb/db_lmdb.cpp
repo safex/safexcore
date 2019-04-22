@@ -1015,7 +1015,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   if (output_type_c == cryptonote::tx_out_type::out_locked_token)
   {
 
-    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype); // interval for currently processed output
+    uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype); // interval for currently processed output
     update_current_locked_token_sum(tx_output.token_amount, +1);
 
     //Add tocken lock expiry values
@@ -1040,8 +1040,8 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
   }
   else if (output_type_c == cryptonote::tx_out_type::out_network_fee)
   {
-    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype);
-    update_network_fee_sum_for_interval(interval_block, tx_output.amount);
+    uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
+    update_network_fee_sum_for_interval(interval, tx_output.amount);
   }
 
 
@@ -1300,7 +1300,6 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   }
   else if (command_type == safex::command_t::token_unlock)
   {
-    uint64_t interval_block = safex::calculate_interval_block_for_height(m_height, m_nettype);
     update_current_locked_token_sum(txin.token_amount, -1);
   }
   else if (command_type == safex::command_t::donate_network_fee)
@@ -4102,7 +4101,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
 
 
-  uint64_t BlockchainLMDB::get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const
+  uint64_t BlockchainLMDB::get_network_fee_sum_for_interval(const uint64_t interval) const
   {
 
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -4116,7 +4115,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     uint64_t network_fee_sum = 0;
 
-    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(k, interval);
     MDB_val_set(v, network_fee_sum);
     auto get_result = mdb_cursor_get(cur_network_fee_sum, &k, &v, MDB_SET);
     if (get_result == MDB_NOTFOUND)

@@ -45,6 +45,9 @@
 
 #include "chaingen.h"
 #include "device/device.hpp"
+
+#include "safex/command.h"
+
 using namespace std;
 
 using namespace epee;
@@ -307,6 +310,7 @@ struct output_index {
 typedef std::map<uint64_t, std::vector<size_t> > map_output_t;
 typedef std::map<uint64_t, std::vector<output_index> > map_output_idx_t;
 typedef pair<uint64_t, size_t>  outloc_t;
+typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interst
 
 namespace
 {
@@ -337,6 +341,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                          const cryptonote::account_base& from, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) {
 
     int output_id_counter = 0;
+    int block_height = 0;
     BOOST_FOREACH (const block& blk, blockchain) {
         vector<const transaction*> vtx;
         vtx.push_back(&blk.miner_tx);
@@ -387,6 +392,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                   size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].size() - 1;
                   outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].idx = tx_global_idx;
                   outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].advanced_output_id = output_id_counter-1;
+                  outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].blk_height = block_height;
 
                   // Is out to me?
                   if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
@@ -417,6 +423,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
 
             }
         }
+        block_height++;
     }
 
     return true;
@@ -457,6 +464,92 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
 
     return true;
 }
+
+bool create_network_token_lock_interest_map(const std::vector<test_event_entry> &events, const block &blk_head, map_interval_interest &interest_map)
+{
+
+    std::vector<cryptonote::block> blockchain;
+    map_hash2tx_t mtx;
+    if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
+        return false;
+
+    int block_height_counter = 0;
+    int current_interval = 0;
+    uint64_t interval_collected_fee = 0;
+    uint64_t previously_locked_tokens = 0;
+    uint64_t currently_locked_tokens = 0;
+
+    BOOST_FOREACH (const block &blk, blockchain)
+                {
+                    vector<const transaction *> vtx;
+                    vtx.push_back(&blk.miner_tx);
+
+                    BOOST_FOREACH(const crypto::hash &h, blk.tx_hashes)
+                                {
+                                    const map_hash2tx_t::const_iterator cit = mtx.find(h);
+                                    if (mtx.end() == cit)
+                                        throw std::runtime_error("block contains an unknown tx hash");
+
+                                    vtx.push_back(cit->second);
+                                }
+
+                    for (size_t i = 0; i < vtx.size(); i++)
+                    {
+                        const transaction &tx = *vtx[i];
+
+                        for (size_t j = 0; j < tx.vin.size(); ++j)
+                        {
+                            const txin_v &txin = tx.vin[j];
+                            if (txin.type() == typeid(txin_to_script)) {
+                                const txin_to_script &in = boost::get<txin_to_script>(txin);
+                                safex::command_t command_type = safex::safex_command_serializer::get_command_type(in.script);
+                                if (command_type == safex::command_t::token_unlock) {
+                                    currently_locked_tokens -= in.token_amount;
+                                }
+                                else if (command_type == safex::command_t::distribute_network_fee) {
+                                    //nothing to do??
+                                }
+                            }
+
+
+
+
+
+                        }
+
+                        for (size_t j = 0; j < tx.vout.size(); ++j) {
+                            const tx_out &out = tx.vout[j];
+
+                            if (out.target.type() == typeid(cryptonote::txout_to_script)) {
+                                const txout_to_script &temp = boost::get<txout_to_script>(out.target);
+                                if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token)) {
+                                    currently_locked_tokens += out.token_amount;
+                                } else if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee)) {
+                                    interval_collected_fee += out.amount;
+                                }
+                            }
+                        }
+
+
+
+                    }
+                    block_height_counter++;
+                    current_interval = safex::calculate_interval_for_height(block_height_counter,
+                                                                            cryptonote::network_type::FAKECHAIN);
+
+                    if (safex::is_interval_last_block(block_height_counter, cryptonote::network_type::FAKECHAIN)) {
+                        uint64_t whole_token_amount = previously_locked_tokens/SAFEX_TOKEN;
+                        uint64_t interest_per_token = interval_collected_fee>0? interval_collected_fee/whole_token_amount:0;
+                        interest_map[current_interval] = interest_per_token;
+                        previously_locked_tokens=currently_locked_tokens;
+                        interval_collected_fee = 0;
+                    }
+
+                }
+    return true;
+
+}
+
 
 bool fill_output_entries(std::vector<output_index>& out_indices, size_t sender_out, size_t nmix, size_t& real_entry_idx, std::vector<tx_source_entry::output_entry>& output_entries)
 {
@@ -622,6 +715,12 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     return sources_found;
 }
 
+uint64_t calculate_token_holder_interest(uint64_t lock_start_height, uint64_t lock_end_height, map_interval_interest &interest_map) {
+    std::cout << "Calculating interest:" << std::endl;
+
+    return 0;
+}
+
 bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std::vector<test_event_entry>& events,  const block& blk_head,
         const cryptonote::account_base &from, uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_locked_token)
 {
@@ -629,15 +728,19 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
   map_output_t outs_mine;
 
   std::vector<cryptonote::block> blockchain;
+
   map_hash2tx_t mtx;
-  if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head)))
-    return false;
+  if (!find_block_chain(events, blockchain, mtx, get_block_hash(blk_head))) return false;
 
-  if (!init_output_indices(outs, outs_mine, blockchain, mtx, from, out_type))
-    return false;
+  uint64_t current_height = blockchain.size();
 
-  if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from))
-    return false;
+  if (!init_output_indices(outs, outs_mine, blockchain, mtx, from, out_type)) return false;
+
+  if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from)) return false;
+
+    //insert fee calculation here
+  map_interval_interest interest_map;
+  if (!create_network_token_lock_interest_map(events, blk_head, interest_map)) return false;
 
   // Iterate in reverse is more efficiency
   uint64_t sources_locked_token_amount = 0;
@@ -663,14 +766,19 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
             ts.token_amount = oi.token_amount;
             ts.referenced_output_type = cryptonote::tx_out_type::out_locked_token;
             ts.command_type = safex::command_t::token_unlock;
-
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
             size_t realOutput;
             if (!fill_output_entries_advanced(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
               continue;
-
             ts.real_output = realOutput;
+
+//            cryptonote::tx_source_entry ts_interest = AUTO_VAL_INIT(ts);
+//            ts_interest.referenced_output_type = cryptonote::tx_out_type::out_network_fee;
+//            ts_interest.command_type = safex::command_t::distribute_network_fee;
+//            ts_interest.amount = calculate_token_holder_interest(oi.blk_height, current_height, interest_map);
+
+
 
             sources_locked_token_amount = ts.token_amount;
             sources_found = value_amount == sources_locked_token_amount;
@@ -929,6 +1037,7 @@ void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_en
   }
 }
 
+
 void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head, const cryptonote::account_base &from, const cryptonote::account_base &to,
                                                    uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                                    std::vector<tx_destination_entry> &destinations)
@@ -944,12 +1053,12 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   if (!fill_unlock_token_sources(sources,  events, blk_head, from, token_amount, nmix))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
 
+
   //locked token destination, there is no token change, all tokens are unlocked
   tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
   destinations.push_back(de_token);
 
   //sender change for fee
-
   uint64_t cache_back = get_inputs_amount(sources) - fee;
   if (0 < cache_back)
   {

@@ -86,21 +86,34 @@ namespace safex
 
 
   /**
- * Calculates locking interval starting block for block with height
+ * Calculates locking interval  where block height belongs
  *
  * For example, blocks with height from 1-1000 will be first locked belong to interval 1,
  * and will be first locked from interval 2 (from block 1001)
  * @param height - block height
  * @param nettype network type, main, test or fake
- * @return Starting block of the interval
+ * @return interval
  */
-  inline uint64_t calculate_interval_block_for_height(const uint64_t height, const cryptonote::network_type nettype)
+  inline uint64_t calculate_interval_for_height(const uint64_t height, const cryptonote::network_type nettype)
   {
     if (height == 0) return 0; //zero height is zero interval
     uint64_t interval = height > 0 ? ((height - 1) / get_safex_interval_period(nettype)) + 1 : 0; //blocks 1-1000 first interval, 1001-2000 second etc.
-    uint64_t result = (interval-1) * get_safex_interval_period(nettype) + 1;
-    return result; //returns interval starting block
+    return interval; //returns interval number
   }
+
+ /**
+ * Calculates locking interval starting block where block with height belongs
+ *
+ * @param height - block height
+ * @param nettype network type, main, test or fake
+ * @return interval starting block
+ */
+    inline uint64_t calculate_interval_starting_block_for_height(const uint64_t height, const cryptonote::network_type nettype)
+    {
+      uint64_t interval = calculate_interval_for_height(height, nettype);
+      uint64_t result = (interval-1) * get_safex_interval_period(nettype) + 1;
+      return result;
+    }
 
   /**
   * Check if block is valid interval representation (interval starting block)
@@ -147,7 +160,7 @@ namespace safex
   {
 
     if (nettype == cryptonote::network_type::FAKECHAIN)
-      return get_safex_interval_period(cryptonote::network_type::FAKECHAIN) * 10;
+      return get_safex_interval_period(cryptonote::network_type::FAKECHAIN) * 3;
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_LOCK_PERIOD;
   }

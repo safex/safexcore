@@ -136,7 +136,7 @@ public:
 
   virtual uint64_t get_current_locked_token_sum() const { return 0;}
   virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
-  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval_starting_block) const override {return 0;}
+  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
 
   virtual void add_block( const block& blk

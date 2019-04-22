@@ -106,11 +106,15 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(15000), blk_6);
-    MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_2);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_6r, blk_6, miner, txlist_2);
+
+    REWIND_BLOCKS(events, blk_7, blk_6r, miner);
 
     MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_3, alice, MK_TOKENS(80000), blk_7);
     MAKE_TOKEN_LOCK_TX_LIST(events, txlist_3, daniel, MK_TOKENS(10000), blk_7);
-    MAKE_NEXT_BLOCK_TX_LIST(events, blk_8, blk_7, miner, txlist_3);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_7r, blk_7, miner, txlist_3);
+
+    REWIND_BLOCKS(events, blk_8, blk_7r, miner);
 
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_4, alice, MK_TOKENS(25000), blk_8);
     MAKE_TOKEN_UNLOCK_TX_LIST(events, txlist_4, bob, MK_TOKENS(20000), blk_8);

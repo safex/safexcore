@@ -2918,8 +2918,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         const txin_to_script &in = boost::get<txin_to_script>(txin);
         for (auto index: in.key_offsets) {
           output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_locked_token, index);
-          if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) < m_db->height()) {
-            MERROR("Safex token lock period not expired");
+          if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
+            MERROR("Safex token lock period not expired at height"<<m_db->height());
             tvc.m_safex_invalid_command_params = true;
             return false;
           }

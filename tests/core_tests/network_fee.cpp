@@ -52,8 +52,6 @@ using namespace epee;
 using namespace cryptonote;
 
 
-// class token_lock_001;
-
 crypto::hash gen_network_fee_001::get_hash_from_string(const std::string hashstr) {
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;
@@ -123,6 +121,10 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_10, blk_9, miner, txlist_4);
     REWIND_BLOCKS(events, blk_11, blk_10, miner);
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
+
+
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_5, alice, MK_TOKENS(15000), blk_12);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_5);
 
     DO_CALLBACK(events, "verify_network_fee");
 
