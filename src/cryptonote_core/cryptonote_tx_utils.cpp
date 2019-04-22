@@ -626,6 +626,21 @@ namespace cryptonote
       safex::donate_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
+    else if (src_entr.command_type == safex::command_t::distribute_network_fee)
+    {
+      input.amount = src_entr.amount;
+      input.k_image = AUTO_VAL_INIT(input.k_image); // we do not use key image for fee distribution
+
+      //fill outputs array and use relative offsets
+      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+        input.key_offsets.push_back(out_entry.first);
+
+      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+      //here, prepare data of transaction command execution and serialize command
+      safex::distribute_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
+      safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+    }
     else
     {
       SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
@@ -1091,7 +1106,12 @@ namespace cryptonote
             public_key spend_public_key = AUTO_VAL_INIT(spend_public_key);
             CHECK_AND_ASSERT_MES(crypto::secret_key_to_public_key(sender_account_keys.m_spend_secret_key, spend_public_key), false, "Could not create public_key from private_key");
             crypto::generate_signature(tx_prefix_hash, spend_public_key, sender_account_keys.m_spend_secret_key, sigs[0]);
-          } else {
+          }
+          else if (src_entr.referenced_output_type == tx_out_type::out_network_fee && src_entr.command_type == safex::command_t::distribute_network_fee) {
+            //todo Atana, figure out how to handle this case
+            MCINFO("construct_tx", "donation " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str());
+          }
+          else {
             crypto::generate_ring_signature(tx_prefix_hash, k_image, keys_ptrs, in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());
           }
         }

@@ -55,6 +55,7 @@ using namespace epee;
 #include "blockchain_db/blockchain_db.h"
 #include "ringct/rctSigs.h"
 #include "version.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "cn"
@@ -1040,12 +1041,25 @@ namespace cryptonote
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key)) || (in.type() == typeid(const txin_to_script))) {
+      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key))) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
           return false;
-      } else if ((in.type() == typeid(const txin_token_migration))) {
+      } else if (in.type() == typeid(const txin_to_script)) {
+
+        const txin_to_script &txin = boost::get<const txin_to_script>(in);
+        if (safex::safex_command_serializer::get_command_type(txin.script) == safex::command_t::distribute_network_fee) {
+          // todo atana: check if this is necessary
+          LOG_PRINT_L2("skip key image validation of distributed network fee");
+        } else {
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          // invalid key_image
+          if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
+            return false;
+        }
+      }
+      else if (in.type() == typeid(const txin_token_migration)) {
         // todo igor: check if this is necessary
       } else {
         CHECK_AND_ASSERT_MES(false, false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() <<

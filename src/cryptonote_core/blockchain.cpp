@@ -317,6 +317,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::donate_network_fee:
       output_type = tx_out_type::out_cash;
       break;
+    case safex::command_t::distribute_network_fee:
+      output_type = tx_out_type::out_network_fee;
+      break;
     default:
       MERROR_VER("Unknown command type");
       return false;
@@ -467,7 +470,8 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
   }
 /* Handle advanced outputs that should be spend in the transaction */
-  else if (output_type == tx_out_type::out_locked_token) {
+  else if ((output_type == tx_out_type::out_locked_token) ||
+          (output_type == tx_out_type::out_network_fee)) {
 
     std::vector<output_advanced_data_t> outputs;
     bool found = false;
@@ -2870,7 +2874,10 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     {
       safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
       //multiple different commands on input, error
-      if (command_type != safex::command_t::invalid_command && command_type != tmp) {
+      if (command_type == safex::command_t::token_unlock && tmp == safex::command_t::distribute_network_fee) {
+        //this is ok
+      }
+      else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
         tvc.m_safex_verification_failed = true;
         return false;
       }
@@ -3077,6 +3084,12 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   }
   else if (txin.command_type == safex::command_t::donate_network_fee)
   {
+    if (txin.amount == 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::distribute_network_fee)
+  {
+    //todo atana calculate if interest amount matches
     if (txin.amount == 0 || txin.token_amount > 0)
       return false;
   }
