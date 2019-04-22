@@ -437,6 +437,7 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
 
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+    txinput.command_type = command_t::token_lock;
     txinput.token_amount = 10000*SAFEX_TOKEN;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
@@ -475,6 +476,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 8000;
+    txinput.command_type = command_t::token_lock;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
@@ -505,6 +507,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 19000;
+    txinput.command_type = command_t::token_lock;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
@@ -541,6 +544,7 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 10000; //unlock 10k tokens
+    txinput.command_type = command_t::token_unlock;
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
@@ -578,6 +582,7 @@ TEST_F(SafexCommandExecution, TokenUnlockExecute)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 120000; //unlock 120k tokens
+    txinput.command_type = command_t::token_unlock;
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};

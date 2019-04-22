@@ -580,13 +580,12 @@ namespace cryptonote
   txin_to_script prepare_advanced_input(const tx_source_entry &src_entr, const crypto::key_image &img)
   {
     txin_to_script input = AUTO_VAL_INIT(input);
+    input.command_type = src_entr.command_type;
+    input.token_amount = src_entr.token_amount;
+    input.amount = src_entr.amount;
 
     if (src_entr.command_type == safex::command_t::token_lock)
     {
-
-      //todo put this into function
-
-      input.token_amount = src_entr.token_amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -601,7 +600,6 @@ namespace cryptonote
     }
     else if (src_entr.command_type == safex::command_t::token_unlock)
     {
-      input.token_amount = src_entr.token_amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -616,7 +614,6 @@ namespace cryptonote
     }
     else if (src_entr.command_type == safex::command_t::donate_network_fee)
     {
-      input.amount = src_entr.amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -661,7 +658,7 @@ namespace cryptonote
         std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
         {
           if ((txin.type() == typeid(txin_to_script))
-              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::token_lock))
+              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::token_lock))
           {
             matched_inputs.push_back(&boost::get<txin_to_script>(txin));
           };
@@ -690,7 +687,7 @@ namespace cryptonote
         std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
         {
           if ((txin.type() == typeid(txin_to_script))
-              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::donate_network_fee))
+              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::donate_network_fee))
           {
             matched_inputs.push_back(&boost::get<txin_to_script>(txin));
           };

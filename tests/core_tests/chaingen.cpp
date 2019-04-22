@@ -502,11 +502,10 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
                             const txin_v &txin = tx.vin[j];
                             if (txin.type() == typeid(txin_to_script)) {
                                 const txin_to_script &in = boost::get<txin_to_script>(txin);
-                                safex::command_t command_type = safex::safex_command_serializer::get_command_type(in.script);
-                                if (command_type == safex::command_t::token_unlock) {
+                                if (in.command_type == safex::command_t::token_unlock) {
                                     currently_locked_tokens -= in.token_amount;
                                 }
-                                else if (command_type == safex::command_t::distribute_network_fee) {
+                                else if (in.command_type == safex::command_t::distribute_network_fee) {
                                     //nothing to do??
                                 }
                             }

@@ -306,8 +306,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   tx_out_type output_type{tx_out_type::out_invalid}; //type which the input is referencing
 
   //check command type
-  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
-  switch (command_type)
+  switch (txin.command_type)
   {
     case safex::command_t::token_lock:
       output_type = tx_out_type::out_token;
@@ -2869,7 +2868,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   {
     if ((txin.type() == typeid(txin_to_script)))
     {
-      safex::command_t tmp = safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script);
+      safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
       //multiple different commands on input, error
       if (command_type != safex::command_t::invalid_command && command_type != tmp) {
         tvc.m_safex_verification_failed = true;
@@ -3066,19 +3065,17 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc)
 {
 
-  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
-
-  if (command_type == safex::command_t::token_lock)
+  if (txin.command_type == safex::command_t::token_lock)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
-  else if (command_type == safex::command_t::token_unlock)
+  else if (txin.command_type == safex::command_t::token_unlock)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
-  else if (command_type == safex::command_t::donate_network_fee)
+  else if (txin.command_type == safex::command_t::donate_network_fee)
   {
     if (txin.amount == 0 || txin.token_amount > 0)
       return false;

@@ -52,6 +52,7 @@
 #include "tx_extra.h"
 #include "ringct/rctTypes.h"
 #include "device/device.hpp"
+#include "safex/safex_core.h"
 
 namespace cryptonote
 {
@@ -136,12 +137,14 @@ namespace cryptonote
     crypto::key_image k_image = AUTO_VAL_INIT(k_image); // double spending protection, only owner of previous txout_to_script can use it
     uint64_t amount = 0; //Safex Cash amount as input
     uint64_t token_amount = 0; //Safex Token amount as input
+    safex::command_t command_type = safex::command_t::nop; //Command type, to ease processing of input
     std::vector<uint8_t> script; //Contains Safex protocol layer commands executed on txout_to_script state
 
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(amount)
       VARINT_FIELD(token_amount)
+      VARINT_FIELD(*(reinterpret_cast<uint32_t*>(&command_type)))
       FIELD(key_offsets)
       FIELD(k_image)
       FIELD(script)
