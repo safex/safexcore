@@ -772,7 +772,9 @@ namespace cryptonote
 
   bool check_advanced_tx_semantic(const transaction& tx)
   {
-    //todo Atana implement for various usecases
+    //todo atana implement for various usecases
+
+    //todo atana implement check for token unlock interest validity
 
 
     return true;
@@ -981,9 +983,9 @@ namespace cryptonote
     return this->m_blockchain_storage.get_current_locked_token_sum();
   }
   //-----------------------------------------------------------------------------------------------
-  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count) const
+  uint64_t core::get_collected_network_fee(const uint64_t start_offset, const size_t count) const
   {
-    int64_t total_network_fee_amount = 0;
+    uint64_t total_network_fee_amount = 0;
     if (count)
     {
       const uint64_t end = start_offset + count - 1;
@@ -994,7 +996,30 @@ namespace cryptonote
                                               this->get_transactions(b.tx_hashes, txs, missed_txs);
                                               for(const auto& tx: txs)
                                               {
-                                                total_network_fee_amount += get_network_fee_amount(tx);
+                                                total_network_fee_amount += get_collected_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_distributed_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_distributed_fee_amount(tx);
                                               }
 
                                               return true;
@@ -1049,7 +1074,7 @@ namespace cryptonote
       } else if (in.type() == typeid(const txin_to_script)) {
 
         const txin_to_script &txin = boost::get<const txin_to_script>(in);
-        if (safex::safex_command_serializer::get_command_type(txin.script) == safex::command_t::distribute_network_fee) {
+        if (txin.command_type == safex::command_t::distribute_network_fee) {
           // todo atana: check if this is necessary
           LOG_PRINT_L2("skip key image validation of distributed network fee");
         } else {

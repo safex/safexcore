@@ -793,12 +793,14 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
               ts_interest.command_type = safex::command_t::distribute_network_fee;
               ts_interest.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
               ts_interest.real_output_in_tx_index = oi.out_no; //reference same token output
-              ts_interest.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
-              // dummy key, this is from network pool and will be particularly checked
-              size_t realOutput;
-              if (!fill_output_entries_advanced(outs[o.first], sender_out, nmix, realOutput, ts_interest.outputs))
-                continue;
+              //******************************************************************************************************/
+              //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
+              //******************************************************************************************************/
+              ts_interest.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // here just for completion, does not actually used for check
+              //ts_interest.real_out_tx_key = AUTO_VAL_INIT(ts_interest.real_out_tx_key); //not used
+              ts_interest.outputs = ts.outputs;
               ts_interest.real_output = realOutput;
+
 
               sources.push_back(ts);
               sources.push_back(ts_interest);

@@ -88,11 +88,12 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_ACCOUNT(events, jack);
 
     MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
-    MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
+    MAKE_NEXT_BLOCK(events, blk_1r, blk_1, miner);
+    MAKE_NEXT_BLOCK(events, blk_2, blk_1r, miner);
 
     REWIND_BLOCKS(events, blk_2r, blk_2, miner);
     MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(20000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(40000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
     MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_4, blk_3, miner);
@@ -109,8 +110,6 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_DONATE_FEE_TX_LIST(events, txlist_2, miner, MK_COINS(4), blk_6);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_2);
 
-    //
-
     MAKE_TX_DONATE_FEE_LIST_START(events, txlist_3, miner, MK_COINS(1000), blk_7);
     MAKE_DONATE_FEE_TX_LIST(events, txlist_3, miner, 14000, blk_7);
     MAKE_DONATE_FEE_TX_LIST(events, txlist_3, miner, 2800000, blk_7);
@@ -126,6 +125,10 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_5, alice, MK_TOKENS(15000), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_5);
 
+
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_6, bob, MK_TOKENS(20000), blk_12);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_14, blk_13, miner, txlist_6);
+
     DO_CALLBACK(events, "verify_network_fee");
 
     return true;
@@ -133,45 +136,48 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
 
 bool gen_network_fee_001::verify_network_fee(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-    DEFINE_TESTS_ERROR_CONTEXT("token_lock_001::verify_network_fee");
-    std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
+  DEFINE_TESTS_ERROR_CONTEXT("token_lock_001::verify_network_fee");
+  std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
 
-//    CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_network_fee_001::expected_blockchain_height);
-//    CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == gen_network_fee_001::expected_blockchain_total_transactions);
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_network_fee_001::expected_blockchain_height);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == gen_network_fee_001::expected_blockchain_total_transactions);
 
-    std::list<cryptonote::block> block_list;
-    bool r = c.get_blocks((uint64_t)0, gen_network_fee_001::expected_blockchain_height, block_list);
-    CHECK_TEST_CONDITION(r);
+  std::list<cryptonote::block> block_list;
+  bool r = c.get_blocks((uint64_t) 0, gen_network_fee_001::expected_blockchain_height, block_list);
+  CHECK_TEST_CONDITION(r);
 
-    cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
-    cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
-    cryptonote::account_base daniel_account = boost::get<cryptonote::account_base>(events[3]);
+  cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
+  cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
+  cryptonote::account_base daniel_account = boost::get<cryptonote::account_base>(events[3]);
 
-    std::vector<cryptonote::block> chain;
-    map_hash2tx_t mtx;
-    std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
-    bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
-    CHECK_TEST_CONDITION(re);
+  std::vector<cryptonote::block> chain;
+  map_hash2tx_t mtx;
+  std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
+  bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
+  CHECK_TEST_CONDITION(re);
 
-    //cout << "check_token_lock_balance: cash alice = " << get_balance(alice_account, blocks, mtx) << endl;
-    cout << "final alice token balance= " << print_money(get_token_balance(alice_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(alice_account, blocks, mtx)) << endl;
-    cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
-    cout << "final daniel token balance= " << print_money(get_token_balance(daniel_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(daniel_account, blocks, mtx)) << endl;
+  //cout << "check_token_lock_balance: cash alice = " << get_balance(alice_account, blocks, mtx) << endl;
+  cout << "final alice token balance= " << print_money(get_token_balance(alice_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(alice_account, blocks, mtx)) << endl;
+  cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
+  cout << "final daniel token balance= " << print_money(get_token_balance(daniel_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(daniel_account, blocks, mtx)) << endl;
 
-    int64_t locked_tokens = c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height);
-    cout << "total core locked tokens: " << print_money(locked_tokens) << endl;
+  int64_t locked_tokens = c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height);
+  cout << "total core locked tokens: " << print_money(locked_tokens) << endl;
 
-  int64_t network_fee = c.get_network_fee(0, gen_network_fee_001::expected_blockchain_height);
-  cout << "total network fee collected: " << print_money(network_fee) << endl;
+  int64_t network_fee_collected = c.get_collected_network_fee(0, gen_network_fee_001::expected_blockchain_height);
+  cout << "total network fee collected: " << print_money(network_fee_collected) << endl;
+
+  int64_t network_fee_distributed = c.get_distributed_network_fee(0, gen_network_fee_001::expected_blockchain_height);
+  cout << "total network fee distributed: " << print_money(network_fee_distributed) << endl;
 
 
-//    CHECK_EQ(gen_network_fee_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
-//    CHECK_EQ(gen_network_fee_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
-//    CHECK_EQ(gen_network_fee_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
-//    CHECK_EQ(gen_network_fee_001::expected_locked_tokens, c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height));
+  CHECK_EQ(gen_network_fee_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(gen_network_fee_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
+  CHECK_EQ(gen_network_fee_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
+  CHECK_EQ(gen_network_fee_001::expected_locked_tokens, c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height));
 //
 
-    //todo implement condition check
+  //todo implement condition check
 
-    return true;
+  return true;
 }

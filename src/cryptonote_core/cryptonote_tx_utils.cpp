@@ -629,7 +629,11 @@ namespace cryptonote
     else if (src_entr.command_type == safex::command_t::distribute_network_fee)
     {
       input.amount = src_entr.amount;
-      input.k_image = AUTO_VAL_INIT(input.k_image); // we do not use key image for fee distribution
+      input.k_image = AUTO_VAL_INIT(input.k_image);
+      //we will set kimage as output id of token lock output that is unlocked in this transaction
+      uint64_t temp = src_entr.outputs[0].first;
+      memcpy((void*)(&input.k_image), (char *)(&temp), sizeof(temp));
+
 
       //fill outputs array and use relative offsets
       for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
