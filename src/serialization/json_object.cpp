@@ -215,6 +215,20 @@ void fromJsonValue(const rapidjson::Value& val, long& i)
   to_int64(val, i);
 }
 
+void fromJsonValue(const rapidjson::Value& val, safex::command_t& command_type)
+{
+    uint temp;
+    to_uint(val, temp);
+    command_type = static_cast<safex::command_t>(temp);
+}
+
+void toJsonValue(rapidjson::Document& doc, const safex::command_t& command_type, rapidjson::Value& val)
+{
+    uint temp = static_cast<uint>(command_type);
+    val = rapidjson::Value(temp);
+}
+
+
 void toJsonValue(rapidjson::Document& doc, const cryptonote::transaction& tx, rapidjson::Value& val)
 {
   val.SetObject();
@@ -385,6 +399,7 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_script& txi
   INSERT_INTO_JSON_OBJECT(val, doc, k_image, txin.k_image);
   INSERT_INTO_JSON_OBJECT(val, doc, amount, txin.amount);
   INSERT_INTO_JSON_OBJECT(val, doc, token_amount, txin.token_amount);
+  INSERT_INTO_JSON_OBJECT(val, doc, command_type, txin.command_type);
   INSERT_INTO_JSON_OBJECT(val, doc, script, txin.script);
 }
 
@@ -400,6 +415,7 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_script& txin
   GET_FROM_JSON_OBJECT(val, txin.k_image, k_image);
   GET_FROM_JSON_OBJECT(val, txin.amount, amount);
   GET_FROM_JSON_OBJECT(val, txin.token_amount, token_amount);
+  GET_FROM_JSON_OBJECT(val, txin.command_type, command_type);
   GET_FROM_JSON_OBJECT(val, txin.script, script);
 }
 

@@ -167,4 +167,32 @@ namespace safex
   }
 
 
+  bool distribute_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, distribute_fee_result &command_result) {
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->command_type);
+
+    distribute_fee_result cr = AUTO_VAL_INIT(cr);
+    cr.amount = txin.amount;
+    cr.valid = true;
+    command_result = cr;
+    return true;
+  };
+
+  bool distribute_fee::store(epee::serialization::portable_storage &ps) const
+  {
+    command<distribute_fee_result>::store(ps);
+    ps.set_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->safex_cash_amount, nullptr);
+    return true;
+  }
+
+
+  bool distribute_fee::load(epee::serialization::portable_storage &ps)
+  {
+    command<distribute_fee_result>::load(ps);
+    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::donate_network_fee);
+    ps.get_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, this->safex_cash_amount, nullptr);
+    return true;
+  }
+
+
 }

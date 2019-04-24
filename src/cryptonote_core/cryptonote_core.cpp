@@ -55,6 +55,7 @@ using namespace epee;
 #include "blockchain_db/blockchain_db.h"
 #include "ringct/rctSigs.h"
 #include "version.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "cn"
@@ -771,7 +772,9 @@ namespace cryptonote
 
   bool check_advanced_tx_semantic(const transaction& tx)
   {
-    //todo Atana implement for various usecases
+    //todo atana implement for various usecases
+
+    //todo atana implement check for token unlock interest validity
 
 
     return true;
@@ -991,9 +994,9 @@ namespace cryptonote
 
 
   //-----------------------------------------------------------------------------------------------
-  int64_t core::get_network_fee(const uint64_t start_offset, const size_t count) const
+  uint64_t core::get_collected_network_fee(const uint64_t start_offset, const size_t count) const
   {
-    int64_t total_network_fee_amount = 0;
+    uint64_t total_network_fee_amount = 0;
     if (count)
     {
       const uint64_t end = start_offset + count - 1;
@@ -1004,7 +1007,30 @@ namespace cryptonote
                                               this->get_transactions(b.tx_hashes, txs, missed_txs);
                                               for(const auto& tx: txs)
                                               {
-                                                total_network_fee_amount += get_network_fee_amount(tx);
+                                                total_network_fee_amount += get_collected_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_distributed_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_distributed_fee_amount(tx);
                                               }
 
                                               return true;
@@ -1017,7 +1043,7 @@ namespace cryptonote
   uint64_t core::get_network_fee_for_interval(const uint64_t& interval) const
   {
     uint64_t start = safex::calulate_starting_block_for_interval(interval, m_nettype); 
-    return static_cast<uint64_t>(this->get_network_fee(start, safex::get_safex_interval_period()));
+    return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(start));
   }
 
 
@@ -1059,12 +1085,25 @@ namespace cryptonote
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key)) || (in.type() == typeid(const txin_to_script))) {
+      if ((in.type() == typeid(const txin_to_key)) || (in.type() == typeid(const txin_token_to_key))) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
           return false;
-      } else if ((in.type() == typeid(const txin_token_migration))) {
+      } else if (in.type() == typeid(const txin_to_script)) {
+
+        const txin_to_script &txin = boost::get<const txin_to_script>(in);
+        if (txin.command_type == safex::command_t::distribute_network_fee) {
+          // todo atana: check if this is necessary
+          LOG_PRINT_L2("skip key image validation of distributed network fee");
+        } else {
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          // invalid key_image
+          if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
+            return false;
+        }
+      }
+      else if (in.type() == typeid(const txin_token_migration)) {
         // todo igor: check if this is necessary
       } else {
         CHECK_AND_ASSERT_MES(false, false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() <<

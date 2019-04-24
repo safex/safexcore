@@ -71,6 +71,12 @@ namespace safex
     bool valid;
   };
 
+  struct distribute_fee_result
+  {
+    uint64_t amount; //cash amount do donate to newtork token holders
+    bool valid;
+  };
+
   struct donate_fee_data
   {
     uint32_t reserved;
@@ -288,6 +294,40 @@ namespace safex
   };
 
 
+  class distribute_fee : public command<distribute_fee_result>
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _donate_amount //amount of safex cash that will be distributed to token holders that unlock tokens
+      * */
+      distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command<distribute_fee_result>(_version, command_t::distribute_network_fee),
+                                                                                        safex_cash_amount(_donation_safex_cash_amount) {}
+
+      distribute_fee() : command<distribute_fee_result>(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
+
+      uint64_t get_locked_token_output_index() const { return safex_cash_amount; }
+
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, distribute_fee_result &cr) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command<distribute_fee_result> *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::distribute_network_fee);
+        VARINT_FIELD(safex_cash_amount)
+      END_SERIALIZE()
+
+    protected:
+
+      virtual bool store(epee::serialization::portable_storage &ps) const override;
+      virtual bool load(epee::serialization::portable_storage &ps) override;
+
+      uint64_t safex_cash_amount;
+  };
+
+
+
   class safex_command_serializer
   {
     public:
@@ -317,7 +357,7 @@ namespace safex
         return true;
       }
 
-      static command_t get_command_type(const std::vector<uint8_t> &script)
+      static inline command_t get_command_type(const std::vector<uint8_t> &script)
       {
 
         cryptonote::blobdata command_blob;

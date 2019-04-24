@@ -306,8 +306,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   tx_out_type output_type{tx_out_type::out_invalid}; //type which the input is referencing
 
   //check command type
-  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
-  switch (command_type)
+  switch (txin.command_type)
   {
     case safex::command_t::token_lock:
       output_type = tx_out_type::out_token;
@@ -317,6 +316,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       break;
     case safex::command_t::donate_network_fee:
       output_type = tx_out_type::out_cash;
+      break;
+    case safex::command_t::distribute_network_fee:
+      output_type = tx_out_type::out_network_fee;
       break;
     default:
       MERROR_VER("Unknown command type");
@@ -468,7 +470,8 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
   }
 /* Handle advanced outputs that should be spend in the transaction */
-  else if (output_type == tx_out_type::out_locked_token) {
+  else if ((output_type == tx_out_type::out_locked_token) ||
+          (output_type == tx_out_type::out_network_fee)) {
 
     std::vector<output_advanced_data_t> outputs;
     bool found = false;
@@ -2869,9 +2872,12 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   {
     if ((txin.type() == typeid(txin_to_script)))
     {
-      safex::command_t tmp = safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script);
+      safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
       //multiple different commands on input, error
-      if (command_type != safex::command_t::invalid_command && command_type != tmp) {
+      if (command_type == safex::command_t::token_unlock && tmp == safex::command_t::distribute_network_fee) {
+        //this is ok
+      }
+      else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
         tvc.m_safex_verification_failed = true;
         return false;
       }
@@ -3066,20 +3072,24 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc)
 {
 
-  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
-
-  if (command_type == safex::command_t::token_lock)
+  if (txin.command_type == safex::command_t::token_lock)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
-  else if (command_type == safex::command_t::token_unlock)
+  else if (txin.command_type == safex::command_t::token_unlock)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
-  else if (command_type == safex::command_t::donate_network_fee)
+  else if (txin.command_type == safex::command_t::donate_network_fee)
   {
+    if (txin.amount == 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::distribute_network_fee)
+  {
+    //todo atana calculate if interest amount matches
     if (txin.amount == 0 || txin.token_amount > 0)
       return false;
   }
@@ -3303,7 +3313,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         // 1. Thread ring signature verification if possible.
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
-        } else {
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
+          //todo atana nothing to do here
+          results[sig_index] = true;
+        }
+        else {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_ring_signature, this, std::cref(tx_prefix_hash), std::cref(k_image), std::cref(pubkeys[sig_index]), std::cref(tx.signatures[sig_index]), std::ref(results[sig_index])));
         }
       }
@@ -3311,7 +3326,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else {
+        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
+          //todo atana nothing to do here
+          results[sig_index] = true;
+        }
+        else {
           check_ring_signature(tx_prefix_hash, k_image, pubkeys[sig_index], tx.signatures[sig_index], results[sig_index]);
         }
 

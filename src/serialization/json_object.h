@@ -182,6 +182,10 @@ inline void toJsonValue(rapidjson::Document& doc, const long i, rapidjson::Value
 }
 void fromJsonValue(const rapidjson::Value& val, long& i);
 
+void fromJsonValue(const rapidjson::Value& val, safex::command_t& command_type);
+void toJsonValue(rapidjson::Document& doc, const safex::command_t& command_type, rapidjson::Value& val);
+
+
 // end integers
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::transaction& tx, rapidjson::Value& val);

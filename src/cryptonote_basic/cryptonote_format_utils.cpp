@@ -610,7 +610,7 @@ namespace cryptonote
       if (vin.type() == typeid(txin_to_script))
       {
         const txin_to_script& in = boost::get<txin_to_script>(vin);
-        if (safex::safex_command_serializer::get_command_type(in.script) == safex::command_t::token_unlock) {
+        if (in.command_type == safex::command_t::token_unlock) {
           locked_tokens -= in.token_amount;
         }
       }
@@ -632,20 +632,9 @@ namespace cryptonote
     return locked_tokens;
   }
   //---------------------------------------------------------------
-  int64_t get_network_fee_amount(const transaction &tx)
+  uint64_t get_collected_network_fee_amount(const transaction &tx)
   {
-    int64_t network_fee = 0;
-    //count distributed network fee
-    for (const auto &vin: tx.vin)
-    {
-      if (vin.type() == typeid(txin_to_script))
-      {
-        const txin_to_script& in = boost::get<txin_to_script>(vin);
-        if (safex::safex_command_serializer::get_command_type(in.script) == safex::command_t::distribute_network_fee) {
-          network_fee -= in.amount;
-        }
-      }
-    }
+    uint64_t network_fee = 0;
 
     //count collected fee
     for (const auto &vout: tx.vout)
@@ -655,6 +644,24 @@ namespace cryptonote
         const txout_to_script& out = boost::get<txout_to_script>(vout.target);
         if (out.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee)) {
           network_fee += vout.amount;
+        }
+      }
+    }
+
+    return network_fee;
+  }
+  //---------------------------------------------------------------
+  uint64_t get_network_distributed_fee_amount(const transaction &tx)
+  {
+    uint64_t network_fee = 0;
+    //count distributed network fee
+    for (const auto &vin: tx.vin)
+    {
+      if (vin.type() == typeid(txin_to_script))
+      {
+        const txin_to_script& in = boost::get<txin_to_script>(vin);
+        if (in.command_type == safex::command_t::distribute_network_fee) {
+          network_fee += in.amount;
         }
       }
     }

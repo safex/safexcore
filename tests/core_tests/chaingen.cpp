@@ -502,11 +502,10 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
                             const txin_v &txin = tx.vin[j];
                             if (txin.type() == typeid(txin_to_script)) {
                                 const txin_to_script &in = boost::get<txin_to_script>(txin);
-                                safex::command_t command_type = safex::safex_command_serializer::get_command_type(in.script);
-                                if (command_type == safex::command_t::token_unlock) {
+                                if (in.command_type == safex::command_t::token_unlock) {
                                     currently_locked_tokens -= in.token_amount;
                                 }
-                                else if (command_type == safex::command_t::distribute_network_fee) {
+                                else if (in.command_type == safex::command_t::distribute_network_fee) {
                                     //nothing to do??
                                 }
                             }
@@ -541,6 +540,7 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
                         uint64_t whole_token_amount = previously_locked_tokens/SAFEX_TOKEN;
                         uint64_t interest_per_token = interval_collected_fee>0? interval_collected_fee/whole_token_amount:0;
                         interest_map[current_interval] = interest_per_token;
+                        if (interest_per_token>0) std::cout << "For interval "<<current_interval<<" locked tokens:"<<whole_token_amount<<" interval_collected_fee:"<<interval_collected_fee<<" interest per token:"<<interest_per_token<<std::endl;
                         previously_locked_tokens=currently_locked_tokens;
                         interval_collected_fee = 0;
                     }
@@ -715,10 +715,20 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     return sources_found;
 }
 
-uint64_t calculate_token_holder_interest(uint64_t lock_start_height, uint64_t lock_end_height, map_interval_interest &interest_map) {
-    std::cout << "Calculating interest:" << std::endl;
+uint64_t calculate_token_holder_interest_for_output(uint64_t lock_start_height, uint64_t lock_end_height, map_interval_interest &interest_map, uint64_t token_amount)
+{
+  std::cout << "Calculating interest, lock_start_height:" << lock_start_height << " end height:" << lock_end_height << std::endl;
 
-    return 0;
+  uint64_t interest = 0;
+  uint64_t starting_interval = safex::calculate_interval_for_height(lock_start_height, network_type::FAKECHAIN) + 1;
+  uint64_t end_interval = safex::calculate_interval_for_height(lock_end_height, network_type::FAKECHAIN) - 1;
+  for (uint64_t interval = starting_interval; interval <= end_interval; interval++)
+  {
+    interest += interest_map[interval] * (token_amount / SAFEX_TOKEN);
+    if (interest_map[interval] > 0) std::cout << "Interest in interval "<<interval<<" per token "<< interest_map[interval]<<" is " << interest_map[interval] * (token_amount / SAFEX_TOKEN) << std::endl;
+  }
+
+  return interest;
 }
 
 bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std::vector<test_event_entry>& events,  const block& blk_head,
@@ -773,17 +783,28 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
               continue;
             ts.real_output = realOutput;
 
-//            cryptonote::tx_source_entry ts_interest = AUTO_VAL_INIT(ts);
-//            ts_interest.referenced_output_type = cryptonote::tx_out_type::out_network_fee;
-//            ts_interest.command_type = safex::command_t::distribute_network_fee;
-//            ts_interest.amount = calculate_token_holder_interest(oi.blk_height, current_height, interest_map);
-
-
-
             sources_locked_token_amount = ts.token_amount;
             sources_found = value_amount == sources_locked_token_amount;
 
-            if (sources_found) sources.push_back(ts);
+            if (sources_found)
+            {
+              cryptonote::tx_source_entry ts_interest = AUTO_VAL_INIT(ts_interest);
+              ts_interest.referenced_output_type = cryptonote::tx_out_type::out_network_fee;
+              ts_interest.command_type = safex::command_t::distribute_network_fee;
+              ts_interest.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
+              ts_interest.real_output_in_tx_index = oi.out_no; //reference same token output
+              //******************************************************************************************************/
+              //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
+              //******************************************************************************************************/
+              ts_interest.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // here just for completion, does not actually used for check
+              //ts_interest.real_out_tx_key = AUTO_VAL_INIT(ts_interest.real_out_tx_key); //not used
+              ts_interest.outputs = ts.outputs;
+              ts_interest.real_output = realOutput;
+
+
+              sources.push_back(ts);
+              sources.push_back(ts_interest);
+            }
 
 
           }
@@ -999,6 +1020,11 @@ tx_destination_entry create_network_fee_tx_destination(uint64_t cash_amount)
   return tx_destination_entry{cash_amount, dummy, false, tx_out_type::out_network_fee};
 }
 
+tx_destination_entry create_interest_destination(const cryptonote::account_base &to, uint64_t cash_amount)
+{
+  return tx_destination_entry{cash_amount, to.get_keys().m_account_address, false, tx_out_type::out_cash};
+}
+
 void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
         const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
         std::vector<tx_destination_entry> &destinations)
@@ -1058,8 +1084,19 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
   destinations.push_back(de_token);
 
+  //add cash output for interest earning
+  tx_destination_entry de_interest = AUTO_VAL_INIT(de_interest);
+  for (tx_source_entry &source: sources) {
+    if (source.command_type == safex::command_t::distribute_network_fee) {
+      de_interest = create_interest_destination(to, source.amount);
+      destinations.push_back(de_interest);
+    }
+  }
+
+
+
   //sender change for fee
-  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  uint64_t cache_back = get_inputs_amount(sources) - fee - de_interest.amount;
   if (0 < cache_back)
   {
     tx_destination_entry de_change = create_tx_destination(from, cache_back);

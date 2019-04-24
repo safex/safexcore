@@ -1292,19 +1292,20 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   check_open();
   uint64_t m_height = height();
 
-  safex::command_t command_type = safex::safex_command_serializer::get_command_type(txin.script);
-
-  if (command_type == safex::command_t::token_lock)
+  if (txin.command_type == safex::command_t::token_lock)
   {
     //locked token sum is updated when processing outputs
   }
-  else if (command_type == safex::command_t::token_unlock)
+  else if (txin.command_type == safex::command_t::token_unlock)
   {
     update_current_locked_token_sum(txin.token_amount, -1);
   }
-  else if (command_type == safex::command_t::donate_network_fee)
+  else if (txin.command_type == safex::command_t::donate_network_fee)
   {
     //network_fee_sum is updated at place of output processing
+  }
+  else if (txin.command_type == safex::command_t::distribute_network_fee)
+  {
 
   }
   else {

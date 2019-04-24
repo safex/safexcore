@@ -580,13 +580,12 @@ namespace cryptonote
   txin_to_script prepare_advanced_input(const tx_source_entry &src_entr, const crypto::key_image &img)
   {
     txin_to_script input = AUTO_VAL_INIT(input);
+    input.command_type = src_entr.command_type;
+    input.token_amount = src_entr.token_amount;
+    input.amount = src_entr.amount;
 
     if (src_entr.command_type == safex::command_t::token_lock)
     {
-
-      //todo put this into function
-
-      input.token_amount = src_entr.token_amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -601,7 +600,6 @@ namespace cryptonote
     }
     else if (src_entr.command_type == safex::command_t::token_unlock)
     {
-      input.token_amount = src_entr.token_amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -616,7 +614,6 @@ namespace cryptonote
     }
     else if (src_entr.command_type == safex::command_t::donate_network_fee)
     {
-      input.amount = src_entr.amount;
       input.k_image = img;
 
       //fill outputs array and use relative offsets
@@ -627,6 +624,25 @@ namespace cryptonote
 
       //here, prepare data of transaction command execution and serialize command
       safex::donate_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
+      safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+    }
+    else if (src_entr.command_type == safex::command_t::distribute_network_fee)
+    {
+      input.amount = src_entr.amount;
+      input.k_image = AUTO_VAL_INIT(input.k_image);
+      //we will set kimage as output id of token lock output that is unlocked in this transaction
+      uint64_t temp = src_entr.outputs[0].first;
+      memcpy((void*)(&input.k_image), (char *)(&temp), sizeof(temp));
+
+
+      //fill outputs array and use relative offsets
+      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+        input.key_offsets.push_back(out_entry.first);
+
+      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+      //here, prepare data of transaction command execution and serialize command
+      safex::distribute_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else
@@ -661,7 +677,7 @@ namespace cryptonote
         std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
         {
           if ((txin.type() == typeid(txin_to_script))
-              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::token_lock))
+              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::token_lock))
           {
             matched_inputs.push_back(&boost::get<txin_to_script>(txin));
           };
@@ -690,7 +706,7 @@ namespace cryptonote
         std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
         {
           if ((txin.type() == typeid(txin_to_script))
-              && (safex::safex_command_serializer::get_command_type(boost::get<txin_to_script>(txin).script) == safex::command_t::donate_network_fee))
+              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::donate_network_fee))
           {
             matched_inputs.push_back(&boost::get<txin_to_script>(txin));
           };
@@ -1094,7 +1110,12 @@ namespace cryptonote
             public_key spend_public_key = AUTO_VAL_INIT(spend_public_key);
             CHECK_AND_ASSERT_MES(crypto::secret_key_to_public_key(sender_account_keys.m_spend_secret_key, spend_public_key), false, "Could not create public_key from private_key");
             crypto::generate_signature(tx_prefix_hash, spend_public_key, sender_account_keys.m_spend_secret_key, sigs[0]);
-          } else {
+          }
+          else if (src_entr.referenced_output_type == tx_out_type::out_network_fee && src_entr.command_type == safex::command_t::distribute_network_fee) {
+            //todo Atana, figure out how to handle this case
+            MCINFO("construct_tx", "donation " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str());
+          }
+          else {
             crypto::generate_ring_signature(tx_prefix_hash, k_image, keys_ptrs, in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());
           }
         }
