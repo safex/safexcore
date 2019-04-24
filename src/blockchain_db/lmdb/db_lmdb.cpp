@@ -4205,4 +4205,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   };
 
 
+  bool BlockchainLMDB::get_interval_interest_map(const uint64_t start_height, const uint64_t end_height, safex::map_interval_interest &map) const
+  {
+    map.clear();
+
+    return true;
+  };
+
 }  // namespace cryptonote

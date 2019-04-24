@@ -2874,7 +2874,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     {
       safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
       //multiple different commands on input, error
-      if (command_type == safex::command_t::token_unlock && tmp == safex::command_t::distribute_network_fee) {
+      if ((command_type == safex::command_t::token_unlock && tmp == safex::command_t::distribute_network_fee) ||
+              (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unlock)) {
         //this is ok
       }
       else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
@@ -2960,6 +2961,45 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     if (outputs_donated_cash_amount >= input_cash_amount)
     {
       MERROR("Invalid safex cash input amount");
+      tvc.m_safex_invalid_input = true;
+      return false;
+    }
+  }
+  else if (command_type == safex::command_t::distribute_network_fee)
+  {
+    /* Find cash and token amount that is distributed, check if they match */
+    uint64_t distributed_cash_amount = 0;
+    uint64_t unlocked_token_amount = 0;
+    uint64_t expected_interest = 0;
+    for (const auto &txin: tx.vin)
+    {
+      if (txin.type() == typeid(txin_to_script))
+      {
+        const txin_to_script& stxin = boost::get<txin_to_script>(txin);
+        if (stxin.command_type == safex::command_t::token_unlock)
+        {
+          unlocked_token_amount += stxin.token_amount;
+        }
+        else if (stxin.command_type == safex::command_t::distribute_network_fee) {
+          distributed_cash_amount+= stxin.amount;
+
+          if (stxin.key_offsets.size() !=1) {
+            MERROR("Interest should be distributed for particular token lock output");
+            tvc.m_safex_invalid_input = true;
+            return false;
+          }
+
+          expected_interest+= calculate_token_lock_interest_for_output(stxin.key_offsets[0], m_db->height());
+        }
+      }
+
+
+    }
+
+    /* Check if donated cash amount matches */
+    if (distributed_cash_amount > expected_interest)
+    {
+      MERROR("Token unlock interest too high");
       tvc.m_safex_invalid_input = true;
       return false;
     }
@@ -5147,6 +5187,15 @@ uint64_t Blockchain::calculate_token_lock_interest(const uint64_t token_amount, 
 {
   uint64_t ret = 0;
 
+
+  return ret;
+}
+
+uint64_t Blockchain::calculate_token_lock_interest_for_output(const uint64_t output_id, const uint64_t unlock_height) const
+{
+  uint64_t ret = 0;
+
+  //call db and calculate height
 
   return ret;
 }

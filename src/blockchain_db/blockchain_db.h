@@ -1662,7 +1662,7 @@ namespace cryptonote
 
 
       /**
-       * Returns collecte network fee sum for particular interval
+       * Returns collected network fee sum for particular interval
        *
        *
        * @param interval interval number
@@ -1679,6 +1679,15 @@ namespace cryptonote
        * @return array of output id-s
        */
       virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const = 0;
+
+
+
+      /**
+       * Returns map where key is interval and value is interest per token for that interval
+       *
+       */
+      virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
+
 
 
 

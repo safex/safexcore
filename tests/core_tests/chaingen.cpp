@@ -310,7 +310,6 @@ struct output_index {
 typedef std::map<uint64_t, std::vector<size_t> > map_output_t;
 typedef std::map<uint64_t, std::vector<output_index> > map_output_idx_t;
 typedef pair<uint64_t, size_t>  outloc_t;
-typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interst
 
 namespace
 {
@@ -465,7 +464,7 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
     return true;
 }
 
-bool create_network_token_lock_interest_map(const std::vector<test_event_entry> &events, const block &blk_head, map_interval_interest &interest_map)
+bool create_network_token_lock_interest_map(const std::vector<test_event_entry> &events, const block &blk_head, safex::map_interval_interest &interest_map)
 {
 
     std::vector<cryptonote::block> blockchain;
@@ -715,7 +714,7 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
     return sources_found;
 }
 
-uint64_t calculate_token_holder_interest_for_output(uint64_t lock_start_height, uint64_t lock_end_height, map_interval_interest &interest_map, uint64_t token_amount)
+uint64_t calculate_token_holder_interest_for_output(uint64_t lock_start_height, uint64_t lock_end_height, safex::map_interval_interest &interest_map, uint64_t token_amount)
 {
   std::cout << "Calculating interest, lock_start_height:" << lock_start_height << " end height:" << lock_end_height << std::endl;
 
@@ -749,7 +748,7 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
   if (!init_spent_output_indices(outs, outs_mine, blockchain, mtx, from)) return false;
 
     //insert fee calculation here
-  map_interval_interest interest_map;
+  safex::map_interval_interest interest_map;
   if (!create_network_token_lock_interest_map(events, blk_head, interest_map)) return false;
 
   // Iterate in reverse is more efficiency

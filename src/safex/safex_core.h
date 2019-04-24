@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <exception>
+#include <map>
 
 #include "cryptonote_config.h"
 
@@ -14,6 +15,8 @@
 
 namespace safex
 {
+  typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interest
+
 /**
 * It is indicator in transaction version 2 extra field, to ease transaction verification
 * */

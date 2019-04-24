@@ -299,6 +299,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const override { return 0;};
     virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
     virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
+    virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty, const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash
     )
