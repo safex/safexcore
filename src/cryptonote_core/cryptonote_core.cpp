@@ -979,6 +979,17 @@ namespace cryptonote
   {
     return this->m_blockchain_storage.get_current_locked_token_sum();
   }
+
+  uint64_t core::get_locked_tokens_for_interval(const uint64_t& interval) const
+  {
+    return this->m_blockchain_storage.get_locked_token_sum_for_interval(interval);
+  }
+
+  uint64_t core::get_current_interval() const {
+    return safex::calculate_interval_for_height(this->get_current_blockchain_height(), m_nettype);
+  }
+
+
   //-----------------------------------------------------------------------------------------------
   int64_t core::get_network_fee(const uint64_t start_offset, const size_t count) const
   {
@@ -1002,6 +1013,14 @@ namespace cryptonote
 
     return total_network_fee_amount;
   }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_network_fee_for_interval(const uint64_t& interval) const
+  {
+    uint64_t start = safex::calulate_starting_block_for_interval(interval, m_nettype); 
+    return static_cast<uint64_t>(this->get_network_fee(start, safex::get_safex_interval_period()));
+  }
+
+
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
   {

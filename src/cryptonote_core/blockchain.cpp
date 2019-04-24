@@ -5112,6 +5112,17 @@ uint64_t Blockchain::get_current_locked_token_sum() const
   return m_db->get_current_locked_token_sum();
 }
 
+uint64_t Blockchain::get_locked_token_sum_for_interval(const uint64_t& interval) const
+{
+  return m_db->get_locked_token_sum_for_interval(interval);
+}
+
+uint64_t Blockchain::get_network_fee_sum_for_interval(const uint64_t& interval) const
+{
+  return m_db->get_network_fee_sum_for_interval(interval);
+}
+
+
 /* Returns token lock interest */
 uint64_t Blockchain::calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const
 {

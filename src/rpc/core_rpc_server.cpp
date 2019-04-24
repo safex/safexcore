@@ -2159,6 +2159,59 @@ namespace cryptonote
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
+
+  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_LOCKED::request& req, COMMAND_RPC_TOKEN_LOCKED::response& res)
+  {
+    if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{0, m_core.get_locked_tokens()});
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
+          }
+        }
+        else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res)
+  {
+     if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{m_core.get_current_interval(), m_core.get_network_fee_for_interval(m_core.get_current_interval())});
+      res.status = "OK";
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{req.interval, m_core.get_network_fee_for_interval(req.interval)});
+        res.status = "OK";
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{i, m_core.get_network_fee_for_interval(i)});
+            res.status = "OK";
+          }
+        }
+        else {
+          res.status = "FAILED";
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
 
 

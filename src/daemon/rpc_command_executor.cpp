@@ -1952,4 +1952,73 @@ bool t_rpc_command_executor::sync_info()
     return true;
 }
 
+
+bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_TOKEN_LOCKED::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_TOKEN_LOCKED::response res = AUTO_VAL_INIT(res);
+
+  req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_locked_tokens", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_locked_tokens(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  for(auto& item : res.pairs) {
+    tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of locked tokens: " << item.amount;
+  }
+
+  return false;
+}
+  
+bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_NETWORK_FEE::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_NETWORK_FEE::response res = AUTO_VAL_INIT(res);
+
+   req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_locked_tokens", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_network_fee(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  for(auto& item : res.pairs) {
+    tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of network fee: " << item.amount;
+  }
+
+  return false;
+}
+
 }// namespace daemonize

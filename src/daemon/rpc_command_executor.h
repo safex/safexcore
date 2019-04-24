@@ -155,6 +155,11 @@ public:
   bool relay_tx(const std::string &txid);
 
   bool sync_info();
+
+  bool token_locked_on_interval(const uint64_t& start, const uint64_t& end);
+  
+  bool network_fee_on_interval(const uint64_t& start, const uint64_t& end);
+
 };
 
 } // namespace daemonize

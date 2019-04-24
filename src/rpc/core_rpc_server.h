@@ -113,6 +113,8 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/stop_daemon", on_stop_daemon, COMMAND_RPC_STOP_DAEMON, !m_restricted)
       MAP_URI_AUTO_JON2("/get_info", on_get_info, COMMAND_RPC_GET_INFO)
       MAP_URI_AUTO_JON2("/getinfo", on_get_info, COMMAND_RPC_GET_INFO)
+      MAP_URI_AUTO_JON2("/get_locked_tokens", on_get_locked_tokens, COMMAND_RPC_TOKEN_LOCKED)
+      MAP_URI_AUTO_JON2("/get_network_fee", on_get_network_fee, COMMAND_RPC_NETWORK_FEE)
       MAP_URI_AUTO_JON2("/get_limit", on_get_limit, COMMAND_RPC_GET_LIMIT)
       MAP_URI_AUTO_JON2_IF("/set_limit", on_set_limit, COMMAND_RPC_SET_LIMIT, !m_restricted)
       MAP_URI_AUTO_JON2_IF("/out_peers", on_out_peers, COMMAND_RPC_OUT_PEERS, !m_restricted)
@@ -158,6 +160,8 @@ namespace cryptonote
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
+    bool on_get_locked_tokens(const COMMAND_RPC_TOKEN_LOCKED::request& req, COMMAND_RPC_TOKEN_LOCKED::response& res);
+    bool on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res);
     bool on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res);
     bool on_get_blocks(const COMMAND_RPC_GET_BLOCKS_FAST::request& req, COMMAND_RPC_GET_BLOCKS_FAST::response& res);
     bool on_get_alt_blocks_hashes(const COMMAND_RPC_GET_ALT_BLOCKS_HASHES::request& req, COMMAND_RPC_GET_ALT_BLOCKS_HASHES::response& res);

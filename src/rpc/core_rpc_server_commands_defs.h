@@ -2312,4 +2312,71 @@ namespace cryptonote
     };
   };
 
+  struct COMMAND_RPC_TOKEN_LOCKED
+  {
+    struct request
+    {
+      uint64_t interval;
+      uint64_t end;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> pairs;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(pairs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_NETWORK_FEE
+  {
+    struct request
+    {
+      uint64_t interval;
+      uint64_t end;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> pairs;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(pairs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }

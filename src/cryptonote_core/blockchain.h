@@ -981,9 +981,13 @@ namespace cryptonote
      *
      * @return locked token amount
      */
-      uint64_t get_current_locked_token_sum() const;
+    uint64_t get_current_locked_token_sum() const;
 
-      uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+    uint64_t get_locked_token_sum_for_interval(const uint64_t& interval) const;
+
+    uint64_t get_network_fee_sum_for_interval(const uint64_t& interval) const;
+    
+    uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
 
   private:
 
