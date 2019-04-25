@@ -56,8 +56,8 @@ public:
   bool verify_network_fee(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events);
   crypto::hash get_hash_from_string(const std::string hashstr);
 
-  static const size_t expected_blockchain_total_transactions = 382;
-  static const size_t expected_blockchain_height = 369;
+  static const size_t expected_blockchain_total_transactions = 385;
+  static const size_t expected_blockchain_height = 371;
 
   static const uint64_t expected_alice_token_balance = 120000 * SAFEX_TOKEN;
   static const uint64_t expected_bob_token_balance = 40000 * SAFEX_TOKEN;

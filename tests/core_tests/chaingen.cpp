@@ -536,12 +536,12 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
                                                                             cryptonote::network_type::FAKECHAIN);
 
                     if (safex::is_interval_last_block(block_height_counter, cryptonote::network_type::FAKECHAIN)) {
-                        uint64_t whole_token_amount = previously_locked_tokens/SAFEX_TOKEN;
+                        uint64_t whole_token_amount = currently_locked_tokens/SAFEX_TOKEN;
                         uint64_t interest_per_token = interval_collected_fee>0? interval_collected_fee/whole_token_amount:0;
                         interest_map[current_interval] = interest_per_token;
                         if (interest_per_token>0) std::cout << "For interval "<<current_interval<<" locked tokens:"<<whole_token_amount<<" interval_collected_fee:"<<interval_collected_fee<<" interest per token:"<<interest_per_token<<std::endl;
-                        previously_locked_tokens=currently_locked_tokens;
                         interval_collected_fee = 0;
+                        previously_locked_tokens=currently_locked_tokens;
                     }
 
                 }
@@ -802,7 +802,8 @@ bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std:
 
 
               sources.push_back(ts);
-              sources.push_back(ts_interest);
+              if (ts_interest.amount > 0)
+                sources.push_back(ts_interest);
             }
 
 
@@ -1088,7 +1089,8 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   for (tx_source_entry &source: sources) {
     if (source.command_type == safex::command_t::distribute_network_fee) {
       de_interest = create_interest_destination(to, source.amount);
-      destinations.push_back(de_interest);
+      if (de_interest.amount > 0)
+        destinations.push_back(de_interest);
     }
   }
 

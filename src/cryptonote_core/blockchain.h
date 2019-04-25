@@ -989,7 +989,7 @@ namespace cryptonote
     
     uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
 
-      uint64_t calculate_token_lock_interest_for_output(const uint64_t output_id, const uint64_t unlock_height) const;
+    uint64_t calculate_token_lock_interest_for_output(const txin_to_script& txin, const uint64_t unlock_height) const;
 
   private:
 
