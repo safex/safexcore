@@ -7893,6 +7893,17 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
   }
 }
 
+
+  std::vector<wallet::pending_tx> wallet::create_transactions_advanced(std::vector<cryptonote::tx_destination_entry> dsts,
+          const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices,
+          bool trusted_daemon)
+  {
+    std::vector<wallet::pending_tx> ptx_vector;
+
+    return ptx_vector;
+  }
+
+
 std::vector<wallet::pending_tx> wallet::create_transactions_from(const cryptonote::account_public_address &address, bool is_subaddress, std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon)
 {
   //ensure device is let in NONE mode in any case

@@ -150,11 +150,3 @@ template <typename F>
   bool check_file_overwrite(const std::string &filename);
 
 bool parse_priority(const std::string& arg, uint32_t& priority);
-
-enum TransferType {
-  TransferOriginal,
-  TransferNew,
-  TransferLocked,
-  TransferMigration,
-  TransferToken
-};

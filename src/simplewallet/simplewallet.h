@@ -58,6 +58,20 @@
  */
 namespace cryptonote
 {
+  enum TransferType {
+    TransferOriginal,
+    TransferNew,
+    TransferLocked,
+    TransferMigration,
+    TransferToken
+  };
+
+  enum CommandType {
+    TransferLockToken,
+    TransferUnlockToken,
+    TransferDonation
+  };
+
   /*!
    * \brief Manages wallet operations. This is the most abstracted wallet class.
    */
@@ -226,7 +240,7 @@ namespace cryptonote
     /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
     
     // Function responsible for 
-    bool command_main(int transfer_type, const std::vector<std::string> &args);
+    bool create_command(CommandType command_type, const std::vector<std::string> &args);
 
     bool lock_token(const std::vector<std::string>& args);
     bool unlock_token(const std::vector<std::string>& args);
