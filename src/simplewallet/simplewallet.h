@@ -223,6 +223,17 @@ namespace cryptonote
     std::string get_prompt() const;
     bool print_seed(bool encrypted);
 
+    /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
+    
+    // Function responsible for 
+    bool command_main(int transfer_type, const std::vector<std::string> &args);
+
+    bool lock_token(const std::vector<std::string>& args);
+    bool unlock_token(const std::vector<std::string>& args);
+    bool make_donation(const std::vector<std::string>& args);
+    bool locked_token_balance(const std::vector<std::string>& args);
+    /****************************************************************************************************************/
+
     /*!
      * \brief Prints the seed with a nice message
      * \param seed seed to print
