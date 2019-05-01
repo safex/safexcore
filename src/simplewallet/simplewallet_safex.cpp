@@ -49,7 +49,7 @@ namespace cryptonote
 
     if (command_type == CommandType::TransferLockToken)
     {
-
+      //do nothing
     }
     else
     {
@@ -196,7 +196,8 @@ namespace cryptonote
           return true;
         }
         de.token_amount = value_amount;
-        de.token_transaction = true;
+        de.script_output = true;
+        de.output_type = tx_out_type::out_locked_token;
       }
 
       dsts.push_back(de);
@@ -211,7 +212,7 @@ namespace cryptonote
       switch (command_type)
       {
         case CommandType::TransferLockToken:
-          ptx_vector = m_wallet->create_transactions_advanced(dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
+          ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_lock, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
           break;
 
         default:

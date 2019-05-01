@@ -195,19 +195,20 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
-    struct multisig_export_needed : public wallet_runtime_error
+    struct not_supported : public wallet_internal_error
     {
-      explicit multisig_export_needed(std::string&& loc)
-        : wallet_runtime_error(std::move(loc), "This signature was made with stale data: export fresh multisig data, which other participants must then use")
+      explicit not_supported(std::string&& loc)
+              : wallet_internal_error(std::move(loc), "wallet operation not supported")
       {
       }
     };
     //----------------------------------------------------------------------------------------------------
-    struct multisig_import_needed : public wallet_runtime_error
+    struct command_not_supported : public wallet_internal_error
     {
-      explicit multisig_import_needed(std::string&& loc)
-        : wallet_runtime_error(std::move(loc), "Not enough multisig data was found to sign: import multisig data from more other participants")
+      explicit command_not_supported(std::string&& loc)
+              : wallet_internal_error(std::move(loc), "wallet operation not supported")
       {
+
       }
     };
     //----------------------------------------------------------------------------------------------------
@@ -873,6 +874,15 @@ namespace tools
     {
       explicit invalid_nettype(std::string&& loc)
           : wallet_logic_error(std::move(loc), "invalid network type.")
+      {
+      }
+    };
+
+    //----------------------------------------------------------------------------------------------------
+    struct insufficient_token_lock_amount : public transfer_error
+    {
+      explicit insufficient_token_lock_amount(std::string&& loc)
+              : transfer_error(std::move(loc), "minumum token amount to lock is"+std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT/SAFEX_TOKEN))
       {
       }
     };

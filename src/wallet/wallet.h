@@ -55,10 +55,12 @@
 #include "ringct/rctTypes.h"
 #include "ringct/rctOps.h"
 #include "checkpoints/checkpoints.h"
+#include "safex/safex_core.h"
 
 #include "wallet_errors.h"
 #include "common/password.h"
 #include "node_rpc_proxy.h"
+
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "wallet.wallet"
@@ -242,10 +244,12 @@ namespace tools
       bool m_key_image_partial;
       std::vector<rct::key> m_multisig_k;
       std::vector<multisig_info> m_multisig_info; // one per other participant
+      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_invalid;
 
       bool is_rct() const { return m_rct; }
+      cryptonote::tx_out_type get_out_type() const { return m_output_type;}
       uint64_t amount() const { return m_amount; }
-      uint64_t token_amount() const { return m_token_amount; }
+      uint64_t token_amount() const { return m_token_amount;}
       const crypto::public_key &get_public_key() const
       {
         return *boost::apply_visitor(cryptonote::destination_public_key_visitor(), m_tx.vout[m_internal_output_index].target);
@@ -271,6 +275,7 @@ namespace tools
         FIELD(m_key_image_partial)
         FIELD(m_multisig_k)
         FIELD(m_multisig_info)
+        FIELD(m_output_type)
       END_SERIALIZE()
     };
 
@@ -285,6 +290,7 @@ namespace tools
       uint64_t m_timestamp;
       cryptonote::subaddress_index m_subaddr_index;
       bool m_token_transaction = false;
+      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_invalid;
     };
 
     struct address_tx : payment_details
@@ -317,6 +323,7 @@ namespace tools
       uint32_t m_subaddr_account;   // subaddress account of your wallet to be used in this transfer
       std::set<uint32_t> m_subaddr_indices;  // set of address indices used as inputs in this transfer
       std::vector<std::pair<crypto::key_image, std::vector<uint64_t>>> m_rings; // relative
+      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_invalid;
     };
 
     struct confirmed_transfer_details
@@ -335,6 +342,7 @@ namespace tools
       uint32_t m_subaddr_account;   // subaddress account of your wallet to be used in this transfer
       std::set<uint32_t> m_subaddr_indices;  // set of address indices used as inputs in this transfer
       std::vector<std::pair<crypto::key_image, std::vector<uint64_t>>> m_rings; // relative
+      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_invalid;
 
       confirmed_transfer_details(): m_amount_in(0), m_amount_out(0), m_change((uint64_t)-1), m_token_amount_in(0), m_token_amount_out(0),  m_token_change((uint64_t)-1), m_block_height(0),
           m_payment_id(crypto::null_hash), m_timestamp(0), m_unlock_time(0), m_subaddr_account((uint32_t)-1) {}
@@ -669,6 +677,12 @@ namespace tools
       std::vector<std::vector<tools::wallet::get_outs_entry>> &outs,
       uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx);
 
+    template<typename T>
+    void transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
+                                   size_t fake_outputs_count, std::vector<std::vector<tools::wallet::get_outs_entry>> &outs,
+                                   uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy,
+                                   cryptonote::transaction& tx, pending_tx &ptx);
+
     void commit_tx(pending_tx& ptx_vector);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
     bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
@@ -690,7 +704,7 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    std::vector<wallet::pending_tx> create_transactions_advanced(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);
+    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -1156,14 +1170,14 @@ namespace tools
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 0)
-BOOST_CLASS_VERSION(tools::wallet::transfer_details, 0)
+BOOST_CLASS_VERSION(tools::wallet::transfer_details, 1)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info::LR, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_tx_set, 0)
-BOOST_CLASS_VERSION(tools::wallet::payment_details, 0)
+BOOST_CLASS_VERSION(tools::wallet::payment_details, 1)
 BOOST_CLASS_VERSION(tools::wallet::pool_payment_details, 0)
-BOOST_CLASS_VERSION(tools::wallet::unconfirmed_transfer_details, 0)
-BOOST_CLASS_VERSION(tools::wallet::confirmed_transfer_details, 0)
+BOOST_CLASS_VERSION(tools::wallet::unconfirmed_transfer_details, 1)
+BOOST_CLASS_VERSION(tools::wallet::confirmed_transfer_details, 1)
 BOOST_CLASS_VERSION(tools::wallet::address_book_row, 0)
 BOOST_CLASS_VERSION(tools::wallet::reserve_proof_entry, 0)
 BOOST_CLASS_VERSION(tools::wallet::unsigned_tx_set, 0)
@@ -1207,6 +1221,10 @@ namespace boost
       a & x.m_multisig_info;
       a & x.m_multisig_k;
       a & x.m_key_image_partial;
+
+      if (ver < 1) return;
+
+      a & x.m_output_type;
     }
 
     template <class Archive>
@@ -1249,6 +1267,8 @@ namespace boost
       a & x.m_subaddr_account;
       a & x.m_subaddr_indices;
       a & x.m_rings;
+      if (ver < 1) return;
+      a & x.m_output_type;
     }
 
     template <class Archive>
@@ -1268,6 +1288,8 @@ namespace boost
       a & x.m_subaddr_account;
       a & x.m_subaddr_indices;
       a & x.m_rings;
+      if (ver < 1) return;
+      a & x.m_output_type;
     }
 
     template <class Archive>
@@ -1282,6 +1304,8 @@ namespace boost
       a & x.m_timestamp;
       a & x.m_subaddr_index;
       a & x.m_token_transaction;
+      if (ver < 1) return;
+      a & x.m_output_type;
     }
 
     template <class Archive>
@@ -1390,15 +1414,28 @@ namespace tools
 
       for(auto& de: dsts)
       {
-        if (de.token_transaction) {
-          cryptonote::decompose_amount_into_digits(de.token_amount, 0,
-                        [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); },
-                        [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); } );
-        } else {
-          cryptonote::decompose_amount_into_digits(de.amount, 0,
-              [&](uint64_t chunk) { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); },
-              [&](uint64_t a_dust) { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); } );
-        }
+          if (de.output_type == cryptonote::tx_out_type::out_token)
+          {
+            cryptonote::decompose_amount_into_digits(de.token_amount, 0,
+                                                     [&](uint64_t chunk)
+                                                     { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); },
+                                                     [&](uint64_t a_dust)
+                                                     { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_token)); });
+
+          }
+          else if (de.output_type == cryptonote::tx_out_type::out_cash)
+          {
+            cryptonote::decompose_amount_into_digits(de.amount, 0,
+                                                     [&](uint64_t chunk)
+                                                     { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); },
+                                                     [&](uint64_t a_dust)
+                                                     { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, de.addr, de.is_subaddress, cryptonote::tx_out_type::out_cash)); });
+          }
+          else {
+            //do nothing
+            splitted_dsts.push_back(de);
+          }
+
       }
 
       //for cash

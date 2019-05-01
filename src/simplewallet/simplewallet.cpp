@@ -1203,8 +1203,8 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("lock_token",
                            boost::bind(&simple_wallet::lock_token, this, _1),
-                           tr("lock_token [<command>]"),
-                           tr("Locking tokens."));
+                           tr("lock_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>]"),
+                           tr("Lock <token_amount> with <address> as locked tokens holder, optionally set payment_id, priority, ring_size for input tokens or token output subaddress indice"));
 
   m_cmd_binder.set_handler("unlock_token",
                            boost::bind(&simple_wallet::lock_token, this, _1),
