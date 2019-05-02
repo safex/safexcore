@@ -4057,6 +4057,7 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
   token_destination.addr = info.address;
   token_destination.is_subaddress = info.is_subaddress;
   token_destination.token_transaction = true;
+  token_destination.output_type = cryptonote::tx_out_type::out_token;
 
   //parse bitcoin transaction hash
   cryptonote::blobdata expected_bitcoin_hash_data;

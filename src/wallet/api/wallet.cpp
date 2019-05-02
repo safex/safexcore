@@ -1256,8 +1256,10 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                     }
                     de.token_amount = *value_amount;
                     de.token_transaction = true;
+                    de.output_type = cryptonote::tx_out_type::out_token;
                 } else {
                     de.amount = *value_amount;
+                    de.output_type = cryptonote::tx_out_type::out_cash;
                 }
 
                 de.addr = info.address;

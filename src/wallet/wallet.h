@@ -244,7 +244,7 @@ namespace tools
       bool m_key_image_partial;
       std::vector<rct::key> m_multisig_k;
       std::vector<multisig_info> m_multisig_info; // one per other participant
-      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_invalid;
+      cryptonote::tx_out_type m_output_type = cryptonote::tx_out_type::out_cash; //cash outputs by default
 
       bool is_rct() const { return m_rct; }
       cryptonote::tx_out_type get_out_type() const { return m_output_type;}

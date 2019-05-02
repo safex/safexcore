@@ -658,10 +658,12 @@ bool wallet_rpc_server::validate_transfer(
             }
             de.token_amount = destination.amount;
             de.token_transaction = true;
+            de.output_type = cryptonote::tx_out_type::out_token;
         } else {
             de.amount = destination.amount;
             de.token_amount = 0;
             de.token_transaction = false;
+            de.output_type = cryptonote::tx_out_type::out_cash;
         }
 
         dsts.push_back(de);
@@ -2714,6 +2716,7 @@ bool wallet_rpc_server::on_migrate_view_only(
     token_destination.is_subaddress = info.is_subaddress;
     token_destination.token_transaction = true;
     token_destination.token_amount = req.amount * SAFEX_CASH_COIN;
+    token_destination.output_type = cryptonote::tx_out_type::out_token;
 
     //parse bitcoin transaction hash
     cryptonote::blobdata expected_bitcoin_hash_data;
@@ -2731,6 +2734,7 @@ bool wallet_rpc_server::on_migrate_view_only(
     airdrop_destination.is_subaddress = info.is_subaddress;
     airdrop_destination.token_transaction = false;
     airdrop_destination.amount = cryptonote::get_airdrop_cash(token_destination.token_amount);
+    airdrop_destination.output_type = cryptonote::tx_out_type::out_cash;
 
     std::vector<cryptonote::tx_destination_entry> dsts;
     dsts.push_back(token_destination);

@@ -885,6 +885,7 @@ bool fill_migration_tx_sources(std::vector<tx_source_entry>& sources, const std:
 bool fill_tx_destination(tx_destination_entry &de, const cryptonote::account_base &to, uint64_t amount) {
     de.addr = to.get_keys().m_account_address;
     de.amount = amount;
+    de.output_type = cryptonote::tx_out_type::out_cash;
     return true;
 }
 
@@ -892,6 +893,7 @@ bool fill_token_tx_destination(tx_destination_entry &de, const cryptonote::accou
   de.addr = to.get_keys().m_account_address;
   de.token_amount = token_amount;
   de.token_transaction = true;
+  de.output_type = cryptonote::tx_out_type::out_token;
   return true;
 }
 
