@@ -6247,7 +6247,13 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = td.token_amount();
-    src.referenced_output_type = td.get_out_type() != tx_out_type::out_invalid ? td.get_out_type(): (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
+    if (td.get_out_type() != tx_out_type::out_invalid && td.get_out_type() != tx_out_type::out_cash)
+      src.referenced_output_type = td.get_out_type();
+    else
+      src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
+
+    if (command_type == safex::command_t::token_lock && src.referenced_output_type == tx_out_type::out_token)
+          src.command_type = safex::command_t::token_lock;
     //paste keys (fake and real)
 
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
