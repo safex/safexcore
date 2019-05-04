@@ -82,7 +82,9 @@ namespace safex
   {
 
     if (nettype == cryptonote::network_type::FAKECHAIN)
-      return 10;
+      return SAFEX_DEFAULT_INTERVAL_PERIOD/100;
+    else if (nettype == cryptonote::network_type::TESTNET)
+      return SAFEX_DEFAULT_INTERVAL_PERIOD/100;
     else
       return SAFEX_DEFAULT_INTERVAL_PERIOD;
   }

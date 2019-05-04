@@ -4214,7 +4214,7 @@ void wallet::transfer_migration(
   // throw if requested send amount is greater than (unlocked) amount available to send
   std::vector<size_t> selected_transfers;
   uint64_t found_money = select_transfers(needed_money, unused_transfers_indices, selected_transfers, trusted_daemon);
-  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_money, found_money, needed_money - fee, fee);
+  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_cash, found_money, needed_money - fee, fee);
 
   uint32_t subaddr_account = m_transfers[*selected_transfers.begin()].m_subaddr_index.major;
   for (auto i = ++selected_transfers.begin(); i != selected_transfers.end(); ++i) {
@@ -6007,7 +6007,7 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
 
   LOG_PRINT_L2("wanted tokens:" << print_money(needed_tokens) << ", found tokens: " << print_money(found_tokens) << " wanted cash:" <<
       print_money(needed_money) << ", found cash:" << print_money(found_money) << ", fee " << print_money(fee) << " cash");
-  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_money, found_money, needed_money - fee, fee);
+  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_cash, found_money, needed_money - fee, fee);
   THROW_WALLET_EXCEPTION_IF(found_tokens < needed_tokens, error::not_enough_unlocked_tokens, found_tokens, needed_tokens);
 
   uint32_t subaddr_account = m_transfers[*selected_transfers.begin()].m_subaddr_index.major;
@@ -6208,7 +6208,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
 
   LOG_PRINT_L2("wanted tokens:" << print_money(needed_tokens) << ", found tokens: " << print_money(found_tokens) << " wanted cash:" <<
                                 print_money(needed_money) << ", found cash:" << print_money(found_money) << ", fee " << print_money(fee) << " cash");
-  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_money, found_money, needed_money - fee, fee);
+  THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_cash, found_money, needed_money - fee, fee);
   THROW_WALLET_EXCEPTION_IF(found_tokens < needed_tokens, error::not_enough_unlocked_tokens, found_tokens, needed_tokens);
 
   uint32_t subaddr_account = m_transfers[*selected_transfers.begin()].m_subaddr_index.major;
@@ -6998,10 +6998,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
     balance_subtotal += balance_per_subaddr[index_minor];
     unlocked_balance_subtotal += unlocked_balance_per_subaddr[index_minor];
   }
-  THROW_WALLET_EXCEPTION_IF(needed_money > balance_subtotal, error::not_enough_money,
+  THROW_WALLET_EXCEPTION_IF(needed_money > balance_subtotal, error::not_enough_cash,
     balance_subtotal, needed_money, 0);
   // first check overall balance is enough, then unlocked one, so we throw distinct exceptions
-  THROW_WALLET_EXCEPTION_IF(needed_money > unlocked_balance_subtotal, error::not_enough_unlocked_money,
+  THROW_WALLET_EXCEPTION_IF(needed_money > unlocked_balance_subtotal, error::not_enough_unlocked_cash,
       unlocked_balance_subtotal, needed_money, 0);
 
   for (uint32_t i : subaddr_indices)
@@ -8184,6 +8184,13 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token locking, for a total of " << print_money(needed_tokens)) << " tokens";
         THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
       }
+      else if (command_type == safex::command_t::donate_network_fee)
+      {
+          THROW_WALLET_EXCEPTION_IF(0 == dt.amount, error::zero_destination);
+          needed_money += dt.amount;
+          LOG_PRINT_L2("transfer: donating " << print_money(dt.amount) << " safex cash to safex token holders, for a total of " << print_money(needed_money) << " cash");
+          THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+      }
       else
       {
         THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -8191,10 +8198,11 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     }
 
     // throw if attempting a transaction with no money
-    THROW_WALLET_EXCEPTION_IF(needed_tokens == 0, error::zero_destination);
+    THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::token_lock && needed_tokens == 0, error::zero_destination);
+    THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::donate_network_fee && needed_money == 0, error::zero_destination);
 
-    std::map<uint32_t, uint64_t> unlocked_balance_per_subaddr = unlocked_balance_per_subaddress(subaddr_account);
-    std::map<uint32_t, uint64_t> balance_per_subaddr = balance_per_subaddress(subaddr_account);
+    std::map<uint32_t, uint64_t> unlocked_cash_balance_per_subaddr = unlocked_balance_per_subaddress(subaddr_account);
+    std::map<uint32_t, uint64_t> cash_balance_per_subaddr = balance_per_subaddress(subaddr_account);
     std::map<uint32_t, uint64_t> unlocked_token_balance_per_subaddr = unlocked_token_balance_per_subaddress(subaddr_account);
     std::map<uint32_t, uint64_t> token_balance_per_subaddr = token_balance_per_subaddress(subaddr_account);
 
@@ -8202,6 +8210,14 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     {
       for (const auto &i : token_balance_per_subaddr)
         subaddr_indices.insert(i.first);
+    }
+
+    uint64_t cash_balance_subtotal = 0;
+    uint64_t unlocked_cash_balance_subtotal = 0;
+    for (uint32_t index_minor : subaddr_indices)
+    {
+      cash_balance_subtotal += cash_balance_per_subaddr[index_minor];
+      unlocked_cash_balance_subtotal += unlocked_cash_balance_per_subaddr[index_minor];
     }
 
     // early out if we know we can't make it anyway
@@ -8215,9 +8231,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       unlocked_token_balance_subtotal += unlocked_token_balance_per_subaddr[index_minor];
     }
 
+
+    THROW_WALLET_EXCEPTION_IF(needed_money > cash_balance_subtotal, error::not_enough_cash, cash_balance_subtotal, needed_money, 0);
+    THROW_WALLET_EXCEPTION_IF(needed_money > unlocked_cash_balance_subtotal, error::not_enough_unlocked_cash, unlocked_cash_balance_subtotal, needed_money, 0);
     THROW_WALLET_EXCEPTION_IF(needed_tokens > token_balance_subtotal, error::not_enough_tokens, token_balance_subtotal, needed_tokens);
-    // first check overall balance is enough, then unlocked one, so we throw distinct exceptions
     THROW_WALLET_EXCEPTION_IF(needed_tokens > unlocked_token_balance_subtotal, error::not_enough_unlocked_tokens, unlocked_token_balance_subtotal, needed_tokens);
+
 
     for (uint32_t i : subaddr_indices)
       LOG_PRINT_L2("Candidate subaddress index for spending: " << i);
@@ -8318,9 +8337,9 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       //cash outputs
       std::shuffle(unused_transfers_indices_per_subaddr.begin(), unused_transfers_indices_per_subaddr.end(), g);
       std::shuffle(unused_dust_indices_per_subaddr.begin(), unused_dust_indices_per_subaddr.end(), g);
-      auto sort_cash_predicate = [&unlocked_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
+      auto sort_cash_predicate = [&unlocked_cash_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
       {
-        return unlocked_balance_per_subaddr[x.first] > unlocked_balance_per_subaddr[y.first];
+        return unlocked_cash_balance_per_subaddr[x.first] > unlocked_cash_balance_per_subaddr[y.first];
       };
       std::sort(unused_transfers_indices_per_subaddr.begin(), unused_transfers_indices_per_subaddr.end(), sort_cash_predicate);
       std::sort(unused_dust_indices_per_subaddr.begin(), unused_dust_indices_per_subaddr.end(), sort_cash_predicate);

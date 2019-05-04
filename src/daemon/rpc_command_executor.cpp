@@ -1980,8 +1980,12 @@ bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, con
     }
   }
 
-  for(auto& item : res.pairs) {
-    tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of locked tokens: " << item.amount;
+  if (start == 0)
+    tools::success_msg_writer() << "Sum  of currently locked tokens: " << res.pairs[0].amount/SAFEX_TOKEN<<".00";
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of locked tokens: " << item.amount/SAFEX_TOKEN<<".00";
+    }
   }
 
   return false;
@@ -1999,7 +2003,7 @@ bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, cons
 
   if (m_is_rpc)
   {
-    if (!m_rpc_client->rpc_request(req, res, "/get_locked_tokens", fail_msg.c_str()))
+    if (!m_rpc_client->rpc_request(req, res, "/get_network_fee", fail_msg.c_str()))
     {
       tools::fail_msg_writer() << "Failed!";
       return true;
@@ -2014,8 +2018,13 @@ bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, cons
     }
   }
 
-  for(auto& item : res.pairs) {
-    tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of network fee: " << item.amount;
+  if (start == 0)
+    tools::success_msg_writer() << "Current network fee amount: " << cryptonote::print_money(res.pairs[0].amount);
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of network fee: "
+                                  << cryptonote::print_money(item.amount);
+    }
   }
 
   return false;

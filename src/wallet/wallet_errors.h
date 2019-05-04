@@ -73,9 +73,9 @@ namespace tools
     //         get_tx_pool_error
     //       transfer_error *
     //         get_random_outs_general_error
-    //         not_enough_unlocked_money
+    //         not_enough_unlocked_cash
     //         not_enough_unlocked_tokens
-    //         not_enough_money
+    //         not_enough_cash
     //         not_enough_tokens
     //         tx_not_possible
     //         not_enough_outs_to_mix
@@ -413,10 +413,10 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     typedef failed_rpc_request<transfer_error, get_random_outs_error_message_index> get_random_outs_error;
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_unlocked_money : public transfer_error
+    struct not_enough_unlocked_cash : public transfer_error
     {
-      explicit not_enough_unlocked_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
-        : transfer_error(std::move(loc), "not enough unlocked money")
+      explicit not_enough_unlocked_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+        : transfer_error(std::move(loc), "not enough unlocked cash")
         , m_available(available)
         , m_tx_amount(tx_amount)
       {
@@ -465,9 +465,9 @@ namespace tools
       uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_money : public transfer_error
+    struct not_enough_cash : public transfer_error
     {
-      explicit not_enough_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+      explicit not_enough_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
         : transfer_error(std::move(loc), "not enough money")
         , m_available(available)
         , m_tx_amount(tx_amount)

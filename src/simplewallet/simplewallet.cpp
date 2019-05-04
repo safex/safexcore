@@ -1207,9 +1207,14 @@ simple_wallet::simple_wallet()
                            tr("Lock <token_amount> with <address> as locked tokens holder, optionally set payment_id, priority, ring_size for input tokens or token output subaddress indice"));
 
   m_cmd_binder.set_handler("unlock_token",
-                           boost::bind(&simple_wallet::lock_token, this, _1),
+                           boost::bind(&simple_wallet::unlock_token, this, _1),
                            tr("unlock_token [<command>]"),
                            tr("Unlocking tokens."));
+
+  m_cmd_binder.set_handler("donate_safex_fee",
+                           boost::bind(&simple_wallet::donate_safex_fee, this, _1),
+                           tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),
+                           tr("Donate <cash_amount> to network, optionally set payment_id, priority, ring_size for input cash or cash output subaddress indice"));
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::set_variable(const std::vector<std::string> &args)

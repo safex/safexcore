@@ -47,7 +47,8 @@ namespace cryptonote
     if (!try_connect_to_daemon())
       return true;
 
-    if (command_type == CommandType::TransferLockToken)
+    if ((command_type == CommandType::TransferLockToken) ||
+            (command_type == CommandType::TransferDonation))
     {
       //do nothing
     }
@@ -103,7 +104,7 @@ namespace cryptonote
       return true;
     }
 
-    const size_t min_args = 2;
+    const size_t min_args = (command_type == CommandType::TransferDonation) ? 1:2;
     if (local_args.size() < min_args)
     {
       fail_msg_writer() << tr("wrong number of arguments");
@@ -112,7 +113,7 @@ namespace cryptonote
 
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
-    bool expect_even = false;
+    bool expect_even = (min_args % 2 == 1);
     if ((expect_even ? 0 : 1) == local_args.size() % 2)
     {
       std::string payment_id_str = local_args.back();
@@ -151,6 +152,13 @@ namespace cryptonote
     {
       cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
       cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
+
+      if (command_type == CommandType::TransferDonation) {
+        //use my own address as destination
+        std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+        local_args.insert(local_args.begin()+i, destination_addr);
+      }
+
       if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[i], oa_prompter))
       {
         fail_msg_writer() << tr("failed to parse address");
@@ -199,6 +207,11 @@ namespace cryptonote
         de.script_output = true;
         de.output_type = tx_out_type::out_locked_token;
       }
+      else if (command_type == CommandType::TransferDonation) {
+        de.amount = value_amount;
+        de.script_output = true;
+        de.output_type = tx_out_type::out_network_fee;
+      }
 
       dsts.push_back(de);
     }
@@ -214,6 +227,10 @@ namespace cryptonote
         case CommandType::TransferLockToken:
           ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_lock, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
           break;
+
+        case CommandType::TransferDonation:
+          ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::donate_network_fee, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
+              break;
 
         default:
           LOG_ERROR("Unknown command method, using original");
@@ -410,9 +427,9 @@ namespace cryptonote
     return false;
   }
 
-  bool simple_wallet::make_donation(const std::vector<std::string> &args)
+  bool simple_wallet::donate_safex_fee(const std::vector<std::string> &args)
   {
-    return false;
+    return create_command(CommandType::TransferDonation, args);
   }
 
   bool simple_wallet::locked_token_balance(const std::vector<std::string> &args)

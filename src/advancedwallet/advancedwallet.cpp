@@ -422,7 +422,7 @@ namespace
     {
       fail_msg_writer() << tr("failed to get random outputs to mix: ") << e.what();
     }
-    catch (const tools::error::not_enough_unlocked_money& e)
+    catch (const tools::error::not_enough_unlocked_cash& e)
     {
       LOG_PRINT_L0(boost::format("not enough money to transfer, available only %s, sent amount %s") %
         print_money(e.available()) %
@@ -438,7 +438,7 @@ namespace
       fail_msg_writer() << tr("Not enough tokens in unlocked balance");
       warn_of_possible_attack = false;
     }
-    catch (const tools::error::not_enough_money& e)
+    catch (const tools::error::not_enough_cash& e)
     {
       LOG_PRINT_L0(boost::format("not enough money to transfer, available only %s, sent amount %s") %
         print_money(e.available()) %

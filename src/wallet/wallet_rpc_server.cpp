@@ -2622,14 +2622,14 @@ void wallet_rpc_server::handle_rpc_exception(const std::exception_ptr& e, epee::
         er.code = WALLET_RPC_ERROR_CODE_ZERO_DESTINATION;
         er.message = e.what();
     }
-    catch (const tools::error::not_enough_money& e)
+    catch (const tools::error::not_enough_cash& e)
     {
-        er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_MONEY;
+        er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_CASH;
         er.message = e.what();
     }
-    catch (const tools::error::not_enough_unlocked_money& e)
+    catch (const tools::error::not_enough_unlocked_cash& e)
     {
-        er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_UNLOCKED_MONEY;
+        er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_UNLOCKED_CASH;
         er.message = e.what();
     }
     catch (const tools::error::tx_not_possible& e)

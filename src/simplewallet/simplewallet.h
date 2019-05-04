@@ -244,7 +244,7 @@ namespace cryptonote
 
     bool lock_token(const std::vector<std::string>& args);
     bool unlock_token(const std::vector<std::string>& args);
-    bool make_donation(const std::vector<std::string>& args);
+    bool donate_safex_fee(const std::vector<std::string>& args);
     bool locked_token_balance(const std::vector<std::string>& args);
     /****************************************************************************************************************/
 
