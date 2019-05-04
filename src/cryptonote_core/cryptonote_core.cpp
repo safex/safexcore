@@ -1042,8 +1042,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   uint64_t core::get_network_fee_for_interval(const uint64_t& interval) const
   {
-    uint64_t start = safex::calulate_starting_block_for_interval(interval, m_nettype); 
-    return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(start));
+    return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(interval));
   }
 
 

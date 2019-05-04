@@ -541,7 +541,18 @@ namespace cryptonote
 
        tx_out_type operator()(const cryptonote::txin_to_script &txin) const
        {
-         return tx_out_type::out_invalid; //todo, based on input command, figure out type
+         switch (txin.command_type) {
+           case safex::command_t::donate_network_fee:
+             return tx_out_type::out_cash;
+           case safex::command_t::token_lock:
+             return tx_out_type::out_token;
+           case safex::command_t::token_unlock:
+             return tx_out_type::out_locked_token;
+           case safex::command_t::nop:
+           default:
+             return tx_out_type::out_invalid;
+         }
+
        }
 
        tx_out_type operator()(const cryptonote::txin_gen &txin) const

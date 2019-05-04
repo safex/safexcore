@@ -295,12 +295,12 @@ t_command_server::t_command_server(
     );
 
     m_command_lookup.set_handler(
-      "token_locked"
+      "safex_token_locked"
     , std::bind(&t_command_parser_executor::token_locked_on_interval, &m_parser, p::_1)
     , "Print amount of locked tokens for given interval (or for current interval if interval is not specified)"
     );
     m_command_lookup.set_handler(
-      "network_fee"
+      "safex_network_fee"
     , std::bind(&t_command_parser_executor::network_fee_on_interval, &m_parser, p::_1)
     , "Print amount of network fee for given interval (or for current interval if interval is not specified)"
     );
