@@ -322,7 +322,7 @@ namespace cryptonote
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_to_script &txin) const
       {
-        return {};
+        return txin.amount;
       }
 
       boost::optional<uint64_t> operator()(const cryptonote::txin_gen &txin) const
