@@ -219,8 +219,10 @@ namespace tools
       bool error;
       bool token_transfer;
       boost::optional<cryptonote::subaddress_receive_info> received;
+      cryptonote::tx_out_type output_type;
 
-      tx_scan_info_t(): in_ephemeral(AUTO_VAL_INIT(in_ephemeral)), ki(AUTO_VAL_INIT(ki)), mask(AUTO_VAL_INIT(mask)), amount(0), token_amount(0), money_transfered(0), token_transfered(0),  error(true), token_transfer(false) {}
+      tx_scan_info_t(): in_ephemeral(AUTO_VAL_INIT(in_ephemeral)), ki(AUTO_VAL_INIT(ki)), mask(AUTO_VAL_INIT(mask)), amount(0), token_amount(0),
+                        money_transfered(0), token_transfered(0),  error(true), token_transfer(false), output_type(cryptonote::tx_out_type::out_invalid) {}
     };
 
     struct transfer_details

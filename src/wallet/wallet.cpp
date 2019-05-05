@@ -905,12 +905,13 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
   {
     tx_scan_info.money_transfered = o.amount; // may be 0 for token outputs
     tx_scan_info.token_transfered = o.token_amount;
-
+    tx_scan_info.output_type = cryptonote::get_tx_out_type(o.target);
   }
   else
   {
     tx_scan_info.money_transfered = 0;
     tx_scan_info.token_transfered = 0;
+    tx_scan_info.output_type = cryptonote::tx_out_type::out_invalid;
   }
   tx_scan_info.error = false;
 }
@@ -930,7 +931,7 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
 
 
   outs.push_back(i);
-  if (tx_scan_info.token_transfer)
+  if (tx_scan_info.token_transfer && tx_scan_info.output_type == tx_out_type::out_token)
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
     tx_scan_info.token_amount = tx_scan_info.token_transfered;
@@ -1118,6 +1119,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         {
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
           uint64_t token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
+          tx_out_type output_type = cryptonote::get_tx_out_type(tx.vout[o].target);
           if (!pool)
           {
             m_transfers.push_back(boost::value_initialized<transfer_details>());
@@ -1133,27 +1135,14 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             td.m_amount = amount;
             td.m_token_amount = token_amount;
             td.m_token_transfer = td.m_token_amount > 0;
+            td.m_output_type = output_type;
             td.m_pk_index = pk_index - 1;
             td.m_subaddr_index = tx_scan_info[o].received->index;
             expand_subaddresses(tx_scan_info[o].received->index);
-            if ((tx.vout[o].amount == 0) && (tx.vout[o].token_amount == 0))
-            {
-              //ring ct
-              td.m_mask = tx_scan_info[o].mask;
-              td.m_amount = tx_scan_info[o].amount;
-              td.m_token_amount = tx_scan_info[o].token_amount;
-              td.m_rct = true;
-            }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = true;
-            }
-            else
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = false;
-            }
+
+            td.m_mask = rct::identity();
+            td.m_rct = false;
+
             set_unspent(m_transfers.size()-1);
             if (!m_watch_only)
               m_key_images[td.m_key_image] = m_transfers.size()-1;
@@ -3706,9 +3695,9 @@ std::map<uint32_t, uint64_t> wallet::token_balance_per_subaddress(uint32_t index
     {
       auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
       if (found == token_amount_per_subaddr.end())
-        token_amount_per_subaddr[td.m_subaddr_index.minor] = td.token_amount();
+        token_amount_per_subaddr[td.m_subaddr_index.minor] = td.get_out_type() == tx_out_type::out_token ? td.token_amount():0;
       else
-        found->second += td.token_amount();
+        found->second += td.get_out_type() == tx_out_type::out_token ? td.token_amount() : 0;
     }
   }
   for (const auto& utx: m_unconfirmed_txs)
@@ -3735,9 +3724,9 @@ std::map<uint32_t, uint64_t> wallet::unlocked_token_balance_per_subaddress(uint3
     {
       auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
       if (found == token_amount_per_subaddr.end())
-        token_amount_per_subaddr[td.m_subaddr_index.minor] = td.token_amount();
+        token_amount_per_subaddr[td.m_subaddr_index.minor] = td.m_output_type == tx_out_type::out_token ? td.token_amount() : 0;
       else
-        found->second += td.token_amount();
+        found->second += td.m_output_type == tx_out_type::out_token ? td.token_amount() : 0;
     }
   }
   return token_amount_per_subaddr;
@@ -10784,7 +10773,7 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
         if (tx_scan_info.received)
         {
           tx_money_got_in_outs += tx_scan_info.money_transfered;
-          tx_tokens_got_in_outs += tx_scan_info.token_transfered;
+          tx_tokens_got_in_outs += tx_scan_info.output_type == tx_out_type::out_token ? tx_scan_info.token_transfered : 0;
         }
         ++output_index;
       }
@@ -10817,13 +10806,13 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
                                       std::string("Inconsistent token amount in tx input: got ") + print_money(value_amount) +
                                       std::string(", expected ") + print_money(td.token_amount()));
           }
-          if (td.m_token_transfer)
+          if (td.m_token_transfer && td.m_output_type == tx_out_type::out_token)
           {
             value_amount = td.token_amount();
             tx_tokens_spent_in_ins += value_amount;
             LOG_PRINT_L0("Spent tokens: " << print_money(value_amount) << ", with tx: " << *spent_txid);
           }
-          else
+          else if (td.m_output_type == tx_out_type::out_cash)
           {
             value_amount = td.amount();
             tx_money_spent_in_ins += value_amount;
@@ -10867,6 +10856,7 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
       pd.m_change = (uint64_t)-1;                             // change is unknown
       pd.m_amount_in = pd.m_amount_out = td.amount();         // fee is unknown
       pd.m_token_amount_in = pd.m_token_amount_out = td.token_amount();
+      pd.m_output_type = td.m_output_type;
       std::string err;
       pd.m_block_height = get_daemon_blockchain_height(err);  // spent block height is unknown, so hypothetically set to the highest
       crypto::hash spent_txid = crypto::rand<crypto::hash>(); // spent txid is unknown, so hypothetically set to random
