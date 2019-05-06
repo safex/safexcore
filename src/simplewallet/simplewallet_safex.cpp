@@ -48,7 +48,8 @@ namespace cryptonote
       return true;
 
     if ((command_type == CommandType::TransferLockToken) ||
-            (command_type == CommandType::TransferDonation))
+            (command_type == CommandType::TransferDonation) ||
+            (command_type == CommandType::TransferUnlockToken))
     {
       //do nothing
     }
@@ -80,7 +81,13 @@ namespace cryptonote
     if (local_args.size() > 0)
     {
       size_t ring_size;
-      if (!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
+
+      if (command_type == CommandType::TransferUnlockToken)
+      {
+        ring_size = 1;
+        fake_outs_count = 0;
+      }
+      else if (!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
       {
         fake_outs_count = m_wallet->default_mixin();
         if (fake_outs_count == 0)
@@ -207,6 +214,17 @@ namespace cryptonote
         de.script_output = true;
         de.output_type = tx_out_type::out_locked_token;
       }
+      else if (command_type == CommandType::TransferUnlockToken)
+      {
+        if (!tools::is_whole_coin_amount(value_amount))
+        {
+          fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+          return true;
+        }
+        de.token_amount = value_amount;
+        de.script_output = false;
+        de.output_type = tx_out_type::out_token;
+      }
       else if (command_type == CommandType::TransferDonation) {
         de.amount = value_amount;
         de.script_output = true;
@@ -222,20 +240,27 @@ namespace cryptonote
       std::vector<tools::wallet::pending_tx> ptx_vector;
       uint64_t bc_height, unlock_block = 0;
       std::string err;
+      safex::command_t command = safex::command_t::nop;
       switch (command_type)
       {
         case CommandType::TransferLockToken:
-          ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_lock, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
+          command = safex::command_t::token_lock;
+          break;
+
+        case CommandType::TransferUnlockToken:
+          command = safex::command_t::token_unlock;
           break;
 
         case CommandType::TransferDonation:
-          ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::donate_network_fee, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
-              break;
+          command = safex::command_t::donate_network_fee;
+          break;
 
         default:
           LOG_ERROR("Unknown command method, using original");
           return true;
       }
+
+      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
 
       if (ptx_vector.empty())
       {
@@ -424,7 +449,7 @@ namespace cryptonote
 
   bool simple_wallet::unlock_token(const std::vector<std::string> &args)
   {
-    return false;
+    return create_command(CommandType::TransferUnlockToken, args);
   }
 
   bool simple_wallet::donate_safex_fee(const std::vector<std::string> &args)
@@ -444,14 +469,14 @@ namespace cryptonote
     success_msg_writer() << tr("Currently selected token account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
     const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
     success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
-    success_msg_writer() << tr("Staked Token balance: ") << print_money(m_wallet->staked_token_balance(m_current_subaddress_account)) << ", "
-      << tr("unlocked token balance: ") << print_money(m_wallet->unlocked_staked_token_balance(m_current_subaddress_account)) << extra;
+    success_msg_writer() << tr("Staked token balance: ") << print_money(m_wallet->staked_token_balance(m_current_subaddress_account)) << ", "
+      << tr("unlocked staked token balance: ") << print_money(m_wallet->unlocked_staked_token_balance(m_current_subaddress_account)) << extra;
     std::map<uint32_t, uint64_t> token_balance_per_subaddress = m_wallet->staked_token_balance_per_subaddress(m_current_subaddress_account);
     std::map<uint32_t, uint64_t> unlocked_balance_per_subaddress = m_wallet->unlocked_staked_token_balance_per_subaddress(m_current_subaddress_account);
     if (!detailed || token_balance_per_subaddress.empty())
       return true;
 
-    success_msg_writer() << tr("Staked Token balance per address:");
+    success_msg_writer() << tr("Staked token balance per address:");
     success_msg_writer() << boost::format("%15s %21s %21s %7s %21s") % tr("Address") % tr("Balance") % tr("Unlocked balance") % tr("Outputs") % tr("Label");
     std::vector<tools::wallet::transfer_details> transfers;
     m_wallet->get_transfers(transfers);

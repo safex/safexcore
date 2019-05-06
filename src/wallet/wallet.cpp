@@ -8190,15 +8190,27 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     // throw if total amount overflows uint64_t
     uint64_t needed_cash = 0;
     uint64_t needed_tokens = 0;
+    uint64_t needed_staked_tokens = 0;
     for (auto &dt: dsts)
     {
-      if (command_type == safex::command_t::token_lock)
+      if ((command_type == safex::command_t::token_lock) || (command_type == safex::command_t::token_unlock))
       {
         THROW_WALLET_EXCEPTION_IF(0 == dt.token_amount, error::zero_destination);
         THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(dt.token_amount), error::wallet_internal_error, "Token amount must be a round number.");
-        needed_tokens += dt.token_amount;
-        LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token locking, for a total of " << print_money(needed_tokens)) << " tokens";
-        THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+
+        if (command_type == safex::command_t::token_lock)
+        {
+          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token locking, for a total of " << print_money(needed_tokens)) << " tokens";
+          needed_tokens += dt.token_amount;
+          THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+        }
+        else
+        {
+          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token unlocking, for a total of " << print_money(needed_tokens)) << " locked tokens";
+          needed_staked_tokens += dt.token_amount;
+          THROW_WALLET_EXCEPTION_IF(needed_staked_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+        }
+
       }
       else if (command_type == safex::command_t::donate_network_fee)
       {
@@ -8215,12 +8227,15 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
     // throw if attempting a transaction with no money
     THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::token_lock && needed_tokens == 0, error::zero_destination);
+    THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::token_unlock && needed_staked_tokens == 0, error::zero_destination);
     THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::donate_network_fee && needed_cash == 0, error::zero_destination);
 
     std::map<uint32_t, uint64_t> unlocked_cash_balance_per_subaddr = unlocked_balance_per_subaddress(subaddr_account);
     std::map<uint32_t, uint64_t> cash_balance_per_subaddr = balance_per_subaddress(subaddr_account);
     std::map<uint32_t, uint64_t> unlocked_token_balance_per_subaddr = unlocked_token_balance_per_subaddress(subaddr_account);
     std::map<uint32_t, uint64_t> token_balance_per_subaddr = token_balance_per_subaddress(subaddr_account);
+    std::map<uint32_t, uint64_t> unlocked_staked_token_balance_per_subaddr = unlocked_staked_token_balance_per_subaddress(subaddr_account);
+    std::map<uint32_t, uint64_t> staked_token_balance_per_subaddr = staked_token_balance_per_subaddress(subaddr_account);
 
     if (subaddr_indices.empty()) // "index=<N1>[,<N2>,...]" wasn't specified -> use all the indices with non-zero unlocked balance
     {
@@ -8245,6 +8260,20 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     {
       token_balance_subtotal += token_balance_per_subaddr[index_minor];
       unlocked_token_balance_subtotal += unlocked_token_balance_per_subaddr[index_minor];
+    }
+
+    uint64_t staked_token_balance_subtotal = 0;
+    uint64_t unlocked_staked_token_balance_subtotal = 0; //funny name
+    if (command_type == safex::command_t::token_unlock) //relevant only for this command
+    {
+      for (uint32_t index_minor : subaddr_indices)
+      {
+        staked_token_balance_subtotal += staked_token_balance_per_subaddr[index_minor];
+        unlocked_staked_token_balance_subtotal += unlocked_staked_token_balance_per_subaddr[index_minor];
+      }
+
+      THROW_WALLET_EXCEPTION_IF(needed_staked_tokens > staked_token_balance_subtotal, error::not_enough_staked_tokens, staked_token_balance_subtotal, needed_staked_tokens);
+      THROW_WALLET_EXCEPTION_IF(needed_staked_tokens > unlocked_staked_token_balance_subtotal, error::not_enough_unlocked_tokens, unlocked_staked_token_balance_subtotal, needed_staked_tokens);
     }
 
 

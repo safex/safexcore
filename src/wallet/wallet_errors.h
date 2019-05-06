@@ -465,6 +465,32 @@ namespace tools
       uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
+    struct not_enough_unlocked_staked_tokens : public transfer_error
+    {
+        explicit not_enough_unlocked_staked_tokens(std::string&& loc, uint64_t token_available, uint64_t tx_token_amount)
+                : transfer_error(std::move(loc), "not enough unlocked staked tokens")
+                , m_staked_token_available(token_available)
+                , m_tx_token_amount(tx_token_amount)
+        {
+        }
+
+        uint64_t token_available() const { return m_staked_token_available; }
+        uint64_t tx_token_amount() const { return m_tx_token_amount; }
+
+        std::string to_string() const
+        {
+          std::ostringstream ss;
+          ss << transfer_error::to_string() <<
+             ", unlocked staked token available = " << cryptonote::print_money(m_staked_token_available) <<
+             ", tx token amount = " << cryptonote::print_money(m_tx_token_amount);
+          return ss.str();
+        }
+
+      private:
+        uint64_t m_staked_token_available;
+        uint64_t m_tx_token_amount;
+    };
+    //----------------------------------------------------------------------------------------------------
     struct not_enough_cash : public transfer_error
     {
       explicit not_enough_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
@@ -515,6 +541,32 @@ namespace tools
     private:
       uint64_t m_token_available;
       uint64_t m_tx_token_amount;
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct not_enough_staked_tokens : public transfer_error
+    {
+        explicit not_enough_staked_tokens(std::string&& loc, uint64_t token_available, uint64_t tx_token_amount)
+                : transfer_error(std::move(loc), "not enough staked tokens")
+                , m_staked_token_available(token_available)
+                , m_tx_token_amount(tx_token_amount)
+        {
+        }
+
+        uint64_t staked_token_available() const { return m_staked_token_available; }
+        uint64_t tx_token_amount() const { return m_tx_token_amount; }
+
+        std::string to_string() const
+        {
+          std::ostringstream ss;
+          ss << transfer_error::to_string() <<
+             ", staked token available = " << cryptonote::print_money(m_staked_token_available) <<
+             ", tx token amount = " << cryptonote::print_money(m_tx_token_amount);
+          return ss.str();
+        }
+
+      private:
+        uint64_t m_staked_token_available;
+        uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
     struct not_whole_token_amount : public transfer_error

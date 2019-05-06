@@ -85,19 +85,19 @@ namespace tools
     }
 
     std::map<uint32_t, uint64_t> wallet::unlocked_staked_token_balance_per_subaddress(uint32_t index_major) const {
-        std::map<uint32_t, uint64_t> token_amount_per_subaddr;
+        std::map<uint32_t, uint64_t> staked_token_amount_per_subaddr;
         for(const transfer_details& td: m_transfers)
         {
             if(td.m_output_type == cryptonote::tx_out_type::out_locked_token && td.m_subaddr_index.major == index_major && !td.m_spent && is_transfer_unlocked(td))
             {
-                auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
-                if (found == token_amount_per_subaddr.end())
-                    token_amount_per_subaddr[td.m_subaddr_index.minor] = td.m_output_type == tx_out_type::out_locked_token ? td.token_amount() : 0;
+                auto found = staked_token_amount_per_subaddr.find(td.m_subaddr_index.minor);
+                if (found == staked_token_amount_per_subaddr.end())
+                    staked_token_amount_per_subaddr[td.m_subaddr_index.minor] = td.m_output_type == tx_out_type::out_locked_token ? td.token_amount() : 0;
                 else
                     found->second += td.m_output_type == tx_out_type::out_locked_token ? td.token_amount() : 0;
             }
         }
-        return token_amount_per_subaddr;
+        return staked_token_amount_per_subaddr;
     }
 
 
