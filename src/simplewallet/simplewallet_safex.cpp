@@ -436,4 +436,45 @@ namespace cryptonote
   {
     return false;
   }
+
+
+  bool simple_wallet::show_staked_token_balance_unlocked(bool detailed)
+  {
+    std::string extra;
+    success_msg_writer() << tr("Currently selected token account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
+    const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
+    success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
+    success_msg_writer() << tr("Staked Token balance: ") << print_money(m_wallet->staked_token_balance(m_current_subaddress_account)) << ", "
+      << tr("unlocked token balance: ") << print_money(m_wallet->unlocked_staked_token_balance(m_current_subaddress_account)) << extra;
+    std::map<uint32_t, uint64_t> token_balance_per_subaddress = m_wallet->staked_token_balance_per_subaddress(m_current_subaddress_account);
+    std::map<uint32_t, uint64_t> unlocked_balance_per_subaddress = m_wallet->unlocked_staked_token_balance_per_subaddress(m_current_subaddress_account);
+    if (!detailed || token_balance_per_subaddress.empty())
+      return true;
+
+    success_msg_writer() << tr("Staked Token balance per address:");
+    success_msg_writer() << boost::format("%15s %21s %21s %7s %21s") % tr("Address") % tr("Balance") % tr("Unlocked balance") % tr("Outputs") % tr("Label");
+    std::vector<tools::wallet::transfer_details> transfers;
+    m_wallet->get_transfers(transfers);
+
+    for (const auto& i : token_balance_per_subaddress)
+    {
+      cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
+      std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
+      uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](const tools::wallet::transfer_details& td) { return td.m_output_type == tx_out_type::out_locked_token && !td.m_spent && td.m_subaddr_index == subaddr_index; });
+      success_msg_writer() << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_money(i.second) % print_money(unlocked_balance_per_subaddress[i.first]) % num_unspent_outputs % m_wallet->get_subaddress_label(subaddr_index);
+    }
+    return true;
+  }
+
+  bool simple_wallet::show_staked_token_balance(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+  {
+    if (args.size() > 1 || (args.size() == 1 && args[0] != "detail"))
+    {
+      fail_msg_writer() << tr("usage: balance_cash [detail]");
+      return true;
+    }
+    LOCK_IDLE_SCOPE();
+    show_staked_token_balance_unlocked(args.size() == 1);
+    return true;
+  }
 }

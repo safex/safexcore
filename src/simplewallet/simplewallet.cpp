@@ -938,6 +938,13 @@ simple_wallet::simple_wallet()
                              boost::bind(&simple_wallet::show_token_balance, this, _1),
                              tr("balance_token [detail]"),
                              tr("Show the wallet's Safex Token balance of the currently selected account."));
+
+  m_cmd_binder.set_handler("balance_staked_token",
+                             boost::bind(&simple_wallet::show_staked_token_balance, this, _1),
+                             tr("balance_token [detail]"),
+                             tr("Show the wallet's Safex Token balance of the currently selected account."));
+
+
   m_cmd_binder.set_handler("incoming_transfers",
                            boost::bind(&simple_wallet::show_incoming_transfers, this, _1),
                            tr("incoming_transfers [available|unavailable] [verbose] [index=<N1>[,<N2>[,...]]]"),
@@ -2616,6 +2623,7 @@ bool simple_wallet::show_balance(const std::vector<std::string> &args/* = std::v
   LOCK_IDLE_SCOPE();
   show_balance_unlocked(args.size() == 1);
   show_token_balance_unlocked(args.size() == 1);
+  show_staked_token_balance_unlocked(args.size() == 1);
   return true;
 }
 //----------------------------------------------------------------------------------------------------
@@ -5479,6 +5487,7 @@ void simple_wallet::print_accounts()
   {
     success_msg_writer() << tr("\nGrand total:\n  Cash balance: ") << print_money(m_wallet->balance_all()) << tr(", unlocked cash balance: ") << print_money(m_wallet->unlocked_balance_all());
     success_msg_writer() << tr("\n  Token balance: ") << print_money(m_wallet->token_balance_all()) << tr(", unlocked token balance: ") << print_money(m_wallet->unlocked_token_balance_all());
+    success_msg_writer() << tr("\n  Staked token balance: ") << print_money(m_wallet->staked_token_balance_all()) << tr(", unlocked staked token balance: ") << print_money(m_wallet->unlocked_staked_token_balance_all());
   }
 }
 //----------------------------------------------------------------------------------------------------
@@ -5499,13 +5508,14 @@ void simple_wallet::print_accounts(const std::string& tag)
     success_msg_writer() << tr("Accounts with tag: ") << tag;
     success_msg_writer() << tr("Tag's description: ") << account_tags.first.find(tag)->second;
   }
-  success_msg_writer() << boost::format("  %15s %21s %23s %21s %25s %21s") % tr("Account") % tr("Cash balance") % tr("Unlocked cash balance") % tr("Token balance") % tr("Unlocked token balance") % tr("Label");
+  success_msg_writer() << boost::format("  %15s %21s %23s %21s %25s %21s %25s %21s") % tr("Account") % tr("Cash balance") % tr("Unlocked cash balance") % tr("Token balance") % tr("Unlocked token balance") % tr("Staked balance") % tr("Staked Unlocked balance") % tr("Label");
   uint64_t total_balance = 0, total_unlocked_balance = 0, total_token_balance = 0, total_unlocked_token_balance = 0;
+  uint64_t total_staked = 0, total_unlocked_staked = 0;
   for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index)
   {
     if (account_tags.second[account_index] != tag)
       continue;
-    success_msg_writer() << boost::format(tr(" %c%8u %6s %23s %21s %21s %25s %21s"))
+    success_msg_writer() << boost::format(tr(" %c%8u %6s %23s %21s %21s %25s %21s %25s %21s"))
       % (m_current_subaddress_account == account_index ? '*' : ' ')
       % account_index
       % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
@@ -5513,14 +5523,20 @@ void simple_wallet::print_accounts(const std::string& tag)
       % print_money(m_wallet->unlocked_balance(account_index))
       % print_money(m_wallet->token_balance(account_index))
       % print_money(m_wallet->unlocked_token_balance(account_index))
+      % print_money(m_wallet->staked_token_balance(account_index))
+      % print_money(m_wallet->unlocked_staked_token_balance(account_index))
       % m_wallet->get_subaddress_label({account_index, 0});
+
+    
+    total_staked += m_wallet->staked_token_balance(account_index);
+    total_unlocked_staked += m_wallet->unlocked_staked_token_balance(account_index);
     total_balance += m_wallet->balance(account_index);
     total_unlocked_balance += m_wallet->unlocked_balance(account_index);
     total_token_balance += m_wallet->token_balance(account_index);
     total_unlocked_token_balance += m_wallet->unlocked_token_balance(account_index);
   }
-  success_msg_writer() << tr("----------------------------------------------------------------------------------------------------------------------------------------");
-  success_msg_writer() << boost::format(tr("%17s %23s %21s %21s %25s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance) % print_money(total_token_balance) % print_money(total_unlocked_token_balance);
+  success_msg_writer() << tr("---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+  success_msg_writer() << boost::format(tr("%17s %23s %21s %21s %25s %21s %25s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance) % print_money(total_token_balance) % print_money(total_unlocked_token_balance) % print_money(total_staked) % print_money(total_unlocked_staked);;
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::print_address(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
@@ -6176,6 +6192,23 @@ bool simple_wallet::import_outputs(const std::vector<std::string> &args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+namespace {
+  std::string get_output_type_string(const tx_out_type& type) {
+    success_msg_writer() << static_cast<uint32_t>(type);
+    if(type == tx_out_type::out_cash) {
+      return std::string("Cash transfer");
+    } else if(type == tx_out_type::out_token) {
+      return std::string("Token transfer");
+    }else if(type == tx_out_type::out_locked_token) {
+      return std::string("Lock token transfer");
+    }else if(type == tx_out_type::out_bitcoin_migration) {
+      return std::string("Migration transfer");
+    } else {
+      return std::string("Unknown type of transfer");
+    }
+  }
+}
+//----------------------------------------------------------------------------------------------------
 bool simple_wallet::show_transfer(const std::vector<std::string> &args)
 {
   if (args.size() != 1)
@@ -6204,6 +6237,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
         payment_id = payment_id.substr(0,16);
       success_msg_writer() << "Incoming transaction found";
       success_msg_writer() << "txid: " << txid;
+      success_msg_writer() << "Transfer type: " << get_output_type_string(pd.m_output_type);
       success_msg_writer() << "Height: " << pd.m_block_height;
       success_msg_writer() << "Timestamp: " << get_human_readable_timestamp(pd.m_timestamp);
       success_msg_writer() << "Amount: " << print_money(pd.m_amount);
@@ -6252,6 +6286,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
         payment_id = payment_id.substr(0,16);
       success_msg_writer() << "Outgoing transaction found";
       success_msg_writer() << "txid: " << txid;
+      success_msg_writer() << "Transfer type: " << get_output_type_string(pd.m_output_type);
       success_msg_writer() << "Height: " << pd.m_block_height;
       success_msg_writer() << "Timestamp: " << get_human_readable_timestamp(pd.m_timestamp);
       success_msg_writer() << "Amount: " << print_money(pd.m_amount_in - change - fee);
@@ -6280,6 +6315,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
           payment_id = payment_id.substr(0,16);
         success_msg_writer() << "Unconfirmed incoming transaction found in the txpool";
         success_msg_writer() << "txid: " << txid;
+        success_msg_writer() << "Transfer type: " << get_output_type_string(pd.m_output_type);
         success_msg_writer() << "Timestamp: " << get_human_readable_timestamp(pd.m_timestamp);
         success_msg_writer() << "Amount: " << print_money(pd.m_amount);
         success_msg_writer() << "Token Amount: " << print_money(pd.m_token_amount);

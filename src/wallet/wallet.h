@@ -672,6 +672,10 @@ namespace tools
     // all locked & unlocked balances of all subaddress accounts
     std::map<uint32_t, uint64_t> token_balance_per_subaddress(uint32_t subaddr_index_major) const;
     std::map<uint32_t, uint64_t> unlocked_token_balance_per_subaddress(uint32_t subaddr_index_major) const;
+
+    uint64_t staked_token_balance_all() const;
+    uint64_t unlocked_staked_token_balance_all() const;
+
     uint64_t balance_all() const;
     uint64_t unlocked_balance_all() const;
     uint64_t token_balance_all() const;

@@ -101,6 +101,22 @@ namespace tools
     }
 
 
+    uint64_t wallet::staked_token_balance_all() const
+    {
+        uint64_t r = 0;
+        for (uint32_t index_major = 0; index_major < get_num_subaddress_accounts(); ++index_major)
+            r += staked_token_balance(index_major);
+        return r;
+    }
+
+    uint64_t wallet::unlocked_staked_token_balance_all() const
+    {
+        uint64_t r = 0;
+        for (uint32_t index_major = 0; index_major < get_num_subaddress_accounts(); ++index_major)
+            r += unlocked_staked_token_balance(index_major);
+        return r;
+    }
+
 //------------------------------------------------------------------------------------------------------------------
 
     std::vector<wallet::pending_tx> wallet::create_lock_transaction(

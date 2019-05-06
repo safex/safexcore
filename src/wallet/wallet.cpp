@@ -30,6 +30,7 @@
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 #include <numeric>
+#include <iostream>
 #include <random>
 #include <tuple>
 #include <boost/format.hpp>
@@ -3645,6 +3646,10 @@ std::map<uint32_t, uint64_t> wallet::balance_per_subaddress(uint32_t index_major
   std::map<uint32_t, uint64_t> amount_per_subaddr;
   for (const auto& td: m_transfers)
   {
+    if(td.m_output_type != cryptonote::tx_out_type::out_token) {
+      continue;
+    }
+
     if (td.m_subaddr_index.major == index_major && !td.m_spent)
     {
       auto found = amount_per_subaddr.find(td.m_subaddr_index.minor);
@@ -3656,6 +3661,10 @@ std::map<uint32_t, uint64_t> wallet::balance_per_subaddress(uint32_t index_major
   }
   for (const auto& utx: m_unconfirmed_txs)
   {
+    if(  utx.second.m_output_type != cryptonote::tx_out_type::out_token) {
+      continue;
+    }
+
     if (utx.second.m_subaddr_account == index_major && utx.second.m_state != wallet::unconfirmed_transfer_details::failed)
     {
       // all changes go to 0-th subaddress (in the current subaddress account)
@@ -3685,12 +3694,14 @@ std::map<uint32_t, uint64_t> wallet::unlocked_balance_per_subaddress(uint32_t in
   }
   return amount_per_subaddr;
 }
+
 //----------------------------------------------------------------------------------------------------
 std::map<uint32_t, uint64_t> wallet::token_balance_per_subaddress(uint32_t index_major) const
 {
   std::map<uint32_t, uint64_t> token_amount_per_subaddr;
   for (const auto& td: m_transfers)
   {
+
     if (td.m_subaddr_index.major == index_major && !td.m_spent)
     {
       auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
@@ -3702,6 +3713,9 @@ std::map<uint32_t, uint64_t> wallet::token_balance_per_subaddress(uint32_t index
   }
   for (const auto& utx: m_unconfirmed_txs)
   {
+    if(  utx.second.m_output_type != cryptonote::tx_out_type::out_token) {
+      continue;
+    }
     if (utx.second.m_subaddr_account == index_major && utx.second.m_state != wallet::unconfirmed_transfer_details::failed)
     {
       // all changes go to 0-th subaddress (in the current subaddress account)
@@ -3714,6 +3728,9 @@ std::map<uint32_t, uint64_t> wallet::token_balance_per_subaddress(uint32_t index
   }
   return token_amount_per_subaddr;
 }
+
+//----------------------------------------------------------------------------------------------------
+
 //----------------------------------------------------------------------------------------------------
 std::map<uint32_t, uint64_t> wallet::unlocked_token_balance_per_subaddress(uint32_t index_major) const
 {
