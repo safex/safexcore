@@ -48,6 +48,61 @@ using namespace cryptonote;
 
 namespace tools
 {
+
+    uint64_t wallet::staked_token_balance(uint32_t index_major) const {
+        uint64_t staked_token_amount = 0;
+        // if(m_light_wallet)
+        //     return m_light_wallet_unlocked_token_balance;
+        for (const auto& i : staked_token_balance_per_subaddress(index_major))
+            staked_token_amount += i.second;
+        return staked_token_amount;
+    }
+
+    std::map<uint32_t, uint64_t> wallet::staked_token_balance_per_subaddress(uint32_t index_major) const {
+        std::map<uint32_t, uint64_t> staked_token_amount_per_subaddr;
+        for (const auto& td: m_transfers)
+        {
+            if (td.m_subaddr_index.major == index_major && !td.m_spent && td.m_output_type == tx_out_type::out_locked_token)
+            {
+                auto found = staked_token_amount_per_subaddr.find(td.m_subaddr_index.minor);
+                if (found == staked_token_amount_per_subaddr.end())
+                    staked_token_amount_per_subaddr[td.m_subaddr_index.minor] = td.get_out_type() == tx_out_type::out_locked_token ? td.token_amount():0;
+                else
+                    found->second += td.get_out_type() == tx_out_type::out_locked_token ? td.token_amount() : 0;
+            }
+        }
+        
+        return staked_token_amount_per_subaddr;
+    }
+
+    uint64_t wallet::unlocked_staked_token_balance(uint32_t index_major) const {
+        uint64_t staked_token_amount = 0;
+        // if(m_light_wallet)
+        //     return m_light_wallet_unlocked_token_balance;
+        for (const auto& i : unlocked_staked_token_balance_per_subaddress(index_major))
+            staked_token_amount += i.second;
+        return staked_token_amount;
+    }
+
+    std::map<uint32_t, uint64_t> wallet::unlocked_staked_token_balance_per_subaddress(uint32_t index_major) const {
+        std::map<uint32_t, uint64_t> token_amount_per_subaddr;
+        for(const transfer_details& td: m_transfers)
+        {
+            if(td.m_output_type == cryptonote::tx_out_type::out_locked_token && td.m_subaddr_index.major == index_major && !td.m_spent && is_transfer_unlocked(td))
+            {
+                auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
+                if (found == token_amount_per_subaddr.end())
+                    token_amount_per_subaddr[td.m_subaddr_index.minor] = td.m_output_type == tx_out_type::out_locked_token ? td.token_amount() : 0;
+                else
+                    found->second += td.m_output_type == tx_out_type::out_locked_token ? td.token_amount() : 0;
+            }
+        }
+        return token_amount_per_subaddr;
+    }
+
+
+//------------------------------------------------------------------------------------------------------------------
+
     std::vector<wallet::pending_tx> wallet::create_lock_transaction(
         std::vector<cryptonote::tx_destination_entry> dsts, 
         const size_t fake_outs_count, 
