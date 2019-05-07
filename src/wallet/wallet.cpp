@@ -3646,7 +3646,7 @@ std::map<uint32_t, uint64_t> wallet::balance_per_subaddress(uint32_t index_major
   std::map<uint32_t, uint64_t> amount_per_subaddr;
   for (const auto& td: m_transfers)
   {
-    if(td.m_output_type != cryptonote::tx_out_type::out_token) {
+    if(td.m_output_type != cryptonote::tx_out_type::out_cash) {
       continue;
     }
 
@@ -3661,7 +3661,7 @@ std::map<uint32_t, uint64_t> wallet::balance_per_subaddress(uint32_t index_major
   }
   for (const auto& utx: m_unconfirmed_txs)
   {
-    if(  utx.second.m_output_type != cryptonote::tx_out_type::out_token) {
+    if(  utx.second.m_output_type != cryptonote::tx_out_type::out_cash) {
       continue;
     }
 
@@ -3683,6 +3683,10 @@ std::map<uint32_t, uint64_t> wallet::unlocked_balance_per_subaddress(uint32_t in
   std::map<uint32_t, uint64_t> amount_per_subaddr;
   for(const transfer_details& td: m_transfers)
   {
+    if(td.m_output_type != cryptonote::tx_out_type::out_cash) {
+      continue;
+    }
+
     if(td.m_subaddr_index.major == index_major && !td.m_spent && is_transfer_unlocked(td))
     {
       auto found = amount_per_subaddr.find(td.m_subaddr_index.minor);
@@ -3701,6 +3705,9 @@ std::map<uint32_t, uint64_t> wallet::token_balance_per_subaddress(uint32_t index
   std::map<uint32_t, uint64_t> token_amount_per_subaddr;
   for (const auto& td: m_transfers)
   {
+    if(td.m_output_type != cryptonote::tx_out_type::out_token) {
+      continue;
+    }
 
     if (td.m_subaddr_index.major == index_major && !td.m_spent)
     {
@@ -3737,6 +3744,10 @@ std::map<uint32_t, uint64_t> wallet::unlocked_token_balance_per_subaddress(uint3
   std::map<uint32_t, uint64_t> token_amount_per_subaddr;
   for(const transfer_details& td: m_transfers)
   {
+    if(td.m_output_type != cryptonote::tx_out_type::out_token) {
+      continue;
+    }
+
     if(td.m_subaddr_index.major == index_major && !td.m_spent && is_token_transfer_unlocked(td))
     {
       auto found = token_amount_per_subaddr.find(td.m_subaddr_index.minor);
