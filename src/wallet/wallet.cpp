@@ -6189,6 +6189,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   uint64_t upper_transaction_size_limit = get_upper_transaction_size_limit();
   uint64_t needed_money = fee;
   uint64_t needed_tokens = 0;
+  uint64_t needed_staked_tokens = 0;
   LOG_PRINT_L2("transfer: starting with fee " << print_money (needed_money));
 
   // calculate total amount being sent to all destinations
@@ -6197,25 +6198,38 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   {
     //THROW_WALLET_EXCEPTION_IF((dt.output_type == tx_out_type::out_locked_token && dt.token_amount > 10000), error::insufficient_token_lock_amount);
     needed_money += dt.amount;
-    needed_tokens += dt.token_amount;
+    if (command_type == safex::command_t::token_unlock)
+    {
+      needed_staked_tokens += dt.token_amount;
+      THROW_WALLET_EXCEPTION_IF(needed_staked_tokens <  dt.token_amount, error::tx_sum_overflow, dsts, fee, m_nettype);
+    }
+    else
+    {
+      needed_tokens += dt.token_amount;
+      THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, fee, m_nettype);
+    }
+
     LOG_PRINT_L2("advanced transfer: adding " << print_money(dt.token_amount) << " tokens, for a total of " << print_money (needed_tokens) <<
                                      " tokens and " << print_money(dt.amount) << " cash, for a total of " << print_money (needed_money) << " cash");
     THROW_WALLET_EXCEPTION_IF(needed_money < dt.amount, error::tx_sum_overflow, dsts, fee, m_nettype);
-    THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, fee, m_nettype);
+
   }
 
   uint64_t found_money = 0;
   uint64_t found_tokens = 0;
+  uint64_t found_staked_tokens = 0;
   for(size_t idx: selected_transfers)
   {
     found_money += m_transfers[idx].amount();
-    found_tokens += m_transfers[idx].token_amount();
+    found_tokens += m_transfers[idx].m_output_type == tx_out_type::out_token ? m_transfers[idx].token_amount() : 0;
+    found_staked_tokens += m_transfers[idx].m_output_type == tx_out_type::out_locked_token ? m_transfers[idx].token_amount() : 0;
   }
 
   LOG_PRINT_L2("wanted tokens:" << print_money(needed_tokens) << ", found tokens: " << print_money(found_tokens) << " wanted cash:" <<
                                 print_money(needed_money) << ", found cash:" << print_money(found_money) << ", fee " << print_money(fee) << " cash");
   THROW_WALLET_EXCEPTION_IF(found_money < needed_money, error::not_enough_unlocked_cash, found_money, needed_money - fee, fee);
   THROW_WALLET_EXCEPTION_IF(found_tokens < needed_tokens, error::not_enough_unlocked_tokens, found_tokens, needed_tokens);
+  THROW_WALLET_EXCEPTION_IF(found_staked_tokens < needed_staked_tokens, error::not_enough_unlocked_staked_tokens, found_staked_tokens, needed_staked_tokens);
 
   uint32_t subaddr_account = m_transfers[*selected_transfers.begin()].m_subaddr_index.major;
   for (auto i = ++selected_transfers.begin(); i != selected_transfers.end(); ++i)
@@ -6227,11 +6241,12 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_token); // may throw
     else if (command_type == safex::command_t::donate_network_fee)
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_cash); // may throw
-
+    else if (command_type == safex::command_t::token_unlock)
+      get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_locked_token); // may throw
   }
 
 
-  if (command_type == safex::command_t::token_lock)
+  if ((command_type == safex::command_t::token_lock) || (command_type == safex::command_t::token_unlock))
   {
     //find also outputs for cash fee payment in case of token transaction
     std::vector<std::vector<tools::wallet::get_outs_entry>> cash_fee_outs = AUTO_VAL_INIT(cash_fee_outs);
@@ -6268,6 +6283,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
           src.command_type = safex::command_t::token_lock;
     else if (command_type == safex::command_t::donate_network_fee && src.referenced_output_type == tx_out_type::out_cash)
       src.command_type = safex::command_t::donate_network_fee;
+    else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
+      src.command_type = safex::command_t::token_unlock;
 
     //paste keys (fake and real)
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
@@ -6303,6 +6320,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.command_type = safex::command_t::token_lock;
     else  if (command_type == safex::command_t::donate_network_fee && src.referenced_output_type == tx_out_type::out_cash)
       src.command_type = safex::command_t::donate_network_fee;
+    else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
+      src.command_type = safex::command_t::token_unlock;
 
     detail::print_source_entry(src);
     ++out_index;
@@ -6323,6 +6342,9 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     change_token_dts.addr = get_subaddress({subaddr_account, 0});
     change_token_dts.token_amount = found_tokens - needed_tokens;
   }
+
+  THROW_WALLET_EXCEPTION_IF(needed_staked_tokens != found_staked_tokens, error::wallet_internal_error, "Staked tokens and output unstaked tokens does not match");
+
 
   std::vector<cryptonote::tx_destination_entry> splitted_dsts, dust_dsts;
   uint64_t dust = 0;
@@ -8129,9 +8151,9 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     THROW_WALLET_EXCEPTION_IF(m_light_wallet, error::not_supported);
 
     std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_token_transfers_indices_per_subaddr;
-    std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_token_dust_indices_per_subaddr;
     std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_cash_transfers_indices_per_subaddr;
     std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_cash_dust_indices_per_subaddr;
+    std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_staked_token_transfers_indices_per_subaddr;
 
     struct ADVANCED_TX
     {
@@ -8291,6 +8313,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     size_t num_dust_outputs = 0;
     size_t num_nondust_token_outputs = 0;
     size_t num_dust_token_outputs = 0;
+    size_t num_nondust_staked_token_outputs = 0;
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
       const transfer_details &td = m_transfers[i];
@@ -8302,38 +8325,36 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
         //todo find locked tokens here
 
-        if (td.token_amount() > 0)
+
+        if ((command_type == safex::command_t::token_unlock) && td.m_output_type == cryptonote::tx_out_type::out_locked_token)
         {
-          if (is_valid_decomposed_amount(td.token_amount()))
+          auto found = std::find_if(unused_staked_token_transfers_indices_per_subaddr.begin(), unused_staked_token_transfers_indices_per_subaddr.end(), find_predicate);
+          if (found == unused_staked_token_transfers_indices_per_subaddr.end())
           {
-            auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
-            if (found == unused_token_transfers_indices_per_subaddr.end())
-            {
-              unused_token_transfers_indices_per_subaddr.push_back({index_minor, {i}});
-            }
-            else
-            {
-              found->second.push_back(i);
-            }
-            ++num_nondust_token_outputs;
+            unused_staked_token_transfers_indices_per_subaddr.push_back({index_minor, {i}});
           }
           else
           {
-            auto found = std::find_if(unused_token_dust_indices_per_subaddr.begin(), unused_token_dust_indices_per_subaddr.end(), find_predicate);
-            if (found == unused_token_dust_indices_per_subaddr.end())
-            {
-              unused_token_dust_indices_per_subaddr.push_back({index_minor, {i}});
-            }
-            else
-            {
-              found->second.push_back(i);
-            }
-            ++num_dust_token_outputs;
+            found->second.push_back(i);
           }
+          ++num_nondust_staked_token_outputs;
+        }
+        else if (td.token_amount() > 0 &&  td.m_output_type == cryptonote::tx_out_type::out_token)
+        {
+          auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
+          if (found == unused_token_transfers_indices_per_subaddr.end())
+          {
+            unused_token_transfers_indices_per_subaddr.push_back({index_minor, {i}});
+          }
+          else
+          {
+            found->second.push_back(i);
+          }
+          ++num_nondust_token_outputs;
         }
 
         //for cash fee payment
-        if (td.amount() > 0)
+        if (td.amount() > 0 && td.m_output_type == cryptonote::tx_out_type::out_cash)
         {
           if (is_valid_decomposed_amount(td.amount()))
           {
@@ -8369,15 +8390,32 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     {
       std::random_device rd;
       std::mt19937 g(rd());
-      //token outputs
-      std::shuffle(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), g);
-      std::shuffle(unused_token_dust_indices_per_subaddr.begin(), unused_token_dust_indices_per_subaddr.end(), g);
-      auto sort_token_predicate = [&unlocked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
-      {
-        return unlocked_token_balance_per_subaddr[x.first] > unlocked_token_balance_per_subaddr[y.first];
-      };
-      std::sort(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), sort_token_predicate);
-      std::sort(unused_token_dust_indices_per_subaddr.begin(), unused_token_dust_indices_per_subaddr.end(), sort_token_predicate);
+
+      //staked token outputs
+      if (command_type == safex::command_t::token_unlock) {
+        //token outputs
+        std::shuffle(unused_staked_token_transfers_indices_per_subaddr.begin(), unused_staked_token_transfers_indices_per_subaddr.end(), g);
+        auto sort_token_predicate = [&unlocked_staked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
+        {
+          return unlocked_staked_token_balance_per_subaddr[x.first] > unlocked_staked_token_balance_per_subaddr[y.first];
+        };
+        std::sort(unused_staked_token_transfers_indices_per_subaddr.begin(), unused_staked_token_transfers_indices_per_subaddr.end(), sort_token_predicate);
+
+        if (unused_staked_token_transfers_indices_per_subaddr.empty())
+          return std::vector<wallet::pending_tx>();
+
+      } else {
+        //token outputs
+        std::shuffle(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), g);
+        auto sort_token_predicate = [&unlocked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
+        {
+          return unlocked_token_balance_per_subaddr[x.first] > unlocked_token_balance_per_subaddr[y.first];
+        };
+        std::sort(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), sort_token_predicate);
+
+        if (unused_token_transfers_indices_per_subaddr.empty())
+          return std::vector<wallet::pending_tx>();
+      }
 
       //cash outputs
       std::shuffle(unused_cash_transfers_indices_per_subaddr.begin(), unused_cash_transfers_indices_per_subaddr.end(), g);
@@ -8393,21 +8431,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     LOG_PRINT_L2("Starting with " << num_nondust_token_outputs << " token non-dust outputs and " << num_dust_token_outputs << " token dust outputs, " <<
                                   num_nondust_outputs << " non-dust cash outputs and " << num_dust_outputs << " dust cash outputs");
 
-    if (unused_token_dust_indices_per_subaddr.empty() && unused_token_transfers_indices_per_subaddr.empty())
-      return std::vector<wallet::pending_tx>();
 
     if (unused_cash_dust_indices_per_subaddr.empty() && unused_cash_transfers_indices_per_subaddr.empty())
       return std::vector<wallet::pending_tx>();
 
     // if empty, put dummy entry so that the front can be referenced later in the loop
-    if (unused_token_dust_indices_per_subaddr.empty())
-      unused_token_dust_indices_per_subaddr.push_back({});
     if (unused_token_transfers_indices_per_subaddr.empty())
       unused_token_transfers_indices_per_subaddr.push_back({});
     if (unused_cash_dust_indices_per_subaddr.empty())
       unused_cash_dust_indices_per_subaddr.push_back({});
     if (unused_cash_transfers_indices_per_subaddr.empty())
       unused_cash_transfers_indices_per_subaddr.push_back({});
+    if (unused_staked_token_transfers_indices_per_subaddr.empty())
+      unused_staked_token_transfers_indices_per_subaddr.push_back({});
 
     // start with an empty tx
     std::vector<ADVANCED_TX> txes;
@@ -8416,6 +8452,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     uint64_t needed_fee = 0, available_for_fee = 0; //this is safex cash
     uint64_t accumulated_cash_fee = 0, accumulated_cash_outputs = 0, accumulated_cash_change = 0;
     uint64_t accumulated_token_outputs = 0, accumulated_token_change = 0;
+    uint64_t accumulated_staked_token_outputs = 0;
+
     bool adding_fee = false; // true if new outputs go towards fee, rather than destinations
 
     std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
@@ -8425,18 +8463,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     // - or we need to gather more fee
     unsigned int original_output_index = 0;
     std::vector<size_t> *unused_token_transfers_indices = &unused_token_transfers_indices_per_subaddr[0].second;
-    std::vector<size_t> *unused_token_dust_indices = &unused_token_dust_indices_per_subaddr[0].second;
     std::vector<size_t> *unused_cash_transfers_indices = &unused_cash_transfers_indices_per_subaddr[0].second;
     std::vector<size_t> *unused_cash_dust_indices = &unused_cash_dust_indices_per_subaddr[0].second;
+    std::vector<size_t> *unused_staked_token_transfers_indices = &unused_staked_token_transfers_indices_per_subaddr[0].second;
+
 
     hwdev.set_mode(hw::device::TRANSACTION_CREATE_FAKE);
     while ((!dsts.empty() && (dsts[0].token_amount > 0 || dsts[0].amount > 0)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 
-      LOG_PRINT_L2("Start of loop with " << unused_token_transfers_indices->size() << " " << unused_token_dust_indices->size());
+      LOG_PRINT_L2("Start of loop with tokens: " << unused_token_transfers_indices->size() << " staked_tokens: " << unused_staked_token_transfers_indices->size());
       LOG_PRINT_L2("unused_token_transfers_indices: " << strjoin(*unused_token_transfers_indices, " "));
-      LOG_PRINT_L2("unused_token_dust_indices: " << strjoin(*unused_token_dust_indices, " "));
+      LOG_PRINT_L2("unused_staked_token_transfers_indices: " << strjoin(*unused_staked_token_transfers_indices, " "));
       LOG_PRINT_L2("unused_cash_transfers_indices: " << strjoin(*unused_cash_transfers_indices, " "));
       LOG_PRINT_L2("unused_cash_dust_indices: " << strjoin(*unused_cash_dust_indices, " "));
       LOG_PRINT_L2("dsts size " << dsts.size() << ", first " << (dsts.empty() ? "-" : cryptonote::print_money(dsts[0].token_amount)));
@@ -8451,23 +8490,28 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
       }
         // if we need to spend tokens and don't have any left, we fail
-      else if (!adding_fee && needed_tokens>0 && unused_token_dust_indices->empty() && unused_token_transfers_indices->empty())
+      else if (!adding_fee && needed_tokens > 0 && unused_token_transfers_indices->empty())
       {
         LOG_PRINT_L2("No more token outputs to choose from");
         THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_token_balance(subaddr_account), needed_tokens, accumulated_cash_fee + needed_fee);
+      }
+      else if (!adding_fee && needed_staked_tokens > 0 && unused_staked_token_transfers_indices->empty())
+      {
+        LOG_PRINT_L2("No more staked token outputs to choose from");
+        THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_staked_token_balance(subaddr_account), needed_staked_tokens, accumulated_cash_fee + needed_fee);
       }
 
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
       size_t idx;
-      if ((dsts.empty() || ((needed_tokens>0 &&  dsts[0].token_amount == 0) || (needed_cash>0 &&  dsts[0].amount == 0)))
+      if ((dsts.empty() || ((needed_tokens > 0 && dsts[0].token_amount == 0) || (needed_cash > 0 && dsts[0].amount == 0) || (needed_staked_tokens > 0 && dsts[0].token_amount == 0)))
           && !adding_fee)
       {
         std::vector<size_t> indices;
         idx = pop_best_value(indices, tx.selected_transfers, true, true);
 
         // we might not want to add it if it's a large output and we don't have many left
-        if (needed_tokens > 0 && m_transfers[idx].token_amount() >= m_min_output_value)
+        if (needed_staked_tokens > 0 && m_transfers[idx].token_amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_locked_token)
         {
           if (get_count_above(m_transfers, *unused_token_transfers_indices, m_min_output_value) < m_min_output_count)
           {
@@ -8476,7 +8520,17 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           }
         }
 
-        if (needed_cash > 0 && m_transfers[idx].amount() >= m_min_output_value) {
+        // we might not want to add it if it's a large output and we don't have many left
+        if (needed_tokens > 0 && m_transfers[idx].token_amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_token)
+        {
+          if (get_count_above(m_transfers, *unused_token_transfers_indices, m_min_output_value) < m_min_output_count)
+          {
+            LOG_PRINT_L2("Second token output was not strictly needed, and we're running out of outputs above " << print_money(m_min_output_value) << ", not adding");
+            break;
+          }
+        }
+
+        if (needed_cash > 0 && m_transfers[idx].amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_cash) {
             if (get_count_above(m_transfers, *unused_cash_transfers_indices, m_min_output_value) <
                 m_min_output_count) {
                 LOG_PRINT_L2("Second token output was not strictly needed, and we're running out of outputs above "
@@ -8493,9 +8547,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           LOG_PRINT_L2("Second output was not strictly needed, and relatedness " << relatedness << ", not adding");
           break;
         }
-          if (needed_tokens > 0) {
+          if (needed_staked_tokens > 0) {
+            pop_if_present(*unused_staked_token_transfers_indices, idx);
+          } else if (needed_tokens > 0) {
               pop_if_present(*unused_token_transfers_indices, idx);
-              pop_if_present(*unused_token_dust_indices, idx);
           } else if (needed_cash > 0) {
               pop_if_present(*unused_cash_transfers_indices, idx);
               pop_if_present(*unused_cash_dust_indices, idx);
@@ -8505,12 +8560,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       {
         idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers);
       }
-      else {
-        if (needed_tokens > 0) {
-            idx = pop_best_value(unused_token_transfers_indices->empty() ? *unused_token_dust_indices : *unused_token_transfers_indices, tx.selected_transfers, true);
+      else
+      {
+        if (needed_staked_tokens > 0)
+        {
+          idx = pop_best_value(*unused_staked_token_transfers_indices, tx.selected_transfers, true);
         }
-        else if (needed_cash > 0) {
-            idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true);
+        else if (needed_tokens > 0)
+        {
+          idx = pop_best_value(*unused_token_transfers_indices, tx.selected_transfers, true);
+        }
+        else if (needed_cash > 0)
+        {
+          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true);
         }
       }
 
@@ -8518,15 +8580,20 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       const transfer_details &td = m_transfers[idx];
       if (adding_fee || needed_cash > 0)
         LOG_PRINT_L2("Picking output " << idx << ", cash amount " << print_money(td.amount()) << ", ki " << td.m_key_image);
-      else
+      else if (needed_tokens > 0)
         LOG_PRINT_L2("Picking output " << idx << ", token amount " << print_money(td.token_amount()) << ", ki " << td.m_key_image);
+      else if (needed_staked_tokens > 0)
+        LOG_PRINT_L2("Picking output " << idx << ", staked token amount " << print_money(td.token_amount()) << ", ki " << td.m_key_image);
 
       // add this output to the list to spend
       uint64_t available_cash_amount = td.amount();
-      uint64_t available_token_amount = td.token_amount();
+      uint64_t available_token_amount = td.get_out_type() == tx_out_type::out_token ? td.token_amount() : 0;
+      uint64_t available_staked_token_amount = td.get_out_type() == tx_out_type::out_locked_token ? td.token_amount() : 0;
+
       tx.selected_transfers.push_back(idx);
       accumulated_cash_outputs += available_cash_amount;
       accumulated_token_outputs += available_token_amount;
+      accumulated_staked_token_outputs += available_staked_token_amount;
 
       // clear any fake outs we'd already gathered, since we'll need a new set
       outs.clear();
@@ -8538,14 +8605,21 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       }
       else
       {
-        while (!dsts.empty() && (dsts[0].token_amount <= available_token_amount && dsts[0].amount <= available_cash_amount) &&
+        while (!dsts.empty() && (((dsts[0].token_amount <= available_token_amount) || ( command_type == safex::command_t::token_unlock && dsts[0].token_amount <= available_staked_token_amount))
+        && (dsts[0].amount <= available_cash_amount)) &&
                estimate_tx_size(tx.selected_transfers.size(), fake_outs_count, tx.dsts.size(), extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can fully pay that destination
           LOG_PRINT_L2("We can fully pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
-                                           " for " << print_money(dsts[0].amount)<<" cash " << print_money(dsts[0].token_amount)<<" tokens");
+                                           " for " << print_money(dsts[0].amount)<<" cash " << print_money(dsts[0].output_type == tx_out_type::out_token && dsts[0].token_amount)<<" tokens"
+                                           << print_money(dsts[0].output_type == tx_out_type::out_locked_token &&  dsts[0].token_amount)<<" staked tokens");
+
           tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, m_merge_destinations);
-          available_token_amount -= dsts[0].token_amount;
+          if (command_type == safex::command_t::token_unlock)
+            available_staked_token_amount -=  dsts[0].token_amount;
+          else
+            available_token_amount -= dsts[0].token_amount;
+
           available_cash_amount -= dsts[0].amount;
           dsts[0].token_amount = 0;
           dsts[0].amount = 0;
@@ -8553,8 +8627,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           ++original_output_index;
         }
 
+        if ((needed_staked_tokens > 0 && available_staked_token_amount > 0) && !dsts.empty()  && dsts[0].token_amount == available_staked_token_amount
+        && estimate_tx_size(tx.selected_transfers.size(), fake_outs_count, tx.dsts.size(), extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
+        {
+          // we can partially fill that destination
+          LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+                                               " for " << print_money(available_staked_token_amount) << "/" << print_money(dsts[0].token_amount));
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, 0, available_staked_token_amount, original_output_index, m_merge_destinations);
+          dsts[0].token_amount -= available_staked_token_amount;
+          available_staked_token_amount = 0;
+        }
+
         if ((needed_tokens > 0 && available_token_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size(), fake_outs_count, tx.dsts.size(), extra.size())
-                                                                                 < TX_SIZE_TARGET(upper_transaction_size_limit))
+                                                                                  < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
@@ -8564,16 +8649,16 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           available_token_amount = 0;
         }
 
-          if ((needed_cash > 0 && available_cash_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size(), fake_outs_count, tx.dsts.size(), extra.size())
-                                                                                   < TX_SIZE_TARGET(upper_transaction_size_limit))
-          {
-              // we can partially fill that destination
-              LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
-                                                   " for " << print_money(available_cash_amount) << "/" << print_money(dsts[0].amount));
-              tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, available_cash_amount, 0, original_output_index, m_merge_destinations);
-              dsts[0].amount -= available_cash_amount;
-              available_cash_amount = 0;
-          }
+        if ((needed_cash > 0 && available_cash_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size(), fake_outs_count, tx.dsts.size(), extra.size())
+                                                                               < TX_SIZE_TARGET(upper_transaction_size_limit))
+        {
+          // we can partially fill that destination
+          LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+                                               " for " << print_money(available_cash_amount) << "/" << print_money(dsts[0].amount));
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, available_cash_amount, 0, original_output_index, m_merge_destinations);
+          dsts[0].amount -= available_cash_amount;
+          available_cash_amount = 0;
+        }
       }
 
       // here, check if we need to sent tx and start a new one
@@ -8697,17 +8782,24 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       // pop front of unused_*_indices_per_subaddr and have unused_*_indices point to the front of unused_*_indices_per_subaddr
       if (!dsts.empty() && (dsts[0].token_amount > 0) && (!adding_fee))
       {
+        if (command_type == safex::command_t::token_unlock)
+        {
+          if (unused_staked_token_transfers_indices->empty() && unused_staked_token_transfers_indices_per_subaddr.size() > 1)
+          {
+            unused_staked_token_transfers_indices_per_subaddr.erase(unused_staked_token_transfers_indices_per_subaddr.begin());
+            unused_staked_token_transfers_indices = &unused_staked_token_transfers_indices_per_subaddr[0].second;
+          }
+        }
+        else
+        {
+          if (unused_token_transfers_indices->empty() && unused_token_transfers_indices_per_subaddr.size() > 1)
+          {
+            unused_token_transfers_indices_per_subaddr.erase(unused_token_transfers_indices_per_subaddr.begin());
+            unused_token_transfers_indices = &unused_token_transfers_indices_per_subaddr[0].second;
+          }
+        }
 
-        if (unused_token_transfers_indices->empty() && unused_token_transfers_indices_per_subaddr.size() > 1)
-        {
-          unused_token_transfers_indices_per_subaddr.erase(unused_token_transfers_indices_per_subaddr.begin());
-          unused_token_transfers_indices = &unused_token_transfers_indices_per_subaddr[0].second;
-        }
-        if (unused_token_dust_indices->empty() && unused_token_dust_indices_per_subaddr.size() > 1)
-        {
-          unused_token_dust_indices_per_subaddr.erase(unused_token_dust_indices_per_subaddr.begin());
-          unused_token_dust_indices = &unused_token_dust_indices_per_subaddr[0].second;
-        }
+
       }
 
       //Cash indices, for fee
