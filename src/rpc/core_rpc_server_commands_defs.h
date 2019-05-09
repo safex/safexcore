@@ -2379,4 +2379,39 @@ namespace cryptonote
     };
   };
 
+  struct COMMAND_RPC_GET_INTEREST_MAP
+  {
+    struct request
+    {
+      uint64_t begin_interval;
+      uint64_t end_interval;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(begin_interval)
+        KV_SERIALIZE(end_interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t cash_per_token;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(cash_per_token)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> interest_per_interval;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interest_per_interval)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }

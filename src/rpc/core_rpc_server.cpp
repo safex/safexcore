@@ -2212,6 +2212,25 @@ namespace cryptonote
     return true;
   }
 
+  bool core_rpc_server::on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res) 
+  {
+    if(req.begin_interval > req.end_interval){
+      res.status = "There are no good interval values provided.";
+      return false;
+    }
+    else {
+      std::map<uint64_t, uint64_t> interests = m_core.get_interest_map(req.begin_interval, req.end_interval);
+      
+      for(auto interest : interests)
+      {
+         res.interest_per_interval.push_back({interest.first, interest.second});
+      }
+      res.status = "Everything is ok!";
+    }
+
+    return true;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
 
 
