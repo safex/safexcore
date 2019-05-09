@@ -6265,7 +6265,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     for (auto out: cash_fee_outs)
       outs.push_back(out);
   }
-  else if (command_type == safex::command_t::donate_network_fee)
+  else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
   {
     //do nothing
   }
@@ -6293,7 +6293,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     if (command_type == safex::command_t::token_lock && src.referenced_output_type == tx_out_type::out_token)
           src.command_type = safex::command_t::token_lock;
     else if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
-      src.command_type = command_type;
+      src.command_type = safex::command_t::donate_network_fee;
     else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
       src.command_type = safex::command_t::token_unlock;
 
@@ -6330,7 +6330,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     if (command_type == safex::command_t::token_lock && src.referenced_output_type == tx_out_type::out_token)
       src.command_type = safex::command_t::token_lock;
     else  if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
-      src.command_type = command_type;
+      src.command_type = safex::command_t::donate_network_fee;
     else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
       src.command_type = safex::command_t::token_unlock;
 
