@@ -233,6 +233,9 @@ namespace cryptonote
     bool blackballed(const std::vector<std::string>& args);
     bool version(const std::vector<std::string>& args);
 
+    // ------ Mock up for demo
+    bool list_demo_offers(const std::vector<std::string>& args);
+
     uint64_t get_daemon_blockchain_height(std::string& err);
     bool try_connect_to_daemon(bool silent = false, uint32_t* version = nullptr);
     bool ask_wallet_create_if_needed();
@@ -379,5 +382,9 @@ namespace cryptonote
     bool m_auto_refresh_refreshing;
     std::atomic<bool> m_in_manual_refresh;
     uint32_t m_current_subaddress_account;
+
+
+    // ------------------------ Dummy offerids
+    std::map<std::string, std::string> simple_trade_ids;
   };
 }

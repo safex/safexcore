@@ -80,7 +80,6 @@ using namespace epee;
 using namespace cryptonote;
 using boost::lexical_cast;
 
-
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 
@@ -1220,13 +1219,26 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("demo_purchase",
                            boost::bind(&simple_wallet::demo_purchase, this, _1),
-                           tr("demo_purchase [<offer_id>] [<command>]"),
+                           tr("demo_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <cash_amount> [<payment_id>] <offer_id>"),
                            tr("Demo purchase."));
 
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),
                            tr("Donate <cash_amount> to network, optionally set payment_id, priority, ring_size for input cash or cash output subaddress indice"));
+
+  m_cmd_binder.set_handler("list_demo_offers",
+                           boost::bind(&simple_wallet::list_demo_offers, this, _1),
+                           tr("list_demo_offers"),
+                           tr("List current offers listed for demo purposes."));
+
+    // ---------------- DEMO Offer ID mock up ------------------------------
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#1", "First order"));
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#2", "Second order"));
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#3", "Third order"));
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#4", "Forth order"));
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#5", "Fifth order"));
+    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#6", "Sixth order"));
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::set_variable(const std::vector<std::string> &args)

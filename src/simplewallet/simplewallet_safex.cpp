@@ -41,7 +41,7 @@ namespace cryptonote
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
 
-    //  "lock_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>]"
+    //  "lock_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>] [<offer_id]"
     if (m_wallet->ask_password() && !get_and_verify_password())
     { return true; }
     if (!try_connect_to_daemon())
@@ -63,6 +63,26 @@ namespace cryptonote
     LOCK_IDLE_SCOPE();
 
     std::vector<std::string> local_args = args_;
+
+    // ------------------------ Mocking up offer ids for demo purposes.
+    std::string offer_id;
+    if(command_type == CommandType::TransferDemoPurchase) {
+      if(args_.back()[0] != '#') 
+      {
+        fail_msg_writer() << tr("You didnt put offerid!");
+        return true;
+      }
+      else {
+        if (simple_trade_ids.find(args_.back()) != simple_trade_ids.end()) {
+          offer_id = local_args.back();
+          local_args.pop_back();
+        }
+        else {
+          fail_msg_writer() << tr("There is no offer with given id!!");
+          return true;
+        }
+      }
+    }
 
     std::set<uint32_t> subaddr_indices;
     if (local_args.size() > 0 && local_args[0].substr(0, 6) == "index=")
@@ -119,12 +139,13 @@ namespace cryptonote
       return true;
     }
 
+    std::string payment_id_str;
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
     bool expect_even = (min_args % 2 == 1);
     if ((expect_even ? 0 : 1) == local_args.size() % 2)
     {
-      std::string payment_id_str = local_args.back();
+      payment_id_str = local_args.back();
       local_args.pop_back();
 
       crypto::hash payment_id;
@@ -385,8 +406,7 @@ namespace cryptonote
           subaddr_indices.clear();
           for (uint32_t i : ptx_vector[n].construction_data.subaddr_indices)
             subaddr_indices.insert(i);
-          for (uint32_t i : subaddr_indices)
-            prompt << boost::format(tr("Spending from address index %d\n")) % i;
+
           if (subaddr_indices.size() > 1)
             prompt << tr("WARNING: Outputs of multiple addresses are being used together, which might potentially compromise your privacy.\n");
         }
@@ -473,8 +493,16 @@ namespace cryptonote
       fail_msg_writer() << tr("unknown error");
     }
 
+    if(command_type == CommandType::TransferDemoPurchase) {
+      success_msg_writer() << boost::format(tr("You successfully paid offer with id %s.  ")) % offer_id;
+    }
+
+    if(command_type == CommandType::TransferDonation) {
+      success_msg_writer() << boost::format(tr("You successfully donated network!!! "));
+    }
+
+
     return true;
-    return false;
   }
 
   bool simple_wallet::lock_token(const std::vector<std::string> &args)
@@ -541,6 +569,14 @@ namespace cryptonote
   bool simple_wallet::demo_purchase(const std::vector<std::string>& args) {
     
     return create_command(CommandType::TransferDemoPurchase, args);
+  }
+
+  bool simple_wallet::list_demo_offers(const std::vector<std::string>& args) {
+    success_msg_writer() << boost::format("%10s %40s ") % tr("OfferID") % tr("Title");
+    for(auto offer : simple_trade_ids) {
+      success_msg_writer() << boost::format("%10s %40s ") % tr(offer.first.c_str()) % tr(offer.second.c_str());
+    }
+    return true;
   }
 
 }
