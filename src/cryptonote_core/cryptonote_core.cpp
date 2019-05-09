@@ -1700,4 +1700,10 @@ namespace cryptonote
   {
     raise(SIGTERM);
   }
+
+  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval) 
+  {
+    return m_blockchain_storage.get_interest_map(begin_interval, end_interval);
+  }
+
 }

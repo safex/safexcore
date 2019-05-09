@@ -4213,7 +4213,13 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     {
       const uint64_t interval_token_locked_amount = get_locked_token_sum_for_interval(interval);
       const uint64_t collected_fee_amount = get_network_fee_sum_for_interval(interval);
-      interest_map[interval] = collected_fee_amount/(interval_token_locked_amount / SAFEX_TOKEN);
+      if(interval_token_locked_amount == 0 || collected_fee_amount == 0)
+      {
+        interest_map[interval] = 0;  
+      }
+      else {
+        interest_map[interval] = collected_fee_amount/(interval_token_locked_amount / SAFEX_TOKEN);
+      }
       LOG_PRINT_L3("Interval " << interval << " locked tokens:" << (interval_token_locked_amount/SAFEX_TOKEN) << " collected fee:" << collected_fee_amount<<" interest:"<<interest_map[interval]);
     }
 

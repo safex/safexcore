@@ -2225,7 +2225,7 @@ namespace cryptonote
       {
          res.interest_per_interval.push_back({interest.first, interest.second});
       }
-      res.status = "Everything is ok!";
+      res.status = "OK";
     }
 
     return true;

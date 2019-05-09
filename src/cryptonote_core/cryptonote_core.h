@@ -814,6 +814,7 @@ namespace cryptonote
       * @return whether the core is running offline
       */
      bool offline() const { return m_offline; }
+     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
 
    private:
 
