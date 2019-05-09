@@ -49,7 +49,8 @@ namespace cryptonote
 
     if ((command_type == CommandType::TransferLockToken) ||
             (command_type == CommandType::TransferDonation) ||
-            (command_type == CommandType::TransferUnlockToken))
+            (command_type == CommandType::TransferUnlockToken) || 
+            (command_type == CommandType::TransferDemoPurchase))
     {
       //do nothing
     }
@@ -153,7 +154,8 @@ namespace cryptonote
       }
       payment_id_seen = true;
     }
-
+    uint64_t network_fee = 0;
+    
     vector<cryptonote::tx_destination_entry> dsts;
     for (size_t i = 0; i < local_args.size(); i += 2)
     {
@@ -202,6 +204,7 @@ namespace cryptonote
                           ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
         return true;
       }
+    
 
       if (command_type == CommandType::TransferLockToken)
       {
@@ -230,8 +233,34 @@ namespace cryptonote
         de.script_output = true;
         de.output_type = tx_out_type::out_network_fee;
       }
-
+      // Allow to collect outputs for regular SFX transaction.
+      else if(command_type == CommandType::TransferDemoPurchase) {
+        de.amount = value_amount * 95 / 100;
+        network_fee += value_amount * 5 / 100;
+      }
+    
       dsts.push_back(de);
+    }
+
+    // If its demo purchase, make special destination_entry for network fee.
+    if(command_type == CommandType::TransferDemoPurchase) {
+      cryptonote::tx_destination_entry de_net_fee = AUTO_VAL_INIT(de_net_fee);
+      std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+
+      cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+      {
+        fail_msg_writer() << tr("failed to parse address");
+        return true;
+      }
+
+      de_net_fee.addr = info.address;
+      de_net_fee.is_subaddress = info.is_subaddress;
+      de_net_fee.amount = network_fee;
+      de_net_fee.script_output = true;
+      de_net_fee.output_type = tx_out_type::out_network_fee;
+
+      dsts.push_back(de_net_fee);
     }
 
     try
@@ -251,6 +280,10 @@ namespace cryptonote
           command = safex::command_t::token_unlock;
           break;
 
+        case CommandType::TransferDemoPurchase:
+          command = safex::command_t::simple_purchase;
+          break;
+
         case CommandType::TransferDonation:
           command = safex::command_t::donate_network_fee;
           break;
@@ -259,8 +292,10 @@ namespace cryptonote
           LOG_ERROR("Unknown command method, using original");
           return true;
       }
-
+      
       ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
+      
+      
 
       if (ptx_vector.empty())
       {
@@ -502,4 +537,10 @@ namespace cryptonote
     show_staked_token_balance_unlocked(args.size() == 1);
     return true;
   }
+
+  bool simple_wallet::demo_purchase(const std::vector<std::string>& args) {
+    
+    return create_command(CommandType::TransferDemoPurchase, args);
+  }
+
 }

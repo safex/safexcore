@@ -1218,6 +1218,11 @@ simple_wallet::simple_wallet()
                            tr("unlock_token [<command>]"),
                            tr("Unlocking tokens."));
 
+  m_cmd_binder.set_handler("demo_purchase",
+                           boost::bind(&simple_wallet::demo_purchase, this, _1),
+                           tr("demo_purchase [<offer_id>] [<command>]"),
+                           tr("Demo purchase."));
+
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),
@@ -3293,6 +3298,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         }
       }
     }
+
+
 
     // if more than one tx necessary, prompt user to confirm
     if (m_wallet->always_confirm_transfers() || ptx_vector.size() > 1)
