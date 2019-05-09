@@ -175,7 +175,7 @@ namespace cryptonote
       }
       payment_id_seen = true;
     }
-    uint64_t network_fee = 0;
+    uint64_t safex_network_fee = 0;
     
     vector<cryptonote::tx_destination_entry> dsts;
     for (size_t i = 0; i < local_args.size(); i += 2)
@@ -257,7 +257,7 @@ namespace cryptonote
       // Allow to collect outputs for regular SFX transaction.
       else if(command_type == CommandType::TransferDemoPurchase) {
         de.amount = value_amount * 95 / 100;
-        network_fee += value_amount * 5 / 100;
+        safex_network_fee += value_amount * 5 / 100;
       }
     
       dsts.push_back(de);
@@ -277,7 +277,7 @@ namespace cryptonote
 
       de_net_fee.addr = info.address;
       de_net_fee.is_subaddress = info.is_subaddress;
-      de_net_fee.amount = network_fee;
+      de_net_fee.amount = safex_network_fee;
       de_net_fee.script_output = true;
       de_net_fee.output_type = tx_out_type::out_network_fee;
 

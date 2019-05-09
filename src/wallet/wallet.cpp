@@ -6290,13 +6290,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     else
       src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
 
-    if (command_type == safex::command_t::token_lock && src.referenced_output_type == tx_out_type::out_token)
-          src.command_type = safex::command_t::token_lock;
-    else if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
-      src.command_type = safex::command_t::donate_network_fee;
-    else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
-      src.command_type = safex::command_t::token_unlock;
-
     //paste keys (fake and real)
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
     {
@@ -6332,7 +6325,28 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     else  if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
       src.command_type = safex::command_t::donate_network_fee;
     else if (command_type == safex::command_t::token_unlock && src.referenced_output_type == tx_out_type::out_locked_token)
+    {
       src.command_type = safex::command_t::token_unlock;
+
+      //also, create additional source for interest distribution
+      cryptonote::tx_source_entry src_interest = AUTO_VAL_INIT(src_interest);
+      src_interest.command_type = safex::command_t::distribute_network_fee;
+      src_interest.referenced_output_type = tx_out_type::out_network_fee;
+      src_interest.real_output_in_tx_index = src.real_output_in_tx_index; //reference same token output
+      //******************************************************************************************************/
+      //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
+      //******************************************************************************************************/
+      src_interest.real_out_tx_key = src.real_out_tx_key; // here just for completion, does not actually used for check
+      src_interest.outputs = src.outputs;
+      src_interest.real_output = src.real_output;
+
+      //src_interest.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
+      //src_interest.amount = 10000000000;
+
+      if (src_interest.amount > 0) {
+        sources.push_back(src_interest);
+      }
+    }
 
     detail::print_source_entry(src);
     ++out_index;
