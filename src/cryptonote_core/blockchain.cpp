@@ -5231,4 +5231,15 @@ uint64_t Blockchain::calculate_token_lock_interest_for_output(const txin_to_scri
   return interest;
 }
 
+std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
+{
+  safex::map_interval_interest interest_map;
+  if (!m_db->get_interval_interest_map(begin_interval, end_interval, interest_map)) {
+    MERROR("Could not get interval map");
+    return interest_map;
+  }
+
+  return interest_map;
+}
+
 

@@ -1018,6 +1018,10 @@ namespace tools
     bool unblackball_output(const crypto::public_key &output);
     bool is_output_blackballed(const crypto::public_key &output) const;
 
+
+    uint64_t get_interest_for_transfer(transfer_details& td);
+
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
