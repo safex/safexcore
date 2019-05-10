@@ -55,10 +55,11 @@ namespace cryptonote
     crypto::public_key real_out_tx_key = AUTO_VAL_INIT(real_out_tx_key); //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
     size_t real_output_in_tx_index = 0;  //index in transaction outputs vector
-    uint64_t amount = 0;                //money
+    uint64_t amount = 0;                //cash
     uint64_t token_amount = 0;          //tokens
     cryptonote::tx_out_type referenced_output_type = tx_out_type::out_cash;
     safex::command_t command_type = safex::command_t::nop;
+
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 

@@ -6278,6 +6278,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   typedef cryptonote::tx_source_entry::output_entry tx_output_entry;
   size_t i = 0, out_index = 0;
   std::vector<cryptonote::tx_source_entry> sources;
+  std::vector<cryptonote::tx_source_entry> additional_sources;
   for(size_t idx: selected_transfers)
   {
     sources.resize(sources.size()+1);
@@ -6339,18 +6340,20 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src_interest.real_out_tx_key = src.real_out_tx_key; // here just for completion, does not actually used for check
       src_interest.outputs = src.outputs;
       src_interest.real_output = src.real_output;
+      src_interest.amount = get_interest_for_transfer(td);
 
-      //src_interest.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
-      //src_interest.amount = 10000000000;
-
+      // add source and destinations
       if (src_interest.amount > 0) {
-        sources.push_back(src_interest);
+        additional_sources.push_back(src_interest);
       }
     }
 
     detail::print_source_entry(src);
     ++out_index;
   }
+
+  if (additional_sources.size() > 0) std::copy(additional_sources.begin(), additional_sources.end(), std::back_inserter(sources));
+
   LOG_PRINT_L2("outputs prepared");
 
   cryptonote::tx_destination_entry change_dts = AUTO_VAL_INIT(change_dts);

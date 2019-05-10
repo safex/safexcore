@@ -1019,7 +1019,7 @@ namespace tools
     bool is_output_blackballed(const crypto::public_key &output) const;
 
 
-    uint64_t get_interest_for_transfer(transfer_details& td);
+    uint64_t get_interest_for_transfer(const transfer_details& td);
 
 
   private:

@@ -133,7 +133,7 @@ namespace tools
     }   
 
 //-----------------------------------------------------------------------------------------------------------------
-uint64_t wallet::get_interest_for_transfer(transfer_details& td)
+uint64_t wallet::get_interest_for_transfer(const transfer_details& td)
 {
     if(td.m_spent) {
         LOG_PRINT_L2("Trying to get interest for spent transfer");
@@ -148,15 +148,15 @@ uint64_t wallet::get_interest_for_transfer(transfer_details& td)
     cryptonote::COMMAND_RPC_GET_INTEREST_MAP::request req = AUTO_VAL_INIT(req);
     cryptonote::COMMAND_RPC_GET_INTEREST_MAP::response res = AUTO_VAL_INIT(res);
     
-    req.begin_interval = safex::calculate_interval_starting_block_for_height(td.m_block_height, this->nettype());
-    req.end_interval = safex::calculate_interval_starting_block_for_height(this->get_blockchain_current_height(), this->nettype()) - 1;
+    req.begin_interval = safex::calculate_interval_for_height(td.m_block_height, this->nettype()) + 1; //earning interest starts from next interval
+    req.end_interval = safex::calculate_interval_for_height(this->get_blockchain_current_height(), this->nettype()) - 1; //finishes in previous interval
     
     m_daemon_rpc_mutex.lock();
     bool r = net_utils::invoke_http_json("/get_interest_map", req, res, m_http_client, rpc_timeout);
     m_daemon_rpc_mutex.unlock();
     
     THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_interest_map");
-    THROW_WALLET_EXCEPTION_IF(res.status == "OK", error::no_connection_to_daemon, "Failed to get interest map");
+    THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get interest map");
 
     std::map<uint64_t, uint64_t> interest_map;
     for(auto& item : res.interest_per_interval) {
@@ -166,7 +166,6 @@ uint64_t wallet::get_interest_for_transfer(transfer_details& td)
     uint64_t  interest = 0;
     for (uint64_t i = req.begin_interval; i <= req.end_interval; ++i) {
         LOG_PRINT_L2("Interest map for i=" << i << " is " << interest_map[i]);
-        std::cout << "Interest map for i="<<i << " is " << interest_map[i]<<std::endl;
         interest += interest_map[i] * (td.token_amount() / SAFEX_TOKEN);
     }
 

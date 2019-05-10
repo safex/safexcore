@@ -577,6 +577,17 @@ namespace cryptonote
     return true;
   }
 
+  /**
+ *
+ * @param unlocked_token_destination - destination that receives unlocked tokens related to this interest
+ * @param interest_amount - calculated interest amount
+ * @return new interest destination that matches destination found in array
+ */
+  tx_destination_entry create_interest_destination(const cryptonote::tx_destination_entry &unlocked_token_destination, const uint64_t interest_amount)
+  {
+    return tx_destination_entry{interest_amount, unlocked_token_destination.addr, unlocked_token_destination.is_subaddress, tx_out_type::out_cash};
+  }
+
   txin_to_script prepare_advanced_input(const tx_source_entry &src_entr, const crypto::key_image &img)
   {
     txin_to_script input = AUTO_VAL_INIT(input);
@@ -651,6 +662,36 @@ namespace cryptonote
     }
 
     return input;
+  }
+
+  //Based on advanced inputs, create additional outputs
+  tx_destination_entry adjust_advanced_outputs(const std::vector<tx_source_entry>& sources, const tx_source_entry &src_entr, const txin_to_script& input_txin_to_script,
+          const std::vector<tx_destination_entry>& destinations)
+  {
+    tx_destination_entry dst_entr{};
+
+    //add interest output for fee distribution
+    if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
+      //find locked token amount matching to this interest
+      uint64_t token_locked_amount = 0;
+      for (uint i = 0; i < sources.size(); i++)
+        if (sources[i].referenced_output_type == tx_out_type::out_locked_token && sources[i].real_output ==  src_entr.real_output)
+          token_locked_amount = sources[i].token_amount;
+
+      if (token_locked_amount == 0)
+      {
+        LOG_ERROR("Could not match locked token input with calculated interest input");
+        return tx_destination_entry{};
+      }
+
+
+      for (const tx_destination_entry& dt: destinations) {
+        if (dt.token_amount ==  token_locked_amount && dt.output_type == tx_out_type::out_token && dt.amount == 0)
+          dst_entr = create_interest_destination(dt, input_txin_to_script.amount);
+      }
+    }
+
+    return dst_entr;
   }
 
   /**
@@ -849,6 +890,13 @@ namespace cryptonote
       {
         txin_to_script input_txin_to_script = prepare_advanced_input(src_entr, img);
         tx.vin.push_back(input_txin_to_script);
+
+        //adhoc add destination for interest based on input distribute newtork fee command
+        if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
+          tx_destination_entry dst_interest = adjust_advanced_outputs(sources, src_entr, input_txin_to_script, destinations);
+          destinations.push_back(dst_interest);
+        }
+
       }
       else if (src_entr.referenced_output_type == tx_out_type::out_token)
       {

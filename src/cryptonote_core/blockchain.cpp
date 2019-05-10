@@ -5224,7 +5224,6 @@ uint64_t Blockchain::calculate_token_lock_interest_for_output(const txin_to_scri
 
   uint64_t  interest = 0;
   for (uint64_t i=starting_interval;i<=end_interval;++i) {
-    std::cout << "Interest map for i="<<i << " is " << interest_map[i]<<std::endl;
     interest += interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
   }
 
