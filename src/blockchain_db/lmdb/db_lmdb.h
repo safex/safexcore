@@ -261,7 +261,7 @@ public:
                                      std::vector<output_data_t> &outputs, const tx_out_type output_type,
                                      bool allow_partial = false);
 
-  virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
                                          std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                          bool allow_partial = false);
 

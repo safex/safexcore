@@ -1442,12 +1442,11 @@ namespace cryptonote
        * get_output_data(const uint64_t& amount, const uint64_t& index)
        * but for a list of outputs rather than just one.
        *
-       * @param amount an output amount
        * @param output_ids a list of output ids
        * @param outputs return-by-reference a list of outputs' metadata
        * @param output_type a utxo type (locked token, ...)
        */
-      virtual void get_advanced_output_key(const uint64_t &amount, const std::vector<uint64_t> &output_ids,
+      virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
                                          std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                          bool allow_partial = false) = 0;
 

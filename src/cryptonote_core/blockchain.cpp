@@ -490,7 +490,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     {
       try
       {
-        m_db->get_advanced_output_key(value_amount, absolute_offsets, outputs, output_type, true);
+        m_db->get_advanced_output_key(absolute_offsets, outputs, output_type, true);
         if (absolute_offsets.size() != outputs.size())
         {
           MERROR_VER("Advanced outputs do not exist!");
@@ -515,7 +515,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
           add_offsets.push_back(absolute_offsets[i]);
         try
         {
-          m_db->get_advanced_output_key(value_amount, add_offsets, add_outputs, output_type, true);
+          m_db->get_advanced_output_key(add_offsets, add_outputs, output_type, true);
           if (add_offsets.size() != add_outputs.size())
           {
             MERROR_VER("Advanced outputs do not exist");
@@ -4381,12 +4381,27 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
 }
 
 //------------------------------------------------------------------
-//FIXME: unused parameter txs
-void Blockchain::output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, std::unordered_map<crypto::hash, cryptonote::transaction> &txs) const
+void Blockchain::output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs) const
 {
   try
   {
     m_db->get_amount_output_key(amount, offsets, outputs, output_type, true);
+  }
+  catch (const std::exception& e)
+  {
+    MERROR_VER("EXCEPTION: " << e.what());
+  }
+  catch (...)
+  {
+
+  }
+}
+//------------------------------------------------------------------
+void Blockchain::output_advanced_scan_worker(const tx_out_type output_type, const std::vector<uint64_t> &output_ids, std::vector<output_advanced_data_t> &outputs) const
+{
+  try
+  {
+    m_db->get_advanced_output_key(output_ids, outputs, output_type, true);
   }
   catch (const std::exception& e)
   {
@@ -4671,6 +4686,11 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   // [output] stores all output_data_t for each absolute_offset
   std::map<std::pair<tx_out_type, uint64_t>, std::vector<output_data_t>> tx_map;
 
+  // [input] store all found  advanced output types and vector of their output ids
+  std::map<tx_out_type, std::vector<uint64_t>> advanced_output_ids_map;
+  // [output] stores all output_advanced_data_t for each tx_out_type
+  std::map<tx_out_type, std::vector<output_advanced_data_t>> tx_advanced_map;
+
 #define SCAN_TABLE_QUIT(m) \
         do { \
             MERROR_VER(m) ;\
@@ -4712,8 +4732,16 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
           SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
 
         const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
-        const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
-        amounts.push_back(std::pair<tx_out_type, uint64_t>{output_type, amount});
+        if (output_type == tx_out_type::out_cash || output_type == tx_out_type::out_token)
+        {
+          const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
+          amounts.push_back(std::pair<tx_out_type, uint64_t>{output_type, amount});
+        }
+        else
+        {
+          //nothing to do here for advanced outputs
+
+        }
       }
 
       // sort and remove duplicate amounts from amounts list
@@ -4734,16 +4762,29 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       // add new absolute_offsets to offset_map
       for (const auto &txin : tx.vin)
       {
-        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))) {
+        const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
+        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))
+            || (txin.type() == typeid(const txin_to_script) && (output_presumed_type == tx_out_type::out_cash || output_presumed_type == tx_out_type::out_token))
+                )
+        {
 
           // no need to check for duplicate here.
           const std::vector<uint64_t> &key_offsets = *boost::apply_visitor(key_offset_visitor(), txin);
           const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
-          const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
 
           auto absolute_offsets = relative_output_offsets_to_absolute(key_offsets);
-          for (const auto & offset : absolute_offsets)
+          for (const auto &offset : absolute_offsets)
             offset_map[std::pair<tx_out_type, uint64_t>{output_presumed_type, amount}].push_back(offset);
+        }
+        else if (txin.type() == typeid(const txin_to_script))
+        {
+          const std::vector<uint64_t> &output_ids = *boost::apply_visitor(key_offset_visitor(), txin);
+
+          for (uint64_t output_id: output_ids)
+            advanced_output_ids_map[output_presumed_type].push_back(output_id);
+
         }
       }
     }
@@ -4756,9 +4797,6 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
     auto last = std::unique(offsets.second.begin(), offsets.second.end());
     offsets.second.erase(last, offsets.second.end());
   }
-
-  // [output] stores all transactions for each tx_out_index::hash found
-  std::vector<std::unordered_map<crypto::hash, cryptonote::transaction>> transactions(amounts.size());
 
   threads = tpool.get_max_concurrency();
   if (!m_db->can_thread_bulk_indices())
@@ -4776,8 +4814,13 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       }
       else
       {
-        tpool.submit(&waiter, boost::bind(&Blockchain::output_scan_worker, this, amount.second, amount.first, std::cref(offset_map[amount]), std::ref(tx_map[amount]), std::ref(transactions[i])));
+        tpool.submit(&waiter, boost::bind(&Blockchain::output_scan_worker, this, amount.second, amount.first, std::cref(offset_map[amount]), std::ref(tx_map[amount])));
       }
+    }
+
+    for (auto &adv_out : advanced_output_ids_map)
+    {
+        tpool.submit(&waiter, boost::bind(&Blockchain::output_advanced_scan_worker, this, adv_out.first, std::cref(adv_out.second), std::ref(tx_advanced_map[adv_out.first])));
     }
     waiter.wait();
   }
@@ -4792,8 +4835,13 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       }
       else
       {
-        output_scan_worker(amount.second /*value*/, amount.first /*cash or token*/, offset_map[amount], tx_map[amount], transactions[i]);
+        output_scan_worker(amount.second /*value*/, amount.first /*cash or token*/, offset_map[amount], tx_map[amount]);
       }
+    }
+
+    for (auto &adv_out : advanced_output_ids_map)
+    {
+      output_advanced_scan_worker(adv_out.first, adv_out.second, tx_advanced_map[adv_out.first]);
     }
   }
 
@@ -4819,13 +4867,20 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       if (its == m_scan_table.end())
         SCAN_TABLE_QUIT("Tx not found on scan table from incoming blocks.");
 
+      auto its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      if (its_advanced == m_scan_table_adv.end())
+        SCAN_TABLE_QUIT("Tx not found on advanced scan table from incoming blocks.");
+
       for (const auto &txin : tx.vin)
       {
-        //todo ATANA double check/retest
-        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))) {
+        const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
+        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))
+            || (txin.type() == typeid(const txin_to_script) && (output_presumed_type == tx_out_type::out_cash || output_presumed_type == tx_out_type::out_token))
+            )
+        {
           const std::vector<uint64_t> &key_offsets = *boost::apply_visitor(key_offset_visitor(), txin);
           const uint64_t output_value_amount = *boost::apply_visitor(amount_visitor(), txin);
-          const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
 
           auto needed_offsets = relative_output_offsets_to_absolute(key_offsets);
 
@@ -4857,7 +4912,40 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
           its->second.emplace(k_image, outputs);
 
-        } else if (txin.type() == typeid(txin_token_migration)) {
+        }
+        else if (txin.type() == typeid(const txin_to_script))
+        {
+          const std::vector<uint64_t> &needed_output_ids = *boost::apply_visitor(key_offset_visitor(), txin);
+
+
+          std::vector<output_advanced_data_t> advanced_outputs;
+          for (const uint64_t & needed_output_id : needed_output_ids)
+          {
+            size_t pos = 0;
+            bool found = false;
+
+            for (const output_advanced_data_t &output_found : tx_advanced_map[output_presumed_type])
+            {
+              if (needed_output_id == output_found.output_id)
+              {
+                found = true;
+                break;
+              }
+
+              ++pos;
+            }
+
+            if (found && pos < tx_advanced_map[output_presumed_type].size())
+              advanced_outputs.push_back(tx_advanced_map[output_presumed_type].at(pos));
+            else
+              break;
+          }
+
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
+          its_advanced->second.emplace(k_image, advanced_outputs);
+
+        }
+        else if (txin.type() == typeid(txin_token_migration)) {
           const txin_token_migration &in_token_migration = boost::get < txin_token_migration > (txin);
           std::vector<output_data_t> outputs;
 

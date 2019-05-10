@@ -928,11 +928,18 @@ namespace cryptonote
      * @param output_type type of output (cash, token...)
      * @param offsets the indices (indexed to the amount) of the outputs
      * @param outputs return-by-reference the outputs collected
-     * @param txs unused, candidate for removal
      */
     void output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets,
-        std::vector<output_data_t> &outputs, std::unordered_map<crypto::hash,
-        cryptonote::transaction> &txs) const;
+        std::vector<output_data_t> &outputs) const;
+
+    /**
+     * @brief get a number of advanced outputs with their ids
+     *
+     * @param output_type - type of output (locked token...)
+     * @param output_ids - output ids of outputs that should be retrieved
+     * @param outputs   return-by-reference the advanced outputs collected
+     */
+    void output_advanced_scan_worker(const tx_out_type output_type, const std::vector<uint64_t> &output_ids, std::vector<output_advanced_data_t> &outputs) const;
 
     /**
      * @brief computes the "short" and "long" hashes for a set of blocks
