@@ -151,16 +151,21 @@ uint64_t wallet::get_interest_for_transfer(const transfer_details& td)
     req.begin_interval = safex::calculate_interval_for_height(td.m_block_height, this->nettype()) + 1; //earning interest starts from next interval
     req.end_interval = safex::calculate_interval_for_height(this->get_blockchain_current_height(), this->nettype()) - 1; //finishes in previous interval
     
-    m_daemon_rpc_mutex.lock();
-    bool r = net_utils::invoke_http_json("/get_interest_map", req, res, m_http_client, rpc_timeout);
-    m_daemon_rpc_mutex.unlock();
-    
-    THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_interest_map");
-    THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get interest map");
+    static std::map<uint64_t, uint64_t> interest_map;
 
-    std::map<uint64_t, uint64_t> interest_map;
-    for(auto& item : res.interest_per_interval) {
-        interest_map.insert({item.interval, item.cash_per_token});
+    if(interest_map.find(req.begin_interval) == interest_map.end() || interest_map.find(req.end_interval) == interest_map.end()) {
+
+        m_daemon_rpc_mutex.lock();
+        bool r = net_utils::invoke_http_json("/get_interest_map", req, res, m_http_client, rpc_timeout);
+        m_daemon_rpc_mutex.unlock();
+        
+        THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_interest_map");
+        THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get interest map");
+        
+        for(auto& item : res.interest_per_interval) {
+            interest_map.insert({item.interval, item.cash_per_token});
+        }
+
     }
 
     uint64_t  interest = 0;
