@@ -1086,13 +1086,11 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
   tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
   destinations.push_back(de_token);
 
-  //add cash output for interest earning
+  // Interest destination is added in construct_advanced_tx_with_tx_key, review if this is optimal
   tx_destination_entry de_interest = AUTO_VAL_INIT(de_interest);
   for (tx_source_entry &source: sources) {
     if (source.command_type == safex::command_t::distribute_network_fee) {
       de_interest = create_interest_destination(to, source.amount);
-      if (de_interest.amount > 0)
-        destinations.push_back(de_interest);
     }
   }
 
