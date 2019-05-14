@@ -673,12 +673,13 @@ namespace cryptonote
     //add interest output for fee distribution
     if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
       //find locked token amount matching to this interest
-      uint64_t token_locked_amount = 0;
+      uint64_t input_token_locked_amount = 0;
+      uint64_t output_token_amount = 0;
       for (uint i = 0; i < sources.size(); i++)
         if (sources[i].referenced_output_type == tx_out_type::out_locked_token && sources[i].real_output ==  src_entr.real_output)
-          token_locked_amount = sources[i].token_amount;
+          input_token_locked_amount = sources[i].token_amount;
 
-      if (token_locked_amount == 0)
+      if (input_token_locked_amount == 0)
       {
         LOG_ERROR("Could not match locked token input with calculated interest input");
         return tx_destination_entry{};
@@ -686,8 +687,13 @@ namespace cryptonote
 
 
       for (const tx_destination_entry& dt: destinations) {
-        if (dt.token_amount ==  token_locked_amount && dt.output_type == tx_out_type::out_token && dt.amount == 0)
+        if (dt.output_type == tx_out_type::out_token && dt.amount == 0) {
+          output_token_amount += dt.token_amount;
+        }
+
+        if (output_token_amount == input_token_locked_amount) {
           dst_entr = create_interest_destination(dt, input_txin_to_script.amount);
+        }
       }
     }
 
