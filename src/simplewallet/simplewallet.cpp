@@ -3205,8 +3205,10 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       }
       de.token_amount = value_amount;
       de.token_transaction = true;
+      de.output_type = tx_out_type::out_token;
     } else {
       de.amount = value_amount;
+      de.output_type = tx_out_type::out_cash;
     }
 
     dsts.push_back(de);

@@ -4063,7 +4063,7 @@ float wallet::get_output_relatedness(const transfer_details &td0, const transfer
   return 0.0f;
 }
 //----------------------------------------------------------------------------------------------------
-size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, bool token_transfer) const
+size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
 {
   std::vector<size_t> candidates;
   float best_relatedness = 1.0f;
@@ -4101,12 +4101,12 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
     for (size_t n = 0; n < candidates.size(); ++n)
     {
       const transfer_details &td = transfers[unused_indices[candidates[n]]];
-      if (token_transfer)
+      if (out_type == tx_out_type::out_token && td.get_out_type() == out_type)
       {
         if (td.token_amount() < transfers[unused_indices[candidates[idx]]].token_amount())
           idx = n;
       }
-      else
+      else if (out_type == tx_out_type::out_cash && td.get_out_type() == out_type)
       {
         if (td.amount() < transfers[unused_indices[candidates[idx]]].amount())
           idx = n;
@@ -4120,9 +4120,9 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
   return pop_index (unused_indices, candidates[idx]);
 }
 //----------------------------------------------------------------------------------------------------
-size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, bool token_transfer) const
+size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
 {
-  return pop_best_value_from(m_transfers, unused_indices, selected_transfers, smallest, token_transfer);
+  return pop_best_value_from(m_transfers, unused_indices, selected_transfers, smallest, out_type);
 }
 //----------------------------------------------------------------------------------------------------
 // Select random input sources for transaction.
@@ -7539,44 +7539,28 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
   size_t num_nondust_outputs = 0;
   size_t num_dust_outputs = 0;
   size_t num_nondust_token_outputs = 0;
-  size_t num_dust_token_outputs = 0;
   for (size_t i = 0; i < m_transfers.size(); ++i)
   {
     const transfer_details& td = m_transfers[i];
-    if (!td.m_spent && !td.m_key_image_partial && is_token_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
+    if (!td.m_spent && !td.m_key_image_partial && is_token_transfer_unlocked(td)
+      && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
     {
       const uint32_t index_minor = td.m_subaddr_index.minor;
       auto find_predicate = [&index_minor](const std::pair<uint32_t, std::vector<size_t>>& x) { return x.first == index_minor; };
 
-      if (td.m_token_transfer)
+      if (td.m_token_transfer && td.get_out_type() == tx_out_type::out_token )
       {
         //for token payments
-        if ((td.is_rct()) || is_valid_decomposed_amount(td.token_amount()))
+        auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
+        if (found == unused_token_transfers_indices_per_subaddr.end())
         {
-          auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
-          if (found == unused_token_transfers_indices_per_subaddr.end())
-          {
-            unused_token_transfers_indices_per_subaddr.push_back({index_minor, {i}});
-          }
-          else
-          {
-            found->second.push_back(i);
-          }
-          ++num_nondust_token_outputs;
+          unused_token_transfers_indices_per_subaddr.push_back({index_minor, {i}});
         }
         else
         {
-          auto found = std::find_if(unused_token_dust_indices_per_subaddr.begin(), unused_token_dust_indices_per_subaddr.end(), find_predicate);
-          if (found == unused_token_dust_indices_per_subaddr.end())
-          {
-            unused_token_dust_indices_per_subaddr.push_back({index_minor, {i}});
-          }
-          else
-          {
-            found->second.push_back(i);
-          }
-          ++num_dust_token_outputs;
+          found->second.push_back(i);
         }
+        ++num_nondust_token_outputs;
       }
       else
       {
@@ -7638,7 +7622,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
 
   }
 
-  LOG_PRINT_L2("Starting with " << num_nondust_token_outputs << " token non-dust outputs and " << num_dust_token_outputs << " token dust outputs, " <<
+  LOG_PRINT_L2("Starting with " << num_nondust_token_outputs << " token non-dust outputs " <<
       num_nondust_outputs << " non-dust cash outputs and " << num_dust_outputs << " dust cash outputs" );
 
   if (unused_token_dust_indices_per_subaddr.empty() && unused_token_transfers_indices_per_subaddr.empty())
@@ -7673,7 +7657,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
   // - or we need to gather more fee
   unsigned int original_output_index = 0;
   std::vector<size_t>* unused_token_transfers_indices = &unused_token_transfers_indices_per_subaddr[0].second;
-  std::vector<size_t>* unused_token_dust_indices      = &unused_token_dust_indices_per_subaddr[0].second;
   std::vector<size_t>* unused_transfers_indices = &unused_transfers_indices_per_subaddr[0].second;
   std::vector<size_t>* unused_dust_indices      = &unused_dust_indices_per_subaddr[0].second;
 
@@ -7681,9 +7664,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
   while ((!dsts.empty() && dsts[0].token_amount > 0) || adding_fee) {
     TOKEN_TX &tx = txes.back();
 
-    LOG_PRINT_L2("Start of loop with " << unused_token_transfers_indices->size() << " " << unused_token_dust_indices->size());
+    LOG_PRINT_L2("Start of loop with " << unused_token_transfers_indices->size());
     LOG_PRINT_L2("unused_token_transfers_indices: " << strjoin(*unused_token_transfers_indices, " "));
-    LOG_PRINT_L2("unused_token_dust_indices: " << strjoin(*unused_token_dust_indices, " "));
     LOG_PRINT_L2("unused_transfers_indices: " << strjoin(*unused_transfers_indices, " "));
     LOG_PRINT_L2("unused_dust_indices: " << strjoin(*unused_dust_indices, " "));
     LOG_PRINT_L2("dsts size " << dsts.size() << ", first " << (dsts.empty() ? "-" : cryptonote::print_money(dsts[0].token_amount)));
@@ -7698,7 +7680,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
 
     }
     // if we need to spend tokens and don't have any left, we fail
-    else if (!adding_fee && unused_token_dust_indices->empty() && unused_token_transfers_indices->empty())
+    else if (!adding_fee && unused_token_transfers_indices->empty())
     {
       LOG_PRINT_L2("No more token outputs to choose from");
       THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_token_balance(subaddr_account), needed_tokens, accumulated_fee + needed_cash_fee);
@@ -7710,7 +7692,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
     if ((dsts.empty() || dsts[0].token_amount == 0) && !adding_fee) {
       // the "make rct txes 2/2" case - we pick a small value output to "clean up" the wallet too
       std::vector<size_t> indices;
-      idx = pop_best_value(indices, tx.selected_transfers, true, true);
+      idx = pop_best_value(indices, tx.selected_transfers, true, tx_out_type::out_token);
 
       // we might not want to add it if it's a large output and we don't have many left
       if (m_transfers[idx].token_amount() >= m_min_output_value) {
@@ -7729,13 +7711,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         break;
       }
       pop_if_present(*unused_token_transfers_indices, idx);
-      pop_if_present(*unused_token_dust_indices, idx);
     }
     else if (adding_fee) {
       idx = pop_best_value(unused_transfers_indices->empty() ? *unused_dust_indices : *unused_transfers_indices, tx.selected_transfers);
     }
     else
-      idx = pop_best_value(unused_token_transfers_indices->empty() ? *unused_token_dust_indices : *unused_token_transfers_indices, tx.selected_transfers, true);
+      idx = pop_best_value(*unused_token_transfers_indices, tx.selected_transfers, true);
 
     const transfer_details &td = m_transfers[idx];
     if (adding_fee)
@@ -7904,10 +7885,9 @@ skip_tx:
         unused_token_transfers_indices_per_subaddr.erase(unused_token_transfers_indices_per_subaddr.begin());
         unused_token_transfers_indices = &unused_token_transfers_indices_per_subaddr[0].second;
       }
-      if (unused_token_dust_indices->empty() && unused_token_dust_indices_per_subaddr.size() > 1)
+      if (unused_token_dust_indices_per_subaddr.size() > 1)
       {
         unused_token_dust_indices_per_subaddr.erase(unused_token_dust_indices_per_subaddr.begin());
-        unused_token_dust_indices = &unused_token_dust_indices_per_subaddr[0].second;
       }
     }
 
@@ -8340,7 +8320,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     size_t num_nondust_outputs = 0;
     size_t num_dust_outputs = 0;
     size_t num_nondust_token_outputs = 0;
-    size_t num_dust_token_outputs = 0;
     size_t num_nondust_staked_token_outputs = 0;
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -8350,9 +8329,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         const uint32_t index_minor = td.m_subaddr_index.minor;
         auto find_predicate = [&index_minor](const std::pair<uint32_t, std::vector<size_t>> &x)
         { return x.first == index_minor; };
-
-        //todo find locked tokens here
-
 
         if ((command_type == safex::command_t::token_unlock) && td.m_output_type == cryptonote::tx_out_type::out_locked_token)
         {
@@ -8456,7 +8432,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       std::sort(unused_cash_dust_indices_per_subaddr.begin(), unused_cash_dust_indices_per_subaddr.end(), sort_cash_predicate);
     }
 
-    LOG_PRINT_L2("Starting with " << num_nondust_token_outputs << " token non-dust outputs and " << num_dust_token_outputs << " token dust outputs, " <<
+    LOG_PRINT_L2("Starting with " << num_nondust_token_outputs << " token non-dust outputs and " <<
                                   num_nondust_outputs << " non-dust cash outputs and " << num_dust_outputs << " dust cash outputs");
 
 
@@ -8536,7 +8512,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           && !adding_fee)
       {
         std::vector<size_t> indices;
-        idx = pop_best_value(indices, tx.selected_transfers, true, true);
+        idx = pop_best_value(indices, tx.selected_transfers, true, tx_out_type::out_token);
 
         // we might not want to add it if it's a large output and we don't have many left
         if (needed_staked_tokens > 0 && m_transfers[idx].token_amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_locked_token)
@@ -9125,9 +9101,9 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
       // get a random unspent output and use it to pay next chunk. We try to alternate
       // dust and non dust to ensure we never get with only dust, from which we might
       // get a tx that can't pay for itself
-      idx = unused_token_transfers_indices.empty() ? pop_best_value(unused_token_dust_indices, tx.selected_transfers, false, true) :
+      idx = unused_token_transfers_indices.empty() ? pop_best_value(unused_token_dust_indices, tx.selected_transfers, false, tx_out_type::out_token) :
             unused_token_dust_indices.empty() ? pop_best_value(unused_token_transfers_indices, tx.selected_transfers, true) :
-            (tx.selected_transfers.size() & 1) ? pop_best_value(unused_token_dust_indices, tx.selected_transfers, false, true) : pop_best_value(unused_token_transfers_indices, tx.selected_transfers, true);
+            (tx.selected_transfers.size() & 1) ? pop_best_value(unused_token_dust_indices, tx.selected_transfers, false, tx_out_type::out_token) : pop_best_value(unused_token_transfers_indices, tx.selected_transfers, true, tx_out_type::out_token);
     }
 
     const transfer_details &td = m_transfers[idx];

@@ -295,7 +295,7 @@ namespace cryptonote
       ++idx;
       const bool migration_input = (src_entr.referenced_output_type == tx_out_type::out_bitcoin_migration);
       const bool token_transaction = (src_entr.referenced_output_type == tx_out_type::out_token) || (src_entr.referenced_output_type == tx_out_type::out_bitcoin_migration);
-      if (migration_input)
+       if (migration_input)
       {
         txin_token_migration input_token_migration = AUTO_VAL_INIT(input_token_migration);
         input_token_migration.token_amount = src_entr.token_amount;
