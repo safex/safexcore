@@ -6371,9 +6371,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     change_token_dts.token_amount = found_tokens - needed_tokens;
   }
 
-  THROW_WALLET_EXCEPTION_IF(needed_staked_tokens != found_staked_tokens, error::wallet_internal_error, "Staked tokens and output unstaked tokens does not match");
-
-
   std::vector<cryptonote::tx_destination_entry> splitted_dsts, dust_dsts;
   uint64_t dust = 0;
   destination_split_strategy(dsts, change_dts, change_token_dts, dust_policy.dust_threshold, splitted_dsts, dust_dsts);

@@ -1651,13 +1651,22 @@ namespace cryptonote
       virtual uint64_t get_current_locked_token_sum() const = 0;
 
       /**
-       * Returns number of locked tokens in interval.
+       * Returns number of staked tokens that should receive interest in interval.
        *
        *
        * @param interval interval number
-       * @return number of locked tokens in that interval, used for interest calculation
+       * @return number of staked tokens in that interval, used for interest calculation
        */
-      virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const = 0;
+      virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const = 0;
+
+      /**
+       * Returns number of newly staked tokens in interval.
+       *
+       *
+       * @param interval interval number
+       * @return number of newly staked tokens in that interval, that will receive interest from interval+1
+       */
+      virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval) const = 0;
 
 
       /**

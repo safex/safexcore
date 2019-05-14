@@ -5262,7 +5262,7 @@ uint64_t Blockchain::get_current_locked_token_sum() const
 
 uint64_t Blockchain::get_locked_token_sum_for_interval(const uint64_t& interval) const
 {
-  return m_db->get_locked_token_sum_for_interval(interval);
+  return m_db->get_staked_token_sum_for_interval(interval);
 }
 
 uint64_t Blockchain::get_network_fee_sum_for_interval(const uint64_t& interval) const

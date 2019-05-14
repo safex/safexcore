@@ -405,13 +405,16 @@ namespace
       }
     }
 
-    uint64_t number_of_locked_tokens1 = this->m_db->get_locked_token_sum_for_interval(1);
+    uint64_t number_of_locked_tokens1 = this->m_db->get_newly_staked_token_sum_in_interval(1);
     ASSERT_EQ(number_of_locked_tokens1, 100 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens11 = this->m_db->get_locked_token_sum_for_interval(2);
+    uint64_t number_of_locked_tokens11 = this->m_db->get_newly_staked_token_sum_in_interval(2);
     ASSERT_EQ(number_of_locked_tokens11, 800 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens2 = this->m_db->get_locked_token_sum_for_interval(10);
+    uint64_t number_of_locked_tokens11_1 = this->m_db->get_staked_token_sum_for_interval(3);
+    ASSERT_EQ(number_of_locked_tokens11_1, 800 * SAFEX_TOKEN);
+
+    uint64_t number_of_locked_tokens2 = this->m_db->get_newly_staked_token_sum_in_interval(10);
     ASSERT_EQ(number_of_locked_tokens2, 800 * SAFEX_TOKEN);
 
     uint64_t number_of_locked_tokens3 = this->m_db->get_current_locked_token_sum();

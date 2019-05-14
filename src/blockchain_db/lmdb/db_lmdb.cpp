@@ -4063,7 +4063,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   }
 
 
-  uint64_t BlockchainLMDB::get_locked_token_sum_for_interval(const uint64_t interval) const
+
+  uint64_t BlockchainLMDB::get_staked_token_sum_for_interval(const uint64_t interval) const
   {
 
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -4077,7 +4078,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     uint64_t num_locked_tokens = 0;
 
-    MDB_val_set(k, interval);
+    const uint64_t previous_interval = interval > 0 ? interval - 1 : 0; //what is locked in previous_interval should receive interest in interval
+
+    MDB_val_set(k, previous_interval);
     MDB_val_set(v, num_locked_tokens);
     auto get_result = mdb_cursor_get(cur_token_locked_sum, &k, &v, MDB_SET);
     if (get_result == MDB_NOTFOUND)
@@ -4098,6 +4101,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     TXN_POSTFIX_RDONLY();
 
     return num_locked_tokens;
+  }
+
+  uint64_t BlockchainLMDB::get_newly_staked_token_sum_in_interval(const uint64_t interval) const
+  {
+    return get_staked_token_sum_for_interval(interval+1);
   }
 
 
@@ -4211,7 +4219,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     for (uint64_t interval = starting_interval; interval <= end_interval; interval++)
     {
-      const uint64_t interval_token_locked_amount = get_locked_token_sum_for_interval(interval);
+      const uint64_t interval_token_locked_amount = get_staked_token_sum_for_interval(interval);
       const uint64_t collected_fee_amount = get_network_fee_sum_for_interval(interval);
       if(interval_token_locked_amount == 0 || collected_fee_amount == 0)
       {

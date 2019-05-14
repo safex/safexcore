@@ -135,7 +135,8 @@ public:
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
 
   virtual uint64_t get_current_locked_token_sum() const { return 0;}
-  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+  virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
+  virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval_starting_block) const override { return 0;};
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
   virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}

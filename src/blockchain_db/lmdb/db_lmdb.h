@@ -297,7 +297,8 @@ public:
   virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
 
   virtual uint64_t get_current_locked_token_sum() const override;
-  virtual uint64_t get_locked_token_sum_for_interval(const uint64_t interval) const override;
+  virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const override;
+  virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval) const override;
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override;
   virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override;
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
