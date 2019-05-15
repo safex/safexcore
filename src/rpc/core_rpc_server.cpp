@@ -2160,20 +2160,20 @@ namespace cryptonote
     return true;
   }
 
-  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_LOCKED::request& req, COMMAND_RPC_TOKEN_LOCKED::response& res)
+  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
   {
     if (req.interval == 0) {
       // @todo: Implement here to return last interval value.
-      res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{0, m_core.get_locked_tokens()});
+      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_locked_tokens()});
     }
     else {
       if(req.end == 0) {
-        res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
+        res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
       }
       else {
         if( req.end >= req.interval) {
           for(uint64_t i = req.interval; i < req.end; ++i) {
-            res.pairs.push_back(COMMAND_RPC_TOKEN_LOCKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
+            res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
           }
         }
         else {

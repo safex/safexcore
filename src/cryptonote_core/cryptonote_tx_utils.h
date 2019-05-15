@@ -101,7 +101,7 @@ namespace cryptonote
     amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)), output_type(_out_type)
     {
       if ((_out_type == tx_out_type::out_token)
-          || (_out_type == tx_out_type::out_locked_token))
+          || (_out_type == tx_out_type::out_staked_token))
       {
         token_amount = a;
       } else {

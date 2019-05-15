@@ -579,13 +579,13 @@ namespace cryptonote
 
   /**
  *
- * @param unlocked_token_destination - destination that receives unlocked tokens related to this interest
+ * @param unstaked_token_destination - destination that receives unstaked tokens related to this interest
  * @param interest_amount - calculated interest amount
  * @return new interest destination that matches destination found in array
  */
-  tx_destination_entry create_interest_destination(const cryptonote::tx_destination_entry &unlocked_token_destination, const uint64_t interest_amount)
+  tx_destination_entry create_interest_destination(const cryptonote::tx_destination_entry &unstaked_token_destination, const uint64_t interest_amount)
   {
-    return tx_destination_entry{interest_amount, unlocked_token_destination.addr, unlocked_token_destination.is_subaddress, tx_out_type::out_cash};
+    return tx_destination_entry{interest_amount, unstaked_token_destination.addr, unstaked_token_destination.is_subaddress, tx_out_type::out_cash};
   }
 
   txin_to_script prepare_advanced_input(const tx_source_entry &src_entr, const crypto::key_image &img)
@@ -595,7 +595,7 @@ namespace cryptonote
     input.token_amount = src_entr.token_amount;
     input.amount = src_entr.amount;
 
-    if (src_entr.command_type == safex::command_t::token_lock)
+    if (src_entr.command_type == safex::command_t::token_stake)
     {
       input.k_image = img;
 
@@ -609,7 +609,7 @@ namespace cryptonote
       safex::token_lock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
-    else if (src_entr.command_type == safex::command_t::token_unlock)
+    else if (src_entr.command_type == safex::command_t::token_unstake)
     {
       input.k_image = img;
 
@@ -641,7 +641,7 @@ namespace cryptonote
     {
       input.amount = src_entr.amount;
       input.k_image = AUTO_VAL_INIT(input.k_image);
-      //we will set kimage as output id of token lock output that is unlocked in this transaction
+      //we will set kimage as output id of token stake output that is unstaked in this transaction
       uint64_t temp = src_entr.outputs[0].first;
       memcpy((void*)(&input.k_image), (char *)(&temp), sizeof(temp));
 
@@ -672,16 +672,16 @@ namespace cryptonote
 
     //add interest output for fee distribution
     if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
-      //find locked token amount matching to this interest
-      uint64_t input_token_locked_amount = 0;
+      //find staked token amount matching to this interest
+      uint64_t input_token_staked_amount = 0;
       uint64_t output_token_amount = 0;
       for (uint i = 0; i < sources.size(); i++)
-        if (sources[i].referenced_output_type == tx_out_type::out_locked_token && sources[i].real_output ==  src_entr.real_output)
-          input_token_locked_amount = sources[i].token_amount;
+        if (sources[i].referenced_output_type == tx_out_type::out_staked_token && sources[i].real_output ==  src_entr.real_output)
+          input_token_staked_amount = sources[i].token_amount;
 
-      if (input_token_locked_amount == 0)
+      if (input_token_staked_amount == 0)
       {
-        LOG_ERROR("Could not match locked token input with calculated interest input");
+        LOG_ERROR("Could not match staked token input with calculated interest input");
         return tx_destination_entry{};
       }
 
@@ -691,7 +691,7 @@ namespace cryptonote
           output_token_amount += dt.token_amount;
         }
 
-        if (output_token_amount == input_token_locked_amount) {
+        if (output_token_amount == input_token_staked_amount) {
           dst_entr = create_interest_destination(dt, input_txin_to_script.amount);
         }
       }
@@ -715,16 +715,16 @@ namespace cryptonote
 
     switch (dst_entr.output_type)
     {
-      case tx_out_type::out_locked_token:
+      case tx_out_type::out_staked_token:
       {
         counter = std::count_if(sources.begin(), sources.end(), [](const tx_source_entry &entry)
-        { return entry.command_type == safex::command_t::token_lock; });
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter > 0, "Must be at least one tocken lock command per transaction", safex::command_t::token_lock);
+        { return entry.command_type == safex::command_t::token_stake; });
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter > 0, "Must be at least one tocken lock command per transaction", safex::command_t::token_stake);
 
         std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
         {
           if ((txin.type() == typeid(txin_to_script))
-              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::token_lock))
+              && (boost::get<txin_to_script>(txin).command_type == safex::command_t::token_stake))
           {
             matched_inputs.push_back(&boost::get<txin_to_script>(txin));
           };
@@ -739,7 +739,7 @@ namespace cryptonote
           tokens_to_lock += txin->token_amount;
         }
 
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(tokens_to_lock >= dst_entr.token_amount, "Not enough tokens to lock at input", safex::command_t::token_lock);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(tokens_to_lock >= dst_entr.token_amount, "Not enough tokens to lock at input", safex::command_t::token_stake);
 
         return matched_inputs;
 
@@ -1052,17 +1052,17 @@ namespace cryptonote
         out.target = tk;
         tx.vout.push_back(out);
       }
-      else if (dst_entr.output_type == tx_out_type::out_locked_token)
+      else if (dst_entr.output_type == tx_out_type::out_staked_token)
       {
         out.token_amount = dst_entr.token_amount;
         out.amount = 0;
 
         txout_to_script txs = AUTO_VAL_INIT(txs);
-        txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_locked_token);
+        txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_staked_token);
         txs.keys.push_back(out_eph_public_key);
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token lock output", safex::command_t::token_lock);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token lock output", safex::command_t::token_stake);
         //nothing else to do with matched inputs, create txout data field
         safex::safex_command_serializer::serialize_safex_object(safex::token_lock_data{0}, txs.data);
 

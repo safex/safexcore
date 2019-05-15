@@ -23,7 +23,7 @@ namespace safex
   bool token_lock::store(epee::serialization::portable_storage &ps) const
   {
     command<token_lock_result>::store(ps);
-    ps.set_value(FIELD_LOCK_TOKEN_AMOUNT, (uint64_t) this->lock_token_amount, nullptr);
+    ps.set_value(FIELD_STAKE_TOKEN_AMOUNT, (uint64_t) this->lock_token_amount, nullptr);
     return true;
   }
 
@@ -31,15 +31,15 @@ namespace safex
   bool token_lock::load(epee::serialization::portable_storage &ps)
   {
     command<token_lock_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_lock);
-    ps.get_value(FIELD_LOCK_TOKEN_AMOUNT, this->lock_token_amount, nullptr);
+    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
+    ps.get_value(FIELD_STAKE_TOKEN_AMOUNT, this->lock_token_amount, nullptr);
     return true;
   }
 
 
   bool token_lock::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_lock_result &command_result)
   {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT), this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token lock command amount", this->command_type);
 
     token_lock_result cr = AUTO_VAL_INIT(cr);
@@ -56,7 +56,7 @@ namespace safex
   bool token_unlock::store(epee::serialization::portable_storage &ps) const
   {
     command<token_unlock_result>::store(ps);
-    ps.set_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
     return true;
   }
 
@@ -64,8 +64,8 @@ namespace safex
   bool token_unlock::load(epee::serialization::portable_storage &ps)
   {
     command<token_unlock_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unlock);
-    ps.get_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
+    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unstake);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
     return true;
   }
 
@@ -101,7 +101,7 @@ namespace safex
   bool token_collect::store(epee::serialization::portable_storage &ps) const
   {
     command<token_collect_result>::store(ps);
-    ps.set_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
     return true;
   }
 
@@ -110,7 +110,7 @@ namespace safex
   {
     command<token_collect_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
-    ps.get_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
     return true;
   }
 
@@ -153,7 +153,7 @@ namespace safex
   bool donate_fee::store(epee::serialization::portable_storage &ps) const
   {
     command<donate_fee_result>::store(ps);
-    ps.set_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->donation_safex_cash_amount, nullptr);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->donation_safex_cash_amount, nullptr);
     return true;
   }
 
@@ -162,7 +162,7 @@ namespace safex
   {
     command<donate_fee_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::donate_network_fee);
-    ps.get_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, this->donation_safex_cash_amount, nullptr);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->donation_safex_cash_amount, nullptr);
     return true;
   }
 
@@ -181,7 +181,7 @@ namespace safex
   bool distribute_fee::store(epee::serialization::portable_storage &ps) const
   {
     command<distribute_fee_result>::store(ps);
-    ps.set_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->safex_cash_amount, nullptr);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->safex_cash_amount, nullptr);
     return true;
   }
 
@@ -190,7 +190,7 @@ namespace safex
   {
     command<distribute_fee_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::donate_network_fee);
-    ps.get_value(FIELD_LOCKED_TOKEN_OUTPUT_INDEX, this->safex_cash_amount, nullptr);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->safex_cash_amount, nullptr);
     return true;
   }
 

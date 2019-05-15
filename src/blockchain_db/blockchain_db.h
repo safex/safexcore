@@ -576,7 +576,7 @@ namespace cryptonote
       * @param sign positive if tokens are locked, otherwise negative
       * @return new total current token locked sum
       */
-      uint64_t update_current_locked_token_sum(const uint64_t delta, int sign);
+      uint64_t update_current_staked_token_sum(const uint64_t delta, int sign);
 
       /**
       * Changes collected fee sum for delta
@@ -635,11 +635,11 @@ namespace cryptonote
       void add_transaction(const crypto::hash &blk_hash, const transaction &tx, const crypto::hash *tx_hash_ptr = NULL);
 
       /**
-        * Updates token lock sum for interval
+        * Updates token stake sum for interval
         *
-        * @return token locked sum for this interval
+        * @return token staked sum for this interval
         */
-      virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) = 0;
+      virtual uint64_t update_staked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_staked_tokens_in_interval) = 0;
 
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
@@ -1643,12 +1643,12 @@ namespace cryptonote
 
 
       /**
-       * Returns current number of locked tokens
+       * Returns current number of staked tokens
        *
        *
-       * @return number of locked tokens at current height
+       * @return number of staked tokens at current height
        */
-      virtual uint64_t get_current_locked_token_sum() const = 0;
+      virtual uint64_t get_current_staked_token_sum() const = 0;
 
       /**
        * Returns number of staked tokens that should receive interest in interval.
@@ -1680,13 +1680,13 @@ namespace cryptonote
 
 
       /**
-       * Returns array of output id-s which lock expires on particular block
+       * Returns array of output id-s which stake expires on particular block
        *
        *
        * @param block_height block height
        * @return array of output id-s
        */
-      virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const = 0;
+      virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const = 0;
 
 
 

@@ -6220,8 +6220,8 @@ namespace {
       return std::string("Cash transfer");
     } else if(type == tx_out_type::out_token) {
       return std::string("Token transfer");
-    }else if(type == tx_out_type::out_locked_token) {
-      return std::string("Lock token transfer");
+    }else if(type == tx_out_type::out_staked_token) {
+      return std::string("Stake token transfer");
     }else if(type == tx_out_type::out_bitcoin_migration) {
       return std::string("Migration transfer");
     } else {

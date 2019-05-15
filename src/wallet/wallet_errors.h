@@ -934,7 +934,7 @@ namespace tools
     struct insufficient_token_lock_amount : public transfer_error
     {
       explicit insufficient_token_lock_amount(std::string&& loc)
-              : transfer_error(std::move(loc), "minumum token amount to lock is"+std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT/SAFEX_TOKEN))
+              : transfer_error(std::move(loc), "minumum token amount to lock is"+std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT/SAFEX_TOKEN))
       {
       }
     };

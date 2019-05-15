@@ -740,11 +740,11 @@ namespace cryptonote
      uint64_t get_migrated_tokens(const uint64_t start_offset, const size_t count);
 
      /**
-      * @brief get the delta of locked and unloced tokens in block range
+      * @brief get the delta of staked and unstaked tokens in block range
       *
-      * @return if >0, number of newly locked tokens, if <0, number of unlocked tokens in total for range of blocks
+      * @return if >0, number of newly staked tokens, if <0, number of unstaked tokens in total for range of blocks
       */
-     int64_t get_locked_tokens(const uint64_t start_offset, const size_t count);
+     int64_t get_staked_tokens(const uint64_t start_offset, const size_t count);
 
     uint64_t get_current_interval() const;
 

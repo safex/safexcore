@@ -221,7 +221,7 @@ namespace cryptonote
     out_token = 1,
     out_bitcoin_migration = 2,
     out_advanced = 10, //generic advanced utxo
-    out_locked_token = 11,
+    out_staked_token = 11,
     out_network_fee = 12, //safex cash collected as network trading fee
     out_invalid = 100
   };
@@ -544,10 +544,10 @@ namespace cryptonote
          switch (txin.command_type) {
            case safex::command_t::donate_network_fee:
              return tx_out_type::out_cash;
-           case safex::command_t::token_lock:
+           case safex::command_t::token_stake:
              return tx_out_type::out_token;
-           case safex::command_t::token_unlock:
-             return tx_out_type::out_locked_token;
+           case safex::command_t::token_unstake:
+             return tx_out_type::out_staked_token;
            case safex::command_t::nop:
            default:
              return tx_out_type::out_invalid;

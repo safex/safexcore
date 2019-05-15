@@ -153,7 +153,7 @@ bool gen_token_lock_001::verify_token_lock(cryptonote::core &c, size_t ev_index,
     cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
     cout << "final daniel token balance= " << print_money(get_token_balance(daniel_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(daniel_account, blocks, mtx)) << endl;
 
-    int64_t locked_tokens = c.get_locked_tokens(0, gen_token_lock_001::expected_blockchain_height);
+    int64_t locked_tokens = c.get_staked_tokens(0, gen_token_lock_001::expected_blockchain_height);
     uint64_t locked_tokens2 = c.get_locked_tokens();
     cout << "total core locked tokens: " << print_money(locked_tokens) << " currently locked tokens" << print_money(locked_tokens2) << endl;
     CHECK_EQ(static_cast<uint64_t>(locked_tokens), locked_tokens2);
@@ -161,7 +161,7 @@ bool gen_token_lock_001::verify_token_lock(cryptonote::core &c, size_t ev_index,
     CHECK_EQ(gen_token_lock_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
     CHECK_EQ(gen_token_lock_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
     CHECK_EQ(gen_token_lock_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
-    CHECK_EQ(gen_token_lock_001::expected_locked_tokens, c.get_locked_tokens(0, gen_token_lock_001::expected_blockchain_height));
+    CHECK_EQ(gen_token_lock_001::expected_staked_tokens, c.get_staked_tokens(0, gen_token_lock_001::expected_blockchain_height));
 
 
     //todo implement condition check

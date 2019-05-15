@@ -417,7 +417,7 @@ namespace
     uint64_t number_of_locked_tokens2 = this->m_db->get_newly_staked_token_sum_in_interval(10);
     ASSERT_EQ(number_of_locked_tokens2, 800 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens3 = this->m_db->get_current_locked_token_sum();
+    uint64_t number_of_locked_tokens3 = this->m_db->get_current_staked_token_sum();
     ASSERT_EQ(number_of_locked_tokens3, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
 
 

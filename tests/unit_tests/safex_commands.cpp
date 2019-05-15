@@ -243,7 +243,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
 
     virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
-    virtual uint64_t update_locked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
+    virtual uint64_t update_staked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
 
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
@@ -295,11 +295,11 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash &, const cryptonote::txpool_tx_meta_t &, const cryptonote::blobdata *)>, bool include_blob = false, bool include_unrelayed_txes = false) const
     { return false; }
 
-    virtual uint64_t get_current_locked_token_sum()  const override { return 0;}
+    virtual uint64_t get_current_staked_token_sum()  const override { return 0;}
     virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const override { return 0;};
     virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval) const override { return 0;};
     virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
-    virtual std::vector<uint64_t> get_token_lock_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
+    virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
     virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty, const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash
@@ -346,7 +346,7 @@ TEST(SafexCommandParsing, HandlesTokenLock)
 
 
   command_t command_type = safex_command_serializer::get_command_type(serialized_command);
-  ASSERT_EQ(command_type, command_t::token_lock) << "Token lock command type not properly parsed from binary blob";
+  ASSERT_EQ(command_type, command_t::token_stake) << "Token lock command type not properly parsed from binary blob";
 
   //deserialize
   token_lock command2{};
@@ -439,7 +439,7 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
 
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-    txinput.command_type = command_t::token_lock;
+    txinput.command_type = command_t::token_stake;
     txinput.token_amount = 10000*SAFEX_TOKEN;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
@@ -478,7 +478,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 8000;
-    txinput.command_type = command_t::token_lock;
+    txinput.command_type = command_t::token_stake;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
@@ -492,7 +492,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
   }
   catch (safex::command_exception &exception)
   {
-    ASSERT_STREQ(std::string("Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)).c_str(), std::string(exception.what()).c_str());
+    ASSERT_STREQ(std::string("Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT)).c_str(), std::string(exception.what()).c_str());
   }
   catch (std::exception &exception)
   {
@@ -509,7 +509,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 19000;
-    txinput.command_type = command_t::token_lock;
+    txinput.command_type = command_t::token_stake;
     token_lock command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
@@ -546,7 +546,7 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 10000; //unlock 10k tokens
-    txinput.command_type = command_t::token_unlock;
+    txinput.command_type = command_t::token_unstake;
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
@@ -584,7 +584,7 @@ TEST_F(SafexCommandExecution, TokenUnlockExecute)
 
     cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
     txinput.token_amount = 120000; //unlock 120k tokens
-    txinput.command_type = command_t::token_unlock;
+    txinput.command_type = command_t::token_unstake;
     txinput.key_offsets.push_back(23);
     uint64_t locked_token_output_index = 23;
     token_unlock command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};

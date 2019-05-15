@@ -32,8 +32,8 @@ namespace safex
   enum class command_t : uint32_t
   {
       nop = 0x0,
-      token_lock = 0x01,
-      token_unlock = 0x02,
+      token_stake = 0x01,
+      token_unstake = 0x02,
       token_collect = 0x03,
       donate_network_fee = 0x04, /* Donate safex cash to newtork token holders */
       distribute_network_fee = 0x05, /* Distribute collected newtork fee to token holders */
@@ -170,7 +170,7 @@ namespace safex
     else if (nettype == cryptonote::network_type::TESTNET)
       return get_safex_interval_period(cryptonote::network_type::TESTNET) * 3;
     else
-      return SAFEX_DEFAULT_MINUMUM_TOKEN_LOCK_PERIOD;
+      return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD;
   }
 
 }

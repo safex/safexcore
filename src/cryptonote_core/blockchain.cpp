@@ -308,11 +308,11 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   //check command type
   switch (txin.command_type)
   {
-    case safex::command_t::token_lock:
+    case safex::command_t::token_stake:
       output_type = tx_out_type::out_token;
       break;
-    case safex::command_t::token_unlock:
-      output_type = tx_out_type::out_locked_token;
+    case safex::command_t::token_unstake:
+      output_type = tx_out_type::out_staked_token;
       break;
     case safex::command_t::donate_network_fee:
       output_type = tx_out_type::out_cash;
@@ -334,7 +334,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   uint64_t value_amount = 0;
   switch (output_type)
   {
-    case tx_out_type::out_locked_token:
+    case tx_out_type::out_staked_token:
     {
       absolute_offsets = txin.key_offsets;
       break;
@@ -470,7 +470,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
   }
 /* Handle advanced outputs that should be spend in the transaction */
-  else if ((output_type == tx_out_type::out_locked_token) ||
+  else if ((output_type == tx_out_type::out_staked_token) ||
           (output_type == tx_out_type::out_network_fee)) {
 
     std::vector<output_advanced_data_t> outputs;
@@ -2874,8 +2874,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     {
       safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
       //multiple different commands on input, error
-      if ((command_type == safex::command_t::token_unlock && tmp == safex::command_t::distribute_network_fee) ||
-              (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unlock)) {
+      if ((command_type == safex::command_t::token_unstake && tmp == safex::command_t::distribute_network_fee) ||
+              (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unstake)) {
         //this is ok
       }
       else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
@@ -2895,36 +2895,36 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
 
 
-  if (command_type == safex::command_t::token_lock)
+  if (command_type == safex::command_t::token_stake)
   {
     /* Find amount of output locked tokens */
-    uint64_t outputs_locked_token_amount = 0;
+    uint64_t outputs_staked_token_amount = 0;
     for (const auto &vout: tx.vout)
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_locked_token)
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
       {
         const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
-          outputs_locked_token_amount += vout.token_amount;
+        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
+          outputs_staked_token_amount += vout.token_amount;
       }
 
     /* Check if minumum amount of tokens is locked */
-    if (outputs_locked_token_amount < SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT)
+    if (outputs_staked_token_amount < SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT)
     {
-      MERROR("Safex token lock amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_LOCK_AMOUNT);
+      MERROR("Safex token lock amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT);
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
   }
-  else if (command_type == safex::command_t::token_unlock)
+  else if (command_type == safex::command_t::token_unstake)
   {
-    //Check if tokens are locked long enough
+    //Check if tokens are staked long enough
     for (const txin_v &txin: tx.vin)
     {
       if (txin.type() == typeid(txin_to_script))
       {
         const txin_to_script &in = boost::get<txin_to_script>(txin);
         for (auto index: in.key_offsets) {
-          output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_locked_token, index);
+          output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_staked_token, index);
           if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
             MERROR("Safex token lock period not expired at height"<<m_db->height());
             tvc.m_safex_invalid_command_params = true;
@@ -2969,16 +2969,16 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   {
     /* Find cash and token amount that is distributed, check if they match */
     uint64_t distributed_cash_amount = 0;
-    uint64_t unlocked_token_amount = 0;
+    uint64_t unstaked_token_amount = 0;
     uint64_t expected_interest = 0;
     for (const auto &txin: tx.vin)
     {
       if (txin.type() == typeid(txin_to_script))
       {
         const txin_to_script &stxin = boost::get<txin_to_script>(txin);
-        if (stxin.command_type == safex::command_t::token_unlock)
+        if (stxin.command_type == safex::command_t::token_unstake)
         {
-          unlocked_token_amount += stxin.token_amount;
+          unstaked_token_amount += stxin.token_amount;
           expected_interest += calculate_token_lock_interest_for_output(stxin, m_db->height());
         }
         else if (stxin.command_type == safex::command_t::distribute_network_fee)
@@ -2987,7 +2987,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
           if (stxin.key_offsets.size() != 1)
           {
-            MERROR("Interest should be distributed for particular token lock output");
+            MERROR("Interest should be distributed for particular token stake output");
             tvc.m_safex_invalid_input = true;
             return false;
           }
@@ -3000,7 +3000,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     /* Check if donated cash amount matches */
     if (distributed_cash_amount > expected_interest)
     {
-      MERROR("Token unlock interest too high");
+      MERROR("Token unstake interest too high");
       tvc.m_safex_invalid_input = true;
       return false;
     }
@@ -3113,12 +3113,12 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc)
 {
 
-  if (txin.command_type == safex::command_t::token_lock)
+  if (txin.command_type == safex::command_t::token_stake)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
   }
-  else if (txin.command_type == safex::command_t::token_unlock)
+  else if (txin.command_type == safex::command_t::token_unstake)
   {
     if (txin.amount > 0 || txin.token_amount == 0)
       return false;
@@ -5255,12 +5255,12 @@ uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& 
   return ret;
 }
 
-uint64_t Blockchain::get_current_locked_token_sum() const
+uint64_t Blockchain::get_current_staked_token_sum() const
 {
-  return m_db->get_current_locked_token_sum();
+  return m_db->get_current_staked_token_sum();
 }
 
-uint64_t Blockchain::get_locked_token_sum_for_interval(const uint64_t& interval) const
+uint64_t Blockchain::get_staked_token_sum_for_interval(const uint64_t &interval) const
 {
   return m_db->get_staked_token_sum_for_interval(interval);
 }
@@ -5284,12 +5284,12 @@ uint64_t Blockchain::calculate_token_lock_interest_for_output(const txin_to_scri
 {
   uint64_t ret = 0;
 
-  if (txin.command_type != safex::command_t::token_unlock) {
+  if (txin.command_type != safex::command_t::token_unstake) {
     MERROR("Invalid command for interest calculation");
     return 0;
   }
 
-  output_advanced_data_t output_data = m_db->get_output_key(tx_out_type::out_locked_token, txin.key_offsets[0]);
+  output_advanced_data_t output_data = m_db->get_output_key(tx_out_type::out_staked_token, txin.key_offsets[0]);
 
   if (output_data.height == 0) {
     MERROR("Invalid output lock height");

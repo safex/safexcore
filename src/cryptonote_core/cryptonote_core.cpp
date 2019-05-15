@@ -955,37 +955,37 @@ namespace cryptonote
     return total_migrated_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
-  int64_t core::get_locked_tokens(const uint64_t start_offset, const size_t count)
+  int64_t core::get_staked_tokens(const uint64_t start_offset, const size_t count)
   {
-    int64_t total_locked_tokens_amount = 0;
+    int64_t total_staked_tokens_amount = 0;
     if (count)
     {
       const uint64_t end = start_offset + count - 1;
       m_blockchain_storage.for_blocks_range(start_offset, end,
-                                            [this, &total_locked_tokens_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                            [this, &total_staked_tokens_amount](uint64_t, const crypto::hash& hash, const block& b) {
                                               std::list<transaction> txs;
                                               std::list<crypto::hash> missed_txs;
                                               this->get_transactions(b.tx_hashes, txs, missed_txs);
                                               for(const auto& tx: txs)
                                               {
-                                                total_locked_tokens_amount += get_token_locked_amount(tx);
+                                                total_staked_tokens_amount += get_token_staked_amount(tx);
                                               }
 
                                               return true;
                                             });
     }
 
-    return total_locked_tokens_amount;
+    return total_staked_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
   uint64_t core::get_locked_tokens() const
   {
-    return this->m_blockchain_storage.get_current_locked_token_sum();
+    return this->m_blockchain_storage.get_current_staked_token_sum();
   }
 
   uint64_t core::get_locked_tokens_for_interval(const uint64_t& interval) const
   {
-    return this->m_blockchain_storage.get_locked_token_sum_for_interval(interval);
+    return this->m_blockchain_storage.get_staked_token_sum_for_interval(interval);
   }
 
   uint64_t core::get_current_interval() const {

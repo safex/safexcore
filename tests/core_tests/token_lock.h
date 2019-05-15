@@ -63,6 +63,6 @@ public:
   static const uint64_t expected_bob_token_balance = 20000 * SAFEX_TOKEN;
   static const uint64_t expected_daniel_token_balance = 10000 * SAFEX_TOKEN;
 
-  static const uint64_t expected_locked_tokens = 40000 * SAFEX_TOKEN;
+  static const uint64_t expected_staked_tokens = 40000 * SAFEX_TOKEN;
 };
 

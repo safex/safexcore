@@ -486,27 +486,27 @@ namespace
       ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
+    uint64_t number_of_locked_tokens = this->m_db->get_current_staked_token_sum();
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
-    std::vector<uint64_t> data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+11);
+    std::vector<uint64_t> data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 11);
     ASSERT_EQ(data.size(), 2);
 
-    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+15);
+    data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 15);
     ASSERT_EQ(data.size(), 0);
 
-    data =  this->m_db->get_token_lock_expiry_outputs(SAFEX_DEFAULT_TOKEN_LOCK_EXPIRY_PERIOD+19);
+    data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 19);
     ASSERT_EQ(data.size(), 1);
 
     uint64_t test_output_id = data[0]; //first tx in 11 block
 
 
-    uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_locked_token);
+    uint64_t token_lock_output_num =  this->m_db->get_num_outputs(tx_out_type::out_staked_token);
     ASSERT_EQ(token_lock_output_num, 4);
 
 
 
-    output_advanced_data_t outd = this->m_db->get_output_key(tx_out_type::out_locked_token, test_output_id);
+    output_advanced_data_t outd = this->m_db->get_output_key(tx_out_type::out_staked_token, test_output_id);
     bool match = false;
     crypto::hash matching_tx_hash;
 
@@ -528,7 +528,7 @@ namespace
     ASSERT_EQ(matching_tx_hash, index1.first);
 
 
-    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_locked_token, 5913), DB_ERROR);
+    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_staked_token, 5913), DB_ERROR);
     ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
 
 
@@ -551,7 +551,7 @@ namespace
     this->m_db->for_all_advanced_outputs([](const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout){
       std::cout << "Height: " << height << " txid: " << output_id << " txout type: "<< static_cast<uint64_t>(txout.output_type) << std::endl;
       return true;
-    }, cryptonote::tx_out_type::out_locked_token);
+    }, cryptonote::tx_out_type::out_staked_token);
 
     ASSERT_NO_THROW(this->m_db->close());
 
@@ -576,7 +576,7 @@ namespace
       ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
-    uint64_t number_of_locked_tokens = this->m_db->get_current_locked_token_sum();
+    uint64_t number_of_locked_tokens = this->m_db->get_current_staked_token_sum();
     ASSERT_EQ(number_of_locked_tokens, 300 * SAFEX_TOKEN); //100+400+100-100+200-400
 
     uint64_t fee_sum = this->m_db->get_network_fee_sum_for_interval(2);

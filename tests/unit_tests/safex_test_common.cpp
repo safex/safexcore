@@ -94,7 +94,7 @@ tx_destination_entry create_network_fee_tx_destination(uint64_t cash_amount)
 
 tx_destination_entry create_locked_token_tx_destination(const cryptonote::account_base &to, uint64_t token_amount)
 {
-  return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_locked_token};
+  return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_staked_token};
 }
 
 
@@ -128,7 +128,7 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
               const tx_out &out = tx.vout[j];
               const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
-              if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_locked_token))
+              if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_staked_token))
               {
                 if (out.target.type() == typeid(cryptonote::txout_token_to_key))
                 {
@@ -145,17 +145,17 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
                 else if (out.target.type() == typeid(cryptonote::txout_to_script))
                 {
                   const txout_to_script &temp = boost::get<txout_to_script>(out.target);
-                  if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token))
+                  if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
                   {
                     //cast tx_out_type and use it as imaginary amount for advanced outputs
                     output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
-                    outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].push_back(oi);
-                    size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_locked_token)].size() - 1;
-                    outs[static_cast<uint64_t>(tx_out_type::out_locked_token)][tx_global_idx].idx = tx_global_idx;
+                    outs[static_cast<uint64_t>(tx_out_type::out_staked_token)].push_back(oi);
+                    size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_staked_token)].size() - 1;
+                    outs[static_cast<uint64_t>(tx_out_type::out_staked_token)][tx_global_idx].idx = tx_global_idx;
                     // Is out to me?
                     if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
                     {
-                      outs_mine[static_cast<uint64_t>(tx_out_type::out_locked_token)].push_back(tx_global_idx);
+                      outs_mine[static_cast<uint64_t>(tx_out_type::out_staked_token)].push_back(tx_global_idx);
                     }
                   }
                 }
@@ -269,7 +269,7 @@ bool fill_unlock_token_sources(map_hash2tx_t &txmap, std::vector<block> &blocks,
 {
   map_output_idx_t outs;
   map_output_t outs_mine;
-  if (!init_output_indices(txmap, outs, outs_mine, blocks, from, cryptonote::tx_out_type::out_locked_token))
+  if (!init_output_indices(txmap, outs, outs_mine, blocks, from, cryptonote::tx_out_type::out_staked_token))
     return false;
 
   if (!init_spent_output_indices(txmap, outs, outs_mine, blocks, from))
@@ -285,20 +285,20 @@ bool fill_unlock_token_sources(map_hash2tx_t &txmap, std::vector<block> &blocks,
             size_t sender_out = o.second[i];
             const output_index &oi = outs[o.first][sender_out];
             if ((oi.spent) || (oi.token_amount > 0 && out_type == cryptonote::tx_out_type::out_cash)
-                || (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_locked_token))
+                || (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token))
                 || (oi.out.type() != typeid(txout_to_script)))
               continue;
 
 
             const cryptonote::txout_to_script &out = boost::get<txout_to_script>(oi.out);
 
-            if (out.output_type != static_cast<uint8_t >(cryptonote::tx_out_type::out_locked_token))
+            if (out.output_type != static_cast<uint8_t >(cryptonote::tx_out_type::out_staked_token))
               continue;
 
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
             ts.token_amount = oi.token_amount;
-            ts.referenced_output_type = cryptonote::tx_out_type::out_locked_token;
-            ts.command_type = safex::command_t::token_unlock;
+            ts.referenced_output_type = cryptonote::tx_out_type::out_staked_token;
+            ts.command_type = safex::command_t::token_unstake;
 
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
@@ -434,7 +434,7 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
             size_t sender_out = o.second[i];
             const output_index &oi = outs[o.first][sender_out];
             if ((oi.spent) || (oi.token_amount > 0 && (out_type == cryptonote::tx_out_type::out_cash || out_type == cryptonote::tx_out_type::out_network_fee)) ||
-                (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_locked_token)))
+                (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token)))
               continue;
 
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
@@ -448,11 +448,11 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
               ts.token_amount = oi.token_amount;
               ts.referenced_output_type = cryptonote::tx_out_type::out_token;
             }
-            else if (out_type == cryptonote::tx_out_type::out_locked_token)
+            else if (out_type == cryptonote::tx_out_type::out_staked_token)
             {
               ts.token_amount = oi.token_amount;
               ts.referenced_output_type = cryptonote::tx_out_type::out_token;
-              ts.command_type = safex::command_t::token_lock;
+              ts.command_type = safex::command_t::token_stake;
             }
             else if (out_type == cryptonote::tx_out_type::out_network_fee)
             {
@@ -481,7 +481,7 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
               sources_found = value_amount <= sources_cash_amount;
             }
             else if ((out_type == cryptonote::tx_out_type::out_token) ||
-                     (out_type == cryptonote::tx_out_type::out_locked_token))
+                     (out_type == cryptonote::tx_out_type::out_staked_token))
             {
               sources_token_amount += ts.token_amount;
               sources_found = value_amount <= sources_token_amount;
@@ -600,7 +600,7 @@ void fill_token_lock_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vec
     throw std::runtime_error("couldn't fill transaction sources");
 
   //token source
-  if (!fill_tx_sources(txmap, blocks, sources, from, token_amount, nmix, cryptonote::tx_out_type::out_locked_token))
+  if (!fill_tx_sources(txmap, blocks, sources, from, token_amount, nmix, cryptonote::tx_out_type::out_staked_token))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to lock");
 
   //locked token destination

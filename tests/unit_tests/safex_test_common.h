@@ -79,7 +79,7 @@ bool init_spent_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, map
                                const cryptonote::account_base &from);
 
 bool fill_unlock_token_sources(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks,  std::vector<cryptonote::tx_source_entry> &sources, const cryptonote::account_base &from,
-        uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_locked_token);
+        uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_staked_token);
 
 bool fill_migration_tx_sources(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, std::vector<cryptonote::tx_source_entry> &sources, const cryptonote::account_base &from,
                                uint64_t token_amount, uint64_t cash_airdrop_amount, const crypto::hash &bitcoin_transaction_hash);

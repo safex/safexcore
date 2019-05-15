@@ -236,7 +236,7 @@ namespace cryptonote
         }
         de.token_amount = value_amount;
         de.script_output = true;
-        de.output_type = tx_out_type::out_locked_token;
+        de.output_type = tx_out_type::out_staked_token;
       }
       else if (command_type == CommandType::TransferUnlockToken)
       {
@@ -294,11 +294,11 @@ namespace cryptonote
       switch (command_type)
       {
         case CommandType::TransferLockToken:
-          command = safex::command_t::token_lock;
+          command = safex::command_t::token_stake;
           break;
 
         case CommandType::TransferUnlockToken:
-          command = safex::command_t::token_unlock;
+          command = safex::command_t::token_unstake;
           break;
 
         case CommandType::TransferDemoPurchase:
@@ -548,7 +548,7 @@ namespace cryptonote
     {
       cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
       std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
-      uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](const tools::wallet::transfer_details& td) { return td.m_output_type == tx_out_type::out_locked_token && !td.m_spent && td.m_subaddr_index == subaddr_index; });
+      uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](const tools::wallet::transfer_details& td) { return td.m_output_type == tx_out_type::out_staked_token && !td.m_spent && td.m_subaddr_index == subaddr_index; });
       success_msg_writer() << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_money(i.second) % print_money(unlocked_balance_per_subaddress[i.first]) % num_unspent_outputs % m_wallet->get_subaddress_label(subaddr_index);
     }
     return true;

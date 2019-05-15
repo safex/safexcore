@@ -2312,7 +2312,7 @@ namespace cryptonote
     };
   };
 
-  struct COMMAND_RPC_TOKEN_LOCKED
+  struct COMMAND_RPC_TOKEN_STAKED
   {
     struct request
     {

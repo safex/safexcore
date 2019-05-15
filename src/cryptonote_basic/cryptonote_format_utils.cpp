@@ -601,35 +601,35 @@ namespace cryptonote
     return migrated_tokens;
   }
   //---------------------------------------------------------------
-  int64_t get_token_locked_amount(const transaction &tx)
+  int64_t get_token_staked_amount(const transaction &tx)
   {
-    int64_t locked_tokens = 0;
-    //count unlocked tokens
+    int64_t staked_tokens = 0;
+    //count unstaked tokens
     for (const auto &vin: tx.vin)
     {
       if (vin.type() == typeid(txin_to_script))
       {
         const txin_to_script& in = boost::get<txin_to_script>(vin);
-        if (in.command_type == safex::command_t::token_unlock) {
-          locked_tokens -= in.token_amount;
+        if (in.command_type == safex::command_t::token_unstake) {
+          staked_tokens -= in.token_amount;
         }
       }
     }
 
-    //count locked tokens
+    //count staked tokens
     for (const auto &vout: tx.vout)
     {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_locked_token)
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
       {
         const txout_to_script& out = boost::get<txout_to_script>(vout.target);
-        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_locked_token)) {
-          locked_tokens += vout.token_amount;
+        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token)) {
+          staked_tokens += vout.token_amount;
         }
       }
     }
 
 
-    return locked_tokens;
+    return staked_tokens;
   }
   //---------------------------------------------------------------
   uint64_t get_collected_network_fee_amount(const transaction &tx)

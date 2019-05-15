@@ -161,7 +161,7 @@ bool gen_network_fee_001::verify_network_fee(cryptonote::core &c, size_t ev_inde
   cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
   cout << "final daniel token balance= " << print_money(get_token_balance(daniel_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(daniel_account, blocks, mtx)) << endl;
 
-  int64_t locked_tokens = c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height);
+  int64_t locked_tokens = c.get_staked_tokens(0, gen_network_fee_001::expected_blockchain_height);
   cout << "total core locked tokens: " << print_money(locked_tokens) << endl;
 
   int64_t network_fee_collected = c.get_collected_network_fee(0, gen_network_fee_001::expected_blockchain_height);
@@ -174,7 +174,7 @@ bool gen_network_fee_001::verify_network_fee(cryptonote::core &c, size_t ev_inde
   CHECK_EQ(gen_network_fee_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
   CHECK_EQ(gen_network_fee_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
   CHECK_EQ(gen_network_fee_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
-  CHECK_EQ(gen_network_fee_001::expected_locked_tokens, c.get_locked_tokens(0, gen_network_fee_001::expected_blockchain_height));
+  CHECK_EQ(gen_network_fee_001::expected_locked_tokens, c.get_staked_tokens(0, gen_network_fee_001::expected_blockchain_height));
 //
 
   //todo implement condition check

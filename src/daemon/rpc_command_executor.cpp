@@ -1955,8 +1955,8 @@ bool t_rpc_command_executor::sync_info()
 
 bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, const uint64_t& end)
 {
-  cryptonote::COMMAND_RPC_TOKEN_LOCKED::request req = AUTO_VAL_INIT(req);
-  cryptonote::COMMAND_RPC_TOKEN_LOCKED::response res = AUTO_VAL_INIT(res);
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::response res = AUTO_VAL_INIT(res);
 
   req.interval = start;
   req.end = end;
@@ -1965,7 +1965,7 @@ bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, con
 
   if (m_is_rpc)
   {
-    if (!m_rpc_client->rpc_request(req, res, "/get_locked_tokens", fail_msg.c_str()))
+    if (!m_rpc_client->rpc_request(req, res, "/get_staked_tokens", fail_msg.c_str()))
     {
       tools::fail_msg_writer() << "Failed!";
       return true;

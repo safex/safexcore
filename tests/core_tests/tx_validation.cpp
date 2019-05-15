@@ -115,10 +115,10 @@ namespace
               out.token_amount = dst_entr.token_amount;
               out.amount = dst_entr.amount;
 
-              if (dst_entr.output_type == tx_out_type::out_locked_token) {
+              if (dst_entr.output_type == tx_out_type::out_staked_token) {
                 txout_to_script ts;
                 ts.keys.push_back(out_eph_public_key);
-                ts.output_type = static_cast<int8_t>(tx_out_type::out_locked_token);
+                ts.output_type = static_cast<int8_t>(tx_out_type::out_staked_token);
                 out.target = ts;
 
               } else if (dst_entr.output_type == tx_out_type::out_token) {

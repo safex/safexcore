@@ -988,9 +988,9 @@ namespace cryptonote
      *
      * @return locked token amount
      */
-    uint64_t get_current_locked_token_sum() const;
+    uint64_t get_current_staked_token_sum() const;
 
-    uint64_t get_locked_token_sum_for_interval(const uint64_t& interval) const;
+    uint64_t get_staked_token_sum_for_interval(const uint64_t &interval) const;
 
     uint64_t get_network_fee_sum_for_interval(const uint64_t& interval) const;
     
