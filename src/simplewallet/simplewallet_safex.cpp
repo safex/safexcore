@@ -41,15 +41,15 @@ namespace cryptonote
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
 
-    //  "lock_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>] [<offer_id]"
+    //  "stake_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>] [<offer_id]"
     if (m_wallet->ask_password() && !get_and_verify_password())
     { return true; }
     if (!try_connect_to_daemon())
       return true;
 
-    if ((command_type == CommandType::TransferLockToken) ||
+    if ((command_type == CommandType::TransferStakeToken) ||
             (command_type == CommandType::TransferDonation) ||
-            (command_type == CommandType::TransferUnlockToken) || 
+            (command_type == CommandType::TransferUnstakeToken) ||
             (command_type == CommandType::TransferDemoPurchase))
     {
       //do nothing
@@ -103,7 +103,7 @@ namespace cryptonote
     {
       size_t ring_size;
 
-      if (command_type == CommandType::TransferUnlockToken)
+      if (command_type == CommandType::TransferUnstakeToken)
       {
         ring_size = 1;
         fake_outs_count = 0;
@@ -227,7 +227,7 @@ namespace cryptonote
       }
     
 
-      if (command_type == CommandType::TransferLockToken)
+      if (command_type == CommandType::TransferStakeToken)
       {
         if (!tools::is_whole_coin_amount(value_amount))
         {
@@ -238,7 +238,7 @@ namespace cryptonote
         de.script_output = true;
         de.output_type = tx_out_type::out_staked_token;
       }
-      else if (command_type == CommandType::TransferUnlockToken)
+      else if (command_type == CommandType::TransferUnstakeToken)
       {
         if (!tools::is_whole_coin_amount(value_amount))
         {
@@ -293,11 +293,11 @@ namespace cryptonote
       safex::command_t command = safex::command_t::nop;
       switch (command_type)
       {
-        case CommandType::TransferLockToken:
+        case CommandType::TransferStakeToken:
           command = safex::command_t::token_stake;
           break;
 
-        case CommandType::TransferUnlockToken:
+        case CommandType::TransferUnstakeToken:
           command = safex::command_t::token_unstake;
           break;
 
@@ -411,7 +411,7 @@ namespace cryptonote
             prompt << tr("WARNING: Outputs of multiple addresses are being used together, which might potentially compromise your privacy.\n");
         }
 
-        if (command_type == CommandType::TransferLockToken)
+        if (command_type == CommandType::TransferStakeToken)
           prompt << boost::format(tr("Locking %s tokens. ")) % print_money(total_token_sent);
 
 
@@ -505,14 +505,14 @@ namespace cryptonote
     return true;
   }
 
-  bool simple_wallet::lock_token(const std::vector<std::string> &args)
+  bool simple_wallet::stake_token(const std::vector<std::string> &args)
   {
-    return create_command(CommandType::TransferLockToken, args);
+    return create_command(CommandType::TransferStakeToken, args);
   }
 
-  bool simple_wallet::unlock_token(const std::vector<std::string> &args)
+  bool simple_wallet::unstake_token(const std::vector<std::string> &args)
   {
-    return create_command(CommandType::TransferUnlockToken, args);
+    return create_command(CommandType::TransferUnstakeToken, args);
   }
 
   bool simple_wallet::donate_safex_fee(const std::vector<std::string> &args)

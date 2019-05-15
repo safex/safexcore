@@ -67,8 +67,8 @@ namespace cryptonote
   };
 
   enum CommandType {
-    TransferLockToken,
-    TransferUnlockToken,
+    TransferStakeToken,
+    TransferUnstakeToken,
     TransferDonation,
     TransferDemoPurchase
   };
@@ -251,8 +251,8 @@ namespace cryptonote
     // Function responsible for 
     bool create_command(CommandType command_type, const std::vector<std::string> &args);
 
-    bool lock_token(const std::vector<std::string>& args);
-    bool unlock_token(const std::vector<std::string>& args);
+    bool stake_token(const std::vector<std::string> &args);
+    bool unstake_token(const std::vector<std::string> &args);
     bool donate_safex_fee(const std::vector<std::string>& args);
     bool locked_token_balance(const std::vector<std::string>& args);
 

@@ -1207,15 +1207,15 @@ simple_wallet::simple_wallet()
                            tr("help [<command>]"),
                            tr("Show the help section or the documentation about a <command>."));
 
-  m_cmd_binder.set_handler("lock_token",
-                           boost::bind(&simple_wallet::lock_token, this, _1),
-                           tr("lock_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>]"),
-                           tr("Lock <token_amount> with <address> as locked tokens holder, optionally set payment_id, priority, ring_size for input tokens or token output subaddress indice"));
+  m_cmd_binder.set_handler("stake_token",
+                           boost::bind(&simple_wallet::stake_token, this, _1),
+                           tr("stake_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>]"),
+                           tr("Stake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, ring_size for input tokens or token output subaddress indice"));
 
-  m_cmd_binder.set_handler("unlock_token",
-                           boost::bind(&simple_wallet::unlock_token, this, _1),
-                           tr("unlock_token [<command>]"),
-                           tr("Unlocking tokens."));
+  m_cmd_binder.set_handler("unstake_token",
+                           boost::bind(&simple_wallet::unstake_token, this, _1),
+                           tr("unstake_token [<priority>] <address> <token_amount> [<payment_id>]"),
+                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority"));
 
   m_cmd_binder.set_handler("demo_purchase",
                            boost::bind(&simple_wallet::demo_purchase, this, _1),
