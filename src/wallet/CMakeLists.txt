@@ -71,7 +71,7 @@ target_link_libraries(wallet
     ${EXTRA_LIBRARIES})
 
 set(wallet_rpc_sources
-  wallet_rpc_server.cpp)
+  wallet_rpc_server.cpp wallet_safex_rpc_server.cpp)
 
 set(wallet_rpc_headers)
 

@@ -93,7 +93,7 @@ namespace tools
         MAP_JON_RPC_WE("sweep_single",       on_sweep_single,       wallet_rpc::COMMAND_RPC_SWEEP_SINGLE)
         MAP_JON_RPC_WE("relay_tx",           on_relay_tx,           wallet_rpc::COMMAND_RPC_RELAY_TX)
         MAP_JON_RPC_WE("store",              on_store,              wallet_rpc::COMMAND_RPC_STORE)
-        MAP_JON_RPC_WE("get_payments",       on_get_payments,       wallet_rpc::COMMAND_RPC_GET_PAYMENTS)
+        MAP_JON_RPC_WE("get_payments",       on_get_payments,       wallet_rpc::COMMAND_RPC_GET_PAYMENTS)        
         MAP_JON_RPC_WE("get_bulk_payments",  on_get_bulk_payments,  wallet_rpc::COMMAND_RPC_GET_BULK_PAYMENTS)
         MAP_JON_RPC_WE("incoming_transfers", on_incoming_transfers, wallet_rpc::COMMAND_RPC_INCOMING_TRANSFERS)
         MAP_JON_RPC_WE("query_key",         on_query_key,         wallet_rpc::COMMAND_RPC_QUERY_KEY)
@@ -135,10 +135,22 @@ namespace tools
         MAP_JON_RPC_WE("submit_migration",   on_submit_migration,   wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION)
         MAP_JON_RPC_WE("is_multisig",        on_is_multisig,        wallet_rpc::COMMAND_RPC_IS_MULTISIG)
 
+        MAP_JON_RPC_WE("stake_token", on_stake_token, wallet_rpc::COMMAND_RPC_STAKE_TOKEN)
+        MAP_JON_RPC_WE("unstake_token", on_unstake_token, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN)
+        MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
+        MAP_JON_RPC_WE("make_demo_purchase", on_make_demo_purchase, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE)
+        MAP_JON_RPC_WE("get_demo_offers", on_get_demo_offers, wallet_rpc::COMMAND_RPC_GET_DEMO_OFFERS)
+
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
       //json_rpc
+      bool on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er);
+      bool on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er);
+      bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);
+      bool on_make_demo_purchase(const wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::request& req, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::response& res, epee::json_rpc::error& er);
+      bool on_get_demo_offers(const wallet_rpc::COMMAND_RPC_GET_DEMO_OFFERS::request& req, wallet_rpc::COMMAND_RPC_GET_DEMO_OFFERS::response& res, epee::json_rpc::error& er);
+
       bool on_getbalance(const wallet_rpc::COMMAND_RPC_GET_BALANCE::request& req, wallet_rpc::COMMAND_RPC_GET_BALANCE::response& res, epee::json_rpc::error& er);
       bool on_getaddress(const wallet_rpc::COMMAND_RPC_GET_ADDRESS::request& req, wallet_rpc::COMMAND_RPC_GET_ADDRESS::response& res, epee::json_rpc::error& er);
       bool on_create_address(const wallet_rpc::COMMAND_RPC_CREATE_ADDRESS::request& req, wallet_rpc::COMMAND_RPC_CREATE_ADDRESS::response& res, epee::json_rpc::error& er);
@@ -152,6 +164,7 @@ namespace tools
       bool on_set_account_tag_description(const wallet_rpc::COMMAND_RPC_SET_ACCOUNT_TAG_DESCRIPTION::request& req, wallet_rpc::COMMAND_RPC_SET_ACCOUNT_TAG_DESCRIPTION::response& res, epee::json_rpc::error& er);
       bool on_getheight(const wallet_rpc::COMMAND_RPC_GET_HEIGHT::request& req, wallet_rpc::COMMAND_RPC_GET_HEIGHT::response& res, epee::json_rpc::error& er);
       bool validate_transfer(const std::list<wallet_rpc::transfer_destination>& destinations, const std::string& payment_id, std::vector<cryptonote::tx_destination_entry>& dsts, std::vector<uint8_t>& extra, bool at_least_one_destination, epee::json_rpc::error& er, bool is_token);
+      bool validate_transfer_advanced(const std::list<wallet_rpc::transfer_destination> &destinations, const std::string &payment_id, std::vector<cryptonote::tx_destination_entry> &dsts, std::vector<uint8_t> &extra, bool at_least_one_destination, epee::json_rpc::error &er, safex::command_t cmd_type);
       bool on_transfer(const wallet_rpc::COMMAND_RPC_TRANSFER::request& req, wallet_rpc::COMMAND_RPC_TRANSFER::response& res, epee::json_rpc::error& er);
       bool on_transfer_token(const wallet_rpc::COMMAND_RPC_TRANSFER_TOKEN::request &req, wallet_rpc::COMMAND_RPC_TRANSFER_TOKEN::response &res, epee::json_rpc::error &er);
       bool on_transfer_split(const wallet_rpc::COMMAND_RPC_TRANSFER_SPLIT::request& req, wallet_rpc::COMMAND_RPC_TRANSFER_SPLIT::response& res, epee::json_rpc::error& er);
