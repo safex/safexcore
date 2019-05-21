@@ -238,5 +238,7 @@ namespace tools
       std::atomic<bool> m_stop;
       bool m_trusted_daemon;
       const boost::program_options::variables_map *m_vm;
+
+      std::map<std::string, std::string> simple_trade_ids;
   };
 }

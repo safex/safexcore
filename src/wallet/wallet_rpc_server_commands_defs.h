@@ -2266,6 +2266,7 @@ struct COMMAND_RPC_DEMO_PURCHASE
   {
     std::list<transfer_destination> destinations;
     uint32_t account_index;
+    std::string offer_id;
     std::set<uint32_t> subaddr_indices;
     uint32_t priority;
     uint64_t mixin;
@@ -2280,6 +2281,7 @@ struct COMMAND_RPC_DEMO_PURCHASE
   BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(destinations)
         KV_SERIALIZE(account_index)
+        KV_SERIALIZE(offer_id)
         KV_SERIALIZE(subaddr_indices)
         KV_SERIALIZE(priority)
         KV_SERIALIZE_OPT(mixin, (uint64_t)0)
@@ -2297,6 +2299,7 @@ struct COMMAND_RPC_DEMO_PURCHASE
   {
     std::string tx_hash;
     std::string tx_key;
+    std::string purchased_offer_id;
     std::list<std::string> amount_keys;
     uint64_t token_amount;
     uint64_t fee;
@@ -2307,6 +2310,7 @@ struct COMMAND_RPC_DEMO_PURCHASE
   BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash)
         KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(purchased_offer_id)
         KV_SERIALIZE(amount_keys)
         KV_SERIALIZE(token_amount)
         KV_SERIALIZE(fee)
@@ -2328,9 +2332,11 @@ struct COMMAND_RPC_GET_DEMO_OFFERS
   };
 
   struct offer {
-    uint32_t test_val;
+    std::string offer_id;
+    std::string offer_title;
     BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(test_val)
+        KV_SERIALIZE(offer_id)
+        KV_SERIALIZE(offer_title)
     END_KV_SERIALIZE_MAP()
   };
 
