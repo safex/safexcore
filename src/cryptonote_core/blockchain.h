@@ -984,7 +984,7 @@ namespace cryptonote
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
     /**
-     * @brief Returns last known token locked sum
+     * @brief Returns last known staked token sum
      *
      * @return locked token amount
      */
@@ -994,9 +994,9 @@ namespace cryptonote
 
     uint64_t get_network_fee_sum_for_interval(const uint64_t& interval) const;
     
-    uint64_t calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+    uint64_t calculate_staked_token_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
 
-    uint64_t calculate_token_lock_interest_for_output(const txin_to_script& txin, const uint64_t unlock_height) const;
+    uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const;
 
     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
   private:

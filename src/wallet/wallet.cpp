@@ -8277,13 +8277,13 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
         if (command_type == safex::command_t::token_stake)
         {
-          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token locking, for a total of " << print_money(needed_tokens)) << " tokens";
+          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token staking, for a total of " << print_money(needed_tokens)) << " tokens";
           needed_tokens += dt.token_amount;
           THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
         }
         else
         {
-          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token unlocking, for a total of " << print_money(needed_tokens)) << " locked tokens";
+          LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens for token unstaking, for a total of " << print_money(needed_tokens)) << " staked tokens";
           needed_staked_tokens += dt.token_amount;
           THROW_WALLET_EXCEPTION_IF(needed_staked_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
         }
@@ -8444,7 +8444,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
       //staked token outputs
       if (command_type == safex::command_t::token_unstake) {
-        //token outputs
+        //staked token outputs
         std::shuffle(unused_staked_token_transfers_indices_per_subaddr.begin(), unused_staked_token_transfers_indices_per_subaddr.end(), g);
         auto sort_token_predicate = [&unlocked_staked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
         {
@@ -8455,8 +8455,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         if (unused_staked_token_transfers_indices_per_subaddr.empty())
           return std::vector<wallet::pending_tx>();
 
-      } else {
-        //token outputs
+      } else if (command_type == safex::command_t::token_stake || command_type == safex::command_t::token_collect) {
+        //shuffle token outputs
         std::shuffle(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), g);
         auto sort_token_predicate = [&unlocked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
         {

@@ -1062,7 +1062,7 @@ namespace cryptonote
         txs.keys.push_back(out_eph_public_key);
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token lock output", safex::command_t::token_stake);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token stake output", safex::command_t::token_stake);
         //nothing else to do with matched inputs, create txout data field
         safex::safex_command_serializer::serialize_safex_object(safex::token_lock_data{0}, txs.data);
 

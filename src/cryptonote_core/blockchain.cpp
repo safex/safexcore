@@ -2897,7 +2897,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   if (command_type == safex::command_t::token_stake)
   {
-    /* Find amount of output locked tokens */
+    /* Find amount of output staked tokens */
     uint64_t outputs_staked_token_amount = 0;
     for (const auto &vout: tx.vout)
       if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
@@ -2907,10 +2907,10 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           outputs_staked_token_amount += vout.token_amount;
       }
 
-    /* Check if minumum amount of tokens is locked */
+    /* Check if minumum amount of tokens is staked */
     if (outputs_staked_token_amount < SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT)
     {
-      MERROR("Safex token lock amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT);
+      MERROR("Safex token stake amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT);
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
@@ -2926,7 +2926,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         for (auto index: in.key_offsets) {
           output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_staked_token, index);
           if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
-            MERROR("Safex token lock period not expired at height"<<m_db->height());
+            MERROR("Safex token stake period not expired at height"<<m_db->height());
             tvc.m_safex_invalid_command_params = true;
             return false;
           }
@@ -2979,7 +2979,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         if (stxin.command_type == safex::command_t::token_unstake)
         {
           unstaked_token_amount += stxin.token_amount;
-          expected_interest += calculate_token_lock_interest_for_output(stxin, m_db->height());
+          expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
         }
         else if (stxin.command_type == safex::command_t::distribute_network_fee)
         {
@@ -5271,8 +5271,8 @@ uint64_t Blockchain::get_network_fee_sum_for_interval(const uint64_t& interval) 
 }
 
 
-/* Returns token lock interest */
-uint64_t Blockchain::calculate_token_lock_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const
+/* Returns token stake interest */
+uint64_t Blockchain::calculate_staked_token_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const
 {
   uint64_t ret = 0;
 
@@ -5280,7 +5280,7 @@ uint64_t Blockchain::calculate_token_lock_interest(const uint64_t token_amount, 
   return ret;
 }
 
-uint64_t Blockchain::calculate_token_lock_interest_for_output(const txin_to_script& txin, const uint64_t unlock_height) const
+uint64_t Blockchain::calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const
 {
   uint64_t ret = 0;
 

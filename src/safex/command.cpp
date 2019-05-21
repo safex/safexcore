@@ -40,7 +40,7 @@ namespace safex
   bool token_lock::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_lock_result &command_result)
   {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token lock command amount", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token stake command amount", this->command_type);
 
     token_lock_result cr = AUTO_VAL_INIT(cr);
     cr.token_amount = txin.token_amount;

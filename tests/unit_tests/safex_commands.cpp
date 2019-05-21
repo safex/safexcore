@@ -346,7 +346,7 @@ TEST(SafexCommandParsing, HandlesTokenLock)
 
 
   command_t command_type = safex_command_serializer::get_command_type(serialized_command);
-  ASSERT_EQ(command_type, command_t::token_stake) << "Token lock command type not properly parsed from binary blob";
+  ASSERT_EQ(command_type, command_t::token_stake) << "Token stake command type not properly parsed from binary blob";
 
   //deserialize
   token_lock command2{};
@@ -518,7 +518,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
 
     token_lock_result result{};
     command2.execute(this->db, txinput, result);
-    FAIL() << "Should throw exception with input amount differs from token lock command amount";
+    FAIL() << "Should throw exception with input amount differs from token stake command amount";
 
   }
   catch (safex::command_exception &exception)

@@ -168,7 +168,7 @@ namespace safex
     if (nettype == cryptonote::network_type::FAKECHAIN)
       return get_safex_interval_period(cryptonote::network_type::FAKECHAIN) * 3;
     else if (nettype == cryptonote::network_type::TESTNET)
-      return get_safex_interval_period(cryptonote::network_type::TESTNET) * 3;
+      return get_safex_interval_period(cryptonote::network_type::TESTNET) * 1;
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD;
   }

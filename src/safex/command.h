@@ -104,7 +104,7 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _command_type actuall command, like token lock
+       * @param _command_type actuall command, like stake token
       * */
       command(const uint32_t _version, const command_t _command_type) : version(_version), command_type(_command_type)
       {
@@ -158,7 +158,7 @@ namespace safex
   };
 
 
-  //Token lock command
+  //Token stake command
   class token_lock : public command<token_lock_result>
   {
     public:
@@ -301,7 +301,7 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _donate_amount //amount of safex cash that will be distributed to token holders that unlock tokens
+       * @param _donate_amount //amount of safex cash that will be distributed to token holders that unstake tokens
       * */
       distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command<distribute_fee_result>(_version, command_t::distribute_network_fee),
                                                                                         safex_cash_amount(_donation_safex_cash_amount) {}

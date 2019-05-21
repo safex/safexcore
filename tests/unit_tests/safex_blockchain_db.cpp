@@ -122,7 +122,7 @@ namespace
           }
           else if (i == 10)
           {
-            //create token lock transaction, user 0 locks 100 safex token
+            //create token stake transaction, user 0 locks 100 safex token
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 100 * SAFEX_TOKEN, default_miner_fee, 0);
@@ -131,7 +131,7 @@ namespace
           }
           else if (i == 11)
           {
-            //create other token lock transaction
+            //create other token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
@@ -171,7 +171,7 @@ namespace
           }
           else if (i == 19)
           {
-            //token lock transaction
+            //token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
             construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);

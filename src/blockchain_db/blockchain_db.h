@@ -567,14 +567,14 @@ namespace cryptonote
 
 
       /**
-      * Updates token lock sum
+      * Updates staked token  sum
       *
       *
       *
       *
       * @param delta amount of locked or unlocked tokens
       * @param sign positive if tokens are locked, otherwise negative
-      * @return new total current token locked sum
+      * @return new total current token staked sum
       */
       uint64_t update_current_staked_token_sum(const uint64_t delta, int sign);
 
@@ -1371,7 +1371,7 @@ namespace cryptonote
        * If any of these parts cannot be found, but some are, the subclass
        * should throw DB_ERROR with a message stating as much.
        *
-       * @param output_type type of output(e.g. token lock output
+       * @param output_type type of output(e.g. staked token output
        * @param global_index output id of output (output_id)
        *
        * @return list of public keys that can use this output

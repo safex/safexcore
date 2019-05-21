@@ -145,7 +145,7 @@ public:
 
   bool version(const std::vector<std::string>& args);
 
-  bool token_locked_on_interval(const std::vector<std::string>& args);
+  bool staked_tokens_on_interval(const std::vector<std::string> &args);
   
   bool network_fee_on_interval(const std::vector<std::string>& args);
 };
