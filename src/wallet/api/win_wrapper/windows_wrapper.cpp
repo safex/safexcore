@@ -613,7 +613,7 @@ extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
   Safex::TransactionInfoImpl *txInfo = static_cast<Safex::TransactionInfoImpl *>(self);
   const std::vector<Safex::TransactionInfo::Transfer> &transfers = txInfo->transfers();
 
-  static char buffer[512*1024+sizeof(uint32_t)];
+  static char buffer[2048*1024+sizeof(uint32_t)];
   uint32_t offset = 0;
   memset(buffer, 0, sizeof(buffer));
   uint32_t size = static_cast<uint32_t>(transfers.size());
@@ -621,6 +621,7 @@ extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
   offset += sizeof(uint32_t);
 
   for(auto& tx : transfers) {
+    if(2048 * 1024 - offset <= 128) break;
     memcpy(buffer + offset, &(tx.amount), sizeof(uint64_t));
     offset += sizeof(uint64_t);
     memcpy(buffer + offset, &(tx.token_amount), sizeof(uint64_t));
@@ -754,6 +755,9 @@ extern "C" DLL_MAGIC void** win_txhist_getAll(void* self, uint32_t* size) {
   std::vector<Safex::TransactionInfo*> txInfos = txHist->getAll();
   *size = static_cast<uint32_t>(txInfos.size());
   static void* buffer[4096];
+  std::sort(txInfos.begin(), txInfos.end(), [](Safex::TransactionInfo* a, Safex::TransactionInfo* b){
+    return a->timestamp() > b->timestamp();
+  });
   memset(buffer, 0, sizeof(buffer));
   size_t i = 0;
   for(auto tx : txInfos) {
