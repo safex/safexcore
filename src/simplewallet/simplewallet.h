@@ -205,7 +205,7 @@ namespace cryptonote
     bool get_reserve_proof(const std::vector<std::string> &args);
     bool check_reserve_proof(const std::vector<std::string> &args);
     bool show_transfers(const std::vector<std::string> &args);
-    bool unspent_outputs(const std::vector<std::string> &args, bool token_outputs);
+    bool unspent_outputs(const std::vector<std::string> &args, cryptonote::tx_out_type out_type);
     bool rescan_blockchain(const std::vector<std::string> &args);
     bool refresh_main(uint64_t start_height, bool reset = false, bool is_init = false);
     bool set_tx_note(const std::vector<std::string> &args);
