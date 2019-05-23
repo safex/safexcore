@@ -831,6 +831,14 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
+    struct no_matching_available_outputs : public transfer_error
+    {
+      explicit no_matching_available_outputs(std::string&& loc)
+              : transfer_error(std::move(loc), "there are no matching available outputs")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
     struct wallet_rpc_error : public wallet_logic_error
     {
       const std::string& request() const { return m_request; }

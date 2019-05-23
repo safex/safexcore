@@ -1126,13 +1126,17 @@ simple_wallet::simple_wallet()
                            tr("show_transfers [in|out|pending|failed|pool] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]"),
                            tr("Show the incoming/outgoing transfers within an optional height range."));
   m_cmd_binder.set_handler("unspent_cash_outputs",
-                           boost::bind(&simple_wallet::unspent_outputs, this, _1, false),
+                           boost::bind(&simple_wallet::unspent_outputs, this, _1, tx_out_type::out_cash),
                            tr("unspent_cash_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
                            tr("Show the unspent Safex cash outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("unspent_token_outputs",
-                             boost::bind(&simple_wallet::unspent_outputs, this, _1, true),
+                             boost::bind(&simple_wallet::unspent_outputs, this, _1, tx_out_type::out_token),
                              tr("unspent_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
                              tr("Show the unspent token outputs of a specified address within an optional amount range."));
+  m_cmd_binder.set_handler("unspent_staked_token_outputs",
+                           boost::bind(&simple_wallet::unspent_outputs, this, _1, tx_out_type::out_staked_token),
+                           tr("unspent_staked_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]"),
+                           tr("Show the unspent staked token outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("rescan_bc",
                            boost::bind(&simple_wallet::rescan_blockchain, this, _1),
                            tr("Rescan the blockchain from scratch."));
@@ -5112,14 +5116,18 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, bool token_outputs)
+bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, cryptonote::tx_out_type out_type)
 {
-  const char *string_prefix = token_outputs ? " token" : "";
+
+  const char *string_prefix = (out_type == cryptonote::tx_out_type::out_token) ? " token" :
+          (out_type == cryptonote::tx_out_type::out_staked_token) ? " staked token" : "";
 
   if(args_.size() > 3)
   {
-    if (token_outputs)
+    if (out_type == cryptonote::tx_out_type::out_token)
       fail_msg_writer() << tr("usage: unspent_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
+    else if (out_type == cryptonote::tx_out_type::out_staked_token)
+      fail_msg_writer() << tr("usage: unspent_staked_token_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
     else
       fail_msg_writer() << tr("usage: unspent_cash_outputs [index=<N1>[,<N2>,...]] [<min_amount> [<max_amount>]]");
     return true;
@@ -5170,15 +5178,12 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, bool 
   for (const auto& td : transfers)
   {
     uint64_t value_amount = 0;
-    if (token_outputs) {
-      if (!td.m_token_transfer)
-        continue;
-      value_amount = td.token_amount();
-    } else {
-      if (td.m_token_transfer)
-        continue;
-      value_amount = td.amount();
-    }
+
+    if (td.get_out_type() != out_type)
+      continue;
+
+    value_amount = out_type == tx_out_type::out_token || out_type == tx_out_type::out_staked_token ? td.token_amount():td.amount();
+
 
     if (td.m_spent || value_amount < min_amount || value_amount > max_amount || td.m_subaddr_index.major != m_current_subaddress_account || (subaddr_indices.count(td.m_subaddr_index.minor) == 0 && !subaddr_indices.empty()))
       continue;
@@ -5197,7 +5202,10 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, bool 
   for (const auto& amount_tds : amount_to_tds)
   {
     auto& tds = amount_tds.second;
-    success_msg_writer() << (token_outputs ? tr("\nToken amount: ") : tr("\nAmount: ")) << print_money(amount_tds.first) << tr(", number of keys: ") << tds.size();
+    success_msg_writer() << ((out_type == cryptonote::tx_out_type::out_token) ? tr("\nToken amount: "):
+    (out_type == cryptonote::tx_out_type::out_staked_token) ? tr("\nStaked token amount: "): tr("\nAmount: "))
+    << print_money(amount_tds.first) << tr(", number of keys: ") << tds.size();
+
     for (size_t i = 0; i < tds.size(); )
     {
       std::ostringstream oss;
