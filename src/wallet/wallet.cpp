@@ -4157,6 +4157,8 @@ size_t wallet::pop_ideal_value_from(const transfer_container &transfers, std::ve
       candidates.push_back(n);
   }
 
+  THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
+
   size_t idx;
   idx = crypto::rand<size_t>() % candidates.size();
 

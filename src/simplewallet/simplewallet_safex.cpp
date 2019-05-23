@@ -412,7 +412,7 @@ namespace cryptonote
         }
 
         if (command_type == CommandType::TransferStakeToken)
-          prompt << boost::format(tr("Locking %s tokens. ")) % print_money(total_token_sent);
+          prompt << boost::format(tr("Staking %s tokens. ")) % print_money(total_token_sent);
 
 
         if (ptx_vector.size() > 1)
