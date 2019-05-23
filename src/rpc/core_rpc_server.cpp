@@ -796,6 +796,19 @@ namespace cryptonote
         add_reason(res.reason, "fee too low");
       if ((res.non_supported_version = tvc.m_non_supported_version))
         add_reason(res.reason, "tx version is not supported");
+      if ((res.safex_verification_failed = tvc.m_safex_verification_failed))
+        add_reason(res.reason, "verification of safex logic has failed");
+      if ((res.safex_invalid_command = tvc.m_safex_invalid_command))
+        add_reason(res.reason, "invalid safex command");
+      if ((res.safex_invalid_command_params = tvc.m_safex_invalid_command_params))
+        add_reason(res.reason, "invalid safex command parameters");
+      if ((res.safex_invalid_input = tvc.m_safex_invalid_input))
+        add_reason(res.reason, "invalid safex script inputs");
+      if ((res.safex_command_execution_failed = tvc.m_safex_command_execution_failed))
+        add_reason(res.reason, "safex command execution failed");
+
+
+
       const std::string punctuation = res.reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {

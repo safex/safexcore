@@ -902,6 +902,11 @@ namespace cryptonote
       bool overspend;
       bool fee_too_low;
       bool non_supported_version;
+      bool safex_verification_failed;
+      bool safex_invalid_command;
+      bool safex_invalid_command_params;
+      bool safex_invalid_input;
+      bool safex_command_execution_failed;
       bool untrusted;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -916,6 +921,11 @@ namespace cryptonote
         KV_SERIALIZE(overspend)
         KV_SERIALIZE(fee_too_low)
         KV_SERIALIZE(non_supported_version)
+        KV_SERIALIZE(safex_verification_failed)
+        KV_SERIALIZE(safex_invalid_command)
+        KV_SERIALIZE(safex_invalid_command_params)
+        KV_SERIALIZE(safex_invalid_input)
+        KV_SERIALIZE(safex_command_execution_failed)
         KV_SERIALIZE(untrusted)
       END_KV_SERIALIZE_MAP()
     };

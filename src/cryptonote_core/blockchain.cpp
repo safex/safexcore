@@ -2866,13 +2866,17 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   if (tx.version == 1) return true;
 
+  std::vector<const txin_to_script*> input_commands_to_execute;
+
   //Transaction must have commands of only one type:
   safex::command_t command_type = safex::command_t::invalid_command;
-  for (const txin_v &txin: tx.vin)
+  for (size_t i = 0; i < tx.vin.size(); i++)
   {
+    const txin_v &txin = tx.vin[i];
     if ((txin.type() == typeid(txin_to_script)))
     {
-      safex::command_t tmp = boost::get<txin_to_script>(txin).command_type;
+      const txin_to_script &txin_script = boost::get<txin_to_script>(tx.vin[i]);
+      safex::command_t tmp = txin_script.command_type;
       //multiple different commands on input, error
       if ((command_type == safex::command_t::token_unstake && tmp == safex::command_t::distribute_network_fee) ||
               (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unstake)) {
@@ -2884,7 +2888,14 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       }
 
       if (command_type == safex::command_t::invalid_command)
+      {
         command_type = tmp;
+
+        input_commands_to_execute.push_back(&txin_script);
+      }
+
+
+
     }
   }
 
@@ -2893,6 +2904,15 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     tvc.m_safex_invalid_command = true;
     return false;
   }
+
+  //execute all command logic
+  for (const txin_to_script* pcmd: input_commands_to_execute)
+    if (!safex::execute_safex_command(*m_db, *pcmd, command_type)) {
+      tvc.m_safex_command_execution_failed = true;
+      return false;
+    }
+
+
 
 
   if (command_type == safex::command_t::token_stake)
@@ -2914,6 +2934,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
+
+
   }
   else if (command_type == safex::command_t::token_unstake)
   {

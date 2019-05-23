@@ -53,6 +53,7 @@ namespace cryptonote
     bool m_safex_invalid_command;
     bool m_safex_invalid_command_params;
     bool m_safex_invalid_input;
+    bool m_safex_command_execution_failed;
   };
 
   struct block_verification_context
