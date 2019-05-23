@@ -1981,10 +1981,10 @@ bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, con
   }
 
   if (start == 0)
-    tools::success_msg_writer() << "Sum  of currently locked tokens: " << res.pairs[0].amount/SAFEX_TOKEN<<".00";
+    tools::success_msg_writer() << "Sum  of currently staked tokens: " << res.pairs[0].amount/SAFEX_TOKEN<<".00";
   else {
     for (auto &item : res.pairs) {
-      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of locked tokens: " << item.amount/SAFEX_TOKEN<<".00";
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of staked tokens: " << item.amount/SAFEX_TOKEN<<".00";
     }
   }
 

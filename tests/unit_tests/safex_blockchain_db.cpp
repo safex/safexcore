@@ -52,7 +52,7 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 22;
+  const int NUMBER_OF_BLOCKS = 23;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
@@ -125,7 +125,7 @@ namespace
             //create token stake transaction, user 0 locks 100 safex token
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 100 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 100 * SAFEX_TOKEN, default_miner_fee, 0);
 //            std::cout << "tx 10 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
@@ -134,12 +134,12 @@ namespace
             //create other token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx2)] = tx2;
 
           }
@@ -166,7 +166,7 @@ namespace
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
+            construct_token_unstake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 19)
@@ -174,15 +174,15 @@ namespace
             //token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 20)
+          else if (i == 21)
           {
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
+            construct_token_unstake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -396,8 +396,20 @@ namespace
     // no blocks have been added yet (because genesis has no parent).
     //ASSERT_THROW(this->m_db->add_block(this->m_blocks[1], m_test_sizes[1], t_diffs[1], t_coins[1], this->m_txs[1]), BLOCK_PARENT_DNE);
 
+//    for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
+//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+
     for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+    {
+      try
+      {
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &e)
+      {
+        std::cout << "Error: " << e.what() << std::endl;
+      }
+    }
 
 
     block b;

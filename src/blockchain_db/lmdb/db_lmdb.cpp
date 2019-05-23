@@ -1290,7 +1290,7 @@ void BlockchainLMDB::remove_spent_key(const crypto::key_image& k_image)
 void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txin) {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
-  uint64_t m_height = height();
+  const uint64_t current_height = height();
 
   if (txin.command_type == safex::command_t::token_stake)
   {
@@ -1299,6 +1299,15 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   else if (txin.command_type == safex::command_t::token_unstake)
   {
     update_current_staked_token_sum(txin.token_amount, -1);
+
+    //this latest unstaked tokens will not receive fee for this interval
+    //lower the staked tokens amount written in table at the end of previous interval
+    const uint64_t previous_interval = safex::calculate_interval_for_height(current_height, m_nettype)-1;
+    const uint64_t previous_interval_end_sum = get_staked_token_sum_for_interval(previous_interval+1);
+    if (previous_interval_end_sum - txin.token_amount > previous_interval_end_sum) //check for overflow
+      throw1(DB_ERROR("Negative amount of staked tokens"));
+    update_staked_token_for_interval(previous_interval, previous_interval_end_sum - txin.token_amount);
+
   }
   else if (txin.command_type == safex::command_t::donate_network_fee)
   {
@@ -3924,7 +3933,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   }
 
 
-  uint64_t BlockchainLMDB::update_staked_token_for_interval(const uint64_t interval_starting_block, const uint64_t staked_tokens)
+  uint64_t BlockchainLMDB::update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -3939,7 +3948,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     uint64_t interval_staked_tokens = 0; //staked tokens in interval
     //get already staked tokens for this period
     bool existing_interval = false;
-    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(k, interval);
     MDB_val_set(v, interval_staked_tokens);
     auto result = mdb_cursor_get(cur_token_staked_sum, &k, &v, MDB_SET);
     if (result == MDB_NOTFOUND)
@@ -3956,7 +3965,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
 
     //update sum of staked tokens for interval
-    MDB_val_set(k2, interval_starting_block);
+    MDB_val_set(k2, interval);
     MDB_val_set(vupdate, staked_tokens);
     if ((result = mdb_cursor_put(cur_token_staked_sum, &k2, &vupdate, existing_interval ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update token staked sum for interval: ", result).c_str()));
@@ -4078,7 +4087,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     uint64_t num_staked_tokens = 0;
 
-    const uint64_t previous_interval = interval > 0 ? interval - 1 : 0; //what is staked in previous_interval should receive interest in interval
+    const uint64_t previous_interval = interval > 0 ? interval - 1 : 0; //what is staked at the end of previous interval and not unlocked in this interval should receive interest
 
     MDB_val_set(k, previous_interval);
     MDB_val_set(v, num_staked_tokens);
@@ -4103,10 +4112,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     return num_staked_tokens;
   }
 
-  uint64_t BlockchainLMDB::get_newly_staked_token_sum_in_interval(const uint64_t interval) const
-  {
-    return get_staked_token_sum_for_interval(interval+1);
-  }
 
 
 

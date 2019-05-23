@@ -243,7 +243,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
 
     virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
-    virtual uint64_t update_staked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_locked_tokens_in_interval) { return 0;}
+    virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_locked_tokens_in_interval) { return 0;}
 
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
@@ -297,7 +297,6 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
 
     virtual uint64_t get_current_staked_token_sum()  const override { return 0;}
     virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const override { return 0;};
-    virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval) const override { return 0;};
     virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
     virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
     virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}

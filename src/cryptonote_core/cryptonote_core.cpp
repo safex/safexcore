@@ -978,7 +978,7 @@ namespace cryptonote
     return total_staked_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
-  uint64_t core::get_locked_tokens() const
+  uint64_t core::get_staked_tokens() const
   {
     return this->m_blockchain_storage.get_current_staked_token_sum();
   }

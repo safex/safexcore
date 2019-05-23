@@ -122,24 +122,24 @@ namespace
           }
           else if (i == 10)
           {
-            //create token lock transaction, user 0 locks 100 safex token
+            //create token stake transaction, user 0 locks 100 safex token
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 100 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 100 * SAFEX_TOKEN, default_miner_fee, 0);
 //            std::cout << "tx 10 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 11)
           {
-            //create other token lock transaction
+            //create other token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_token_lock_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx2)] = tx2;
 
           }
@@ -166,7 +166,7 @@ namespace
             //token stake transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_lock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
+            construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 157)
@@ -195,7 +195,7 @@ namespace
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
+            construct_token_unstake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 520)
@@ -203,7 +203,7 @@ namespace
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();
-            construct_token_unlock_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
+            construct_token_unstake_transaction(m_txmap, m_blocks, tx, m_users_acc[0], m_users_acc[0], 400 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 400
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -394,7 +394,6 @@ namespace
 
     for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
     {
-      //ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
       try
       {
         this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
@@ -403,22 +402,61 @@ namespace
       {
         std::cout << "Error: " << e.what() << std::endl;
       }
+
+      if (i == 517) {
+        //here, we have unlocked 100, check current db status
+        uint64_t number_of_staked_tokens51 = this->m_db->get_staked_token_sum_for_interval(51);
+        uint64_t number_of_staked_tokens52 = this->m_db->get_staked_token_sum_for_interval(52);
+        uint64_t number_of_staked_tokens52_cur = this->m_db->get_current_staked_token_sum();
+
+        ASSERT_EQ(number_of_staked_tokens51, 800 * SAFEX_TOKEN);
+        ASSERT_EQ(number_of_staked_tokens52, 700 * SAFEX_TOKEN);
+        ASSERT_EQ(number_of_staked_tokens52_cur, 700 * SAFEX_TOKEN);
+      } else if (i == 520) {
+        //here, we have unlocked 400, check current db status
+        uint64_t number_of_staked_tokens51 = this->m_db->get_staked_token_sum_for_interval(51);
+        uint64_t number_of_staked_tokens52 = this->m_db->get_staked_token_sum_for_interval(52);
+        uint64_t number_of_staked_tokens52_cur = this->m_db->get_current_staked_token_sum();
+
+        ASSERT_EQ(number_of_staked_tokens51, 800 * SAFEX_TOKEN);
+        ASSERT_EQ(number_of_staked_tokens52, 300 * SAFEX_TOKEN);
+        ASSERT_EQ(number_of_staked_tokens52_cur, 300 * SAFEX_TOKEN);
+      } else if (i == 521) {
+      //new period 53 started, check current db status
+      uint64_t number_of_staked_tokens51 = this->m_db->get_staked_token_sum_for_interval(51);
+      uint64_t number_of_staked_tokens52 = this->m_db->get_staked_token_sum_for_interval(52);
+      uint64_t number_of_staked_tokens53 = this->m_db->get_staked_token_sum_for_interval(53);
+      uint64_t number_of_staked_tokens54 = this->m_db->get_staked_token_sum_for_interval(54);
+      uint64_t number_of_staked_tokens53_cur = this->m_db->get_current_staked_token_sum();
+
+      ASSERT_EQ(number_of_staked_tokens51, 800 * SAFEX_TOKEN);
+      ASSERT_EQ(number_of_staked_tokens52, 300 * SAFEX_TOKEN);
+      ASSERT_EQ(number_of_staked_tokens53, 300 * SAFEX_TOKEN);
+      ASSERT_EQ(number_of_staked_tokens53_cur, 300 * SAFEX_TOKEN);
     }
 
-    uint64_t number_of_locked_tokens1 = this->m_db->get_newly_staked_token_sum_in_interval(1);
-    ASSERT_EQ(number_of_locked_tokens1, 100 * SAFEX_TOKEN);
+    }
 
-    uint64_t number_of_locked_tokens11 = this->m_db->get_newly_staked_token_sum_in_interval(2);
-    ASSERT_EQ(number_of_locked_tokens11, 800 * SAFEX_TOKEN);
+    uint64_t number_of_staked_tokens2 = this->m_db->get_staked_token_sum_for_interval(2); // in first interval we have staked 100, they receive interest in interval 2
+    ASSERT_EQ(number_of_staked_tokens2, 100 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens11_1 = this->m_db->get_staked_token_sum_for_interval(3);
-    ASSERT_EQ(number_of_locked_tokens11_1, 800 * SAFEX_TOKEN);
+    uint64_t number_of_staked_tokens3 = this->m_db->get_staked_token_sum_for_interval(3); // in first interval we have staked another 700, in totall 800, they receive interest in interval 3
+    ASSERT_EQ(number_of_staked_tokens3, 800 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens2 = this->m_db->get_newly_staked_token_sum_in_interval(10);
-    ASSERT_EQ(number_of_locked_tokens2, 800 * SAFEX_TOKEN);
+    uint64_t number_of_staked_tokens10 = this->m_db->get_staked_token_sum_for_interval(10);
+    ASSERT_EQ(number_of_staked_tokens10, 800 * SAFEX_TOKEN);
 
-    uint64_t number_of_locked_tokens3 = this->m_db->get_current_staked_token_sum();
-    ASSERT_EQ(number_of_locked_tokens3, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
+    uint64_t number_of_staked_tokens51 = this->m_db->get_staked_token_sum_for_interval(51);
+    ASSERT_EQ(number_of_staked_tokens51, 800 * SAFEX_TOKEN);
+
+    uint64_t number_of_staked_tokens52 = this->m_db->get_staked_token_sum_for_interval(52);
+    ASSERT_EQ(number_of_staked_tokens52, 300 * SAFEX_TOKEN);
+
+    uint64_t number_of_staked_tokens55 = this->m_db->get_staked_token_sum_for_interval(55);
+    ASSERT_EQ(number_of_staked_tokens55, 300 * SAFEX_TOKEN);
+
+    uint64_t number_of_staked_tokens_endsum = this->m_db->get_current_staked_token_sum();
+    ASSERT_EQ(number_of_staked_tokens_endsum, 300 * SAFEX_TOKEN); //100+400+100+200-400-100
 
 
 

@@ -2164,7 +2164,7 @@ namespace cryptonote
   {
     if (req.interval == 0) {
       // @todo: Implement here to return last interval value.
-      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_locked_tokens()});
+      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_staked_tokens()});
     }
     else {
       if(req.end == 0) {

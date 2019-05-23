@@ -100,11 +100,11 @@ bool construct_migration_tx_to_key(map_hash2tx_t &txmap,  std::vector<cryptonote
 bool construct_token_tx_to_key(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to,
                                uint64_t token_amount, uint64_t fee, size_t nmix);
 
-bool construct_token_lock_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to,
-                                      uint64_t token_amount, uint64_t fee, size_t nmix);
+bool construct_token_stake_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                       uint64_t token_amount, uint64_t fee, size_t nmix);
 
-bool construct_token_unlock_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx,
-                                        const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix);
+bool construct_token_unstake_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx,
+                                         const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix);
 
 bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx,
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);

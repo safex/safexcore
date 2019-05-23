@@ -635,11 +635,11 @@ namespace cryptonote
       void add_transaction(const crypto::hash &blk_hash, const transaction &tx, const crypto::hash *tx_hash_ptr = NULL);
 
       /**
-        * Updates token stake sum for interval
+        * Updates token staked sum for interval
         *
         * @return token staked sum for this interval
         */
-      virtual uint64_t update_staked_token_for_interval(const uint64_t interval_starting_block, const uint64_t new_staked_tokens_in_interval) = 0;
+      virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) = 0;
 
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
@@ -1651,23 +1651,16 @@ namespace cryptonote
       virtual uint64_t get_current_staked_token_sum() const = 0;
 
       /**
-       * Returns number of staked tokens that should receive interest in interval.
+       * Returns number of staked tokens that should receive interest in particular interval.
+       *
+       * Tokens unlocked in interval 5 do not receive interest in interval 5, but up to interval 4
+       * Tokens locked in interval 5 receive interest for interval 6
        *
        *
        * @param interval interval number
        * @return number of staked tokens in that interval, used for interest calculation
        */
       virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const = 0;
-
-      /**
-       * Returns number of newly staked tokens in interval.
-       *
-       *
-       * @param interval interval number
-       * @return number of newly staked tokens in that interval, that will receive interest from interval+1
-       */
-      virtual uint64_t get_newly_staked_token_sum_in_interval(const uint64_t interval) const = 0;
-
 
       /**
        * Returns collected network fee sum for particular interval

@@ -753,7 +753,7 @@ namespace cryptonote
      *
      * @return amount of locked tokens
      */
-     uint64_t get_locked_tokens() const;
+     uint64_t get_staked_tokens() const;
 
      /**
      * @brief get last known token locked sum
