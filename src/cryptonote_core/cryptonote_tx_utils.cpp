@@ -606,7 +606,7 @@ namespace cryptonote
       input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
 
       //here, prepare data of transaction command execution and serialize command
-      safex::token_lock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+      safex::token_stake cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else if (src_entr.command_type == safex::command_t::token_unstake)
@@ -620,7 +620,7 @@ namespace cryptonote
       input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
 
       //here, prepare data of transaction command execution and serialize command
-      safex::token_unlock cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+      safex::token_unstake cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else if (src_entr.command_type == safex::command_t::donate_network_fee)
@@ -1064,7 +1064,7 @@ namespace cryptonote
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token stake output", safex::command_t::token_stake);
         //nothing else to do with matched inputs, create txout data field
-        safex::safex_command_serializer::serialize_safex_object(safex::token_lock_data{0}, txs.data);
+        safex::safex_command_serializer::serialize_safex_object(safex::token_stake_data{0}, txs.data);
 
         out.target = txs;
         tx.vout.push_back(out);

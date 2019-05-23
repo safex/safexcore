@@ -32,15 +32,15 @@ namespace safex
   static const std::string FIELD_STAKED_TOKEN_OUTPUT_INDEX = "staked_token_output_index";
 
 
-  struct token_lock_result
+  struct token_stake_result
   {
-    uint64_t token_amount; //locked amount
+    uint64_t token_amount; //staked amount
     uint32_t block_number; //block where it is locked
 
     bool valid;
   };
 
-  struct token_lock_data
+  struct token_stake_data
   {
     uint32_t reserved;
 
@@ -49,7 +49,7 @@ namespace safex
     END_SERIALIZE()
   };
 
-  struct token_unlock_result
+  struct token_unstake_result
   {
     uint64_t token_amount; //unlocked token amount
     uint64_t interest; //collected interest from network fees over period
@@ -159,7 +159,7 @@ namespace safex
 
 
   //Token stake command
-  class token_lock : public command<token_lock_result>
+  class token_stake : public command<token_stake_result>
   {
     public:
 
@@ -169,16 +169,16 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _token_amount amount of tokens to lock
       * */
-      token_lock(const uint32_t _version, const uint64_t _token_amount) : command<token_lock_result>(_version, command_t::token_stake), lock_token_amount(_token_amount) {}
+      token_stake(const uint32_t _version, const uint64_t _token_amount) : command<token_stake_result>(_version, command_t::token_stake), lock_token_amount(_token_amount) {}
 
-      token_lock() : command<token_lock_result>(0, command_t::token_stake), lock_token_amount(0) {}
+      token_stake() : command<token_stake_result>(0, command_t::token_stake), lock_token_amount(0) {}
 
       uint64_t get_lock_token_amount() const { return lock_token_amount; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_lock_result &cr) override;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_stake_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<token_lock_result> *>(this))
+        FIELDS(*static_cast<command<token_stake_result> *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
         VARINT_FIELD(lock_token_amount)
       END_SERIALIZE()
@@ -192,7 +192,7 @@ namespace safex
 
 
   //Token unlock command
-  class token_unlock : public command<token_unlock_result>
+  class token_unstake : public command<token_unstake_result>
   {
     public:
 
@@ -200,21 +200,21 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
+       * @param _staked_token_output_index global index of txout_to_script output that is being unlocked
       * */
-      token_unlock(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_unlock_result>(_version, command_t::token_unstake),
-              locked_token_output_index(_locked_token_output_index) {}
+      token_unstake(const uint32_t _version, const uint64_t _staked_token_output_index) : command<token_unstake_result>(_version, command_t::token_unstake),
+              staked_token_output_index(_staked_token_output_index) {}
 
-      token_unlock() : command<token_unlock_result>(0, command_t::token_unstake), locked_token_output_index(0) {}
+      token_unstake() : command<token_unstake_result>(0, command_t::token_unstake), staked_token_output_index(0) {}
 
-      uint64_t get_locked_token_output_index() const { return locked_token_output_index; }
+      uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unlock_result &cr) override;
+      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unstake_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<token_unlock_result> *>(this))
+        FIELDS(*static_cast<command<token_unstake_result> *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unstake);
-        VARINT_FIELD(locked_token_output_index)
+        VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
     protected:
@@ -222,7 +222,7 @@ namespace safex
       virtual bool store(epee::serialization::portable_storage &ps) const override;
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
-      uint64_t locked_token_output_index;
+      uint64_t staked_token_output_index;
   };
 
 
@@ -235,22 +235,22 @@ namespace safex
 
       /**
        * @param _version Safex command protocol version
-       * @param _locked_token_output_index global index of txout_to_script output that is being unlocked
+       * @param _staked_token_output_index global index of txout_to_script output that is being unstaked
        *
       * */
-      token_collect(const uint32_t _version, const uint64_t _locked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
-                                                                                          locked_token_output_index(_locked_token_output_index) {}
+      token_collect(const uint32_t _version, const uint64_t _staked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
+                                                                                          staked_token_output_index(_staked_token_output_index) {}
 
-      token_collect() : command<token_collect_result>(0, command_t::token_collect), locked_token_output_index(0) {}
+      token_collect() : command<token_collect_result>(0, command_t::token_collect), staked_token_output_index(0) {}
 
-      uint64_t get_locked_token_output_index() const { return locked_token_output_index; }
+      uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command<token_collect_result> *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
-        VARINT_FIELD(locked_token_output_index)
+        VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
     protected:
@@ -258,7 +258,7 @@ namespace safex
       virtual bool store(epee::serialization::portable_storage &ps) const override;
       virtual bool load(epee::serialization::portable_storage &ps) override;
 
-      uint64_t locked_token_output_index;
+      uint64_t staked_token_output_index;
   };
 
   class donate_fee : public command<donate_fee_result>
@@ -308,7 +308,7 @@ namespace safex
 
       distribute_fee() : command<distribute_fee_result>(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
 
-      uint64_t get_locked_token_output_index() const { return safex_cash_amount; }
+      uint64_t get_staked_token_output_index() const { return safex_cash_amount; }
 
       virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, distribute_fee_result &cr) override;
 

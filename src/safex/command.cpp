@@ -20,29 +20,29 @@ namespace safex
 {
 
 
-  bool token_lock::store(epee::serialization::portable_storage &ps) const
+  bool token_stake::store(epee::serialization::portable_storage &ps) const
   {
-    command<token_lock_result>::store(ps);
+    command<token_stake_result>::store(ps);
     ps.set_value(FIELD_STAKE_TOKEN_AMOUNT, (uint64_t) this->lock_token_amount, nullptr);
     return true;
   }
 
 
-  bool token_lock::load(epee::serialization::portable_storage &ps)
+  bool token_stake::load(epee::serialization::portable_storage &ps)
   {
-    command<token_lock_result>::load(ps);
+    command<token_stake_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
     ps.get_value(FIELD_STAKE_TOKEN_AMOUNT, this->lock_token_amount, nullptr);
     return true;
   }
 
 
-  bool token_lock::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_lock_result &command_result)
+  bool token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_stake_result &command_result)
   {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token stake command amount", this->command_type);
 
-    token_lock_result cr = AUTO_VAL_INIT(cr);
+    token_stake_result cr = AUTO_VAL_INIT(cr);
     cr.token_amount = txin.token_amount;
     cr.block_number = blokchainDB.height();
 
@@ -53,35 +53,35 @@ namespace safex
   }
 
 
-  bool token_unlock::store(epee::serialization::portable_storage &ps) const
+  bool token_unstake::store(epee::serialization::portable_storage &ps) const
   {
-    command<token_unlock_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
+    command<token_unstake_result>::store(ps);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->staked_token_output_index, nullptr);
     return true;
   }
 
 
-  bool token_unlock::load(epee::serialization::portable_storage &ps)
+  bool token_unstake::load(epee::serialization::portable_storage &ps)
   {
-    command<token_unlock_result>::load(ps);
+    command<token_unstake_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unstake);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->staked_token_output_index, nullptr);
     return true;
   }
 
 
-  bool token_unlock::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_unlock_result &command_result)
+  bool token_unstake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_unstake_result &command_result)
   {
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_locked_token_output_index()), "Locked token output ID does not match", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->command_type);
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
     //todo check if minimum amount of time is fulfilled
 
 
-    token_unlock_result cr = AUTO_VAL_INIT(cr);
+    token_unstake_result cr = AUTO_VAL_INIT(cr);
     cr.token_amount = txin.token_amount;
     cr.block_number = blokchainDB.height();
 
@@ -101,7 +101,7 @@ namespace safex
   bool token_collect::store(epee::serialization::portable_storage &ps) const
   {
     command<token_collect_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->locked_token_output_index, nullptr);
+    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->staked_token_output_index, nullptr);
     return true;
   }
 
@@ -110,7 +110,7 @@ namespace safex
   {
     command<token_collect_result>::load(ps);
     CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->locked_token_output_index, nullptr);
+    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->staked_token_output_index, nullptr);
     return true;
   }
 
@@ -119,7 +119,7 @@ namespace safex
   {
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_locked_token_output_index()), "Locked token output ID does not match", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->command_type);
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
