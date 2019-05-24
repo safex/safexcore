@@ -20,57 +20,21 @@ namespace safex
 {
 
 
-  bool token_stake::store(epee::serialization::portable_storage &ps) const
-  {
-    command<token_stake_result>::store(ps);
-    ps.set_value(FIELD_STAKE_TOKEN_AMOUNT, (uint64_t) this->lock_token_amount, nullptr);
-    return true;
-  }
-
-
-  bool token_stake::load(epee::serialization::portable_storage &ps)
-  {
-    command<token_stake_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
-    ps.get_value(FIELD_STAKE_TOKEN_AMOUNT, this->lock_token_amount, nullptr);
-    return true;
-  }
-
-
-  bool token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_stake_result &command_result)
+  token_stake_result* token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token stake command amount", this->command_type);
 
-    token_stake_result cr = AUTO_VAL_INIT(cr);
-    cr.token_amount = txin.token_amount;
-    cr.block_number = blokchainDB.height();
+    token_stake_result *cr = new token_stake_result{};
+    cr->token_amount = txin.token_amount;
+    cr->block_number = blokchainDB.height();
+    cr->valid = true;
+    cr->status = execution_status::ok;
 
-    cr.valid = true;
-
-    command_result = cr;
-    return true;
+    return cr;
   }
 
-
-  bool token_unstake::store(epee::serialization::portable_storage &ps) const
-  {
-    command<token_unstake_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->staked_token_output_index, nullptr);
-    return true;
-  }
-
-
-  bool token_unstake::load(epee::serialization::portable_storage &ps)
-  {
-    command<token_unstake_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unstake);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->staked_token_output_index, nullptr);
-    return true;
-  }
-
-
-  bool token_unstake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_unstake_result &command_result)
+  token_unstake_result* token_unstake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
@@ -81,41 +45,20 @@ namespace safex
     //todo check if minimum amount of time is fulfilled
 
 
-    token_unstake_result cr = AUTO_VAL_INIT(cr);
-    cr.token_amount = txin.token_amount;
-    cr.block_number = blokchainDB.height();
+    token_unstake_result *cr = new token_unstake_result{};
+    cr->token_amount = txin.token_amount;
+    cr->block_number = blokchainDB.height();
 
     uint64_t locked_token_output_index = txin.key_offsets[0];
-    cr.interest = calculate_token_interest(locked_token_output_index, cr.block_number, cr.token_amount);
-    cr.valid = true;
+    cr->interest = calculate_token_interest(locked_token_output_index, cr->block_number, cr->token_amount);
+    cr->valid = true;
+    cr->status = execution_status::ok;
 
-    command_result = cr;
-
-    return true;
+    return cr;
   }
 
 
-
-
-
-  bool token_collect::store(epee::serialization::portable_storage &ps) const
-  {
-    command<token_collect_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->staked_token_output_index, nullptr);
-    return true;
-  }
-
-
-  bool token_collect::load(epee::serialization::portable_storage &ps)
-  {
-    command<token_collect_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->staked_token_output_index, nullptr);
-    return true;
-  }
-
-
-  bool token_collect::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin, token_collect_result &command_result)
+  token_collect_result* token_collect::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
@@ -126,73 +69,42 @@ namespace safex
     //todo check if minimum amount of time is fulfilled
 
 
-    token_collect_result cr = AUTO_VAL_INIT(cr);
-    cr.token_amount = txin.token_amount;
-    cr.block_number = blokchainDB.height();
+    token_collect_result *cr = new token_collect_result{};
+    cr->token_amount = txin.token_amount;
+    cr->block_number = blokchainDB.height();
 
     uint64_t locked_token_output_index = txin.key_offsets[0];
-    cr.interest = calculate_token_interest(locked_token_output_index, cr.block_number, cr.token_amount);
-    cr.valid = true;
+    cr->interest = calculate_token_interest(locked_token_output_index, cr->block_number, cr->token_amount);
+    cr->valid = true;
+    cr->status = execution_status::ok;
 
-    command_result = cr;
-    return true;
+    return cr;
   }
 
 
-  bool donate_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, donate_fee_result &command_result) {
+  donate_fee_result* donate_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->command_type);
 
-    donate_fee_result cr = AUTO_VAL_INIT(cr);
-    cr.amount = txin.amount;
-    cr.valid = true;
-    command_result = cr;
-    return true;
+    donate_fee_result *cr = new donate_fee_result{};
+    cr->amount = txin.amount;
+    cr->valid = true;
+    cr->status = execution_status::ok;
+
+    return cr;
   };
 
-  bool donate_fee::store(epee::serialization::portable_storage &ps) const
-  {
-    command<donate_fee_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->donation_safex_cash_amount, nullptr);
-    return true;
-  }
 
-
-  bool donate_fee::load(epee::serialization::portable_storage &ps)
-  {
-    command<donate_fee_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::donate_network_fee);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->donation_safex_cash_amount, nullptr);
-    return true;
-  }
-
-
-  bool distribute_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, distribute_fee_result &command_result) {
+  distribute_fee_result* distribute_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->command_type);
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->command_type);
 
-    distribute_fee_result cr = AUTO_VAL_INIT(cr);
-    cr.amount = txin.amount;
-    cr.valid = true;
-    command_result = cr;
-    return true;
+    distribute_fee_result *cr = new distribute_fee_result{};
+    cr->amount = txin.amount;
+    cr->valid = true;
+    cr->status = execution_status::ok;
+    return cr;
   };
-
-  bool distribute_fee::store(epee::serialization::portable_storage &ps) const
-  {
-    command<distribute_fee_result>::store(ps);
-    ps.set_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, (uint64_t) this->safex_cash_amount, nullptr);
-    return true;
-  }
-
-
-  bool distribute_fee::load(epee::serialization::portable_storage &ps)
-  {
-    command<distribute_fee_result>::load(ps);
-    CHECK_COMMAND_TYPE(this->get_command_type(), command_t::donate_network_fee);
-    ps.get_value(FIELD_STAKED_TOKEN_OUTPUT_INDEX, this->safex_cash_amount, nullptr);
-    return true;
-  }
 
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, const safex::command_t command_type)

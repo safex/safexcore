@@ -1064,7 +1064,7 @@ namespace cryptonote
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token stake output", safex::command_t::token_stake);
         //nothing else to do with matched inputs, create txout data field
-        safex::safex_command_serializer::serialize_safex_object(safex::token_stake_data{0}, txs.data);
+        safex::safex_command_serializer::serialize_safex_object(safex::token_stake_data{}, txs.data);
 
         out.target = txs;
         tx.vout.push_back(out);
@@ -1082,7 +1082,7 @@ namespace cryptonote
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create newtork fee output", safex::command_t::donate_network_fee);
 
         //nothing else to do with matched inputs, create txout data field
-        safex::safex_command_serializer::serialize_safex_object(safex::donate_fee_data{0}, txs.data);
+        safex::safex_command_serializer::serialize_safex_object(safex::donate_fee_data{}, txs.data);
 
         out.target = txs;
         tx.vout.push_back(out);

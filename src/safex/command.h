@@ -32,54 +32,70 @@ namespace safex
   static const std::string FIELD_STAKED_TOKEN_OUTPUT_INDEX = "staked_token_output_index";
 
 
-  struct token_stake_result
+  enum class execution_status
   {
-    uint64_t token_amount; //staked amount
-    uint32_t block_number; //block where it is locked
-
-    bool valid;
+      ok = 0,
+      wrong_input_params = 1,
+      invalid = 2
   };
 
-  struct token_stake_data
+  struct execution_result
   {
-    uint32_t reserved;
+    bool valid = false;
+    execution_status status = execution_status::invalid;
+  };
+
+  struct token_stake_result : public execution_result
+  {
+    uint64_t token_amount = 0; //staked amount
+    uint32_t block_number = 0; //block where it is locked
+  };
+
+
+  struct token_unstake_result : public execution_result
+  {
+    uint64_t token_amount = 0; //unlocked token amount
+    uint64_t interest = 0; //collected interest from network fees over period
+    uint32_t block_number = 0; //block where it is unlocked
+  };
+
+  struct token_collect_result : public execution_result
+  {
+    uint64_t token_amount = 0; //amount of tokens that is relocked
+    uint64_t interest = 0; //collected interest from network fees over period
+    uint32_t block_number = 0; //block where it is unlocked
+  };
+
+  struct donate_fee_result : public execution_result
+  {
+    uint64_t amount = 0; //cash amount do donate to newtork token holders
+  };
+
+  struct distribute_fee_result : public execution_result
+  {
+    uint64_t amount = 0; //cash amount do donate to newtork token holders
+  };
+
+
+
+
+  struct command_data
+  {
+
+  };
+
+  struct token_stake_data : public command_data
+  {
+    uint32_t reserved = 0;
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(reserved)
     END_SERIALIZE()
   };
 
-  struct token_unstake_result
+  struct donate_fee_data : public command_data
   {
-    uint64_t token_amount; //unlocked token amount
-    uint64_t interest; //collected interest from network fees over period
-    uint32_t block_number; //block where it is unlocked
-    bool valid;
-  };
-
-  struct token_collect_result
-  {
-    uint64_t token_amount; //amount of tokens that is relocked
-    uint64_t interest; //collected interest from network fees over period
-    uint32_t block_number; //block where it is unlocked
-    bool valid;
-  };
-
-  struct donate_fee_result
-  {
-    uint64_t amount; //cash amount do donate to newtork token holders
-    bool valid;
-  };
-
-  struct distribute_fee_result
-  {
-    uint64_t amount; //cash amount do donate to newtork token holders
-    bool valid;
-  };
-
-  struct donate_fee_data
-  {
-    uint32_t reserved;
+    uint32_t reserved = 0;
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(reserved)
@@ -95,7 +111,6 @@ namespace safex
   * without having to make significant changes
   * to the current blockchain core protocol.
   */
-  template<typename CommandResult>
   class command
   {
     public:
@@ -113,7 +128,7 @@ namespace safex
 
       }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, CommandResult &cr) = 0;
+      virtual execution_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) = 0;
 
       uint32_t getVersion() const
       { return version; }
@@ -131,35 +146,29 @@ namespace safex
 
     protected:
 
-      virtual bool store(epee::serialization::portable_storage &ps) const { return false;};
-
-      virtual bool load(epee::serialization::portable_storage &ps) {return false;};
-
       uint32_t version;
       command_t command_type;
   };
 
   //Dummy command for serialization
-  typedef struct{} dummy_struct;
-  class dummy_command : public command<dummy_struct>
+  class dummy_command : public command
   {
-
     public:
 
       friend class safex_command_serializer;
 
-      dummy_command() :  command<dummy_struct>(0, command_t::nop) {}
+      dummy_command() :  command(0, command_t::nop) {}
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, dummy_struct &cr) override {return false;};
+      virtual execution_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override {return new execution_result{};};
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<dummy_struct> *>(this))
+        FIELDS(*static_cast<command *>(this))
       END_SERIALIZE()
   };
 
 
   //Token stake command
-  class token_stake : public command<token_stake_result>
+  class token_stake : public command
   {
     public:
 
@@ -169,30 +178,28 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _token_amount amount of tokens to lock
       * */
-      token_stake(const uint32_t _version, const uint64_t _token_amount) : command<token_stake_result>(_version, command_t::token_stake), lock_token_amount(_token_amount) {}
+      token_stake(const uint32_t _version, const uint64_t _token_amount) : command(_version, command_t::token_stake), lock_token_amount(_token_amount) {}
 
-      token_stake() : command<token_stake_result>(0, command_t::token_stake), lock_token_amount(0) {}
+      token_stake() : command(0, command_t::token_stake), lock_token_amount(0) {}
 
       uint64_t get_lock_token_amount() const { return lock_token_amount; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_stake_result &cr) override;
+      virtual token_stake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<token_stake_result> *>(this))
+        FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
         VARINT_FIELD(lock_token_amount)
       END_SERIALIZE()
 
     protected:
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t lock_token_amount;
   };
 
 
   //Token unlock command
-  class token_unstake : public command<token_unstake_result>
+  class token_unstake : public command
   {
     public:
 
@@ -202,32 +209,29 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _staked_token_output_index global index of txout_to_script output that is being unlocked
       * */
-      token_unstake(const uint32_t _version, const uint64_t _staked_token_output_index) : command<token_unstake_result>(_version, command_t::token_unstake),
+      token_unstake(const uint32_t _version, const uint64_t _staked_token_output_index) : command(_version, command_t::token_unstake),
               staked_token_output_index(_staked_token_output_index) {}
 
-      token_unstake() : command<token_unstake_result>(0, command_t::token_unstake), staked_token_output_index(0) {}
+      token_unstake() : command(0, command_t::token_unstake), staked_token_output_index(0) {}
 
       uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_unstake_result &cr) override;
+      virtual token_unstake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<token_unstake_result> *>(this))
+        FIELDS(*static_cast<command*>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_unstake);
         VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
     protected:
 
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
-
       uint64_t staked_token_output_index;
   };
 
 
   //Token collect command
-  class token_collect : public command<token_collect_result>
+  class token_collect : public command
   {
     public:
 
@@ -238,30 +242,27 @@ namespace safex
        * @param _staked_token_output_index global index of txout_to_script output that is being unstaked
        *
       * */
-      token_collect(const uint32_t _version, const uint64_t _staked_token_output_index) : command<token_collect_result>(_version, command_t::token_collect),
+      token_collect(const uint32_t _version, const uint64_t _staked_token_output_index) : command(_version, command_t::token_collect),
                                                                                           staked_token_output_index(_staked_token_output_index) {}
 
-      token_collect() : command<token_collect_result>(0, command_t::token_collect), staked_token_output_index(0) {}
+      token_collect() : command(0, command_t::token_collect), staked_token_output_index(0) {}
 
       uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, token_collect_result &cr) override;
+      virtual token_collect_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<token_collect_result> *>(this))
+        FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_collect);
         VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
     protected:
 
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
-
       uint64_t staked_token_output_index;
   };
 
-  class donate_fee : public command<donate_fee_result>
+  class donate_fee : public command
   {
     public:
       friend class safex_command_serializer;
@@ -270,31 +271,28 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _donate_amount //amount of safex cash that will be donated to the network token holder to be distributed as interest
       * */
-      donate_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command<donate_fee_result>(_version, command_t::donate_network_fee),
+      donate_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command(_version, command_t::donate_network_fee),
                                                                                        donation_safex_cash_amount(_donation_safex_cash_amount) {}
 
-      donate_fee() : command<donate_fee_result>(0, command_t::donate_network_fee), donation_safex_cash_amount(0) {}
+      donate_fee() : command(0, command_t::donate_network_fee), donation_safex_cash_amount(0) {}
 
       uint64_t get_locked_token_output_index() const { return donation_safex_cash_amount; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, donate_fee_result &cr) override;
+      virtual donate_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<donate_fee_result> *>(this))
+        FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::donate_network_fee);
         VARINT_FIELD(donation_safex_cash_amount)
       END_SERIALIZE()
 
     protected:
 
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
-
       uint64_t donation_safex_cash_amount;
   };
 
 
-  class distribute_fee : public command<distribute_fee_result>
+  class distribute_fee : public command
   {
     public:
       friend class safex_command_serializer;
@@ -303,25 +301,22 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _donate_amount //amount of safex cash that will be distributed to token holders that unstake tokens
       * */
-      distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command<distribute_fee_result>(_version, command_t::distribute_network_fee),
+      distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command(_version, command_t::distribute_network_fee),
                                                                                         safex_cash_amount(_donation_safex_cash_amount) {}
 
-      distribute_fee() : command<distribute_fee_result>(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
+      distribute_fee() : command(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
 
       uint64_t get_staked_token_output_index() const { return safex_cash_amount; }
 
-      virtual bool execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, distribute_fee_result &cr) override;
+      virtual distribute_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command<distribute_fee_result> *>(this))
+        FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::distribute_network_fee);
         VARINT_FIELD(safex_cash_amount)
       END_SERIALIZE()
 
     protected:
-
-      virtual bool store(epee::serialization::portable_storage &ps) const override;
-      virtual bool load(epee::serialization::portable_storage &ps) override;
 
       uint64_t safex_cash_amount;
   };
@@ -371,65 +366,11 @@ namespace safex
         ss << command_blob;
         binary_archive<false> ba(ss);
         dummy_command temp; //just take any command, we just need command type deserialized
-        bool r = ::serialization::serialize(ba, static_cast<command<dummy_struct>&>(temp));
+        bool r = ::serialization::serialize(ba, static_cast<command&>(temp));
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
 
         return static_cast<command_t>(temp.get_command_type());
       }
-
-      template<typename Command>
-      static bool store_command_to_potable_storage(const Command &com, std::vector<uint8_t> &target)
-      {
-        epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
-
-        //here serialize particular
-        com.store(ps);
-
-        epee::serialization::binarybuffer bin_target = AUTO_VAL_INIT(bin_target);
-
-        if (!ps.store_to_binary(bin_target))
-        {
-          throw safex::command_exception(com.get_command_type(), "Could not store to portable storage binary blob");
-        }
-
-        target.clear();
-        target = std::vector<uint8_t>(bin_target.begin(), bin_target.end());
-
-        return true;
-      }
-
-      template<typename Command>
-      static bool load_command_from_portable_storage(const std::vector<uint8_t> &source, Command &com)
-      {
-        const epee::serialization::binarybuffer bin_source(source.begin(), source.end());
-        epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
-        if (!ps.load_from_binary(bin_source))
-        {
-          throw safex::command_exception(command_t::invalid_command, "Could not load portable storage from binary blob");
-        }
-
-        com.load(ps);
-
-        return true;
-
-      }
-
-
-      static command_t get_command_type_portable_storage(const std::vector<uint8_t> &source)
-      {
-        const epee::serialization::binarybuffer bin_source(source.begin(), source.end());
-        epee::serialization::portable_storage ps = AUTO_VAL_INIT(ps);
-        if (!ps.load_from_binary(bin_source))
-        {
-          throw safex::command_exception(command_t::nop, "Could not load portable storage from binary blob");
-        }
-
-        uint32_t command_type = 0;
-        ps.get_value(FIELD_COMMAND, command_type, nullptr);
-
-        return static_cast<command_t>(command_type);
-      }
-
   };
 
 
