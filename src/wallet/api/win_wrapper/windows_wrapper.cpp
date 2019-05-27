@@ -103,6 +103,7 @@ extern "C" DLL_MAGIC const char *win_address(void *self)
   static char buffer[512];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->address().c_str(), wallet->address().length());
+  buffer[wallet->address().length()+1] = '\0';
   return (const char *) buffer;
 
 }
@@ -113,6 +114,7 @@ extern "C" DLL_MAGIC const char *win_seed(void *self)
   static char buffer[1024];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->seed().c_str(), wallet->seed().length());
+  buffer[wallet->seed().length() +1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC const char *win_path(void *self)
@@ -121,6 +123,7 @@ extern "C" DLL_MAGIC const char *win_path(void *self)
   static char buffer[1024];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->path().c_str(), wallet->path().length());
+  buffer[wallet->path().length()+1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC  uint8_t win_nettype(void *self)
@@ -135,6 +138,7 @@ extern "C" DLL_MAGIC const char *win_secretViewKey(void *self)
   static char buffer[128];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->secretViewKey().c_str(), wallet->secretViewKey().length());
+  buffer[wallet->secretViewKey().length() + 1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC const char *win_publicViewKey(void *self)
@@ -143,6 +147,7 @@ extern "C" DLL_MAGIC const char *win_publicViewKey(void *self)
   static char buffer[128];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->publicViewKey().c_str(), wallet->publicViewKey().length());
+  buffer[wallet->publicViewKey().length() + 1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC const char *win_secretSpendKey(void *self)
@@ -151,6 +156,7 @@ extern "C" DLL_MAGIC const char *win_secretSpendKey(void *self)
   static char buffer[128];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->secretSpendKey().c_str(), wallet->secretSpendKey().length());
+  buffer[wallet->secretSpendKey().length() + 1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC const char *win_publicSpendKey(void *self)
@@ -159,6 +165,7 @@ extern "C" DLL_MAGIC const char *win_publicSpendKey(void *self)
   static char buffer[128];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, wallet->publicSpendKey().c_str(), wallet->publicSpendKey().length());
+  buffer[wallet->publicSpendKey().length() + 1] = '\0';
   return (const char *) buffer;
 }
 extern "C" DLL_MAGIC  uint8_t win_setPasswordB(void *self, const char *pass_c)
@@ -426,7 +433,7 @@ extern "C" DLL_MAGIC  char *win_pt_txid(void *self)
   Safex::PendingTransaction *ptx = static_cast<Safex::PendingTransaction *>(self);
 
   std::vector<std::string> ret = ptx->txid();
-  static unsigned char buffer[64*1024];
+  static unsigned char buffer[256*1024];
   memset((void*)buffer, 0, sizeof(buffer));
 
   uint64_t offset = 0;
@@ -580,6 +587,7 @@ extern "C" DLL_MAGIC const char *win_txinfo_label(void *self)
   static unsigned char buffer[512];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, txInfo->label().c_str(),txInfo->label().length());
+  buffer[txInfo->label().length()+1] = '\0';
   return (const char *) buffer;
 }
 
@@ -605,6 +613,7 @@ extern "C" DLL_MAGIC const char *win_txinfo_paymentId(void *self)
   static unsigned char buffer[256];
   memset((void *) buffer, 0, sizeof(buffer));
   memcpy((void *) buffer, txInfo->paymentId().c_str(),txInfo->paymentId().length());
+  buffer[txInfo->paymentId().length()+1] = '\0';
   return (const char *) buffer;
 }
 
@@ -628,7 +637,7 @@ extern "C" DLL_MAGIC  char *win_txinfo_transfers(void *self)
     offset += sizeof(uint64_t);
     offset++;
   }
-
+  buffer[2048*1024+sizeof(uint32_t)] = '\0';
   return static_cast<char *>(buffer);
 }
 
@@ -721,7 +730,7 @@ extern "C" DLL_MAGIC void win_mlog_set_log_levelCPtr(const char* log) {
 /****************************** END OTHER FUNCTIONS *******************************************************************/
 
 /****************************** TRANSACTION HISTORY API ***************************************************************/
-extern "C" DLL_MAGIC void* win_txhist_Create(void* wallet) {
+extern "C" DLL_MAGIC void* _hry_Create(void* wallet) {
   Safex::WalletImpl* wlt = static_cast<Safex::WalletImpl*>(wallet);
   Safex::TransactionHistoryImpl* ret = new Safex::TransactionHistoryImpl(wlt);
   return static_cast<void*>(ret);
