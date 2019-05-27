@@ -447,12 +447,9 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
     token_stake command2{};
     safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    token_stake_result result{};
-    command2.execute(this->db, txinput, result);
+    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
 
-    std::cout << "Token amount: " << result.token_amount << " valid:" << result.valid << " block number:" << result.block_number << std::endl;
-
-
+    std::cout << "Token amount: " << result->token_amount << " status:" << static_cast<int>(result->status) << " block number:" << result->block_number << std::endl;
   }
   catch (safex::command_exception &exception)
   {
@@ -484,8 +481,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     token_stake command2{};
     safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    token_stake_result result{};
-    command2.execute(this->db, txinput, result);
+    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
     FAIL() << "Should throw exception with minimum amount of tokens to lock";
 
   }
@@ -515,8 +511,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     token_stake command2{};
     safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    token_stake_result result{};
-    command2.execute(this->db, txinput, result);
+    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
     FAIL() << "Should throw exception with input amount differs from token stake command amount";
 
   }
@@ -555,8 +550,7 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
     token_stake command2{};
     safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    token_stake_result result{};
-    command2.execute(db, txinput, result);
+    std::unique_ptr<token_stake_result> result{command2.execute(db, txinput)};
 
   }
   catch (safex::command_exception &exception)
@@ -593,10 +587,9 @@ TEST_F(SafexCommandExecution, TokenUnlockExecute)
     token_unstake command2{};
     safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    token_unstake_result result{};
-    command2.execute(this->db, txinput, result);
+    std::unique_ptr<token_unstake_result> result{command2.execute(this->db, txinput)};
 
-    std::cout << "Token amount: " << result.token_amount << " valid:" << result.valid << " block number:" << result.block_number << " interest: " << result.interest << std::endl;
+    std::cout << "Token amount: " << result->token_amount << " valid:" << result->valid << " block number:" << result->block_number << " interest: " << result->interest << std::endl;
   }
   catch (std::exception &exception)
   {
