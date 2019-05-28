@@ -1236,6 +1236,11 @@ simple_wallet::simple_wallet()
                            tr("list_demo_offers"),
                            tr("List current offers listed for demo purposes."));
 
+  m_cmd_binder.set_handler("get_my_interest",
+                           boost::bind(&simple_wallet::get_my_interest, this, _1),
+                           tr("get_my_interest"),
+                           tr("Amount of collected interest so far for locked tokens."));
+
     // ---------------- DEMO Offer ID mock up ------------------------------
     simple_trade_ids.insert(std::make_pair<std::string, std::string>("#1", "First order"));
     simple_trade_ids.insert(std::make_pair<std::string, std::string>("#2", "Second order"));

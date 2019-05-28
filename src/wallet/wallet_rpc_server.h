@@ -135,6 +135,7 @@ namespace tools
         MAP_JON_RPC_WE("submit_migration",   on_submit_migration,   wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION)
         MAP_JON_RPC_WE("is_multisig",        on_is_multisig,        wallet_rpc::COMMAND_RPC_IS_MULTISIG)
 
+        MAP_JON_RPC_WE("get_available_interest", on_available_interest, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST)
         MAP_JON_RPC_WE("stake_token", on_stake_token, wallet_rpc::COMMAND_RPC_STAKE_TOKEN)
         MAP_JON_RPC_WE("unstake_token", on_unstake_token, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN)
         MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
@@ -145,6 +146,7 @@ namespace tools
     END_URI_MAP2()
 
       //json_rpc
+      bool on_available_interest(const wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::request& req, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::response& res, epee::json_rpc::error& er);
       bool on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er);
       bool on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er);
       bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);

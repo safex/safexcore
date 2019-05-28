@@ -1022,7 +1022,7 @@ namespace tools
 
 
     uint64_t get_interest_for_transfer(const transfer_details& td);
-
+    uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
 
   private:
     /*!

@@ -2350,5 +2350,35 @@ struct COMMAND_RPC_GET_DEMO_OFFERS
   };
 };
 
+struct COMMAND_RPC_GET_AVAILABLE_INTEREST 
+{
+  struct request
+  {
+    BEGIN_KV_SERIALIZE_MAP()
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct per_output {
+    uint64_t amount;
+    uint64_t interest;
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(amount)
+      KV_SERIALIZE(interest)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    uint64_t available_interest;
+    std::vector<per_output> interest_per_output;
+
+    BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(available_interest)
+        KV_SERIALIZE(interest_per_output)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
 }
 }
