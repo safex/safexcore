@@ -233,6 +233,8 @@ namespace cryptonote
     bool blackballed(const std::vector<std::string>& args);
     bool version(const std::vector<std::string>& args);
 
+    bool get_my_interest(const std::vector<std::string>& args);
+
     // ------ Mock up for demo
     bool list_demo_offers(const std::vector<std::string>& args);
 

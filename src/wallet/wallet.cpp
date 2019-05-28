@@ -11605,6 +11605,9 @@ uint64_t wallet::get_segregation_fork_height() const
   }
   return SEGREGATION_FORK_HEIGHT;
 }
+
+
+
 //----------------------------------------------------------------------------------------------------
 void wallet::generate_genesis(cryptonote::block& b) const {
   if (m_nettype == TESTNET)

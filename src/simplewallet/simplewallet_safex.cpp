@@ -579,4 +579,18 @@ namespace cryptonote
     return true;
   }
 
+  bool simple_wallet::get_my_interest(const std::vector<std::string>& args)
+  {
+    std::vector<std::pair<uint64_t, uint64_t>> interest_per_output;
+    uint64_t collected_interest = m_wallet->get_current_interest(interest_per_output);
+    
+    success_msg_writer() << tr("Collected interest so far is: ") << collected_interest;
+    success_msg_writer() << boost::format("%30s %20s") % tr("Output amount") % tr("Available interest");
+    for(auto& pair : interest_per_output)
+    {
+      success_msg_writer() << boost::format("%30s %20s") % pair.first % pair.second;
+    }
+    return true;
+  }
+
 }

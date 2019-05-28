@@ -3280,6 +3280,20 @@ bool wallet_rpc_server::on_make_demo_purchase(const wallet_rpc::COMMAND_RPC_DEMO
     return true;
 }
 
+bool wallet_rpc_server::on_available_interest(const wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::request& req, 
+                                 wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::response& res, 
+                                 epee::json_rpc::error& er)
+{
+    std::vector<std::pair<uint64_t, uint64_t>> interest_per_output;
+    res.available_interest = m_wallet->get_current_interest(interest_per_output);
+
+    for(auto& pair : interest_per_output) {
+        res.interest_per_output.push_back({pair.first, pair.second});
+    }
+
+    return true;
+}
+
 }
 
 int main(int argc, char** argv) {
