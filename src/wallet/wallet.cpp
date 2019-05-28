@@ -574,7 +574,7 @@ uint32_t get_subaddress_clamped_sum(uint32_t idx, uint32_t extra)
 namespace tools
 {
 // for now, limit to 30 attempts.  TODO: discuss a good number to limit to.
-const size_t MAX_SPLIT_ATTEMPTS = 30;
+const size_t MAX_SPLIT_ATTEMPTS = 10;
 
 constexpr const std::chrono::seconds wallet::rpc_timeout;
 const char* wallet::tr(const char* str) { return i18n_translate(str, "tools::wallet"); }
@@ -8091,14 +8091,20 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
     bool mark_as_spent)
 {
   const size_t fake_outs_count = 0;
-  const std::vector<size_t> unused_transfers_indices = select_available_outputs_from_histogram(fake_outs_count + 1, true, true, true, trusted_daemon, cryptonote::tx_out_type::out_cash);
-
   const uint64_t fee_per_kb  = get_per_kb_fee();
   const uint64_t fee_multiplier = get_fee_multiplier(priority, get_fee_algorithm());
 
+  const uint64_t needed_cash = [&]() {
+    uint64_t tmp = 0;
+    for (auto &dt: dsts) {
+      tmp += dt.amount;
+      THROW_WALLET_EXCEPTION_IF(tmp < dt.amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+    }
+    return tmp;}();
+
+
   // failsafe split attempt counter
   size_t attempt_count = 0;
-
   for (attempt_count = 1;; attempt_count++)
   {
     size_t num_tx = 1;
@@ -8118,14 +8124,32 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
       {
         cryptonote::transaction tx;
         pending_tx ptx = AUTO_VAL_INIT(ptx);
+        std::vector<size_t> unused_transfers_indices = select_available_outputs_from_histogram(fake_outs_count + 1, true, true, false, trusted_daemon, cryptonote::tx_out_type::out_cash);
 
-        // loop until fee is met without increasing tx size to next KB boundary.
-        //todo ATANA update estimate_tx_size to include migration transaction
-        const size_t estimated_tx_size = estimate_tx_size(unused_transfers_indices.size(), fake_outs_count, dst_vector.size(), extra.size());
-        uint64_t needed_fee = calculate_fee(fee_per_kb, estimated_tx_size, fee_multiplier);
+        size_t idx;
+        uint64_t found_cash = 0;
+        uint64_t min_needed_cash = needed_cash;
+        bool adding_fee = false;
+        uint64_t needed_fee = 0;
+        std::vector<size_t> selected_transfers;
+        while (found_cash < min_needed_cash && !adding_fee) {
+          //Select cash inputs for migration cash distribution
+          idx = pop_best_value(unused_transfers_indices, selected_transfers, false, tx_out_type::out_cash);
+          const transfer_details &td = m_transfers[idx];
+
+          found_cash += td.amount();
+          selected_transfers.push_back(idx);
+          if (found_cash > min_needed_cash && !adding_fee) {
+              adding_fee = true;
+              const size_t estimated_tx_size = estimate_tx_size(selected_transfers.size(), fake_outs_count, dst_vector.size(), extra.size());
+              needed_fee = calculate_fee(fee_per_kb, estimated_tx_size, fee_multiplier);
+              min_needed_cash += needed_fee;
+          }
+        }
+
         do
         {
-          transfer_migration(dst_vector, bitcoin_transaction_hash, fake_outs_count, unused_transfers_indices,
+          transfer_migration(dst_vector, bitcoin_transaction_hash, fake_outs_count, selected_transfers,
                              unlock_time, needed_fee, extra, tx, ptx, trusted_daemon);
           auto txBlob = t_serializable_object_to_blob(ptx.tx);
           needed_fee = calculate_fee(fee_per_kb, txBlob, fee_multiplier);
@@ -9342,7 +9366,7 @@ std::vector<uint64_t> wallet::get_unspent_amounts_vector() const
   for (const auto &td: m_transfers)
   {
     if (!td.m_spent)
-      set.insert(td.is_rct() ? 0 : td.amount());
+      set.insert(td.amount());
   }
   std::vector<uint64_t> vector;
   vector.reserve(set.size());
@@ -9361,7 +9385,7 @@ std::vector<size_t> wallet::select_available_outputs_from_histogram(uint64_t cou
   if (trusted_daemon)
     req_t.amounts = get_unspent_amounts_vector();
   req_t.min_count = count;
-  req_t.max_count = 0;
+
   req_t.unlocked = unlocked;
   req_t.out_type = out_type;
   bool r = net_utils::invoke_http_json_rpc("/json_rpc", "get_output_histogram", req_t, resp_t, m_http_client, rpc_timeout);
@@ -9380,13 +9404,13 @@ std::vector<size_t> wallet::select_available_outputs_from_histogram(uint64_t cou
     if (!allow_rct && td.is_rct())
       return false;
     uint64_t value_amount;
-    if (out_type == cryptonote::tx_out_type::out_token && td.m_token_transfer)
+    if (out_type == cryptonote::tx_out_type::out_token)
     {
-      value_amount = td.is_rct() ? 0 : td.token_amount();
+      value_amount = td.token_amount();
     }
-    else if (out_type == cryptonote::tx_out_type::out_cash && (!td.m_token_transfer))
+    else if (out_type == cryptonote::tx_out_type::out_cash)
     {
-      value_amount = td.is_rct() ? 0 : td.amount();
+      value_amount = td.amount();
     }
     else
     {

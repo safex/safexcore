@@ -4082,26 +4082,6 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
     return true;
   }
 
-  std::stringstream prompt;
-  prompt << "Perform migration transaction: address: " << cryptonote::get_account_address_as_str(m_wallet->nettype(), false, token_destination.addr) \
-      << " bitcoin tx hash:" << epee::string_tools::pod_to_hex(bitcoin_burn_transaction) \
-      << " token amount:" << print_money(token_destination.token_amount) \
-      << tr("Is this okay anyway?  (Y/Yes/N/No): ");
-  std::string prompt_str = prompt.str();
-  if (!prompt_str.empty())
-  {
-    std::string accepted = input_line(prompt_str);
-    if (std::cin.eof())
-      return true;
-    if (!command_line::is_yes(accepted))
-    {
-      fail_msg_writer() << tr("transaction cancelled.");
-
-      return true;
-    }
-  }
-
-
   //airdrop reward calculation
   cryptonote::tx_destination_entry airdrop_destination = AUTO_VAL_INIT(airdrop_destination);
   airdrop_destination.addr = info.address;
@@ -4132,6 +4112,26 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
     {
       fail_msg_writer() << tr("No outputs found, or daemon is not ready");
       return true;
+    }
+
+    std::stringstream prompt;
+    prompt << "Perform migration transaction: address: " << cryptonote::get_account_address_as_str(m_wallet->nettype(), false, token_destination.addr) \
+      << " bitcoin tx hash:" << epee::string_tools::pod_to_hex(bitcoin_burn_transaction) \
+      << " token amount:" << print_money(token_destination.token_amount) \
+      << " transaction fee:" << print_money(ptx_vector[0].fee) \
+      << tr("Is this okay anyway?  (Y/Yes/N/No): ");
+    std::string prompt_str = prompt.str();
+    if (!prompt_str.empty())
+    {
+      std::string accepted = input_line(prompt_str);
+      if (std::cin.eof())
+        return true;
+      if (!command_line::is_yes(accepted))
+      {
+        fail_msg_writer() << tr("transaction cancelled.");
+
+        return true;
+      }
     }
 
     // if we need to check for backlog, check the worst case tx
