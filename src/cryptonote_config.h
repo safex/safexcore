@@ -159,6 +159,7 @@
 #define HF_VERSION_VALID_DECOMPOSED_MINER_TX    3
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
 #define HF_VERSION_MINER_TX_MAX_OUTS            11
+#define HF_VERSION_CHANGE_MINER_DUST_HANDLING   4
 
 
 
@@ -187,7 +188,6 @@ namespace config
   uint64_t const DEFAULT_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const DEFAULT_TOKEN_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const BASE_REWARD_CLAMP_THRESHOLD = ((uint64_t)1000000); // pow(10, 6)
-  uint64_t const BASE_REWARD_DECOMPOSITION_OFFSET = 0; //((uint64_t)1000000); // pow(10, 6) force decomposition of reward amount into multiple outputs
   std::string const P2P_REMOTE_DEBUG_TRUSTED_PUB_KEY = "0000000000000000000000000000000000000000000000000000000000000000";
 
   uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
