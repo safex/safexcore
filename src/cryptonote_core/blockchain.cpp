@@ -1409,7 +1409,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     money_in_use += o.amount;
   partial_block_reward = false;
 
-  if (hf_version >= HF_VERSION_VALID_DECOMPOSED_MINER_TX) {
+  if (hf_version == HF_VERSION_VALID_DECOMPOSED_MINER_TX) {
     for (auto &o: b.miner_tx.vout) {
       if (!is_valid_decomposed_amount(o.amount)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
@@ -1589,7 +1589,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
    */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
   uint8_t hf_version = m_hardfork->get_current_version();
-  size_t max_outs = HF_VERSION_MINER_TX_MAX_OUTS;
+  size_t max_outs = hf_version >= HF_VERSION_CHANGE_MINER_DUST_HANDLING ? 1 : HF_VERSION_MINER_TX_MAX_OUTS;
   bool r = construct_miner_tx(height, median_size, already_generated_coins, txs_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_size = txs_size + get_object_blobsize(b.miner_tx);

@@ -116,20 +116,13 @@ namespace cryptonote
       block_reward = block_reward - block_reward % ::config::BASE_REWARD_CLAMP_THRESHOLD;
     }
 
-    //decompose_offset purpose is to force decomposition of block reward
-    //if base_reward is rounded to whole number of coins
-    const uint64_t decompose_offset = ::config::BASE_REWARD_DECOMPOSITION_OFFSET;
     std::vector<uint64_t> out_amounts;
-    decompose_amount_into_digits(block_reward-decompose_offset, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
+    decompose_amount_into_digits(block_reward, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
       [&out_amounts](uint64_t a_chunk) { out_amounts.push_back(a_chunk); },
       [&out_amounts](uint64_t a_dust) { out_amounts.push_back(a_dust); });
 
-    if (decompose_offset > 0 && out_amounts.size() > 0) {
-    	out_amounts[0]+=decompose_offset;
-    }
-
     CHECK_AND_ASSERT_MES(1 <= max_outs, false, "max_out must be non-zero");
-    if (height == 0 || hard_fork_version >= HF_VERSION_ENFORCE_RCT)
+    if (height == 0 || hard_fork_version >= HF_VERSION_CHANGE_MINER_DUST_HANDLING)
     {
       // the genesis block was not decomposed, for unknown reasons
       while (max_outs < out_amounts.size())
