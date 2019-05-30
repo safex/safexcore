@@ -174,6 +174,8 @@ namespace tools
     req.begin_interval = safex::calculate_interval_for_height(td.m_block_height, this->nettype()) + 1; //earning interest starts from next interval
     req.end_interval = safex::calculate_interval_for_height(this->get_blockchain_current_height(), this->nettype()) - 1; //finishes in previous interval
 
+    if (req.begin_interval > req.end_interval) return 0;
+
     static std::map<uint64_t, uint64_t> interest_map;
 
     if (interest_map.find(req.begin_interval) == interest_map.end() || interest_map.find(req.end_interval) == interest_map.end())
