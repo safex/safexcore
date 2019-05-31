@@ -109,8 +109,10 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
   { 2, 33407, 0, 1541066055},
-  { 3, 78500, 0, 1546512073}
+  { 3, 78500, 0, 1546512073}, //184650
+  { 4, 184700, 0, 1559305991}
 };
+
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
 static const struct {
