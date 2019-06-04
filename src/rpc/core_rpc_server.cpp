@@ -1734,10 +1734,18 @@ namespace cryptonote
     if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_OUTPUT_HISTOGRAM>(invoke_http_mode::JON_RPC, "get_output_histogram", req, res, r))
       return r;
 
+    cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
+    if(req.out_type != cryptonote::tx_out_type::out_invalid) {
+      output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
+    }
+    else {
+      output_type = req.out_type;
+    }
+
     std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> histogram;
     try
     {
-      histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, req.out_type);
+      histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, output_type);
     }
     catch (const std::exception &e)
     {

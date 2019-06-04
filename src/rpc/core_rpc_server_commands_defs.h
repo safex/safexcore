@@ -2027,6 +2027,7 @@ namespace cryptonote
       uint64_t max_count;
       bool unlocked;
       uint64_t recent_cutoff;
+      uint64_t out_type_as_int;
       tx_out_type out_type;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -2035,6 +2036,7 @@ namespace cryptonote
         KV_SERIALIZE(max_count);
         KV_SERIALIZE(unlocked);
         KV_SERIALIZE(recent_cutoff);
+        KV_SERIALIZE(out_type_as_int)
         KV_SERIALIZE_VAL_POD_AS_BLOB(out_type);
       END_KV_SERIALIZE_MAP()
     };
