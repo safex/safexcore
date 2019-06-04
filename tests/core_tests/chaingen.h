@@ -244,11 +244,11 @@ bool construct_token_tx_to_key(const std::vector<test_event_entry>& events, cryp
                                const cryptonote::account_base& from, const cryptonote::account_base& to, uint64_t token_amount,
                                uint64_t fee, size_t nmix);
 
-bool construct_token_lock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const cryptonote::block& blk_head,
-                             const cryptonote::account_base& user_account, uint64_t token_amount, uint64_t fee, size_t nmix);
+bool construct_token_stake_tx(const std::vector<test_event_entry> &events, cryptonote::transaction &tx, const cryptonote::block &blk_head,
+                              const cryptonote::account_base &user_account, uint64_t token_amount, uint64_t fee, size_t nmix);
 
-bool construct_token_unlock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head,
-                               const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix);
+bool construct_token_unstake_tx(const std::vector<test_event_entry> &events, cryptonote::transaction &tx, const cryptonote::block &blk_head,
+                                const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix);
 
 bool construct_fee_donation_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head,
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);
@@ -270,9 +270,9 @@ void fill_token_tx_sources_and_destinations(const std::vector<test_event_entry>&
                                       std::vector<cryptonote::tx_source_entry>& sources,
                                       std::vector<cryptonote::tx_destination_entry>& destinations);
 
-void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
-        const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<cryptonote::tx_source_entry> &sources,
-        std::vector<cryptonote::tx_destination_entry> &destinations);
+void fill_token_stake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const cryptonote::block &blk_head,
+                                                  const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<cryptonote::tx_source_entry> &sources,
+                                                  std::vector<cryptonote::tx_destination_entry> &destinations);
 
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
 uint64_t get_token_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx);
@@ -748,7 +748,7 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TOKEN_LOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, NMIX, HEAD)             \
   {                                                                                      \
     cryptonote::transaction t;                                                           \
-    construct_token_lock_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+    construct_token_stake_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
     SET_NAME.push_back(t);                                                               \
     VEC_EVENTS.push_back(t);                                                             \
   }
@@ -763,7 +763,7 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TOKEN_UNLOCK_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, TOKEN_AMOUNT, NMIX, HEAD)             \
   {                                                                                      \
     cryptonote::transaction t;                                                           \
-    construct_token_unlock_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
+    construct_token_unstake_tx(VEC_EVENTS, t, HEAD, FROM, TOKEN_AMOUNT, TESTS_DEFAULT_FEE, NMIX); \
     SET_NAME.push_back(t);                                                               \
     VEC_EVENTS.push_back(t);                                                             \
   }

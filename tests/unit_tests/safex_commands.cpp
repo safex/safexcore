@@ -351,9 +351,9 @@ TEST(SafexCommandParsing, HandlesTokenLock)
   token_stake command2{};
   safex_command_serializer::parse_safex_object(serialized_command, command2);
 
-  ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.get_version(), command2.get_version()) << "Original and deserialized command must have same version";
   ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.get_lock_token_amount(), command2.get_lock_token_amount()) << "Original and deserialized command must have same locked amount";
+  ASSERT_EQ(command1.get_staked_token_amount(), command2.get_staked_token_amount()) << "Original and deserialized command must have same locked amount";
 
 }
 
@@ -373,7 +373,7 @@ TEST(SafexCommandParsing, HandlesTokenCollect)
   token_collect command2{};
   safex_command_serializer::parse_safex_object(serialized_command, command2);
 
-  ASSERT_EQ(command1.getVersion(), command2.getVersion()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.get_version(), command2.get_version()) << "Original and deserialized command must have same version";
   ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
   ASSERT_EQ(command1.get_staked_token_output_index(), command2.get_staked_token_output_index()) << "Original and deserialized command must have same output index";
 

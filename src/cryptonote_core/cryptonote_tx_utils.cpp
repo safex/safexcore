@@ -613,7 +613,10 @@ namespace cryptonote
       input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
 
       //here, prepare data of transaction command execution and serialize command
-      safex::token_unstake cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+
+      SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(src_entr.outputs.size() > 0, "Invalid staked token output id", safex::command_t::token_unstake);
+
+      safex::token_unstake cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.outputs[0].first};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
     else if (src_entr.command_type == safex::command_t::donate_network_fee)

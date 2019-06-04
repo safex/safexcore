@@ -728,8 +728,8 @@ uint64_t calculate_token_holder_interest_for_output(uint64_t lock_start_height, 
   return interest;
 }
 
-bool fill_unlock_token_sources(std::vector<tx_source_entry> &sources, const std::vector<test_event_entry>& events,  const block& blk_head,
-        const cryptonote::account_base &from, uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_staked_token)
+bool fill_unstake_token_sources(std::vector<tx_source_entry> &sources, const std::vector<test_event_entry> &events, const block &blk_head,
+                                const cryptonote::account_base &from, uint64_t value_amount, size_t nmix, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_staked_token)
 {
   map_output_idx_t outs;
   map_output_t outs_mine;
@@ -1025,9 +1025,9 @@ tx_destination_entry create_interest_destination(const cryptonote::account_base 
   return tx_destination_entry{cash_amount, to.get_keys().m_account_address, false, tx_out_type::out_cash};
 }
 
-void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
-        const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
-        std::vector<tx_destination_entry> &destinations)
+void fill_token_stake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const block &blk_head,
+                                                  const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
+                                                  std::vector<tx_destination_entry> &destinations)
 {
   sources.clear();
   destinations.clear();
@@ -1064,9 +1064,9 @@ void fill_token_lock_tx_sources_and_destinations(const std::vector<test_event_en
 }
 
 
-void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head, const cryptonote::account_base &from, const cryptonote::account_base &to,
-                                                   uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
-                                                   std::vector<tx_destination_entry> &destinations)
+void fill_token_unstake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const block &blk_head, const cryptonote::account_base &from, const cryptonote::account_base &to,
+                                                    uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
+                                                    std::vector<tx_destination_entry> &destinations)
 {
   sources.clear();
   destinations.clear();
@@ -1076,7 +1076,7 @@ void fill_token_unlock_tx_sources_and_destinations(const std::vector<test_event_
     throw std::runtime_error("couldn't fill transaction sources");
 
   //locked token source
-  if (!fill_unlock_token_sources(sources,  events, blk_head, from, token_amount, nmix))
+  if (!fill_unstake_token_sources(sources, events, blk_head, from, token_amount, nmix))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
 
 
@@ -1221,22 +1221,22 @@ transaction construct_tx_with_fee(std::vector<test_event_entry>& events, const b
   return tx;
 }
 
-bool construct_token_lock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction& tx, const block& blk_head,
-                               const cryptonote::account_base& user_account, uint64_t token_amount, uint64_t fee, size_t nmix)
+bool construct_token_stake_tx(const std::vector<test_event_entry> &events, cryptonote::transaction &tx, const block &blk_head,
+                              const cryptonote::account_base &user_account, uint64_t token_amount, uint64_t fee, size_t nmix)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
-  fill_token_lock_tx_sources_and_destinations(events, blk_head, user_account, user_account, token_amount, fee, nmix, sources, destinations);
+  fill_token_stake_tx_sources_and_destinations(events, blk_head, user_account, user_account, token_amount, fee, nmix, sources, destinations);
 
   return construct_tx(user_account.get_keys(), sources, destinations, user_account.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
 
-bool construct_token_unlock_tx(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const block& blk_head,
-                               const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix)
+bool construct_token_unstake_tx(const std::vector<test_event_entry> &events, cryptonote::transaction &tx, const block &blk_head,
+                                const cryptonote::account_base &from, uint64_t token_amount, uint64_t fee, size_t nmix)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
-  fill_token_unlock_tx_sources_and_destinations(events, blk_head, from, from, token_amount, fee, nmix, sources, destinations);
+  fill_token_unstake_tx_sources_and_destinations(events, blk_head, from, from, token_amount, fee, nmix, sources, destinations);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }

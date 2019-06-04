@@ -71,6 +71,12 @@ namespace safex
     uint64_t amount = 0; //cash amount do donate to newtork token holders
   };
 
+  struct simple_purchase_result : public execution_result
+  {
+    uint64_t cash_amount = 0; //cash amount that seller gets
+    uint64_t network_fee = 0; //network fee for purchase
+  };
+
   struct distribute_fee_result : public execution_result
   {
     uint64_t amount = 0; //cash amount do donate to newtork token holders
@@ -130,7 +136,7 @@ namespace safex
 
       virtual execution_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) = 0;
 
-      uint32_t getVersion() const
+      uint32_t get_version() const
       { return version; }
 
       command_t get_command_type() const
@@ -143,8 +149,7 @@ namespace safex
         VARINT_FIELD(command_type)
       END_SERIALIZE()
 
-
-    protected:
+    private:
 
       uint32_t version;
       command_t command_type;
@@ -182,7 +187,7 @@ namespace safex
 
       token_stake() : command(0, command_t::token_stake), lock_token_amount(0) {}
 
-      uint64_t get_lock_token_amount() const { return lock_token_amount; }
+      uint64_t get_staked_token_amount() const { return lock_token_amount; }
 
       virtual token_stake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
@@ -192,7 +197,7 @@ namespace safex
         VARINT_FIELD(lock_token_amount)
       END_SERIALIZE()
 
-    protected:
+    private:
 
       uint64_t lock_token_amount;
   };
@@ -210,9 +215,13 @@ namespace safex
        * @param _staked_token_output_index global index of txout_to_script output that is being unlocked
       * */
       token_unstake(const uint32_t _version, const uint64_t _staked_token_output_index) : command(_version, command_t::token_unstake),
-              staked_token_output_index(_staked_token_output_index) {}
+              staked_token_output_index(_staked_token_output_index) {
 
-      token_unstake() : command(0, command_t::token_unstake), staked_token_output_index(0) {}
+      }
+
+      token_unstake() : command(0, command_t::token_unstake), staked_token_output_index(0) {
+
+      }
 
       uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
@@ -224,7 +233,7 @@ namespace safex
         VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
-    protected:
+    private:
 
       uint64_t staked_token_output_index;
   };
@@ -257,7 +266,7 @@ namespace safex
         VARINT_FIELD(staked_token_output_index)
       END_SERIALIZE()
 
-    protected:
+    private:
 
       uint64_t staked_token_output_index;
   };
@@ -286,9 +295,38 @@ namespace safex
         VARINT_FIELD(donation_safex_cash_amount)
       END_SERIALIZE()
 
-    protected:
+    private:
 
       uint64_t donation_safex_cash_amount;
+  };
+
+  class simple_purchase : public command
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _simple_purchase_price Simple purschase cash amount
+      * */
+      simple_purchase(const uint32_t _version, const uint64_t _simple_purchase_price) : command(_version, command_t::simple_purchase),
+                                                                                        simple_purchase_price(_simple_purchase_price) {}
+
+      simple_purchase() : command(0, command_t::simple_purchase), simple_purchase_price(0) {}
+
+      uint64_t get_simple_purhcase_price() const { return simple_purchase_price; }
+
+      virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::simple_purchase);
+        VARINT_FIELD(simple_purchase_price)
+      END_SERIALIZE()
+
+    private:
+
+      uint64_t simple_purchase_price;
   };
 
 
@@ -316,7 +354,7 @@ namespace safex
         VARINT_FIELD(safex_cash_amount)
       END_SERIALIZE()
 
-    protected:
+    private:
 
       uint64_t safex_cash_amount;
   };
@@ -354,6 +392,51 @@ namespace safex
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
         return true;
       }
+
+      template<typename CommandOrData>
+      static CommandOrData* parse_safex_object(const std::vector<uint8_t> &buffer)
+      {
+        cryptonote::blobdata command_blob;
+        const uint8_t* serialized_buffer_ptr = &buffer[0];
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
+
+        std::stringstream ss;
+        ss << command_blob;
+        binary_archive<false> ba(ss);
+
+        CommandOrData* commandOrData = new CommandOrData();
+        bool r = ::serialization::serialize(ba, *commandOrData);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
+        return commandOrData;
+      }
+
+      static std::unique_ptr<command> parse_safex_object(const std::vector<uint8_t> &buffer, const safex::command_t command_type)
+      {
+
+        switch(command_type) {
+          case safex::command_t::token_stake:
+            return std::unique_ptr<command>(parse_safex_object<token_stake>(buffer));
+            break;
+          case safex::command_t::token_unstake:
+            return std::unique_ptr<command>(parse_safex_object<token_unstake>(buffer));
+            break;
+          case safex::command_t::distribute_network_fee:
+            return std::unique_ptr<command>(parse_safex_object<distribute_fee>(buffer));
+            break;
+          case safex::command_t::donate_network_fee:
+            return std::unique_ptr<command>(parse_safex_object<donate_fee>(buffer));
+            break;
+          case safex::command_t::simple_purchase:
+            return std::unique_ptr<command>(parse_safex_object<simple_purchase>(buffer));
+            break;
+
+          default:
+            SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
+            break;
+        }
+
+      }
+
 
       static inline command_t get_command_type(const std::vector<uint8_t> &script)
       {
