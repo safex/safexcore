@@ -707,6 +707,8 @@ namespace cryptonote
   };
   //-----------------------------------------------
 
+  //-----------------------------------------------
+
   struct COMMAND_RPC_IS_KEY_IMAGE_SPENT
   {
     enum STATUS {
@@ -741,6 +743,37 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  //-----------------------------------------------
+  struct COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF
+  {
+    struct request
+    {
+      std::vector<uint64_t> amounts;
+      uint64_t min_count;
+      uint64_t max_count;
+      bool unlocked;
+      uint64_t recent_cutoff;
+      uint64_t out_type;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(amounts);
+        KV_SERIALIZE(min_count);
+        KV_SERIALIZE(max_count);
+        KV_SERIALIZE(unlocked);
+        KV_SERIALIZE(recent_cutoff);
+        KV_SERIALIZE(out_type)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+          std::string protobuf_content;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(protobuf_content)
+        END_KV_SERIALIZE_MAP()
+    };
+  };
   //-----------------------------------------------
   struct COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES
   {

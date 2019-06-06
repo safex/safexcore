@@ -209,4 +209,32 @@ namespace safex {
         return hdr;
     }
 
+    output_histograms_protobuf::output_histograms_protobuf() : protobuf_endpoint() {
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
+    }
+    output_histograms_protobuf::~output_histograms_protobuf() {}
+
+    void output_histograms_protobuf::add_histogram( uint64_t amount, const cryptonote::tx_out_type out_type, 
+                                                    uint64_t recent_instances, uint64_t total_instances, 
+                                                    uint64_t unlocked_instances) 
+    {
+        safex::Histogram* histogram = m_histograms.add_histograms();
+
+        histogram->set_amount(amount);
+        histogram->set_out_type(static_cast<uint64_t>(out_type));
+        histogram->set_recent_instances(recent_instances);
+        histogram->set_total_instances(total_instances);
+        histogram->set_unlocked_instances(unlocked_instances);
+    }
+
+    std::string output_histograms_protobuf::string() const
+    {
+        return m_histograms.SerializeAsString();
+    }
+
+    void output_histograms_protobuf::set_status(const std::string& status)
+    {
+        m_histograms.set_status(status);
+    }
+
 }
