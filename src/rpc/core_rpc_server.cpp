@@ -2411,7 +2411,33 @@ namespace cryptonote
     return true;
   }
     //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_outputs_protobuf(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUTS_PROTOBUF::response& res) 
+  {
+    PERF_TIMER(on_get_outs_protobuf);
+    #ifdef SAFEX_PROTOBUF_RPC
+      res.status = "Failed";
 
+      safex::outputs_protobuf proto_outs;
+      if (m_restricted)
+      {
+        if (req.outputs.size() > MAX_RESTRICTED_GLOBAL_FAKE_OUTS_COUNT)
+        {
+          res.status = "Too many outs requested";
+          return true;
+        }
+      }
+
+      if(!m_core.get_outs_proto(req, proto_outs))
+      {
+        return true;
+      }
+
+      res.protobuf_content = proto_outs.string();
+      res.status = CORE_RPC_STATUS_OK;
+    #endif
+    return true;
+  }
+  
 
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"
