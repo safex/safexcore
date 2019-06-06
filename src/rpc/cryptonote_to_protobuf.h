@@ -37,6 +37,7 @@
 #include "transactions.pb.h"
 #include "blocks.pb.h"
 #include "output_histogram.pb.h"
+#include "get_outs.pb.h"
 #include "../cryptonote_basic/cryptonote_basic.h"
 #include "../cryptonote_core/cryptonote_core.h"
 #include <google/protobuf/text_format.h>
@@ -132,6 +133,25 @@ namespace safex {
             void set_status(const std::string& status);
         private:
             safex::Histograms m_histograms;
+    };
+
+    class outputs_protobuf : public protobuf_endpoint {
+        public:
+            outputs_protobuf();
+            ~outputs_protobuf();
+
+            // @brief Adding output_entry
+            void add_out_entry(const crypto::public_key key, bool unlocked, const uint64_t height, const crypto::hash& txid);
+
+            // @brief Set response status
+            void set_status(const std::string& status);
+
+            // @brief Get string representation of protobuf serialization.
+            // @return string serialized data
+            std::string string() const;
+
+        private:
+            safex::Outs m_outs;
     };
 }
 

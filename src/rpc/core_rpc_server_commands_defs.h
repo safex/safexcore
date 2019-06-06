@@ -2401,4 +2401,30 @@ namespace cryptonote
     };
   };
 
+  struct COMMAND_RPC_GET_OUTPUTS_PROTOBUF
+  {
+    struct request
+    {
+      std::vector<get_outputs_out> outputs;
+      uint32_t out_type;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(outputs)
+      KV_SERIALIZE(out_type)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string protobuf_content;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(protobuf_content)
+        KV_SERIALIZE(status)        
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+  //-----------------------------------------------
+
 }

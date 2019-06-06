@@ -53,6 +53,11 @@
 #include "cryptonote_core.h"
 #include "ringct/rctSigs.h"
 #include "common/perf_timer.h"
+
+#ifdef SAFEX_PROTOBUF_RPC
+ #include "rpc/cryptonote_to_protobuf.h"
+#endif
+
 #if defined(PER_BLOCK_CHECKPOINT)
 #include "blocks/blocks.h"
 #endif
@@ -1964,6 +1969,26 @@ bool Blockchain::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMA
 
     res.outs.push_back({od.pubkey, od.commitment, unlocked, od.height, toi.first});
   }
+  return true;
+}
+
+//------------------------------------------------------------------
+bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, safex::outputs_protobuf& proto) const 
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+  #ifdef SAFEX_PROTOBUF_RPC
+    CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+    for (const auto &i: req.outputs)
+    {
+      // get tx_hash, tx_out_index from DB
+      const output_data_t od = m_db->get_output_key(i.amount, i.index, static_cast<cryptonote::tx_out_type>(req.out_type));
+      tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index,  static_cast<cryptonote::tx_out_type>(req.out_type));
+      bool unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first));
+
+      proto.add_out_entry(od.pubkey, unlocked, od.height, toi.first);
+    }
+  #endif
   return true;
 }
 //------------------------------------------------------------------
