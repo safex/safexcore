@@ -237,4 +237,31 @@ namespace safex {
         m_histograms.set_status(status);
     }
 
+    outputs_protobuf::outputs_protobuf() : protobuf_endpoint() 
+    {
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
+    }
+
+    outputs_protobuf::~outputs_protobuf() {}
+
+    void outputs_protobuf::add_out_entry(const crypto::public_key key, bool unlocked, const uint64_t height, const crypto::hash& txid) 
+    {
+        std::cout << "*****************" << std::endl;
+        safex::Out_entry* entry = m_outs.add_outs();
+        entry->set_key(key.data, 32*sizeof(char));
+        entry->set_txid(txid.data, 32*sizeof(char));
+        entry->set_unlocked(unlocked);
+        entry->set_height(height);
+    }
+
+    void outputs_protobuf::set_status(const std::string& status) 
+    {
+        m_outs.set_status(status);
+    }
+
+    std::string outputs_protobuf::string() const 
+    {
+        return m_outs.SerializeAsString();
+    }
+
 }

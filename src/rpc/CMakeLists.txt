@@ -37,6 +37,7 @@ if(BUILD_SAFEX_PROTOBUF_RPC)
       transactions.pb.cc
       blocks.pb.cc
       output_histogram.pb.cc
+      get_outs.pb.cc
       cryptonote_to_protobuf.cpp
       core_rpc_server.cpp
       instanciations)
@@ -68,6 +69,7 @@ if(BUILD_SAFEX_PROTOBUF_RPC)
       transactions.pb.h
       blocks.pb.h
       output_histogram.pb.h
+      get_outs.pb.h
       cryptonote_to_protobuf.h
       core_rpc_server_commands_defs.h
       core_rpc_server_error_codes.h)

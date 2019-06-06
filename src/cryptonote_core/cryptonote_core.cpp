@@ -56,6 +56,10 @@ using namespace epee;
 #include "ringct/rctSigs.h"
 #include "version.h"
 
+#ifdef SAFEX_PROTOBUF_RPC
+  #include "rpc/cryptonote_to_protobuf.h"
+#endif
+
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "cn"
 
@@ -1114,6 +1118,15 @@ namespace cryptonote
   bool core::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMAND_RPC_GET_OUTPUTS_BIN::response& res) const
   {
     return m_blockchain_storage.get_outs(req, res);
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, safex::outputs_protobuf& proto) const
+  {
+    // #ifdef SAFEX_PROTOBUF_RPC
+      return m_blockchain_storage.get_outs_proto(req, proto);
+    // #else
+    //   return true;
+    // #endif
   }
   //-----------------------------------------------------------------------------------------------
   bool core::get_random_rct_outs(const COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS::request& req, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS::response& res) const
