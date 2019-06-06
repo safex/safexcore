@@ -1735,6 +1735,8 @@ namespace cryptonote
       return r;
 
     cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
+    
+
     if(req.out_type != cryptonote::tx_out_type::out_invalid) {
       output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
     }
@@ -1762,6 +1764,38 @@ namespace cryptonote
     }
 
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_output_histogram_protobuf(const COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::response& res) 
+  {
+    #ifdef SAFEX_PROTOBUF_RPC
+      PERF_TIMER(on_get_output_histogram_protobuf);
+      
+      cryptonote::tx_out_type output_type = static_cast<cryptonote::tx_out_type>(req.out_type);
+      
+      safex::output_histograms_protobuf protobuf_histograms;
+      std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> histogram;
+      try
+      {
+        histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, output_type);
+      }
+      catch (const std::exception &e)
+      {
+        protobuf_histograms.set_status("Failed to get output histogram");
+        res.protobuf_content = protobuf_histograms.string();
+        return true;
+      }
+
+      for (const auto &i: histogram)
+      {
+        if (std::get<0>(i.second) >= req.min_count && (std::get<0>(i.second) <= req.max_count || req.max_count == 0))
+          protobuf_histograms.add_histogram(i.first, output_type, std::get<2>(i.second),
+                                            std::get<0>(i.second), std::get<1>(i.second));
+      }
+
+      res.protobuf_content = protobuf_histograms.string();
+    #endif //SAFEX_PROTOBUF_RPC
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2178,7 +2212,7 @@ namespace cryptonote
                                                             COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::response& res)
   {
 #ifdef SAFEX_PROTOBUF_RPC
-    PERF_TIMER(on_get_transactions);
+    PERF_TIMER(on_get_transactions_protobuf);
 
     std::vector<crypto::hash> vh;
     for(const auto& tx_hex_str: req.txs_hashes)
