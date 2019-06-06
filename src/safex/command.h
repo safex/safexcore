@@ -316,7 +316,7 @@ namespace safex
 
       uint64_t get_simple_purhcase_price() const { return simple_purchase_price; }
 
-      virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -378,38 +378,6 @@ namespace safex
       }
 
 
-      template<typename CommandOrData>
-      static bool parse_safex_object(const std::vector<uint8_t> &buffer, CommandOrData &commandOrData)
-      {
-        cryptonote::blobdata command_blob;
-        const uint8_t* serialized_buffer_ptr = &buffer[0];
-        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
-
-        std::stringstream ss;
-        ss << command_blob;
-        binary_archive<false> ba(ss);
-        bool r = ::serialization::serialize(ba, commandOrData);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
-        return true;
-      }
-
-      template<typename CommandOrData>
-      static CommandOrData* parse_safex_object(const std::vector<uint8_t> &buffer)
-      {
-        cryptonote::blobdata command_blob;
-        const uint8_t* serialized_buffer_ptr = &buffer[0];
-        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
-
-        std::stringstream ss;
-        ss << command_blob;
-        binary_archive<false> ba(ss);
-
-        CommandOrData* commandOrData = new CommandOrData();
-        bool r = ::serialization::serialize(ba, *commandOrData);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
-        return commandOrData;
-      }
-
       static std::unique_ptr<command> parse_safex_object(const std::vector<uint8_t> &buffer, const safex::command_t command_type)
       {
 
@@ -419,6 +387,9 @@ namespace safex
             break;
           case safex::command_t::token_unstake:
             return std::unique_ptr<command>(parse_safex_object<token_unstake>(buffer));
+            break;
+          case safex::command_t::token_collect:
+            return std::unique_ptr<command>(parse_safex_object<token_collect>(buffer));
             break;
           case safex::command_t::distribute_network_fee:
             return std::unique_ptr<command>(parse_safex_object<distribute_fee>(buffer));
@@ -437,7 +408,6 @@ namespace safex
 
       }
 
-
       static inline command_t get_command_type(const std::vector<uint8_t> &script)
       {
 
@@ -453,6 +423,40 @@ namespace safex
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command from blob", command_t::invalid_command);
 
         return static_cast<command_t>(temp.get_command_type());
+      }
+
+    private:
+
+      template<typename CommandOrData>
+      static CommandOrData* parse_safex_object(const std::vector<uint8_t> &buffer)
+      {
+        cryptonote::blobdata command_blob;
+        const uint8_t* serialized_buffer_ptr = &buffer[0];
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
+
+        std::stringstream ss;
+        ss << command_blob;
+        binary_archive<false> ba(ss);
+
+        CommandOrData* commandOrData = new CommandOrData();
+        bool r = ::serialization::serialize(ba, *commandOrData);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
+        return commandOrData;
+      }
+
+      template<typename CommandOrData>
+      static bool parse_safex_object(const std::vector<uint8_t> &buffer, CommandOrData &commandOrData)
+      {
+        cryptonote::blobdata command_blob;
+        const uint8_t* serialized_buffer_ptr = &buffer[0];
+        std::copy(serialized_buffer_ptr, serialized_buffer_ptr + buffer.size(), std::back_inserter(command_blob));
+
+        std::stringstream ss;
+        ss << command_blob;
+        binary_archive<false> ba(ss);
+        bool r = ::serialization::serialize(ba, commandOrData);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(r, "Failed to parse command or data from blob", command_t::invalid_command);
+        return true;
       }
   };
 

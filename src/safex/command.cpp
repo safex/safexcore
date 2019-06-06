@@ -94,13 +94,14 @@ namespace safex
     return cr;
   };
 
-  simple_purchase_result* simple_purchase::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+  simple_purchase_result* simple_purchase::execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) {
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());
 
     simple_purchase_result *cr = new simple_purchase_result{};
-    cr->cash_amount = (txin.amount*95)/100;
-    cr->network_fee = (txin.amount*5)/100;
+    cr->network_fee = calculate_safex_network_fee(txin.amount, blockchain.get_net_type(), txin.command_type);
+    cr->cash_amount = txin.amount - cr->network_fee;
+
     cr->valid = true;
     cr->status = execution_status::ok;
 

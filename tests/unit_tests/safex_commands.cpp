@@ -348,12 +348,11 @@ TEST(SafexCommandParsing, HandlesTokenLock)
   ASSERT_EQ(command_type, command_t::token_stake) << "Token stake command type not properly parsed from binary blob";
 
   //deserialize
-  token_stake command2{};
-  safex_command_serializer::parse_safex_object(serialized_command, command2);
+  std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(serialized_command, command_t::token_stake);
 
-  ASSERT_EQ(command1.get_version(), command2.get_version()) << "Original and deserialized command must have same version";
-  ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.get_staked_token_amount(), command2.get_staked_token_amount()) << "Original and deserialized command must have same locked amount";
+  ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.get_staked_token_amount(), dynamic_cast<safex::token_stake*>(command2.get())->get_staked_token_amount()) << "Original and deserialized command must have same locked amount";
 
 }
 
@@ -370,12 +369,11 @@ TEST(SafexCommandParsing, HandlesTokenCollect)
   ASSERT_EQ(command_type, command_t::token_collect) << "Token unlock command type not properly parsed from binary blob";
 
   //deserialize
-  token_collect command2{};
-  safex_command_serializer::parse_safex_object(serialized_command, command2);
+  std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(serialized_command, command_t::token_collect);
 
-  ASSERT_EQ(command1.get_version(), command2.get_version()) << "Original and deserialized command must have same version";
-  ASSERT_EQ(command1.get_command_type(), command2.get_command_type()) << "Original and deserialized command must have same command type";
-  ASSERT_EQ(command1.get_staked_token_output_index(), command2.get_staked_token_output_index()) << "Original and deserialized command must have same output index";
+  ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+  ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+  ASSERT_EQ(command1.get_staked_token_output_index(), dynamic_cast<safex::token_collect*>(command2.get())->get_staked_token_output_index()) << "Original and deserialized command must have same output index";
 
 }
 
@@ -385,8 +383,7 @@ TEST(SafexCommandParsing, HandlesCorruptedArrayOfBytes)
   std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
 
   //deserialize
-  token_stake command2{};
-  EXPECT_THROW(safex_command_serializer::parse_safex_object(serialized_command, command2), safex::command_exception);
+  EXPECT_THROW(safex_command_serializer::parse_safex_object(serialized_command, command_t::token_stake), safex::command_exception);
 
 }
 
@@ -443,13 +440,14 @@ TEST_F(SafexCommandExecution, TokenLockExecute)
     token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
+    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_stake);
+    std::unique_ptr<execution_result> result{command2->execute(this->db, txinput)};
 
-    token_stake command2{};
-    safex_command_serializer::parse_safex_object(txinput.script, command2);
 
-    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
 
-    std::cout << "Token amount: " << result->token_amount << " status:" << static_cast<int>(result->status) << " block number:" << result->block_number << std::endl;
+
+    std::cout << "Token amount: " << static_cast<token_stake_result *>(result.get())->token_amount << " status:" << static_cast<int>(result->status)
+    << " block number:" << static_cast<token_stake_result*>(result.get())->block_number << std::endl;
   }
   catch (safex::command_exception &exception)
   {
@@ -478,10 +476,9 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
-    token_stake command2{};
-    safex_command_serializer::parse_safex_object(txinput.script, command2);
+    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_stake);
 
-    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
+    std::unique_ptr<execution_result> result{command2->execute(this->db, txinput)};
     FAIL() << "Should throw exception with minimum amount of tokens to lock";
 
   }
@@ -508,12 +505,10 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
     token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
-    token_stake command2{};
-    safex_command_serializer::parse_safex_object(txinput.script, command2);
+    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_stake);
 
-    std::unique_ptr<token_stake_result> result{command2.execute(this->db, txinput)};
+    std::unique_ptr<execution_result> result{command2->execute(this->db, txinput)};
     FAIL() << "Should throw exception with input amount differs from token stake command amount";
-
   }
   catch (safex::command_exception &exception)
   {
@@ -546,11 +541,8 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
     token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
-
-    token_stake command2{};
-    safex_command_serializer::parse_safex_object(txinput.script, command2);
-
-    std::unique_ptr<token_stake_result> result{command2.execute(db, txinput)};
+    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_stake);
+    std::unique_ptr<execution_result> result{command2->execute(db, txinput)};
 
   }
   catch (safex::command_exception &exception)
@@ -583,11 +575,9 @@ TEST_F(SafexCommandExecution, TokenUnlockExecute)
     token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
     safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
-
-    token_unstake command2{};
-    safex_command_serializer::parse_safex_object(txinput.script, command2);
-
-    std::unique_ptr<token_unstake_result> result{command2.execute(this->db, txinput)};
+    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_unstake);
+    std::unique_ptr<execution_result> rslt{command2->execute(this->db, txinput)};
+    token_unstake_result* result = static_cast<token_unstake_result *>(rslt.get());
 
     std::cout << "Token amount: " << result->token_amount << " valid:" << result->valid << " block number:" << result->block_number << " interest: " << result->interest << std::endl;
   }

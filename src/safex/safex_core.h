@@ -6,7 +6,7 @@
 #include <string>
 #include <exception>
 #include <map>
-
+#include "misc_log_ex.h"
 #include "cryptonote_config.h"
 
 #ifndef SAFEX_SAFEX_CORE_H
@@ -172,6 +172,31 @@ namespace safex
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD;
   }
+
+  /**
+   * Calculate amount safex network fee
+   *
+   * @param cash_amount amount of saxex cash in transaction
+   * @param nettype network type
+   * @param command_type safex network fee may depend of differend scenearious
+   * @return
+   */
+  inline uint64_t calculate_safex_network_fee(const uint64_t cash_amount,  const cryptonote::network_type nettype, const safex::command_t command_type)
+  {
+    uint64_t fee = 0;
+
+    //todo handle multiplication that overflows
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE) < cash_amount, "Overflow calculating transaction fee", safex::command_t::token_stake);
+
+    switch (nettype) {
+      default:
+        fee = cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE / 100;
+    }
+
+    return fee;
+  }
+
+
 
 }
 
