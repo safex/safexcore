@@ -664,7 +664,7 @@ bool wallet_rpc_server::validate_transfer(
         if (is_token) {
             de.amount = 0;
             // check if the amount is whole
-            if (!tools::is_whole_coin_amount(destination.amount)) {
+            if (!tools::is_whole_token_amount(destination.amount)) {
                 er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
                 er.message = std::string("WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE: token amount not whole number");
                 return true;
@@ -784,7 +784,7 @@ bool wallet_rpc_server::validate_transfer_advanced(
 
         if (cmd_type == safex::command_t::token_stake)
         {
-            if (!tools::is_whole_coin_amount(destination.amount))
+            if (!tools::is_whole_token_amount(destination.amount))
             {
                 er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
                 er.message = std::string("WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE: token amount not whole number");
@@ -796,7 +796,7 @@ bool wallet_rpc_server::validate_transfer_advanced(
         }
         else if (cmd_type == safex::command_t::token_unstake)
         {
-            if (!tools::is_whole_coin_amount(destination.amount))
+            if (!tools::is_whole_token_amount(destination.amount))
             {
                 er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
                 er.message = std::string("WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE: token amount not whole number");

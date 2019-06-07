@@ -3208,7 +3208,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     }
 
     if (transfer_type == TransferToken) {
-      if (!tools::is_whole_coin_amount(value_amount)) {
+      if (!tools::is_whole_token_amount(value_amount)) {
         fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
         return true;
       }

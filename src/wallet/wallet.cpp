@@ -7502,7 +7502,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         }
         if (output_type == cryptonote::tx_out_type::out_token)
         {
-          THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
+          THROW_WALLET_EXCEPTION_IF(!tools::is_whole_token_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
           i->token_amount += amount;
         }
         else
@@ -7519,7 +7519,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
         THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
         if (output_type == cryptonote::tx_out_type::out_token)
         {
-          THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
+          THROW_WALLET_EXCEPTION_IF(!tools::is_whole_token_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
           dsts[original_output_index].token_amount += amount;
         }
         else
@@ -7545,7 +7545,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token(std::vector<cr
   for(auto& dt: dsts)
   {
     THROW_WALLET_EXCEPTION_IF(0 == dt.token_amount, error::zero_destination);
-    THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(dt.token_amount), error::wallet_internal_error, "Token amount must be a while number.");
+    THROW_WALLET_EXCEPTION_IF(!tools::is_whole_token_amount(dt.token_amount), error::wallet_internal_error, "Token amount must be a while number.");
     needed_tokens += dt.token_amount;
     LOG_PRINT_L2("transfer: adding " << print_money(dt.token_amount) << " tokens, for a total of " << print_money (needed_tokens)) << " tokens";
     THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
@@ -8260,7 +8260,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
             i = dsts.end() - 1;
           }
 
-          THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_coin_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
+          THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_token_amount(amount), error::wallet_internal_error, "Token amount must be whole number.");
           i->token_amount += token_amount;
           i->amount += amount;
 
@@ -8272,7 +8272,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           if (original_output_index == dsts.size())
             dsts.emplace_back(0, addr, is_subaddress, output_type);
             THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
-            THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_coin_amount(amount), error::wallet_internal_error,
+            THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_token_amount(amount), error::wallet_internal_error,
                     "Token amount must be whole number.");
             dsts[original_output_index].token_amount += token_amount;
             dsts[original_output_index].amount += amount;
@@ -8299,7 +8299,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake))
       {
         THROW_WALLET_EXCEPTION_IF(0 == dt.token_amount, error::zero_destination);
-        THROW_WALLET_EXCEPTION_IF(!tools::is_whole_coin_amount(dt.token_amount), error::wallet_internal_error, "Token amount must be a round number.");
+        THROW_WALLET_EXCEPTION_IF(!tools::is_whole_token_amount(dt.token_amount), error::wallet_internal_error, "Token amount must be a round number.");
 
         if (command_type == safex::command_t::token_stake)
         {

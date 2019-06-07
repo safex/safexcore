@@ -183,23 +183,27 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _token_amount amount of tokens to lock
       * */
-      token_stake(const uint32_t _version, const uint64_t _token_amount) : command(_version, command_t::token_stake), lock_token_amount(_token_amount) {}
+      token_stake(const uint32_t _version, const uint64_t _token_amount) : command(_version, command_t::token_stake), stake_token_amount(_token_amount) {
 
-      token_stake() : command(0, command_t::token_stake), lock_token_amount(0) {}
+     }
 
-      uint64_t get_staked_token_amount() const { return lock_token_amount; }
+      token_stake() : command(0, command_t::token_stake), stake_token_amount(0) {
+
+      }
+
+      uint64_t get_staked_token_amount() const { return stake_token_amount; }
 
       virtual token_stake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(), command_t::token_stake);
-        VARINT_FIELD(lock_token_amount)
+        VARINT_FIELD(stake_token_amount)
       END_SERIALIZE()
 
     private:
 
-      uint64_t lock_token_amount;
+      uint64_t stake_token_amount;
   };
 
 

@@ -3780,7 +3780,7 @@ bool advanced_wallet::transfer_main(int transfer_type, const std::vector<std::st
     }
 
     if (transfer_type == TransferToken) {
-      if (!tools::is_whole_coin_amount(value_amount)) {
+      if (!tools::is_whole_token_amount(value_amount)) {
         fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
         return true;
       }
@@ -4076,7 +4076,7 @@ bool advanced_wallet::migrate(const std::vector<std::string> &args_)
     return true;
   }
 
-  if(!tools::is_whole_coin_amount(token_destination.token_amount))
+  if(!tools::is_whole_token_amount(token_destination.token_amount))
   {
     fail_msg_writer() << tr("token amount must be whole number. ") << local_args[0] << ' ' << local_args[2];
     return true;
