@@ -22,7 +22,8 @@ namespace safex
 
   token_stake_result* token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_staked_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_staked_token_amount() >= get_minimum_token_stake_amount(blokchainDB.get_net_type())), "Minumum amount of tokens to lock is "
+          + std::to_string(get_minimum_token_stake_amount(blokchainDB.get_net_type())), this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_staked_token_amount()), "Input amount differs from token stake command amount", this->get_command_type());
 
     token_stake_result *cr = new token_stake_result{};

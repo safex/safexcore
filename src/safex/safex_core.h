@@ -197,6 +197,25 @@ namespace safex
   }
 
 
+  /**
+   * Gets minumum token stake amount
+   *
+   * @return
+   */
+  inline uint64_t get_minimum_token_stake_amount(const cryptonote::network_type nettype = cryptonote::network_type::MAINNET)
+  {
+
+    switch (nettype) {
+      case cryptonote::network_type::TESTNET:
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT / 10;
+
+      default: 
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT;
+    }
+  }
+
+
+
 
 }
 
