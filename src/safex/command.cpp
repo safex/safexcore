@@ -22,8 +22,9 @@ namespace safex
 
   token_stake_result* token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_lock_token_amount() >= SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), "Minumum amount of tokens to lock is " + std::to_string(SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT), this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_lock_token_amount()), "Input amount differs from token stake command amount", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_staked_token_amount() >= get_minimum_token_stake_amount(blokchainDB.get_net_type())), "Minumum amount of tokens to lock is "
+          + std::to_string(get_minimum_token_stake_amount(blokchainDB.get_net_type())), this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_staked_token_amount()), "Input amount differs from token stake command amount", this->get_command_type());
 
     token_stake_result *cr = new token_stake_result{};
     cr->token_amount = txin.token_amount;
@@ -37,8 +38,8 @@ namespace safex
   token_unstake_result* token_unstake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
@@ -61,8 +62,8 @@ namespace safex
   token_collect_result* token_collect::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
@@ -83,8 +84,8 @@ namespace safex
 
 
   donate_fee_result* donate_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->get_command_type());
 
     donate_fee_result *cr = new donate_fee_result{};
     cr->amount = txin.amount;
@@ -94,10 +95,24 @@ namespace safex
     return cr;
   };
 
+  simple_purchase_result* simple_purchase::execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) {
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());
+
+    simple_purchase_result *cr = new simple_purchase_result{};
+    cr->network_fee = calculate_safex_network_fee(txin.amount, blockchain.get_net_type(), txin.command_type);
+    cr->cash_amount = txin.amount - cr->network_fee;
+
+    cr->valid = true;
+    cr->status = execution_status::ok;
+
+    return cr;
+  };
+
 
   distribute_fee_result* distribute_fee::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->command_type);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->command_type);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->get_command_type());
 
     distribute_fee_result *cr = new distribute_fee_result{};
     cr->amount = txin.amount;
@@ -107,9 +122,25 @@ namespace safex
   };
 
 
-  bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, const safex::command_t command_type)
+  bool execute_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin, const safex::command_t command_type)
   {
-    //todo here implement execution of advanced concepts
+    //parse command and execute it
+    try
+    {
+      std::unique_ptr<command> cmd = safex_command_serializer::parse_safex_object(txin.script, command_type);
+      std::shared_ptr<execution_result> result{cmd->execute(blockchain, txin)};
+      if (result->status != execution_status::ok)
+      {
+        LOG_ERROR("Execution of safex command failed, status:" << static_cast<int>(result->status));
+        return false;
+      }
+    }
+    catch (command_exception &ex)
+    {
+      LOG_ERROR("Error in safex command execution:" << ex.what());
+      return false;
+    }
+
 
     return true;
   }

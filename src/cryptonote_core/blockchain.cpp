@@ -2930,9 +2930,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       }
 
     /* Check if minumum amount of tokens is staked */
-    if (outputs_staked_token_amount < SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT)
+    if (outputs_staked_token_amount < safex::get_minimum_token_stake_amount(m_nettype))
     {
-      MERROR("Safex token stake amount to small, must be at least "<< SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT);
+      MERROR("Safex token stake amount to small, must be at least "<< safex::get_minimum_token_stake_amount(m_nettype));
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
