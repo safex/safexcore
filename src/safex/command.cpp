@@ -22,8 +22,9 @@ namespace safex
 
   token_stake_result* token_stake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((this->get_staked_token_amount() >= get_minimum_token_stake_amount(blokchainDB.get_net_type())), "Minumum amount of tokens to lock is "
-          + std::to_string(get_minimum_token_stake_amount(blokchainDB.get_net_type())), this->get_command_type());
+
+    //per input execution, one input could be less than SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT, all inputs must be SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((tools::is_whole_token_amount(this->get_staked_token_amount())), "Staked input is not whole token amount", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_staked_token_amount()), "Input amount differs from token stake command amount", this->get_command_type());
 
     token_stake_result *cr = new token_stake_result{};
@@ -31,6 +32,8 @@ namespace safex
     cr->block_number = blokchainDB.height();
     cr->valid = true;
     cr->status = execution_status::ok;
+
+    MINFO("Block height:" << cr->block_number << " interval:" << calculate_interval_for_height(blokchainDB.height(), blokchainDB.get_net_type()) << " stake tokens:" << cr->token_amount);
 
     return cr;
   }
@@ -54,6 +57,8 @@ namespace safex
     cr->interest = calculate_token_interest(locked_token_output_index, cr->block_number, cr->token_amount);
     cr->valid = true;
     cr->status = execution_status::ok;
+
+    MINFO("Block height:" << cr->block_number << " interval:" << calculate_interval_for_height(blokchainDB.height(), blokchainDB.get_net_type()) << " unstake tokens:" << cr->token_amount);
 
     return cr;
   }

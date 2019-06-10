@@ -207,7 +207,7 @@ namespace safex
 
     switch (nettype) {
       case cryptonote::network_type::TESTNET:
-        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT / 10;
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT;
 
       default: 
         return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT;

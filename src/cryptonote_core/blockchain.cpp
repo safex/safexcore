@@ -2827,7 +2827,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   {
     if ((o.target.type() == typeid(txout_token_to_key)))
     {
-      if (!tools::is_whole_coin_amount(o.token_amount))
+      if (!tools::is_whole_token_amount(o.token_amount))
       {
         tvc.m_invalid_output = true;
         return false;
@@ -2889,15 +2889,11 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         return false;
       }
 
-      if (command_type == safex::command_t::invalid_command)
-      {
+      if (command_type == safex::command_t::invalid_command) {
         command_type = tmp;
-
-        input_commands_to_execute.push_back(&txin_script);
       }
 
-
-
+      input_commands_to_execute.push_back(&txin_script);
     }
   }
 
@@ -3302,7 +3298,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     if ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration)))
     {
       auto token_amount = boost::apply_visitor(token_amount_visitor(), txin);
-      CHECK_AND_ASSERT_MES(tools::is_whole_coin_amount(*token_amount), false, "token amount not a whole number");
+      CHECK_AND_ASSERT_MES(tools::is_whole_token_amount(*token_amount), false, "token amount not a whole number");
 
       //Check for maximum of migrated tokens
       if (txin.type() == typeid(txin_token_migration))

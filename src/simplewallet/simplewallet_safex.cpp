@@ -229,7 +229,7 @@ namespace cryptonote
 
       if (command_type == CommandType::TransferStakeToken)
       {
-        if (!tools::is_whole_coin_amount(value_amount))
+        if (!tools::is_whole_token_amount(value_amount))
         {
           fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
           return true;
@@ -240,7 +240,7 @@ namespace cryptonote
       }
       else if (command_type == CommandType::TransferUnstakeToken)
       {
-        if (!tools::is_whole_coin_amount(value_amount))
+        if (!tools::is_whole_token_amount(value_amount))
         {
           fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
           return true;
