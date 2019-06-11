@@ -55,7 +55,7 @@
 #include "common/perf_timer.h"
 
 #ifdef SAFEX_PROTOBUF_RPC
- #include "rpc/cryptonote_to_protobuf.h"
+ #include "cryptonote_core/protobuf/cryptonote_to_protobuf.h"
 #endif
 
 #if defined(PER_BLOCK_CHECKPOINT)
@@ -1978,7 +1978,7 @@ bool Blockchain::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMA
 bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, safex::outputs_protobuf& proto) const 
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
-  #ifdef SAFEX_PROTOBUF_RPC
+  // #ifdef SAFEX_PROTOBUF_RPC
     CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
     for (const auto &i: req.outputs)
@@ -1990,7 +1990,7 @@ bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request&
 
       proto.add_out_entry(od.pubkey, unlocked, od.height, toi.first);
     }
-  #endif
+  // #endif
   return true;
 }
 //------------------------------------------------------------------
