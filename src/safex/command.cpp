@@ -127,12 +127,12 @@ namespace safex
   };
 
 
-  bool execute_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin, const safex::command_t command_type)
+  bool execute_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin)
   {
     //parse command and execute it
     try
     {
-      std::unique_ptr<command> cmd = safex_command_serializer::parse_safex_object(txin.script, command_type);
+      std::unique_ptr<command> cmd = safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
       std::shared_ptr<execution_result> result{cmd->execute(blockchain, txin)};
       if (result->status != execution_status::ok)
       {

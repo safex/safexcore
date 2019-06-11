@@ -2905,7 +2905,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   //execute all command logic
   for (const txin_to_script* pcmd: input_commands_to_execute)
-    if (!safex::execute_safex_command(*m_db, *pcmd, pcmd->command_type)) {
+    if (!safex::execute_safex_command(*m_db, *pcmd)) {
       tvc.m_safex_command_execution_failed = true;
       return false;
     }
