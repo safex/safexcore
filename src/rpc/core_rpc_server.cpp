@@ -33,7 +33,7 @@
 #include "string_tools.h"
 
 #ifdef SAFEX_PROTOBUF_RPC
-#include "cryptonote_to_protobuf.h"
+#include "cryptonote_core/protobuf/cryptonote_to_protobuf.h"
 #endif
 
 using namespace epee;
