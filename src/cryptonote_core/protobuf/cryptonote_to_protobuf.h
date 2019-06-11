@@ -38,8 +38,8 @@
 #include "blocks.pb.h"
 #include "output_histogram.pb.h"
 #include "get_outs.pb.h"
-#include "../cryptonote_basic/cryptonote_basic.h"
-#include "../cryptonote_core/cryptonote_core.h"
+#include "cryptonote_basic/cryptonote_basic.h"
+#include "../cryptonote_core.h"
 #include <google/protobuf/text_format.h>
 #include <string>
 

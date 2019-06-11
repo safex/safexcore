@@ -34,11 +34,6 @@ set(rpc_base_sources
 if(BUILD_SAFEX_PROTOBUF_RPC)
     add_definitions(-DSAFEX_PROTOBUF_RPC=1)
     set(rpc_sources
-      transactions.pb.cc
-      blocks.pb.cc
-      output_histogram.pb.cc
-      get_outs.pb.cc
-      cryptonote_to_protobuf.cpp
       core_rpc_server.cpp
       instanciations)
 else()
@@ -66,11 +61,6 @@ set(daemon_rpc_server_headers)
 if(BUILD_SAFEX_PROTOBUF_RPC)
     set(rpc_daemon_private_headers
       core_rpc_server.h
-      transactions.pb.h
-      blocks.pb.h
-      output_histogram.pb.h
-      get_outs.pb.h
-      cryptonote_to_protobuf.h
       core_rpc_server_commands_defs.h
       core_rpc_server_error_codes.h)
 else()
