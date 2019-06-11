@@ -1214,12 +1214,12 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("stake_token",
                            boost::bind(&simple_wallet::stake_token, this, _1),
                            tr("stake_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>]"),
-                           tr("Stake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, ring_size for input tokens or token output subaddress indice"));
+                           tr("Stake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, ring_size for input tokens or subaddress index to use"));
 
   m_cmd_binder.set_handler("unstake_token",
                            boost::bind(&simple_wallet::unstake_token, this, _1),
-                           tr("unstake_token [<priority>] <address> <token_amount> [<payment_id>]"),
-                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority"));
+                           tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<payment_id>]"),
+                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, and subaddress index"));
 
   m_cmd_binder.set_handler("demo_purchase",
                            boost::bind(&simple_wallet::demo_purchase, this, _1),
