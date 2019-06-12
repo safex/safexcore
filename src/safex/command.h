@@ -364,7 +364,7 @@ namespace safex
   };
 
 
-  bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin, const safex::command_t command_type);
+  bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
 
 
 

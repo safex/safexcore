@@ -4126,44 +4126,61 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
   return pop_index (unused_indices, candidates[idx]);
 }
 //----------------------------------------------------------------------------------------------------
-size_t wallet::pop_ideal_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const
-{
-  std::vector<size_t> candidates;
-  float best_relatedness = 1.0f;
-  for (size_t n = 0; n < unused_indices.size(); ++n)
+  size_t wallet::pop_ideal_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t> &selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount,
+                                      const uint64_t token_amount) const
   {
-    const transfer_details &candidate = transfers[unused_indices[n]];
-    if ((candidate.get_out_type() != out_type) || (candidate.token_amount() != token_amount) || (candidate.amount() != cash_amount)) continue;
-
-    float relatedness = 0.0f;
-    for (std::vector<size_t>::const_iterator i = selected_transfers.begin(); i != selected_transfers.end(); ++i)
+    std::vector<size_t> candidates;
+    float best_relatedness = 1.0f;
+    uint64_t oldest_output = get_blockchain_current_height();
+    for (size_t n = 0; n < unused_indices.size(); ++n)
     {
-      float r = get_output_relatedness(candidate, transfers[*i]);
-      if (r > relatedness)
+      const transfer_details &candidate = transfers[unused_indices[n]];
+      if ((candidate.get_out_type() != out_type) || (candidate.token_amount() != token_amount) || (candidate.amount() != cash_amount)) continue;
+
+      //in case of staked token outputs with the same amount, select the oldest one
+      if (candidate.get_out_type() == tx_out_type::out_staked_token)
       {
-        relatedness = r;
-        if (relatedness == 1.0f)
-          break;
+        if (candidate.m_block_height < oldest_output)
+        {
+          candidates.clear();
+          oldest_output = candidate.m_block_height;
+          candidates.push_back(n);
+        }
+      }
+      else
+      {
+        float relatedness = 0.0f;
+        for (std::vector<size_t>::const_iterator i = selected_transfers.begin(); i != selected_transfers.end(); ++i)
+        {
+          float r = get_output_relatedness(candidate, transfers[*i]);
+          if (r > relatedness)
+          {
+            relatedness = r;
+            if (relatedness == 1.0f)
+              break;
+          }
+        }
+
+
+        if (relatedness < best_relatedness)
+        {
+          best_relatedness = relatedness;
+          candidates.clear();
+        }
+
+        if (relatedness == best_relatedness)
+          candidates.push_back(n);
       }
     }
 
-    if (relatedness < best_relatedness)
-    {
-      best_relatedness = relatedness;
-      candidates.clear();
-    }
 
-    if (relatedness == best_relatedness)
-      candidates.push_back(n);
+    THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
+
+    size_t idx;
+    idx = crypto::rand<size_t>() % candidates.size();
+
+    return pop_index(unused_indices, candidates[idx]);
   }
-
-  THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
-
-  size_t idx;
-  idx = crypto::rand<size_t>() % candidates.size();
-
-  return pop_index (unused_indices, candidates[idx]);
-}
 //----------------------------------------------------------------------------------------------------
 size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
 {
