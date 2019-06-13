@@ -7226,8 +7226,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
     TX &tx = txes.back();
 
     LOG_PRINT_L2("Start of loop with " << unused_transfers_indices->size() << " " << unused_dust_indices->size());
-    LOG_PRINT_L2("unused_transfers_indices: " << strjoin(*unused_transfers_indices, " "));
-    LOG_PRINT_L2("unused_dust_indices: " << strjoin(*unused_dust_indices, " "));
+    LOG_PRINT_L2("unused_transfers_indices: " << (unused_transfers_indices->size() < 100 ? strjoin(*unused_transfers_indices, " ") : "too big to print"));
+    LOG_PRINT_L2("unused_dust_indices: " << (unused_dust_indices->size() < 100 ? strjoin(*unused_dust_indices, " ") : "too big to print"));
     LOG_PRINT_L2("dsts size " << dsts.size() << ", first " << (dsts.empty() ? "-" : cryptonote::print_money(dsts[0].amount)));
     LOG_PRINT_L2("adding_fee " << adding_fee);
 
@@ -8568,10 +8568,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       ADVANCED_TX &tx = txes.back();
 
       LOG_PRINT_L2("Start of loop with tokens: " << unused_token_transfers_indices->size() << " staked_tokens: " << unused_staked_token_transfers_indices->size());
-      LOG_PRINT_L2("unused_token_transfers_indices: " << strjoin(*unused_token_transfers_indices, " "));
-      LOG_PRINT_L2("unused_staked_token_transfers_indices: " << strjoin(*unused_staked_token_transfers_indices, " "));
-      LOG_PRINT_L2("unused_cash_transfers_indices: " << strjoin(*unused_cash_transfers_indices, " "));
-      LOG_PRINT_L2("unused_cash_dust_indices: " << strjoin(*unused_cash_dust_indices, " "));
+      LOG_PRINT_L2("unused_token_transfers_indices: " << (unused_token_transfers_indices->size() < 100 ? strjoin(*unused_token_transfers_indices, " ") : " too big to print"));
+      LOG_PRINT_L2("unused_staked_token_transfers_indices: " << (unused_staked_token_transfers_indices->size() < 100 ? strjoin(*unused_staked_token_transfers_indices, " ") : "too big to print"));
+      LOG_PRINT_L2("unused_cash_transfers_indices: " << (unused_cash_transfers_indices->size() < 100 ? strjoin(*unused_cash_transfers_indices, "too big to print") : " "));
+      LOG_PRINT_L2("unused_cash_dust_indices: " << (unused_cash_dust_indices->size() < 100 ? strjoin(*unused_cash_dust_indices, " ") : "too big to print"));
       LOG_PRINT_L2("dsts size " << dsts.size() << ", first " << (dsts.empty() ? "-" : cryptonote::print_money(dsts[0].token_amount)));
       LOG_PRINT_L2("adding_fee " << adding_fee);
 
@@ -8628,13 +8628,15 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           }
         }
 
-        if (needed_cash > 0 && m_transfers[idx].amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_cash) {
-            if (get_count_above(m_transfers, *unused_cash_transfers_indices, m_min_output_value) <
-                m_min_output_count) {
-                LOG_PRINT_L2("Second token output was not strictly needed, and we're running out of outputs above "
-                                     << print_money(m_min_output_value) << ", not adding");
-                break;
-            }
+        if (needed_cash > 0 && m_transfers[idx].amount() >= m_min_output_value && m_transfers[idx].get_out_type() == tx_out_type::out_cash)
+        {
+          if (get_count_above(m_transfers, *unused_cash_transfers_indices, m_min_output_value) <
+              m_min_output_count)
+          {
+            LOG_PRINT_L2("Second token output was not strictly needed, and we're running out of outputs above "
+                                 << print_money(m_min_output_value) << ", not adding");
+            break;
+          }
         }
 
         // since we're trying to add a second output which is not strictly needed,
@@ -8646,15 +8648,20 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           break;
         }
 
-        if (needed_staked_tokens > 0) {
+        if (needed_staked_tokens > 0)
+        {
           pop_if_present(*unused_staked_token_transfers_indices, idx);
-        } else if (needed_tokens > 0) {
-            pop_if_present(*unused_token_transfers_indices, idx);
-        } else if (needed_cash > 0) {
-            pop_if_present(*unused_cash_transfers_indices, idx);
-            pop_if_present(*unused_cash_dust_indices, idx);
         }
-    }
+        else if (needed_tokens > 0)
+        {
+          pop_if_present(*unused_token_transfers_indices, idx);
+        }
+        else if (needed_cash > 0)
+        {
+          pop_if_present(*unused_cash_transfers_indices, idx);
+          pop_if_present(*unused_cash_dust_indices, idx);
+        }
+      }
       else if (adding_fee)
       {
         idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
@@ -9178,10 +9185,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_token_from(const cry
     TOKEN_TX &tx = txes.back();
 
     LOG_PRINT_L2("Start of loop with " << unused_token_transfers_indices.size() << " " << unused_token_dust_indices.size());
-    LOG_PRINT_L2("unused_token_transfers_indices: " << strjoin(unused_token_transfers_indices, " "));
-    LOG_PRINT_L2("unused_token_dust_indices: " << strjoin(unused_token_dust_indices, " "));
-    LOG_PRINT_L2("unused_transfers_indices: " << strjoin(unused_transfers_indices, " "));
-    LOG_PRINT_L2("unused_dust_indices: " << strjoin(unused_dust_indices, " "));
+    LOG_PRINT_L2("unused_token_transfers_indices: " << (unused_token_transfers_indices.size() < 100 ? strjoin(unused_token_transfers_indices, " ") : " too big to print"));
+    LOG_PRINT_L2("unused_token_dust_indices: " << (unused_token_dust_indices.size() < 100 ? strjoin(unused_token_dust_indices, " ") : " too big to print"));
+    LOG_PRINT_L2("unused_transfers_indices: " << (unused_transfers_indices.size()?strjoin(unused_transfers_indices, " "):"too big to print"));
+    LOG_PRINT_L2("unused_dust_indices: " << (unused_dust_indices.size() ? strjoin(unused_dust_indices, " ") : " "));
     LOG_PRINT_L2("dsts size " << tx.dsts.size() << ", first token " << (tx.dsts.empty() ? "-" : cryptonote::print_money(tx.dsts[0].token_amount)));
     LOG_PRINT_L2("adding_fee " << adding_fee);
 
