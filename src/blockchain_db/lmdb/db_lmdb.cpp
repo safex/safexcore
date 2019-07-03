@@ -2577,8 +2577,8 @@ uint64_t BlockchainLMDB::get_num_outputs(const uint64_t& amount, const tx_out_ty
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
 
-  if (!(output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid))
-    throw0(DB_ERROR("Unknown advanced output type"));
+  if (output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid)
+    throw0(DB_ERROR("Unsupported advanced output type"));
 
 
   TXN_PREFIX_RDONLY();
