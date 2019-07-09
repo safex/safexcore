@@ -515,7 +515,7 @@ namespace cryptonote
     return false;
   }
 
-  //For easier retrieval of input/output cash or token amount from variant
+  //Gives output type for output that is referenced from intput
    class tx_output_type_visitor : public boost::static_visitor<tx_out_type>
    {
      public:
