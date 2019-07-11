@@ -56,6 +56,10 @@
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
 
+namespace safex {
+  class outputs_protobuf;
+}
+
 namespace cryptonote
 {
   class tx_memory_pool;
@@ -498,6 +502,21 @@ namespace cryptonote
      * @return true
      */
     bool get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMAND_RPC_GET_OUTPUTS_BIN::response& res) const;
+
+    /**
+     * @brief gets specific outputs to mix with
+     *
+     * This function takes an RPC protobuf request for outputs to mix with
+     * and creates an protobuf response with the resultant output indices.
+     *
+     * Outputs to mix with are specified in the request.
+     *
+     * @param req the outputs to return
+     * @param proto return-by-reference the resultant output indices and keys
+     *
+     * @return true
+     */
+    bool get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, safex::outputs_protobuf& proto) const;
 
     /**
      * @brief gets an output's key and unlocked state
