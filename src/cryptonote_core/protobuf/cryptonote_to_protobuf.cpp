@@ -177,9 +177,9 @@ namespace safex {
 
     }
 
-    void blocks_protobuf::add_block(const cryptonote::block& blck) {
+    void blocks_protobuf::add_block(const cryptonote::block& blck,  crypto::hash& hash) {
         safex::Block* proto_blck = m_blcks.add_block();
-        proto_blck->set_allocated_header(proto_block_header(blck));
+        proto_blck->set_allocated_header(proto_block_header(blck, hash));
 
         proto_blck->set_miner_tx(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(blck.miner_tx)));
 
@@ -197,13 +197,13 @@ namespace safex {
         return m_blcks.SerializeAsString();
     }
 
-    safex::BlockHeader* blocks_protobuf::proto_block_header(const cryptonote::block& blck) {
+    safex::BlockHeader* blocks_protobuf::proto_block_header(const cryptonote::block& blck,  crypto::hash& hash) {
         safex::BlockHeader* hdr = new safex::BlockHeader{};
 
         hdr->set_major_version(blck.major_version);
         hdr->set_minor_version(blck.minor_version);
         hdr->set_prev_hash(epee::string_tools::pod_to_hex(blck.prev_id));
-        hdr->set_hash(epee::string_tools::pod_to_hex(blck.hash));
+        hdr->set_hash(epee::string_tools::pod_to_hex(hash));
         hdr->set_depth(boost::get<cryptonote::txin_gen>(blck.miner_tx.vin.front()).height);
 
         return hdr;
