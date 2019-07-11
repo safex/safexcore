@@ -2401,7 +2401,7 @@ namespace cryptonote
       }
 
       // Generate response properly
-      blocks.add_block(blk);
+      blocks.add_block(blk, block_hash);
 
     }
 

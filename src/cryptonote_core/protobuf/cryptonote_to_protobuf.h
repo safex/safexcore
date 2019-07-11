@@ -95,14 +95,10 @@ namespace safex {
         blocks_protobuf();
         ~blocks_protobuf();
 
-<<<<<<< HEAD
         // @brief Getting all necessary data for block and serializing.
         // @param reference to cryptonote::block
         // @param list of transactions in given block
-        void add_block(const cryptonote::block& blck, const std::list<cryptonote::transaction>& txs);
-=======
-        void add_block(const cryptonote::block& blck);
->>>>>>> Small changes on protobuf related stuff
+        void add_block(const cryptonote::block& blck, crypto::hash& hash);
         void add_error(const std::string& err);
 
         // @brief Get string representation of protobuf serialization.
@@ -113,7 +109,7 @@ namespace safex {
 
         // @brief Getting protobuf BlockHeader structur from cryptonote::block
         // @0param reference to cryptnote::block
-        safex::BlockHeader* proto_block_header(const cryptonote::block& blck);
+        safex::BlockHeader* proto_block_header(const cryptonote::block& blck,  crypto::hash& hash);
 
     };
 
