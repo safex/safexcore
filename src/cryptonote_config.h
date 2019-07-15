@@ -105,8 +105,7 @@
 
 
 #define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000  //by default, blocks ids count in synchronizing
-#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT_PRE_V4       100    //by default, blocks count in blocks downloading
-#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              20     //by default, blocks count in blocks downloading
+#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              100     //by default, blocks count in blocks downloading
 
 #define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    (86400*3) //seconds, three days
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
@@ -156,6 +155,9 @@
 #define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 #define HF_VERSION_DIFFICULTY_V2                3
+#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     1
+#define HF_VERSION_VALID_DECOMPOSED_MINER_TX    3
+#define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
 
 
 

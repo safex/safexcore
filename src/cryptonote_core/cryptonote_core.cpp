@@ -631,11 +631,10 @@ namespace cryptonote
     }
     bad_semantics_txes_lock.unlock();
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = version == 1 ? 1 : 2;
-    if (tx.version == 0 || tx.version > max_tx_version)
+    if (tx.version == 0 || tx.version > HF_VERSION_MAX_SUPPORTED_TX_VERSION)
     {
-      // v2 is the latest one we know
+      // HF_VERSION_MAX_SUPPORTED_TX_VERSION is the latest transaction version
+      // we know in the current protocol version
       tvc.m_verifivation_failed = true;
       return false;
     }
@@ -907,12 +906,11 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
-    static const uint64_t quick_height = m_nettype == TESTNET ? 801219 : m_nettype == MAINNET ? 1220516 : 0;
     if (block_sync_size > 0)
       return block_sync_size;
-    if (height >= quick_height)
-      return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
-    return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT_PRE_V4;
+
+    return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+
   }
   //-----------------------------------------------------------------------------------------------
   bool core::are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const
@@ -992,7 +990,7 @@ namespace cryptonote
   bool core::check_tx_inputs_ring_members_diff(const transaction& tx) const
   {
     const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    if (version >= 6)
+    if (version >= HF_VERSION_TBD)
     {
       for(const auto& in: tx.vin)
       {

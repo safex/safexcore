@@ -163,10 +163,8 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    if ((hard_fork_version >= 4) && (CURRENT_TRANSACTION_VERSION == 2))
-      tx.version = 2;
-    else
-      tx.version = 1;
+    //Currently we will only use version 1, version 2 is tbd
+    tx.version = 1;
 
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
