@@ -1112,11 +1112,15 @@ namespace wallet_rpc
 
   struct COMMAND_RPC_RESCAN_BLOCKCHAIN
   {
-    struct request_t
+     struct request_t
     {
+      bool hard;
+
       BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_OPT(hard, false);
       END_KV_SERIALIZE_MAP()
     };
+
     typedef epee::misc_utils::struct_init<request_t> request;
 
     struct response_t
@@ -2218,6 +2222,30 @@ struct COMMAND_RPC_SUBMIT_MIGRATION
         END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
+};
+
+struct COMMAND_RPC_REFRESH
+{
+  struct request_t
+  {
+    uint64_t start_height;
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE_OPT(start_height, (uint64_t) 0)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  typedef epee::misc_utils::struct_init<request_t> request;
+
+  struct response_t
+  {
+    uint64_t blocks_fetched;
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(blocks_fetched);
+    END_KV_SERIALIZE_MAP()
+  };
+  typedef epee::misc_utils::struct_init<response_t> response;
 };
 
 }
