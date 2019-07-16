@@ -164,6 +164,7 @@ application.
 ## Running
 
 Built binaries are located in `build/debug/bin` and/or `build/release/bin`, depending upon which build was used.
+To run Ubuntu 18.04 statically built binaries on another machine, `libnorm1` and `libpcsclite1` libraries must be installed.
 
 To run the node:
 ```
