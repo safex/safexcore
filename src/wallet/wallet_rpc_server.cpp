@@ -1725,7 +1725,7 @@ bool wallet_rpc_server::on_rescan_blockchain(const wallet_rpc::COMMAND_RPC_RESCA
 
     try
     {
-        m_wallet->rescan_blockchain();
+        m_wallet->rescan_blockchain(req.hard);
     }
     catch (const std::exception& e)
     {
@@ -1734,6 +1734,29 @@ bool wallet_rpc_server::on_rescan_blockchain(const wallet_rpc::COMMAND_RPC_RESCA
     }
     return true;
 }
+//------------------------------------------------------------------------------------------------------------------------------
+
+    bool wallet_rpc_server::on_refresh(const wallet_rpc::COMMAND_RPC_REFRESH::request& req, wallet_rpc::COMMAND_RPC_REFRESH::response& res, epee::json_rpc::error& er)
+    {
+        if (!m_wallet) return not_open(er);
+        if (m_wallet->restricted())
+        {
+            er.code = WALLET_RPC_ERROR_CODE_DENIED;
+            er.message = "Command unavailable in restricted mode.";
+            return false;
+        }
+        try
+        {
+            m_wallet->refresh(req.start_height, res.blocks_fetched);
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+            return false;
+        }
+        return true;
+    }
 //------------------------------------------------------------------------------------------------------------------------------
 bool wallet_rpc_server::on_sign(const wallet_rpc::COMMAND_RPC_SIGN::request& req, wallet_rpc::COMMAND_RPC_SIGN::response& res, epee::json_rpc::error& er)
 {

@@ -27,28 +27,28 @@ struct WinWalletListener : public Safex::WalletListener
 
     };
     virtual void moneySpent(const std::string &txId, uint64_t amount) {
-        (*moneySpent_)(ptr_to_up, txId.c_str(), amount);
+        //(*moneySpent_)(ptr_to_up, txId.c_str(), amount);
     }
     virtual void moneyReceived(const std::string &txId, uint64_t amount) {
-        (*moneyReceived_)(ptr_to_up, txId.c_str(), amount);
+        //(*moneyReceived_)(ptr_to_up, txId.c_str(), amount);
     }
     virtual void unconfirmedMoneyReceived(const std::string &txId, uint64_t amount) {
-        (*unconfirmedMoneyReceived_)(ptr_to_up, txId.c_str(), amount);
+        //(*unconfirmedMoneyReceived_)(ptr_to_up, txId.c_str(), amount);
     }
     virtual void tokensSpent(const std::string &txId, uint64_t token_amount) {
-        (*tokensSpent_)(ptr_to_up, txId.c_str(), token_amount);
+        //(*tokensSpent_)(ptr_to_up, txId.c_str(), token_amount);
     }
     virtual void tokensReceived(const std::string &txId, uint64_t token_amount) {
-        (*tokenReceived_)(ptr_to_up, txId.c_str(), token_amount);
+        //(*tokenReceived_)(ptr_to_up, txId.c_str(), token_amount);
     }
     virtual void unconfirmedTokensReceived(const std::string &txId, uint64_t token_amount) {
-        (*unconfirmedMoneyReceived_)(ptr_to_up, txId.c_str(), token_amount);
+        //(*unconfirmedMoneyReceived_)(ptr_to_up, txId.c_str(), token_amount);
     }
     virtual void newBlock(uint64_t height) {
-        (*newBlock_)(ptr_to_up, height);
+        //(*newBlock_)(ptr_to_up, height);
     }
     virtual void updated() {
-        (*updated_)(ptr_to_up );
+        //(*updated_)(ptr_to_up );
     }
 
     virtual void refreshed() {
