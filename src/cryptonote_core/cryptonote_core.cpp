@@ -894,7 +894,11 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
+    if (block_sync_size > 0)
+      return block_sync_size;
+
     return BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+
   }
   //-----------------------------------------------------------------------------------------------
   bool core::are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const

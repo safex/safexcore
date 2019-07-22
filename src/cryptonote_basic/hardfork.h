@@ -47,8 +47,8 @@ namespace cryptonote
     } State;
 
     static const uint64_t DEFAULT_ORIGINAL_VERSION_TILL_HEIGHT = 0; // <= actual height
-    static const time_t DEFAULT_FORKED_TIME = 31557600; // a year in seconds
-    static const time_t DEFAULT_UPDATE_TIME = 31557600 / 2;
+    static const time_t DEFAULT_FORKED_TIME = 31557600*2 ; //two years in seconds
+    static const time_t DEFAULT_UPDATE_TIME = 31557600; //warning time for next fork is one year
     static const uint64_t DEFAULT_WINDOW_SIZE = 10080; // supermajority window check length - a week
     static const uint8_t DEFAULT_THRESHOLD_PERCENT = 80;
 
