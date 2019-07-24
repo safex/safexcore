@@ -126,6 +126,36 @@ namespace safex
     return cr;
   };
 
+  create_account_result* create_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount >= SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE), "Create account requires minimum "+
+      std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens", this->get_command_type());
+
+    create_account_result *cr = new create_account_result{};
+
+    //todo chek if account username is valid
+    //todo check if account username already exists
+    //todo check account description size
+
+
+
+
+    cr->valid = true;
+    cr->status = execution_status::ok;
+    return cr;
+  };
+
+  edit_account_result* edit_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+    edit_account_result *cr = new edit_account_result{};
+
+    //todo check if account username is valid and exists
+    //todo check account signature for new data
+
+
+    cr->valid = true;
+    cr->status = execution_status::ok;
+    return cr;
+  };
+
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin)
   {

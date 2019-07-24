@@ -82,6 +82,16 @@ namespace safex
     uint64_t amount = 0; //cash amount do donate to newtork token holders
   };
 
+  struct create_account_result : public execution_result
+  {
+
+  };
+
+  struct edit_account_result : public execution_result
+  {
+
+  };
+
 
 
 
@@ -105,6 +115,30 @@ namespace safex
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(reserved)
+    END_SERIALIZE()
+  };
+
+  struct create_account_data : public command_data
+  {
+    std::vector<char> username{};
+    crypto::public_key pkey;
+    std::vector<uint8_t> account_data{};
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(username)
+      FIELD(pkey)
+      FIELD(account_data)
+    END_SERIALIZE()
+  };
+
+  struct edit_account_data : public command_data
+  {
+    std::vector<char> username{};
+    std::vector<uint8_t> account_data{};
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(username)
+      FIELD(account_data)
     END_SERIALIZE()
   };
 
@@ -363,6 +397,76 @@ namespace safex
       uint64_t safex_cash_amount;
   };
 
+  class create_account : public command
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _username //new account username
+       * @param _pkey //public account key, that is used to verify signatures of account owner actions
+       * @param _account_data //account description
+      * */
+      create_account(const uint32_t _version, const std::string _username, const crypto::public_key _pkey, const std::vector<uint8_t> _account_data) :
+      command(_version, command_t::create_account), username(_username), pkey{_pkey}, account_data{_account_data} {}
+
+      create_account() : command(0, command_t::create_account), username{}, pkey{}, account_data{} {}
+
+      std::string get_username() const { return username; }
+      crypto::public_key get_account_key() const { return pkey; }
+      std::vector<uint8_t> get_account_data() const { return account_data; }
+
+      virtual create_account_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_account);
+        FIELD(username)
+        FIELD(pkey)
+        FIELD(account_data)
+      END_SERIALIZE()
+
+    private:
+
+      std::string username{};
+      crypto::public_key pkey;
+      std::vector<uint8_t> account_data{};
+  };
+
+  class edit_account : public command
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _username //new account username
+       * @param _account_data //new account description data
+      * */
+      edit_account(const uint32_t _version, const std::string _username, const crypto::public_key _pkey, const std::vector<uint8_t> _new_account_data) :
+              command(_version, command_t::edit_account), username(_username), new_account_data{_new_account_data} {}
+
+      edit_account() : command(0, command_t::edit_account), username{}, new_account_data{} {}
+
+      std::string get_username() const { return username; }
+      std::vector<uint8_t> get_new_account_data() const { return new_account_data; }
+
+      virtual edit_account_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::edit_account);
+        FIELD(username)
+        FIELD(new_account_data)
+      END_SERIALIZE()
+
+    private:
+
+      std::string username{};
+      std::vector<uint8_t> new_account_data{};
+  };
+
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
 
@@ -403,6 +507,9 @@ namespace safex
             break;
           case safex::command_t::simple_purchase:
             return std::unique_ptr<command>(parse_safex_object<simple_purchase>(buffer));
+            break;
+          case safex::command_t::create_account:
+            return std::unique_ptr<command>(parse_safex_object<create_account>(buffer));
             break;
 
           default:
