@@ -217,101 +217,10 @@ namespace
       }
 
 
-
-
-      bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id,
-                           const cryptonote::account_base &miner_acc, uint64_t timestamp, uint64_t already_generated_coins,
-                           std::vector<size_t> &block_sizes, const std::list<cryptonote::transaction> &tx_list, size_t &actual_block_size)
-      {
-        blk.major_version = CURRENT_BLOCK_MAJOR_VERSION;
-        blk.minor_version = CURRENT_BLOCK_MINOR_VERSION;
-        blk.timestamp = timestamp;
-        blk.prev_id = prev_id;
-
-        blk.tx_hashes.reserve(tx_list.size());
-        BOOST_FOREACH(const transaction &tx, tx_list)
-              {
-                crypto::hash tx_hash;
-                get_transaction_hash(tx, tx_hash);
-                blk.tx_hashes.push_back(tx_hash);
-              }
-
-        uint64_t total_fee = 0;
-        size_t txs_size = 0;
-        BOOST_FOREACH(auto &tx, tx_list)
-              {
-                uint64_t fee = 0;
-                bool r = get_tx_fee(tx, fee);
-                CHECK_AND_ASSERT_MES(r, false, "wrong transaction passed to construct_block");
-                total_fee += fee;
-                txs_size += get_object_blobsize(tx);
-              }
-
-        blk.miner_tx = AUTO_VAL_INIT(blk.miner_tx);
-        size_t target_block_size = txs_size + get_object_blobsize(blk.miner_tx);
-        while (true)
-        {
-          if (!construct_miner_tx(height, epee::misc_utils::median(block_sizes), already_generated_coins, target_block_size, total_fee, miner_acc.get_keys().m_account_address, blk.miner_tx, blobdata(), 10))
-            return false;
-
-          actual_block_size = txs_size + get_object_blobsize(blk.miner_tx);
-          if (target_block_size < actual_block_size)
-          {
-            target_block_size = actual_block_size;
-          }
-          else if (actual_block_size < target_block_size)
-          {
-            size_t delta = target_block_size - actual_block_size;
-            blk.miner_tx.extra.resize(blk.miner_tx.extra.size() + delta, 0);
-            actual_block_size = txs_size + get_object_blobsize(blk.miner_tx);
-            if (actual_block_size == target_block_size)
-            {
-              break;
-            }
-            else
-            {
-              CHECK_AND_ASSERT_MES(target_block_size < actual_block_size, false, "Unexpected block size");
-              delta = actual_block_size - target_block_size;
-              blk.miner_tx.extra.resize(blk.miner_tx.extra.size() - delta);
-              actual_block_size = txs_size + get_object_blobsize(blk.miner_tx);
-              if (actual_block_size == target_block_size)
-              {
-                break;
-              }
-              else
-              {
-                CHECK_AND_ASSERT_MES(actual_block_size < target_block_size, false, "Unexpected block size");
-                blk.miner_tx.extra.resize(blk.miner_tx.extra.size() + delta, 0);
-                target_block_size = txs_size + get_object_blobsize(blk.miner_tx);
-              }
-            }
-          }
-          else
-          {
-            break;
-          }
-        }
-
-        // Nonce search...
-        blk.nonce = 0;
-        while (!find_nonce_for_given_block(blk, 1 /*test difficulty*/, height))
-        {
-          blk.timestamp++;
-        }
-
-        return true;
-      }
-
-      bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc, uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list)
-      {
-        std::vector<size_t> block_sizes;
-        return construct_block(blk, height, prev_id, miner_acc, timestamp, 0, block_sizes, tx_list, block_size);
-      }
-
       ~SafexBlockchainFeeTest()
       {
         delete m_db;
-        remove_files();
+        remove_files(m_filenames, m_prefix);
       }
 
       BlockchainDB *m_db;
@@ -345,25 +254,6 @@ namespace
         {
           std::cerr << "File created by test: " << f << std::endl;
         }
-      }
-
-      void remove_files()
-      {
-        // remove each file the db created, making sure it starts with fname.
-        for (auto &f : m_filenames)
-        {
-          if (boost::starts_with(f, m_prefix))
-          {
-            boost::filesystem::remove(f);
-          }
-          else
-          {
-            std::cerr << "File created by test not to be removed (for safety): " << f << std::endl;
-          }
-        }
-
-        // remove directory if it still exists
-        boost::filesystem::remove_all(m_prefix);
       }
 
       void set_prefix(const std::string &prefix)
