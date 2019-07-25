@@ -9,6 +9,7 @@
 #include "blockchain_db/lmdb/db_lmdb.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "safex/safex_account.h"
 
 struct output_index
 {
@@ -53,6 +54,7 @@ struct output_index
     return *this;
   }
 };
+
 
 typedef std::unordered_map<crypto::hash, cryptonote::transaction> map_hash2tx_t;
 typedef std::map<uint64_t, std::vector<size_t> > map_output_t;

@@ -42,7 +42,9 @@
 #include "blockchain_db/lmdb/db_lmdb.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "safex/safex_account.h"
 #include "safex_test_common.h"
+
 
 using namespace cryptonote;
 using epee::string_tools::pod_to_hex;
@@ -177,6 +179,62 @@ namespace
   typedef Types<BlockchainLMDB> implementations;
 
   TYPED_TEST_CASE(SafexAccountTest, implementations);
+
+
+  TYPED_TEST(SafexAccountTest, AccountSignature)
+  {
+    safex::safex_account_key_handler account1;
+    safex::safex_account_key_handler account2;
+    account1.generate();
+    account2.generate();
+
+    std::string test_data_str01 = "Some test data that should be signed";
+    const blobdata test_data01 = test_data_str01;
+
+    std::string test_data_str02 = "Some test data that should be signed2";
+    const blobdata test_data02 = test_data_str02;
+
+    std::string test_data_str03 = "Some test data that should be signed, here is also some addition 123241";
+    const blobdata test_data03 = test_data_str03;
+
+    //calculate hash of signature
+    crypto::hash message_hash01 =  get_blob_hash(test_data01);
+    crypto::hash message_hash02 =  get_blob_hash(test_data02);
+    crypto::hash message_hash03 =  get_blob_hash(test_data03);
+
+    crypto::signature message_sig01{};
+    crypto::signature message_sig02{};
+
+    crypto::generate_signature(message_hash01, account1.get_keys().m_public_key, account1.get_keys().m_secret_key, message_sig01);
+    crypto::generate_signature(message_hash02, account2.get_keys().m_public_key, account2.get_keys().m_secret_key, message_sig02);
+
+
+    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig01), true);
+    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig02), false);
+    ASSERT_EQ(crypto::check_signature(message_hash02, account1.get_keys().m_public_key, message_sig02), false);
+    ASSERT_EQ(crypto::check_signature(message_hash02, account2.get_keys().m_public_key, message_sig02), true);
+    ASSERT_EQ(crypto::check_signature(message_hash01, account2.get_keys().m_public_key, message_sig02), false);
+
+    //check create from keys
+    crypto::secret_key skey;
+    crypto::public_key pkey;
+    crypto::signature message_sig03{};
+    char skeydata[32]{6, -13, -3, 101, 39, 96, -33, 20, -25, -59, -42, 91, 108, -120, 39, -120, -93, 21, -7, 87, 6, -115, 60, 75, 29, 125, -87, -26, 16, -18, 37, 14};
+    memcpy(skey.data, skeydata, 32);
+    safex::safex_account_key_handler account3{};
+    account3.create_from_keys(skey);
+    crypto::generate_signature(message_hash03, account3.get_keys().m_public_key, account3.get_keys().m_secret_key, message_sig03);
+    crypto::hash message_hash04 =  message_hash03;
+    message_hash04.data[12] = 0x35;
+
+    char pkeydata[32]{30, 55, 2, -52, 116, 83, -100, 86, -70, 87, 28, 44, 120, -16, 18, 100, -100, -68, 67, -74, -94, -52, -91, -29, 123, 22, 79, 64, 69, -15, 92, 15};
+    memcpy(pkey.data, pkeydata, 32);
+
+    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig03), true);
+    ASSERT_EQ(crypto::check_signature(message_hash04, pkey, message_sig03), false);
+    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig02), false);
+
+  }
 
 
   TYPED_TEST(SafexAccountTest, AccountCreation)

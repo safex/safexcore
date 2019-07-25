@@ -8,6 +8,11 @@
 namespace safex
 {
 
+  void safex_account_keys::set_device( hw::device &hwdev)  {
+    m_device = &hwdev;
+    MCDEBUG("device", "safex_account_keys::set_device device type: "<<typeid(hwdev).name());
+  }
+
   crypto::secret_key safex_account_key_handler::generate(const crypto::secret_key &recovery_key, bool recover) {
     crypto::secret_key first = generate_keys(m_keys.m_public_key, m_keys.m_secret_key, recovery_key, recover);
 

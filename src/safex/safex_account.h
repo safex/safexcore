@@ -45,6 +45,7 @@ namespace safex
 
   class safex_account_key_handler
   {
+    public:
       safex_account_key_handler() {}
 
       crypto::secret_key generate(const crypto::secret_key &recovery_key = crypto::secret_key(), bool recover = false);
@@ -53,7 +54,9 @@ namespace safex
 
       void create_from_keys(const crypto::secret_key &privatekey);
 
-      const safex_account_keys &get_keys() const;
+      const safex_account_keys &get_keys() const {
+        return m_keys;
+      };
 
       hw::device &get_device() const
       { return m_keys.get_device(); }
