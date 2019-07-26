@@ -74,6 +74,16 @@ struct pre_rct_output_data_t
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+  typedef struct sfx_acc_data_t
+  {
+    crypto::public_key pkey;
+    cryptonote::blobdata data;
+
+    size_t size() const { return sizeof(pkey) + data.size();}
+  } sfx_acc_data_t;
+#pragma pack(pop)
+
 template <typename T>
 inline void throw0(const T &e)
 {
@@ -101,6 +111,19 @@ struct MDB_val_copy: public MDB_val
   }
 private:
   T t_copy;
+};
+
+template<typename T, typename C>
+struct MDB_val_copy2 : public MDB_val
+{
+    MDB_val_copy2(const T &t, const C &c): t_copy{}
+    {
+      mv_size = sizeof(T) + sizeof(C);
+      mv_data = (void *)&t_copy;
+    }
+
+  private:
+    T t_copy;
 };
 
 template<>
@@ -151,6 +174,7 @@ struct MDB_val_copy<cryptonote::output_advanced_data_t>: public MDB_val
     std::unique_ptr<char[]> data;
 };
 
+
 cryptonote::output_advanced_data_t parse_output_advanced_data_from_mdb(const MDB_val& val) {
   cryptonote::output_advanced_data_t result = AUTO_VAL_INIT(result);
   memcpy((void *)&result, val.mv_data, 4*sizeof(uint64_t));
@@ -160,6 +184,32 @@ cryptonote::output_advanced_data_t parse_output_advanced_data_from_mdb(const MDB
   memcpy((void *)&result.data[0], (char *)val.mv_data+4*sizeof(uint64_t)+sizeof(result.pubkey), data_size);
   return result;
 }
+
+template<> //here we do not use sfx_acc_data_t to prevent double copying of blobdata func parameter
+struct MDB_val_copy2<crypto::public_key, cryptonote::blobdata>: public MDB_val
+{
+    MDB_val_copy2(const crypto::public_key &pkey, const cryptonote::blobdata& accdata):
+            data(new char[sizeof(pkey) + accdata.size()])
+    {
+      memcpy(data.get(), (void *)&pkey, sizeof(pkey));
+      memcpy(data.get()+sizeof(pkey), (void *)&accdata[0], accdata.size());
+      mv_size = sizeof(pkey)+ accdata.size();
+      mv_data = data.get();
+    }
+  private:
+    std::unique_ptr<char[]> data;
+};
+
+sfx_acc_data_t parse_sfx_acc_data_from_mdb(const MDB_val &val)
+{
+  sfx_acc_data_t result = AUTO_VAL_INIT(result);
+  memcpy((void *) &result, val.mv_data, sizeof(result.pkey));
+  const size_t data_size = val.mv_size - sizeof(result.pkey);
+  result.data.resize(data_size);
+  memcpy((void *) &result.data[0], (char *) val.mv_data + sizeof(result.pkey), data_size);
+  return result;
+}
+
 
 
 int compare_uint64(const MDB_val *a, const MDB_val *b)
@@ -217,6 +267,7 @@ int compare_string(const MDB_val *a, const MDB_val *b)
  * token_staked_sum_total 0           total_token sum
  * network_fee_sum           interval     collected fee sum
  * token_lock_expiry     block_number {list of loked outputs that expiry on this block number}
+ * safex_account         username hash {public_key, description data blob}
  *
  * Note: where the data items are of uniform size, DUPFIXED tables have
  * been used to save space. In most of these cases, a dummy "zerokval"
@@ -253,6 +304,7 @@ const char* const LMDB_TOKEN_STAKED_SUM = "token_staked_sum";
 const char* const LMDB_TOKEN_STAKED_SUM_TOTAL = "token_staked_sum_total";
 const char* const LMDB_NETWORK_FEE_SUM = "network_fee_sum";
 const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
+const char* const LMDB_SAFEX_ACCOUNT = "safex_account";
 
 const char* const LMDB_PROPERTIES = "properties";
 
@@ -336,6 +388,7 @@ typedef struct outtx {
     crypto::hash tx_hash;
     uint64_t local_index;
 } outtx;
+
 
 
 
@@ -1509,6 +1562,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_TOKEN_STAKED_SUM_TOTAL, MDB_INTEGERKEY | MDB_CREATE, m_token_staked_sum_total, "Failed to open db handle for m_token_staked_sum_total");
   lmdb_db_open(txn, LMDB_NETWORK_FEE_SUM, MDB_INTEGERKEY | MDB_CREATE, m_network_fee_sum, "Failed to open db handle for m_network_fee_sum");//use zero key
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
+  lmdb_db_open(txn, LMDB_SAFEX_ACCOUNT, MDB_CREATE, m_safex_account, "Failed to open db handle for m_safex_account");
 
 
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
@@ -1528,6 +1582,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
 
 
+  mdb_set_compare(txn, m_safex_account, compare_string);
 
   mdb_set_compare(txn, m_properties, compare_string);
 
@@ -1682,15 +1737,17 @@ void BlockchainLMDB::reset()
   if (auto result = mdb_drop(txn, m_output_advanced, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_output_advanced_type, 0))
-    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced_type: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_staked_sum, 0))
-    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_token_staked_sum: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_staked_sum_total, 0))
-    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_token_staked_sum_total: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_network_fee_sum, 0))
-    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_network_fee_sum: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_token_lock_expiry, 0))
-    throw0(DB_ERROR(lmdb_error("Failed to drop m_output_advanced: ", result).c_str()));
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_token_lock_expiry: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_safex_account, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_account: ", result).c_str()));
 
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
@@ -4238,5 +4295,85 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     return true;
   };
+
+  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const blobdata &data) {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    MDB_cursor *cur_safex_account;
+    CURSOR(safex_account)
+    cur_safex_account = m_cur_safex_account;
+
+
+    int result;
+    MDB_val existing_key;
+    crypto::hash usename_hash = username.hash();
+    MDB_val_set(val_username, usename_hash);
+    result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username, &existing_key, MDB_GET_BOTH);
+    if (result == 0) {
+      throw1(SAFEX_ACCOUNT_EXISTS(std::string("Attempting to add safex account that's already in the db (username ").append(username.c_str()).append(")").c_str()));
+    } else if (result != MDB_NOTFOUND) {
+      throw1(DB_ERROR(lmdb_error(std::string("Error checking if account exists for username ").append(username.c_str()) + ": ", result).c_str()));
+    }
+
+    MDB_val_copy2<const crypto::public_key, const blobdata> acc_info(pkey, data);
+    result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, 0);
+    if (result)
+      throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
+
+  };
+
+  void BlockchainLMDB::edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    MDB_cursor *cur_safex_account;
+    CURSOR(safex_account);
+    cur_safex_account = m_cur_safex_account;
+
+    crypto::hash usename_hash = username.hash();
+    MDB_val_set(k, usename_hash);
+    MDB_val v;
+
+    //check if exists
+    bool existing_username = false;
+    auto result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
+    if (result == MDB_SUCCESS)
+    {
+      existing_username = true;
+      sfx_acc_data_t output = AUTO_VAL_INIT(output);
+      sfx_acc_data_t acc = parse_sfx_acc_data_from_mdb(v);
+
+
+
+      //update account data here
+      MDB_val_set(k2, usename_hash);
+      MDB_val_copy2<const crypto::public_key, const blobdata> vupdate(acc.pkey, new_data);
+    if ((result = mdb_cursor_put(cur_safex_account, &k2, &vupdate, existing_username ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
+      throw0(DB_ERROR(lmdb_error("Failed to update account data for username: "+boost::lexical_cast<std::string>(username.c_str()), result).c_str()));
+
+
+    }
+    else if (result == MDB_NOTFOUND)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to edit account, does not exists: ", result).c_str()));
+    }
+    else
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to edit account: ", result).c_str()));
+    }
+
+  };
+
+  bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
+    return false;
+  };
+
+  bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
+    return true;
+  }
+
+
 
 }  // namespace cryptonote

@@ -147,6 +147,8 @@ namespace cryptonote
     size_t size() const { return 4 * sizeof(uint64_t) + sizeof(pubkey) + data.size();}
   } outkey_advanced;
 #pragma pack(pop)
+
+
 /**
  * @brief a struct containing txpool per transaction metadata
  */
@@ -380,6 +382,19 @@ namespace cryptonote
       {}
 
       KEY_IMAGE_EXISTS(const char *s) : DB_EXCEPTION(s)
+      {}
+  };
+
+  /**
+ * @brief thrown when a safex account trying to be added already exists
+ */
+  class SAFEX_ACCOUNT_EXISTS : public DB_EXCEPTION
+  {
+    public:
+      SAFEX_ACCOUNT_EXISTS() : DB_EXCEPTION("The safex account to be added already exists!")
+      {}
+
+      SAFEX_ACCOUNT_EXISTS(const char *s) : DB_EXCEPTION(s)
       {}
   };
 
@@ -1689,6 +1704,52 @@ namespace cryptonote
        */
       virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
 
+
+
+      /**
+       * Add new account to database
+       *
+       * @param username safex account username
+       * @param pkey safex account public key
+       * @param data account desitription data
+       *
+       * If any of this cannot be done, the subclass should throw the corresponding
+       * subclass of DB_EXCEPTION
+       *
+       */
+      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const cryptonote::blobdata &data) = 0;
+
+      /**
+       * Edit account data
+       *
+       * @param username safex account username
+       * @param new_data account desitription data
+       *
+       *  If any of this cannot be done, the subclass should throw the corresponding
+       *  subclass of DB_EXCEPTION
+       */
+      virtual void edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) = 0;
+
+
+      /**
+       * Get safex account public key
+       *
+       * @param username safex account username
+       * @param pkey publik key output parameter
+       *
+       * @return true if account exists, false otherwise
+       */
+      virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const = 0;
+
+      /**
+       * Get safex account data
+       *
+       * @param username safex account username
+       * @param data publik key output parameter
+       *
+       * @return true if account exists, false otherwise
+       */
+      virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const = 0;
 
 
 

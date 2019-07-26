@@ -6,6 +6,7 @@
 #include <string>
 #include <exception>
 #include <map>
+#include <crypto/hash.h>
 #include "misc_log_ex.h"
 #include "cryptonote_config.h"
 
@@ -16,6 +17,31 @@
 namespace safex
 {
   typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interest
+
+
+  struct account_username {
+
+    account_username(std::string ss) {
+      CHECK_AND_ASSERT_MES_NO_RET(ss.size() < sizeof(data), "Username size is limited to "+ std::to_string(sizeof(data)));
+      memcpy((void*)data, (void*)ss.c_str(), ss.size());
+    }
+
+    account_username(char* cc, uint32_t size) {
+      CHECK_AND_ASSERT_MES_NO_RET(size < sizeof(data), "Username size is limited to "+ std::to_string(sizeof(data)));
+      memcpy((void*)data, (void*)cc, size);
+    }
+
+    const char* c_str() const noexcept {
+      return data;
+    }
+
+
+
+    crypto::hash hash() const {return crypto::cn_fast_hash(data, sizeof(data));}
+
+    char data[64]; //todo decide if we would use utf8 or something else
+
+  };
 
 /**
 * It is indicator in transaction version 2 extra field, to ease transaction verification
