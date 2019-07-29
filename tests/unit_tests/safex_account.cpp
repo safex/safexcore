@@ -81,6 +81,17 @@ namespace
         m_users_acc[0].generate();
         m_users_acc[1].generate();
 
+        m_safex_account1_keys.generate();
+        m_safex_account2_keys.generate();
+        m_safex_account3_keys.generate();
+
+        m_safex_account1.username = "user1";
+        m_safex_account1.pkey = m_safex_account1_keys.get_keys().m_public_key;
+        m_safex_account2.username = "user2";
+        m_safex_account2.pkey = m_safex_account2_keys.get_keys().m_public_key;
+        m_safex_account3.username = "user3";
+        m_safex_account3.pkey = m_safex_account3_keys.get_keys().m_public_key;
+
         for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
           block blk;
@@ -113,9 +124,14 @@ namespace
             construct_tx_to_key(m_txmap, m_blocks, tx2, m_miner_acc, m_users_acc[1], 100 * SAFEX_CASH_COIN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx2)] = tx2;
           }
-          else if (i == 3)
+          else if (i == 5)
           {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
 
+            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey,
+                                                 t_serializable_object_to_blob(m_safex_account1.account_data));
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
 
 
@@ -151,6 +167,14 @@ namespace
       std::vector<uint64_t> m_test_tokens;
       std::vector<difficulty_type> m_test_diffs;
 
+      safex::safex_account_key_handler m_safex_account1_keys{};
+      safex::safex_account_key_handler m_safex_account2_keys{};
+      safex::safex_account_key_handler m_safex_account3_keys{};
+      safex::safex_account m_safex_account1;
+      safex::safex_account m_safex_account2;
+      safex::safex_account m_safex_account3;
+
+
 
       void init_hard_fork()
       {
@@ -181,6 +205,7 @@ namespace
   TYPED_TEST_CASE(SafexAccountTest, implementations);
 
 
+#if 0
   TYPED_TEST(SafexAccountTest, AccountSignature)
   {
     safex::safex_account_key_handler account1;
@@ -235,9 +260,9 @@ namespace
     ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig02), false);
 
   }
+#endif
 
-
-  TYPED_TEST(SafexAccountTest, AccountCreation)
+  TYPED_TEST(SafexAccountTest, CreateAccountCommand)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     std::string dirPath = tempPath.string();
@@ -259,5 +284,6 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+
 
 }  // anonymous namespace

@@ -223,6 +223,7 @@ namespace cryptonote
     out_advanced = 10, //generic advanced utxo
     out_staked_token = 11,
     out_network_fee = 12, //safex cash collected as network trading fee
+    out_safex_account = 15, //safex account output
     out_invalid = 100
   };
 

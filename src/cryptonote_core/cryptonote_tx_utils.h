@@ -90,6 +90,8 @@ namespace cryptonote
     bool script_output;                 // if this is advanced output
     tx_out_type output_type;            //type of the output
 
+    //todo add advanced data pointer for creation of safex entities on blockchain
+
     tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false),
     token_transaction(false), script_output(false), output_type{tx_out_type::out_cash} {
 

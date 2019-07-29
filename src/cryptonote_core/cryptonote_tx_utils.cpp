@@ -652,6 +652,20 @@ namespace cryptonote
       safex::distribute_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
+    else if (src_entr.command_type == safex::command_t::create_account)
+    {
+      input.k_image = img;
+
+      //fill outputs array and use relative offsets
+      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+        input.key_offsets.push_back(out_entry.first);
+
+      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+      //todo get username, pkey and data create way to pass data in source entry
+      //safex::create_account cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.token_amount};
+      //safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+    }
     else
     {
       SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
