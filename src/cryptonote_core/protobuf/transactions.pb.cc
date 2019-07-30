@@ -48,6 +48,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* txout_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   txout_reflection_ = NULL;
+const ::google::protobuf::Descriptor* SigData_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  SigData_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Signature_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Signature_reflection_ = NULL;
@@ -215,7 +218,23 @@ void protobuf_AssignDesc_transactions_2eproto() {
       sizeof(txout),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(txout, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(txout, _is_default_instance_));
-  Signature_descriptor_ = file->message_type(9);
+  SigData_descriptor_ = file->message_type(9);
+  static const int SigData_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SigData, r_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SigData, c_),
+  };
+  SigData_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      SigData_descriptor_,
+      SigData::default_instance_,
+      SigData_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(SigData),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SigData, _internal_metadata_),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SigData, _is_default_instance_));
+  Signature_descriptor_ = file->message_type(10);
   static const int Signature_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Signature, signature_),
   };
@@ -230,7 +249,7 @@ void protobuf_AssignDesc_transactions_2eproto() {
       sizeof(Signature),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Signature, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Signature, _is_default_instance_));
-  Transaction_descriptor_ = file->message_type(10);
+  Transaction_descriptor_ = file->message_type(11);
   static const int Transaction_offsets_[12] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transaction, version_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transaction, unlock_time_),
@@ -256,7 +275,7 @@ void protobuf_AssignDesc_transactions_2eproto() {
       sizeof(Transaction),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transaction, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transaction, _is_default_instance_));
-  Transactions_descriptor_ = file->message_type(11);
+  Transactions_descriptor_ = file->message_type(12);
   static const int Transactions_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transactions, tx_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Transactions, missed_txs_),
@@ -304,6 +323,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       txout_descriptor_, &txout::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      SigData_descriptor_, &SigData::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Signature_descriptor_, &Signature::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Transaction_descriptor_, &Transaction::default_instance());
@@ -332,6 +353,8 @@ void protobuf_ShutdownFile_transactions_2eproto() {
   delete txout_target_v_reflection_;
   delete txout::default_instance_;
   delete txout_reflection_;
+  delete SigData::default_instance_;
+  delete SigData_reflection_;
   delete Signature::default_instance_;
   delete Signature_reflection_;
   delete Transaction::default_instance_;
@@ -367,17 +390,18 @@ void protobuf_AddDesc_transactions_2eproto() {
     "n_to_key\030\002 \001(\0132\031.safex.txout_token_to_ke"
     "y\"T\n\005txout\022\016\n\006amount\030\001 \001(\004\022\024\n\014token_amou"
     "nt\030\002 \001(\004\022%\n\006target\030\003 \001(\0132\025.safex.txout_t"
-    "arget_v\"\036\n\tSignature\022\021\n\tsignature\030\001 \003(\t\""
-    "\244\002\n\013Transaction\022\017\n\007version\030\001 \001(\004\022\023\n\013unlo"
-    "ck_time\030\002 \001(\004\022\r\n\005extra\030\003 \001(\014\022\032\n\003vin\030\004 \003("
-    "\0132\r.safex.txin_v\022\032\n\004vout\030\005 \003(\0132\014.safex.t"
-    "xout\022$\n\nsignatures\030\006 \003(\0132\020.safex.Signatu"
-    "re\022\024\n\014block_height\030\007 \001(\004\022\027\n\017block_timest"
-    "amp\030\010 \001(\004\022\031\n\021double_spend_seen\030\t \001(\010\022\017\n\007"
-    "in_pool\030\n \001(\010\022\026\n\016output_indices\030\013 \003(\004\022\017\n"
-    "\007tx_hash\030\014 \001(\t\"B\n\014Transactions\022\036\n\002tx\030\001 \003"
-    "(\0132\022.safex.Transaction\022\022\n\nmissed_txs\030\002 \003"
-    "(\tb\006proto3", 1170);
+    "arget_v\"\037\n\007SigData\022\t\n\001r\030\001 \001(\014\022\t\n\001c\030\002 \001(\014"
+    "\".\n\tSignature\022!\n\tsignature\030\001 \003(\0132\016.safex"
+    ".SigData\"\244\002\n\013Transaction\022\017\n\007version\030\001 \001("
+    "\004\022\023\n\013unlock_time\030\002 \001(\004\022\r\n\005extra\030\003 \001(\014\022\032\n"
+    "\003vin\030\004 \003(\0132\r.safex.txin_v\022\032\n\004vout\030\005 \003(\0132"
+    "\014.safex.txout\022$\n\nsignatures\030\006 \003(\0132\020.safe"
+    "x.Signature\022\024\n\014block_height\030\007 \001(\004\022\027\n\017blo"
+    "ck_timestamp\030\010 \001(\004\022\031\n\021double_spend_seen\030"
+    "\t \001(\010\022\017\n\007in_pool\030\n \001(\010\022\026\n\016output_indices"
+    "\030\013 \003(\004\022\017\n\007tx_hash\030\014 \001(\t\"B\n\014Transactions\022"
+    "\036\n\002tx\030\001 \003(\0132\022.safex.Transaction\022\022\n\nmisse"
+    "d_txs\030\002 \003(\tb\006proto3", 1219);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "transactions.proto", &protobuf_RegisterTypes);
   txin_gen::default_instance_ = new txin_gen();
@@ -389,6 +413,7 @@ void protobuf_AddDesc_transactions_2eproto() {
   txout_token_to_key::default_instance_ = new txout_token_to_key();
   txout_target_v::default_instance_ = new txout_target_v();
   txout::default_instance_ = new txout();
+  SigData::default_instance_ = new SigData();
   Signature::default_instance_ = new Signature();
   Transaction::default_instance_ = new Transaction();
   Transactions::default_instance_ = new Transactions();
@@ -401,6 +426,7 @@ void protobuf_AddDesc_transactions_2eproto() {
   txout_token_to_key::default_instance_->InitAsDefaultInstance();
   txout_target_v::default_instance_->InitAsDefaultInstance();
   txout::default_instance_->InitAsDefaultInstance();
+  SigData::default_instance_->InitAsDefaultInstance();
   Signature::default_instance_->InitAsDefaultInstance();
   Transaction::default_instance_->InitAsDefaultInstance();
   Transactions::default_instance_->InitAsDefaultInstance();
@@ -3705,6 +3731,364 @@ void txout::set_allocated_target(::safex::txout_target_v* target) {
 // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int SigData::kRFieldNumber;
+const int SigData::kCFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+SigData::SigData()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:safex.SigData)
+}
+
+void SigData::InitAsDefaultInstance() {
+  _is_default_instance_ = true;
+}
+
+SigData::SigData(const SigData& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:safex.SigData)
+}
+
+void SigData::SharedCtor() {
+    _is_default_instance_ = false;
+  ::google::protobuf::internal::GetEmptyString();
+  _cached_size_ = 0;
+  r_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  c_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+SigData::~SigData() {
+  // @@protoc_insertion_point(destructor:safex.SigData)
+  SharedDtor();
+}
+
+void SigData::SharedDtor() {
+  r_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  c_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (this != default_instance_) {
+  }
+}
+
+void SigData::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* SigData::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return SigData_descriptor_;
+}
+
+const SigData& SigData::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_transactions_2eproto();
+  return *default_instance_;
+}
+
+SigData* SigData::default_instance_ = NULL;
+
+SigData* SigData::New(::google::protobuf::Arena* arena) const {
+  SigData* n = new SigData;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void SigData::Clear() {
+// @@protoc_insertion_point(message_clear_start:safex.SigData)
+  r_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  c_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+bool SigData::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:safex.SigData)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional bytes r = 1;
+      case 1: {
+        if (tag == 10) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_r()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(18)) goto parse_c;
+        break;
+      }
+
+      // optional bytes c = 2;
+      case 2: {
+        if (tag == 18) {
+         parse_c:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_c()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:safex.SigData)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:safex.SigData)
+  return false;
+#undef DO_
+}
+
+void SigData::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:safex.SigData)
+  // optional bytes r = 1;
+  if (this->r().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      1, this->r(), output);
+  }
+
+  // optional bytes c = 2;
+  if (this->c().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      2, this->c(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:safex.SigData)
+}
+
+::google::protobuf::uint8* SigData::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:safex.SigData)
+  // optional bytes r = 1;
+  if (this->r().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        1, this->r(), target);
+  }
+
+  // optional bytes c = 2;
+  if (this->c().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        2, this->c(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:safex.SigData)
+  return target;
+}
+
+int SigData::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:safex.SigData)
+  int total_size = 0;
+
+  // optional bytes r = 1;
+  if (this->r().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->r());
+  }
+
+  // optional bytes c = 2;
+  if (this->c().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->c());
+  }
+
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void SigData::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:safex.SigData)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const SigData* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const SigData>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:safex.SigData)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:safex.SigData)
+    MergeFrom(*source);
+  }
+}
+
+void SigData::MergeFrom(const SigData& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:safex.SigData)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  if (from.r().size() > 0) {
+
+    r_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.r_);
+  }
+  if (from.c().size() > 0) {
+
+    c_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.c_);
+  }
+}
+
+void SigData::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:safex.SigData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void SigData::CopyFrom(const SigData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:safex.SigData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SigData::IsInitialized() const {
+
+  return true;
+}
+
+void SigData::Swap(SigData* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void SigData::InternalSwap(SigData* other) {
+  r_.Swap(&other->r_);
+  c_.Swap(&other->c_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata SigData::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = SigData_descriptor_;
+  metadata.reflection = SigData_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// SigData
+
+// optional bytes r = 1;
+void SigData::clear_r() {
+  r_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ const ::std::string& SigData::r() const {
+  // @@protoc_insertion_point(field_get:safex.SigData.r)
+  return r_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void SigData::set_r(const ::std::string& value) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:safex.SigData.r)
+}
+ void SigData::set_r(const char* value) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.SigData.r)
+}
+ void SigData::set_r(const void* value, size_t size) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.SigData.r)
+}
+ ::std::string* SigData::mutable_r() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.SigData.r)
+  return r_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* SigData::release_r() {
+  // @@protoc_insertion_point(field_release:safex.SigData.r)
+  
+  return r_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void SigData::set_allocated_r(::std::string* r) {
+  if (r != NULL) {
+    
+  } else {
+    
+  }
+  r_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), r);
+  // @@protoc_insertion_point(field_set_allocated:safex.SigData.r)
+}
+
+// optional bytes c = 2;
+void SigData::clear_c() {
+  c_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ const ::std::string& SigData::c() const {
+  // @@protoc_insertion_point(field_get:safex.SigData.c)
+  return c_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void SigData::set_c(const ::std::string& value) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:safex.SigData.c)
+}
+ void SigData::set_c(const char* value) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.SigData.c)
+}
+ void SigData::set_c(const void* value, size_t size) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.SigData.c)
+}
+ ::std::string* SigData::mutable_c() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.SigData.c)
+  return c_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* SigData::release_c() {
+  // @@protoc_insertion_point(field_release:safex.SigData.c)
+  
+  return c_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void SigData::set_allocated_c(::std::string* c) {
+  if (c != NULL) {
+    
+  } else {
+    
+  }
+  c_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), c);
+  // @@protoc_insertion_point(field_set_allocated:safex.SigData.c)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Signature::kSignatureFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
@@ -3728,7 +4112,6 @@ Signature::Signature(const Signature& from)
 
 void Signature::SharedCtor() {
     _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
 }
 
@@ -3782,21 +4165,18 @@ bool Signature::MergePartialFromCodedStream(
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // repeated string signature = 1;
+      // repeated .safex.SigData signature = 1;
       case 1: {
         if (tag == 10) {
-         parse_signature:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->add_signature()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->signature(this->signature_size() - 1).data(),
-            this->signature(this->signature_size() - 1).length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "safex.Signature.signature"));
+          DO_(input->IncrementRecursionDepth());
+         parse_loop_signature:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_signature()));
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(10)) goto parse_signature;
+        if (input->ExpectTag(10)) goto parse_loop_signature;
+        input->UnsafeDecrementRecursionDepth();
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -3825,13 +4205,9 @@ failure:
 void Signature::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:safex.Signature)
-  // repeated string signature = 1;
-  for (int i = 0; i < this->signature_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->signature(i).data(), this->signature(i).length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.Signature.signature");
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+  // repeated .safex.SigData signature = 1;
+  for (unsigned int i = 0, n = this->signature_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->signature(i), output);
   }
 
@@ -3841,14 +4217,11 @@ void Signature::SerializeWithCachedSizes(
 ::google::protobuf::uint8* Signature::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:safex.Signature)
-  // repeated string signature = 1;
-  for (int i = 0; i < this->signature_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->signature(i).data(), this->signature(i).length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "safex.Signature.signature");
+  // repeated .safex.SigData signature = 1;
+  for (unsigned int i = 0, n = this->signature_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(1, this->signature(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        1, this->signature(i), false, target);
   }
 
   // @@protoc_insertion_point(serialize_to_array_end:safex.Signature)
@@ -3859,11 +4232,12 @@ int Signature::ByteSize() const {
 // @@protoc_insertion_point(message_byte_size_start:safex.Signature)
   int total_size = 0;
 
-  // repeated string signature = 1;
+  // repeated .safex.SigData signature = 1;
   total_size += 1 * this->signature_size();
   for (int i = 0; i < this->signature_size(); i++) {
-    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-      this->signature(i));
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->signature(i));
   }
 
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
@@ -3937,59 +4311,34 @@ void Signature::InternalSwap(Signature* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // Signature
 
-// repeated string signature = 1;
+// repeated .safex.SigData signature = 1;
 int Signature::signature_size() const {
   return signature_.size();
 }
 void Signature::clear_signature() {
   signature_.Clear();
 }
- const ::std::string& Signature::signature(int index) const {
+const ::safex::SigData& Signature::signature(int index) const {
   // @@protoc_insertion_point(field_get:safex.Signature.signature)
   return signature_.Get(index);
 }
- ::std::string* Signature::mutable_signature(int index) {
+::safex::SigData* Signature::mutable_signature(int index) {
   // @@protoc_insertion_point(field_mutable:safex.Signature.signature)
   return signature_.Mutable(index);
 }
- void Signature::set_signature(int index, const ::std::string& value) {
-  // @@protoc_insertion_point(field_set:safex.Signature.signature)
-  signature_.Mutable(index)->assign(value);
-}
- void Signature::set_signature(int index, const char* value) {
-  signature_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:safex.Signature.signature)
-}
- void Signature::set_signature(int index, const char* value, size_t size) {
-  signature_.Mutable(index)->assign(
-    reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:safex.Signature.signature)
-}
- ::std::string* Signature::add_signature() {
-  // @@protoc_insertion_point(field_add_mutable:safex.Signature.signature)
+::safex::SigData* Signature::add_signature() {
+  // @@protoc_insertion_point(field_add:safex.Signature.signature)
   return signature_.Add();
 }
- void Signature::add_signature(const ::std::string& value) {
-  signature_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:safex.Signature.signature)
-}
- void Signature::add_signature(const char* value) {
-  signature_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:safex.Signature.signature)
-}
- void Signature::add_signature(const char* value, size_t size) {
-  signature_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:safex.Signature.signature)
-}
- const ::google::protobuf::RepeatedPtrField< ::std::string>&
-Signature::signature() const {
-  // @@protoc_insertion_point(field_list:safex.Signature.signature)
-  return signature_;
-}
- ::google::protobuf::RepeatedPtrField< ::std::string>*
+::google::protobuf::RepeatedPtrField< ::safex::SigData >*
 Signature::mutable_signature() {
   // @@protoc_insertion_point(field_mutable_list:safex.Signature.signature)
   return &signature_;
+}
+const ::google::protobuf::RepeatedPtrField< ::safex::SigData >&
+Signature::signature() const {
+  // @@protoc_insertion_point(field_list:safex.Signature.signature)
+  return signature_;
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
