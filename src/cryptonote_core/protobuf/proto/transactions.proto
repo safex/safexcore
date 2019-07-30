@@ -61,8 +61,13 @@ message txout {
     txout_target_v target = 3;
 }
 
+message SigData {
+	bytes r = 1;
+	bytes c = 2;
+}
+
 message Signature {
-    repeated string signature = 1;
+    repeated SigData signature = 1;
 }
 
 message Transaction {

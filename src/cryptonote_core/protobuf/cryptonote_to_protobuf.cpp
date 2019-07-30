@@ -151,7 +151,9 @@ namespace safex {
         for(auto& signatures : tx.signatures) {
             safex::Signature* sigs = prototx->add_signatures();
             for(auto& sig : signatures) {
-                sigs->add_signature(epee::string_tools::pod_to_hex(sig));
+                safex::SigData* sig_data = sigs->add_signature();
+                sig_data->set_c(sig.c.data);
+                sig_data->set_r(sig.r.data);
             }
         }
 

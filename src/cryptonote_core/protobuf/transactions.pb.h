@@ -36,6 +36,7 @@ void protobuf_AddDesc_transactions_2eproto();
 void protobuf_AssignDesc_transactions_2eproto();
 void protobuf_ShutdownFile_transactions_2eproto();
 
+class SigData;
 class Signature;
 class Transaction;
 class Transactions;
@@ -938,6 +939,105 @@ class txout : public ::google::protobuf::Message /* @@protoc_insertion_point(cla
 };
 // -------------------------------------------------------------------
 
+class SigData : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:safex.SigData) */ {
+ public:
+  SigData();
+  virtual ~SigData();
+
+  SigData(const SigData& from);
+
+  inline SigData& operator=(const SigData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SigData& default_instance();
+
+  void Swap(SigData* other);
+
+  // implements Message ----------------------------------------------
+
+  inline SigData* New() const { return New(NULL); }
+
+  SigData* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SigData& from);
+  void MergeFrom(const SigData& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(SigData* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional bytes r = 1;
+  void clear_r();
+  static const int kRFieldNumber = 1;
+  const ::std::string& r() const;
+  void set_r(const ::std::string& value);
+  void set_r(const char* value);
+  void set_r(const void* value, size_t size);
+  ::std::string* mutable_r();
+  ::std::string* release_r();
+  void set_allocated_r(::std::string* r);
+
+  // optional bytes c = 2;
+  void clear_c();
+  static const int kCFieldNumber = 2;
+  const ::std::string& c() const;
+  void set_c(const ::std::string& value);
+  void set_c(const char* value);
+  void set_c(const void* value, size_t size);
+  ::std::string* mutable_c();
+  ::std::string* release_c();
+  void set_allocated_c(::std::string* c);
+
+  // @@protoc_insertion_point(class_scope:safex.SigData)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  bool _is_default_instance_;
+  ::google::protobuf::internal::ArenaStringPtr r_;
+  ::google::protobuf::internal::ArenaStringPtr c_;
+  mutable int _cached_size_;
+  friend void  protobuf_AddDesc_transactions_2eproto();
+  friend void protobuf_AssignDesc_transactions_2eproto();
+  friend void protobuf_ShutdownFile_transactions_2eproto();
+
+  void InitAsDefaultInstance();
+  static SigData* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class Signature : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:safex.Signature) */ {
  public:
   Signature();
@@ -998,28 +1098,24 @@ class Signature : public ::google::protobuf::Message /* @@protoc_insertion_point
 
   // accessors -------------------------------------------------------
 
-  // repeated string signature = 1;
+  // repeated .safex.SigData signature = 1;
   int signature_size() const;
   void clear_signature();
   static const int kSignatureFieldNumber = 1;
-  const ::std::string& signature(int index) const;
-  ::std::string* mutable_signature(int index);
-  void set_signature(int index, const ::std::string& value);
-  void set_signature(int index, const char* value);
-  void set_signature(int index, const char* value, size_t size);
-  ::std::string* add_signature();
-  void add_signature(const ::std::string& value);
-  void add_signature(const char* value);
-  void add_signature(const char* value, size_t size);
-  const ::google::protobuf::RepeatedPtrField< ::std::string>& signature() const;
-  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_signature();
+  const ::safex::SigData& signature(int index) const;
+  ::safex::SigData* mutable_signature(int index);
+  ::safex::SigData* add_signature();
+  ::google::protobuf::RepeatedPtrField< ::safex::SigData >*
+      mutable_signature();
+  const ::google::protobuf::RepeatedPtrField< ::safex::SigData >&
+      signature() const;
 
   // @@protoc_insertion_point(class_scope:safex.Signature)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   bool _is_default_instance_;
-  ::google::protobuf::RepeatedPtrField< ::std::string> signature_;
+  ::google::protobuf::RepeatedPtrField< ::safex::SigData > signature_;
   mutable int _cached_size_;
   friend void  protobuf_AddDesc_transactions_2eproto();
   friend void protobuf_AssignDesc_transactions_2eproto();
@@ -2043,61 +2139,128 @@ inline void txout::set_allocated_target(::safex::txout_target_v* target) {
 
 // -------------------------------------------------------------------
 
+// SigData
+
+// optional bytes r = 1;
+inline void SigData::clear_r() {
+  r_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& SigData::r() const {
+  // @@protoc_insertion_point(field_get:safex.SigData.r)
+  return r_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SigData::set_r(const ::std::string& value) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:safex.SigData.r)
+}
+inline void SigData::set_r(const char* value) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.SigData.r)
+}
+inline void SigData::set_r(const void* value, size_t size) {
+  
+  r_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.SigData.r)
+}
+inline ::std::string* SigData::mutable_r() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.SigData.r)
+  return r_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* SigData::release_r() {
+  // @@protoc_insertion_point(field_release:safex.SigData.r)
+  
+  return r_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SigData::set_allocated_r(::std::string* r) {
+  if (r != NULL) {
+    
+  } else {
+    
+  }
+  r_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), r);
+  // @@protoc_insertion_point(field_set_allocated:safex.SigData.r)
+}
+
+// optional bytes c = 2;
+inline void SigData::clear_c() {
+  c_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& SigData::c() const {
+  // @@protoc_insertion_point(field_get:safex.SigData.c)
+  return c_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SigData::set_c(const ::std::string& value) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:safex.SigData.c)
+}
+inline void SigData::set_c(const char* value) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:safex.SigData.c)
+}
+inline void SigData::set_c(const void* value, size_t size) {
+  
+  c_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:safex.SigData.c)
+}
+inline ::std::string* SigData::mutable_c() {
+  
+  // @@protoc_insertion_point(field_mutable:safex.SigData.c)
+  return c_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* SigData::release_c() {
+  // @@protoc_insertion_point(field_release:safex.SigData.c)
+  
+  return c_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void SigData::set_allocated_c(::std::string* c) {
+  if (c != NULL) {
+    
+  } else {
+    
+  }
+  c_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), c);
+  // @@protoc_insertion_point(field_set_allocated:safex.SigData.c)
+}
+
+// -------------------------------------------------------------------
+
 // Signature
 
-// repeated string signature = 1;
+// repeated .safex.SigData signature = 1;
 inline int Signature::signature_size() const {
   return signature_.size();
 }
 inline void Signature::clear_signature() {
   signature_.Clear();
 }
-inline const ::std::string& Signature::signature(int index) const {
+inline const ::safex::SigData& Signature::signature(int index) const {
   // @@protoc_insertion_point(field_get:safex.Signature.signature)
   return signature_.Get(index);
 }
-inline ::std::string* Signature::mutable_signature(int index) {
+inline ::safex::SigData* Signature::mutable_signature(int index) {
   // @@protoc_insertion_point(field_mutable:safex.Signature.signature)
   return signature_.Mutable(index);
 }
-inline void Signature::set_signature(int index, const ::std::string& value) {
-  // @@protoc_insertion_point(field_set:safex.Signature.signature)
-  signature_.Mutable(index)->assign(value);
-}
-inline void Signature::set_signature(int index, const char* value) {
-  signature_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:safex.Signature.signature)
-}
-inline void Signature::set_signature(int index, const char* value, size_t size) {
-  signature_.Mutable(index)->assign(
-    reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:safex.Signature.signature)
-}
-inline ::std::string* Signature::add_signature() {
-  // @@protoc_insertion_point(field_add_mutable:safex.Signature.signature)
+inline ::safex::SigData* Signature::add_signature() {
+  // @@protoc_insertion_point(field_add:safex.Signature.signature)
   return signature_.Add();
 }
-inline void Signature::add_signature(const ::std::string& value) {
-  signature_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:safex.Signature.signature)
-}
-inline void Signature::add_signature(const char* value) {
-  signature_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:safex.Signature.signature)
-}
-inline void Signature::add_signature(const char* value, size_t size) {
-  signature_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:safex.Signature.signature)
-}
-inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-Signature::signature() const {
-  // @@protoc_insertion_point(field_list:safex.Signature.signature)
-  return signature_;
-}
-inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+inline ::google::protobuf::RepeatedPtrField< ::safex::SigData >*
 Signature::mutable_signature() {
   // @@protoc_insertion_point(field_mutable_list:safex.Signature.signature)
   return &signature_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::safex::SigData >&
+Signature::signature() const {
+  // @@protoc_insertion_point(field_list:safex.Signature.signature)
+  return signature_;
 }
 
 // -------------------------------------------------------------------
@@ -2486,6 +2649,8 @@ Transactions::mutable_missed_txs() {
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
