@@ -113,17 +113,29 @@ private:
   T t_copy;
 };
 
-template<typename T, typename C>
+template<typename P1, typename P2>
 struct MDB_val_copy2 : public MDB_val
 {
-    MDB_val_copy2(const T &t, const C &c): t_copy{}
-    {
-      mv_size = sizeof(T) + sizeof(C);
-      mv_data = (void *)&t_copy;
-    }
+  MDB_val_copy2(const P1 &p1, const P2 &p2) : t_copy{}
+  {
+    t_copy = std::vector<uint8_t>(std::begin(p1), std::end(p1));
+    t_copy.insert(std::end(t_copy), std::begin(p2), std::end(p2));
 
-  private:
-    T t_copy;
+    mv_size = p1.size() + p2.size();
+    mv_data = (void *) t_copy.data();
+  }
+
+  MDB_val_copy2(const P1 &p1, size_t p1_size, const P2 &p2) : t_copy{}
+  {
+    t_copy = std::vector<uint8_t>(p1, p1 + p1_size);
+    t_copy.insert(std::end(t_copy), std::begin(p2), std::end(p2));
+
+    mv_size = p1_size + p2.size();
+    mv_data = (void *) t_copy.data();
+  }
+
+private:
+  std::vector<uint8_t> t_copy;
 };
 
 template<>
@@ -1370,6 +1382,24 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   {
 
   }
+  else if (txin.command_type == safex::command_t::create_account)
+  {
+
+    std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+    std::unique_ptr<safex::create_account_result> result(dynamic_cast<safex::create_account_result*>(cmd->execute(*this, txin)));
+    if (result->status != safex::execution_status::ok)
+    {
+      LOG_ERROR("Execution of safex command failed, status:" << static_cast<int>(result->status));
+      throw1(DB_ERROR("Error executing add safex account command"));
+    }
+
+    //todo create account in database table here
+
+    add_safex_account(safex::account_username{result->username}, result->pkey, t_serializable_object_to_blob(result->account_data));
+
+    std::cout << "test" << std::endl;
+
+  }
   else {
     throw1(DB_ERROR("Unknown safex command type"));
   }
@@ -1580,9 +1610,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
 
   mdb_set_compare(txn, m_txpool_meta, compare_hash32);
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
-
-
-  mdb_set_compare(txn, m_safex_account, compare_string);
+  mdb_set_compare(txn, m_safex_account, compare_hash32);
 
   mdb_set_compare(txn, m_properties, compare_string);
 
@@ -4296,7 +4324,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     return true;
   };
 
-  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const blobdata &data) {
+  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const blobdata &account_data) {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -4306,18 +4334,17 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
 
     int result;
-    MDB_val existing_key;
     crypto::hash usename_hash = username.hash();
     MDB_val_set(val_username, usename_hash);
-    result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username, &existing_key, MDB_GET_BOTH);
+    result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username, NULL, MDB_SET);
     if (result == 0) {
       throw1(SAFEX_ACCOUNT_EXISTS(std::string("Attempting to add safex account that's already in the db (username ").append(username.c_str()).append(")").c_str()));
     } else if (result != MDB_NOTFOUND) {
       throw1(DB_ERROR(lmdb_error(std::string("Error checking if account exists for username ").append(username.c_str()) + ": ", result).c_str()));
     }
 
-    MDB_val_copy2<const crypto::public_key, const blobdata> acc_info(pkey, data);
-    result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, 0);
+    MDB_val_copy2<char[32], const blobdata> acc_info(pkey.data, sizeof(pkey), account_data);
+    result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, MDB_APPEND);
     if (result)
       throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
 
@@ -4349,7 +4376,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
       //update account data here
       MDB_val_set(k2, usename_hash);
-      MDB_val_copy2<const crypto::public_key, const blobdata> vupdate(acc.pkey, new_data);
+      MDB_val_copy2<const char[32], const blobdata> vupdate(acc.pkey.data, sizeof(acc.pkey), new_data);
     if ((result = mdb_cursor_put(cur_safex_account, &k2, &vupdate, existing_username ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update account data for username: "+boost::lexical_cast<std::string>(username.c_str()), result).c_str()));
 
@@ -4367,10 +4394,75 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   };
 
   bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
-    return false;
+
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_safex_account;
+    RCURSOR(safex_account);
+    cur_safex_account = m_cur_safex_account;
+
+    crypto::hash usename_hash = username.hash();
+
+    uint8_t temp[SAFEX_ACCOUNT_DATA_MAX_SIZE + sizeof(crypto::public_key)];
+
+    MDB_val_set(k, usename_hash);
+    MDB_val_set(v, temp);
+    auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
+    if (get_result == MDB_NOTFOUND)
+    {
+      throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+    }
+    else if (get_result)
+    {
+      throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()), get_result).c_str()));
+    }
+    else if (get_result == MDB_SUCCESS)
+    {
+      crypto::public_key *ptr = (crypto::public_key *) v.mv_data;
+      memcpy((void *)&pkey, ptr, sizeof(crypto::public_key));
+    }
+
+    TXN_POSTFIX_RDONLY();
+
+    return true;
   };
 
   bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+
+    MDB_cursor *cur_safex_account;
+    RCURSOR(safex_account);
+    cur_safex_account = m_cur_safex_account;
+
+    crypto::hash usename_hash = username.hash();
+
+    uint8_t temp[SAFEX_ACCOUNT_DATA_MAX_SIZE + sizeof(crypto::public_key)];
+
+    MDB_val_set(k, usename_hash);
+    MDB_val_set(v, temp);
+    auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
+    if (get_result == MDB_NOTFOUND)
+    {
+      throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+    }
+    else if (get_result)
+    {
+      throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()), get_result).c_str()));
+    }
+    else if (get_result == MDB_SUCCESS)
+    {
+      uint8_t *ptr = (uint8_t *)v.mv_data + sizeof(crypto::public_key);
+      data = std::vector<uint8_t>(ptr, ptr+v.mv_size-sizeof(crypto::public_key));
+    }
+
+    TXN_POSTFIX_RDONLY();
+
     return true;
   }
 

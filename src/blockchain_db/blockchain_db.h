@@ -36,6 +36,7 @@
 #include <string>
 #include <exception>
 #include <boost/program_options.hpp>
+#include <safex/safex_account.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"
@@ -655,6 +656,33 @@ namespace cryptonote
         * @return token staked sum for this interval
         */
       virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) = 0;
+
+
+      /**
+      * Add new account to database
+      *
+      * @param username safex account username
+      * @param pkey safex account public key
+      * @param data account desitription data
+      *
+      * If any of this cannot be done, the subclass should throw the corresponding
+      * subclass of DB_EXCEPTION
+      *
+      */
+      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const cryptonote::blobdata &data) = 0;
+
+      /**
+       * Edit account data
+       *
+       * @param username safex account username
+       * @param new_data account desitription data
+       *
+       *  If any of this cannot be done, the subclass should throw the corresponding
+       *  subclass of DB_EXCEPTION
+       */
+      virtual void edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) = 0;
+
+
 
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
@@ -1704,31 +1732,6 @@ namespace cryptonote
        */
       virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
 
-
-
-      /**
-       * Add new account to database
-       *
-       * @param username safex account username
-       * @param pkey safex account public key
-       * @param data account desitription data
-       *
-       * If any of this cannot be done, the subclass should throw the corresponding
-       * subclass of DB_EXCEPTION
-       *
-       */
-      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const cryptonote::blobdata &data) = 0;
-
-      /**
-       * Edit account data
-       *
-       * @param username safex account username
-       * @param new_data account desitription data
-       *
-       *  If any of this cannot be done, the subclass should throw the corresponding
-       *  subclass of DB_EXCEPTION
-       */
-      virtual void edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) = 0;
 
 
       /**

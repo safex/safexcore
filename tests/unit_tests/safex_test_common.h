@@ -112,7 +112,7 @@ bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<crypt
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);
 
 bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const cryptonote::blobdata &account_data);
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
 
 bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc,
         uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list);

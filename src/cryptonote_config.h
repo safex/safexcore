@@ -171,6 +171,7 @@
 #define SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD SAFEX_DEFAULT_INTERVAL_PERIOD*10 //blocks
 #define SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE    ((uint64_t)5)
 #define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
+#define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
 
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions

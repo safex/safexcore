@@ -34,6 +34,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <cryptonote_core/blockchain.h>
 
 #include "gtest/gtest.h"
 
@@ -130,7 +131,7 @@ namespace
             cryptonote::transaction &tx = tx_list.back();                                                           \
 
             construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey,
-                                                 t_serializable_object_to_blob(m_safex_account1.account_data));
+                                                 m_safex_account1.account_data);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -140,7 +141,6 @@ namespace
           m_txs.push_back(std::vector<cryptonote::transaction>{tx_list.begin(), tx_list.end()});
           m_blocks.push_back(blk);
         }
-
       }
 
 
@@ -276,10 +276,22 @@ namespace
 
     for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
     {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+
+      try
+      {
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &ex) {
+        std::cout << "Exception caught: "<< ex.what() << std::endl;
+      }
     }
 
-    //todo implement
+    crypto::public_key pkey{};
+    const safex::account_username username{this->m_safex_account1.username};
+    this->m_db->get_account_key(username, pkey);
+
+    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
 
     ASSERT_NO_THROW(this->m_db->close());
 

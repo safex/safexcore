@@ -8,6 +8,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <safex/command.h>
 
 #include "gtest/gtest.h"
 
@@ -98,7 +99,7 @@ tx_destination_entry create_locked_token_tx_destination(const cryptonote::accoun
 }
 
 tx_destination_entry create_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const crypto::public_key &pkey,
-        const cryptonote::blobdata &account_data)
+        const std::vector<uint8_t> &account_data)
 {
   return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account};
 }
@@ -545,7 +546,7 @@ void fill_token_unlock_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
 }
 
 void fill_create_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, uint64_t token_amount,
-        uint64_t fee, size_t nmix, const std::string &username, const crypto::public_key &pkey, const cryptonote::blobdata &account_data, std::vector<tx_source_entry> &sources,
+        uint64_t fee, size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, std::vector<tx_source_entry> &sources,
         std::vector<tx_destination_entry> &destinations)
 {
   sources.clear();
@@ -563,6 +564,14 @@ void fill_create_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std:
   if (!fill_tx_sources(txmap, blocks, sources, from, token_amount, nmix, cryptonote::tx_out_type::out_safex_account))
     throw std::runtime_error("couldn't fill token transaction sources for tokens to unlock");
 
+  //update source with new account data
+  for (auto &ts: sources) {
+    if (ts.command_type == safex::command_t::create_account) {
+      safex::create_account_data account{username, pkey, account_data};
+      ts.command_safex_data = t_serializable_object_to_blob(account);
+    }
+
+  }
 
   //destinations
 
@@ -806,7 +815,7 @@ bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<crypt
 
 
 bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const cryptonote::blobdata &account_data)
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;

@@ -6,6 +6,7 @@
 #include <string>
 #include <exception>
 #include <map>
+#include <vector>
 #include <crypto/hash.h>
 #include "misc_log_ex.h"
 #include "cryptonote_config.h"
@@ -22,24 +23,24 @@ namespace safex
   struct account_username {
 
     account_username(std::string ss) {
-      CHECK_AND_ASSERT_MES_NO_RET(ss.size() < sizeof(data), "Username size is limited to "+ std::to_string(sizeof(data)));
-      memcpy((void*)data, (void*)ss.c_str(), ss.size());
+      username = std::vector<uint8_t>(ss.begin(), ss.end());
     }
 
-    account_username(char* cc, uint32_t size) {
-      CHECK_AND_ASSERT_MES_NO_RET(size < sizeof(data), "Username size is limited to "+ std::to_string(sizeof(data)));
-      memcpy((void*)data, (void*)cc, size);
+    account_username(const char* cc, uint32_t size) {
+      username = std::vector<uint8_t>(cc, cc+size);
     }
 
-    const char* c_str() const noexcept {
-      return data;
+    account_username(const std::vector<uint8_t> &vv) {
+      username = std::vector<uint8_t>(vv.begin(), vv.end());
     }
 
+    const char* c_str() const {
+      return (const char*)username.data();
+    }
 
+    crypto::hash hash() const {return crypto::cn_fast_hash(username.data(), username.size());}
 
-    crypto::hash hash() const {return crypto::cn_fast_hash(data, sizeof(data));}
-
-    char data[64]; //todo decide if we would use utf8 or something else
+    std::vector<uint8_t> username = std::vector<uint8_t>(64, 0); //todo decide if we would use utf8 or something else
 
   };
 
