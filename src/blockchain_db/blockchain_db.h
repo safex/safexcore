@@ -669,7 +669,7 @@ namespace cryptonote
       * subclass of DB_EXCEPTION
       *
       */
-      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const cryptonote::blobdata &data) = 0;
+      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &data) = 0;
 
       /**
        * Edit account data
@@ -680,7 +680,7 @@ namespace cryptonote
        *  If any of this cannot be done, the subclass should throw the corresponding
        *  subclass of DB_EXCEPTION
        */
-      virtual void edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) = 0;
+      virtual void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data) = 0;
 
 
 

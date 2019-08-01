@@ -71,8 +71,7 @@ namespace
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
         m_test_coins[0] = 2000 * SAFEX_CASH_COIN; //genesis tx airdrop
         m_test_tokens = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 0);
-        m_test_tokens[0] = 1000 * SAFEX_TOKEN;
-        m_test_tokens[1] = 100 * SAFEX_TOKEN;
+        m_test_tokens[0] = 4000 * SAFEX_TOKEN;
         m_test_diffs = std::vector<difficulty_type>(NUMBER_OF_BLOCKS, 200);
         m_test_diffs[0] = 1;
         m_test_diffs[1] = 100;
@@ -88,10 +87,13 @@ namespace
 
         m_safex_account1.username = "user1";
         m_safex_account1.pkey = m_safex_account1_keys.get_keys().m_public_key;
+        m_safex_account1.account_data = {'s','m','o','r'};
         m_safex_account2.username = "user2";
         m_safex_account2.pkey = m_safex_account2_keys.get_keys().m_public_key;
         m_safex_account3.username = "user3";
         m_safex_account3.pkey = m_safex_account3_keys.get_keys().m_public_key;
+        std::string data3 = "This is some data for test";
+        m_safex_account3.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
 
         for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
@@ -122,16 +124,31 @@ namespace
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_tx_to_key(m_txmap, m_blocks, tx2, m_miner_acc, m_users_acc[1], 100 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            construct_tx_to_key(m_txmap, m_blocks, tx2, m_miner_acc, m_users_acc[0], 100 * SAFEX_CASH_COIN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx2)] = tx2;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx3 = tx_list.back();                                                           \
+            construct_tx_to_key(m_txmap, m_blocks, tx3, m_miner_acc, m_users_acc[1], 200 * SAFEX_CASH_COIN, default_miner_fee, 0);
+            m_txmap[get_transaction_hash(tx3)] = tx3;
           }
           else if (i == 5)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey, m_safex_account1.account_data);
+            m_txmap[get_transaction_hash(tx)] = tx;
 
-            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey,
-                                                 m_safex_account1.account_data);
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data);
+            m_txmap[get_transaction_hash(tx2)] = tx2;
+          }
+          else if (i == 7)
+          {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account3.username, m_safex_account3.pkey, m_safex_account3.account_data);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -205,7 +222,7 @@ namespace
   TYPED_TEST_CASE(SafexAccountTest, implementations);
 
 
-#if 0
+#if 1
   TYPED_TEST(SafexAccountTest, AccountSignature)
   {
     safex::safex_account_key_handler account1;
@@ -288,10 +305,29 @@ namespace
     }
 
     crypto::public_key pkey{};
-    const safex::account_username username{this->m_safex_account1.username};
-    this->m_db->get_account_key(username, pkey);
-
+    const safex::account_username username01{this->m_safex_account1.username};
+    this->m_db->get_account_key(username01, pkey);
     ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
+
+
+    memset((void *)&pkey, 0, sizeof(pkey));
+    const safex::account_username username02{this->m_safex_account2.username};
+    this->m_db->get_account_key(username02, pkey);
+    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account2.pkey, sizeof(pkey)), 0);
+
+    memset((void *)&pkey, 0, sizeof(pkey));
+    const safex::account_username username03{this->m_safex_account3.username};
+    this->m_db->get_account_key(username03, pkey);
+    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account3.pkey, sizeof(pkey)), 0);
+
+    std::vector<uint8_t> accdata01;
+    this->m_db->get_account_data(username01, accdata01);
+    ASSERT_TRUE(std::equal(this->m_safex_account1.account_data.begin(), this->m_safex_account1.account_data.end(), accdata01.begin()));
+
+    std::vector<uint8_t> accdata03;
+    this->m_db->get_account_data(username03, accdata03);
+    ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
+
 
     ASSERT_NO_THROW(this->m_db->close());
 

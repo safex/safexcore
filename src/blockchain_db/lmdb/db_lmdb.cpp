@@ -1395,7 +1395,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
 
     //todo create account in database table here
 
-    add_safex_account(safex::account_username{result->username}, result->pkey, t_serializable_object_to_blob(result->account_data));
+    add_safex_account(safex::account_username{result->username}, result->pkey, result->account_data);
 
     std::cout << "test" << std::endl;
 
@@ -4324,7 +4324,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     return true;
   };
 
-  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const blobdata &account_data) {
+  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data) {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -4343,14 +4343,14 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       throw1(DB_ERROR(lmdb_error(std::string("Error checking if account exists for username ").append(username.c_str()) + ": ", result).c_str()));
     }
 
-    MDB_val_copy2<char[32], const blobdata> acc_info(pkey.data, sizeof(pkey), account_data);
-    result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, MDB_APPEND);
+    MDB_val_copy2<char[32], const std::vector<uint8_t>> acc_info(pkey.data, sizeof(pkey), account_data);
+    result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, MDB_NOOVERWRITE);
     if (result)
       throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
 
   };
 
-  void BlockchainLMDB::edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data) {
+  void BlockchainLMDB::edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data) {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -4376,7 +4376,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
       //update account data here
       MDB_val_set(k2, usename_hash);
-      MDB_val_copy2<const char[32], const blobdata> vupdate(acc.pkey.data, sizeof(acc.pkey), new_data);
+      MDB_val_copy2<const char[32], const std::vector<uint8_t>> vupdate(acc.pkey.data, sizeof(acc.pkey), new_data);
     if ((result = mdb_cursor_put(cur_safex_account, &k2, &vupdate, existing_username ? (unsigned int) MDB_CURRENT : (unsigned int) MDB_APPEND)))
       throw0(DB_ERROR(lmdb_error("Failed to update account data for username: "+boost::lexical_cast<std::string>(username.c_str()), result).c_str()));
 

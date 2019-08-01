@@ -305,8 +305,8 @@ public:
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override;
   virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override;
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
-  virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const blobdata &account_data);
-  virtual void edit_safex_account(const safex::account_username &username, const cryptonote::blobdata &new_data);
+  virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+  virtual void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data);
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
 
