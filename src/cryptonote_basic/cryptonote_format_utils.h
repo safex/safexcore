@@ -49,6 +49,17 @@ namespace cryptonote
   //---------------------------------------------------------------
   void get_transaction_prefix_hash(const transaction_prefix& tx, crypto::hash& h);
   crypto::hash get_transaction_prefix_hash(const transaction_prefix& tx);
+
+  template <typename T>
+  bool parse_and_validate_object_from_blob(const blobdata& bytes_blob, T &data) {
+    std::stringstream ss;
+    ss << bytes_blob;
+    binary_archive<false> ba(ss);
+    bool r = ::serialization::serialize(ba, data);
+    CHECK_AND_ASSERT_MES(r, false, "Failed to parse byte array from blob");
+    return true;
+  }
+
   bool parse_and_validate_byte_array_from_blob(const blobdata& bytes_blob, std::vector<uint8_t> &data);
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx, crypto::hash& tx_hash, crypto::hash& tx_prefix_hash);
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx);

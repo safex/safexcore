@@ -657,34 +657,6 @@ namespace cryptonote
         */
       virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) = 0;
 
-
-      /**
-      * Add new account to database
-      *
-      * @param username safex account username
-      * @param pkey safex account public key
-      * @param data account desitription data
-      *
-      * If any of this cannot be done, the subclass should throw the corresponding
-      * subclass of DB_EXCEPTION
-      *
-      */
-      virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &data) = 0;
-
-      /**
-       * Edit account data
-       *
-       * @param username safex account username
-       * @param new_data account desitription data
-       *
-       *  If any of this cannot be done, the subclass should throw the corresponding
-       *  subclass of DB_EXCEPTION
-       */
-      virtual void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data) = 0;
-
-
-
-
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
       uint64_t time_commit1 = 0;  //!< a performance metric
       bool m_auto_remove_logs = true;  //!< whether or not to automatically remove old logs

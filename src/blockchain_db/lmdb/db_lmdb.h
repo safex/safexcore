@@ -305,8 +305,6 @@ public:
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override;
   virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override;
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
-  virtual void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
-  virtual void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data);
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
 
@@ -448,9 +446,42 @@ private:
   uint64_t update_current_staked_token_sum(const uint64_t delta, int sign);
   uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
 
+  /**
+     * Add new account to database
+     *
+     * @param username safex account username
+     * @param pkey safex account public key
+     * @param data account desitription data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+  void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+
+  /**
+   * Edit account data
+   *
+   * @param username safex account username
+   * @param new_data account desitription data
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+   */
+  void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data);
+
+  /**
+   * Remove account from database
+   *
+   * @param username safex account username
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_safex_account(const safex::account_username &username);
+
 protected:
 
-    uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
+  uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
+
+
 
 private:
   MDB_env* m_env;

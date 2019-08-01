@@ -293,15 +293,7 @@ namespace
 
     for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
     {
-//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-
-      try
-      {
-        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
-      }
-      catch (std::exception &ex) {
-        std::cout << "Exception caught: "<< ex.what() << std::endl;
-      }
+      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
     crypto::public_key pkey{};
@@ -327,6 +319,44 @@ namespace
     std::vector<uint8_t> accdata03;
     this->m_db->get_account_data(username03, accdata03);
     ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
+
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
+
+  TYPED_TEST(SafexAccountTest, RemoveAccount)
+  {
+    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    std::string dirPath = tempPath.string();
+
+    this->set_prefix(dirPath);
+
+    // make sure open does not throw
+    ASSERT_NO_THROW(this->m_db->open(dirPath));
+    this->get_filenames();
+    this->init_hard_fork();
+
+    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
+    {
+//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+      try
+      {
+        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+      }
+      catch (std::exception &ex) {
+        std::cout << "Exception caught: "<< ex.what() << std::endl;
+      }
+    }
+
+    crypto::public_key pkey{};
+    const safex::account_username username01{this->m_safex_account1.username};
+    this->m_db->get_account_key(username01, pkey);
+    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
+
+    //todo add remove block here
+
 
 
     ASSERT_NO_THROW(this->m_db->close());

@@ -1255,8 +1255,23 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
   for (size_t i = tx.vout.size(); i-- > 0;)
   {
     const tx_out_type output_type = get_tx_out_type(tx.vout[i].target);
-    const uint64_t out_amount = (output_type == tx_out_type::out_token) ? tx.vout[i].token_amount : tx.vout[i].amount;
-    remove_output(out_amount, amount_output_indices[i], output_type);
+
+    if (output_type == tx_out_type::out_token) {
+      remove_output(tx.vout[i].token_amount, amount_output_indices[i], output_type);
+    }
+    else if (output_type == tx_out_type::out_cash) {
+      remove_output(tx.vout[i].amount, amount_output_indices[i], output_type);
+    }
+    else if (output_type == tx_out_type::out_safex_account) {
+      const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+      const cryptonote::blobdata blobdata1 = cryptonote::t_serializable_object_to_blob(txout_to_script1.data);
+      safex::create_account_data account_output_data;
+      parse_and_validate_object_from_blob(blobdata1, account_output_data);
+      remove_safex_account(account_output_data.username);
+    } else {
+      throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
+    }
+
   }
 }
 
@@ -4392,6 +4407,30 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
 
   };
+
+
+  void BlockchainLMDB::remove_safex_account(const safex::account_username &username)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    CURSOR(safex_account);
+
+    crypto::hash usename_hash = username.hash();
+    MDB_val_set(k, usename_hash);
+
+    auto result = mdb_cursor_get(m_cur_safex_account, &k, NULL, MDB_SET);
+    if (result != 0 && result != MDB_NOTFOUND)
+      throw1(DB_ERROR(lmdb_error("Error finding account to remove: ", result).c_str()));
+    if (!result)
+    {
+      result = mdb_cursor_del(m_cur_safex_account, 0);
+      if (result)
+        throw1(DB_ERROR(lmdb_error("Error removing account: ", result).c_str()));
+    }
+  }
+
 
   bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
 
