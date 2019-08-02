@@ -55,7 +55,8 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 50;
+  const int NUMBER_OF_BLOCKS = 10;
+  const int NUMBER_OF_BLOCKS2 = 20;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
@@ -94,6 +95,11 @@ namespace
         m_safex_account3.pkey = m_safex_account3_keys.get_keys().m_public_key;
         std::string data3 = "This is some data for test";
         m_safex_account3.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
+
+        const std::string data1_new_str = "Another data tesst for edit";
+        data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
+
+
 
         for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
@@ -151,6 +157,13 @@ namespace
             construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account3.username, m_safex_account3.pkey, m_safex_account3.account_data);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
+          else if (i == 14)
+          {
+//            tx_list.resize(tx_list.size() + 1);
+//            cryptonote::transaction &tx = tx_list.back();                                                           \
+//            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new);
+//            m_txmap[get_transaction_hash(tx)] = tx;
+          }
 
 
           construct_block(blk, i, prev_hash, m_miner_acc, 0, m_test_sizes[i], tx_list);
@@ -191,6 +204,7 @@ namespace
       safex::safex_account m_safex_account2;
       safex::safex_account m_safex_account3;
 
+      std::vector<uint8_t> data1_new;
 
 
       void init_hard_fork()
@@ -277,7 +291,7 @@ namespace
     ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig02), false);
 
   }
-#endif
+
 
   TYPED_TEST(SafexAccountTest, CreateAccountCommand)
   {
@@ -324,9 +338,11 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+#endif
 
+#if 0
 
-  TYPED_TEST(SafexAccountTest, RemoveAccount)
+  TYPED_TEST(SafexAccountTest, EditAccount)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     std::string dirPath = tempPath.string();
@@ -338,7 +354,7 @@ namespace
     this->get_filenames();
     this->init_hard_fork();
 
-    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
+    for (int i = 0; i < NUMBER_OF_BLOCKS2 - 1; i++)
     {
 //      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
       try
@@ -355,13 +371,15 @@ namespace
     this->m_db->get_account_key(username01, pkey);
     ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
 
-    //todo add remove block here
 
+    std::vector<uint8_t> accdata01;
+    this->m_db->get_account_data(username01, accdata01);
+    ASSERT_TRUE(std::equal(this->m_safex_account1.account_data.begin(), this->m_safex_account1.account_data.end(), this->data1_new.begin()));
 
 
     ASSERT_NO_THROW(this->m_db->close());
 
   }
-
+#endif
 
 }  // anonymous namespace

@@ -1130,9 +1130,11 @@ namespace cryptonote
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_account);
         txs.keys.push_back(out_eph_public_key);
+        txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
+
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create newtork fee output", safex::command_t::donate_network_fee);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create newtork fee output", safex::command_t::create_account);
 
         //nothing else to do with matched inputs, create txout data field
         safex::safex_command_serializer::serialize_safex_object(safex::donate_fee_data{}, txs.data);

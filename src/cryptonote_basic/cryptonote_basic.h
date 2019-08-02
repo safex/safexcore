@@ -224,6 +224,7 @@ namespace cryptonote
     out_staked_token = 11,
     out_network_fee = 12, //safex cash collected as network trading fee
     out_safex_account = 15, //safex account output
+    out_safex_account_update = 16, //safex account output update
     out_invalid = 100
   };
 

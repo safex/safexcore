@@ -101,7 +101,16 @@ tx_destination_entry create_locked_token_tx_destination(const cryptonote::accoun
 tx_destination_entry create_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const crypto::public_key &pkey,
         const std::vector<uint8_t> &account_data)
 {
-  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account};
+  safex::create_account_data acc_output_data{username, pkey, account_data};
+  blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account, blobdata};
+}
+
+tx_destination_entry edit_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const std::vector<uint8_t> &new_account_data)
+{
+  safex::edit_account_data new_acc_output_data{username, new_account_data};
+  blobdata blobdata = cryptonote::t_serializable_object_to_blob(new_acc_output_data);
+  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account_update, blobdata};
 }
 
 
@@ -600,6 +609,43 @@ void fill_create_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std:
   destinations.push_back(de_account);
 }
 
+void fill_edit_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, uint64_t token_amount,
+                                                     uint64_t fee, size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, std::vector<tx_source_entry> &sources,
+                                                     std::vector<tx_destination_entry> &destinations)
+{
+  sources.clear();
+  destinations.clear();
+
+  const cryptonote::account_base &to = from;
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(txmap, blocks, sources, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //update source with new account data
+  for (auto &ts: sources) {
+    if (ts.command_type == safex::command_t::edit_account) {
+      safex::edit_account_data editaccount{username, new_account_data};
+      ts.command_safex_data = t_serializable_object_to_blob(editaccount);
+    }
+
+  }
+
+  //destinations
+
+  //sender change for fee
+  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    tx_destination_entry de_change = create_tx_destination(from, cache_back);
+    destinations.push_back(de_change);
+  }
+
+  //new_account
+  tx_destination_entry de_account = edit_safex_account_destination(from, username, new_account_data);
+  destinations.push_back(de_account);
+}
+
 
 void fill_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, const cryptonote::account_base &to,
                                       uint64_t amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
@@ -820,6 +866,16 @@ bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryp
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_create_account_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, pkey, account_data, sources, destinations);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+}
+
+bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                          size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data)
+{
+  std::vector<tx_source_entry> sources;
+  std::vector<tx_destination_entry> destinations;
+  fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, new_account_data, sources, destinations);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }

@@ -60,7 +60,7 @@ namespace cryptonote
     return true;
   }
 
-  bool parse_and_validate_byte_array_from_blob(const blobdata& bytes_blob, std::vector<uint8_t> &data);
+  bool parse_and_validate_byte_array_from_blob (const blobdata& bytes_blob, std::vector<uint8_t> &data);
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx, crypto::hash& tx_hash, crypto::hash& tx_prefix_hash);
   bool parse_and_validate_tx_from_blob(const blobdata& tx_blob, transaction& tx);
   bool parse_and_validate_tx_base_from_blob(const blobdata& tx_blob, transaction& tx);

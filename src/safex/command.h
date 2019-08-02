@@ -138,23 +138,6 @@ namespace safex
 
     }
 
-//    static std::vector<uint8_t> pack_output_account_data(const create_account_data &acc_output_data) {
-//      std::vector<uint8_t> packed_data{std::begin(acc_output_data.username), std::end(acc_output_data.username)};
-//      packed_data.insert(packed_data.end(), std::begin(acc_output_data.pkey.data), std::end(acc_output_data.pkey.data));
-//      packed_data.insert(packed_data.end(), std::begin(acc_output_data.account_data), std::end(acc_output_data.account_data));
-//      return packed_data;
-//    }
-//
-//    static create_account_data parse_output_account_data(std::vector<uint8_t>) {
-//      create_account_data acc_output_data;
-//
-//      std::vector<uint8_t> packed_data{std::begin(username), std::end(username)};
-//      packed_data.insert(packed_data.end(), std::begin(pkey.data), std::end(pkey.data));
-//      packed_data.insert(packed_data.end(), std::begin(account_data), std::end(account_data));
-//      return pack_output_account_data();
-//    }
-
-
     BEGIN_SERIALIZE_OBJECT()
       FIELD(username)
       FIELD(pkey)
@@ -166,6 +149,14 @@ namespace safex
   {
     std::vector<char> username{};
     std::vector<uint8_t> account_data{};
+
+    edit_account_data() {}
+
+    edit_account_data(const std::string &_username, const std::vector<uint8_t> &_account_data): username(_username.begin(), _username.end()), account_data{_account_data}
+    {
+
+    }
+
 
     BEGIN_SERIALIZE_OBJECT()
       FIELD(username)
