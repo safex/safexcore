@@ -9,6 +9,7 @@
 #include "blockchain_db/lmdb/db_lmdb.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "safex/safex_account.h"
 
 struct output_index
 {
@@ -53,6 +54,7 @@ struct output_index
     return *this;
   }
 };
+
 
 typedef std::unordered_map<crypto::hash, cryptonote::transaction> map_hash2tx_t;
 typedef std::map<uint64_t, std::vector<size_t> > map_output_t;
@@ -108,5 +110,16 @@ bool construct_token_unstake_transaction(map_hash2tx_t &txmap, std::vector<crypt
 
 bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx,
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);
+
+bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+
+bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                        size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data);
+
+bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc,
+        uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list);
+
+void remove_files(std::vector<std::string> filenames, std::string prefix);
 
 #endif //SAFEX_SAFEX_TEST_COMMON_H

@@ -6,6 +6,8 @@
 #include <string>
 #include <exception>
 #include <map>
+#include <vector>
+#include <crypto/hash.h>
 #include "misc_log_ex.h"
 #include "cryptonote_config.h"
 
@@ -16,6 +18,31 @@
 namespace safex
 {
   typedef std::map<uint64_t, uint64_t> map_interval_interest; //key is interval starting block, value is safex cash per token interest
+
+
+  struct account_username {
+
+    account_username(std::string ss) {
+      username = std::vector<uint8_t>(ss.begin(), ss.end());
+    }
+
+    account_username(const char* cc, uint32_t size) {
+      username = std::vector<uint8_t>(cc, cc+size);
+    }
+
+    account_username(const std::vector<uint8_t> &vv) {
+      username = std::vector<uint8_t>(vv.begin(), vv.end());
+    }
+
+    const char* c_str() const {
+      return (const char*)username.data();
+    }
+
+    crypto::hash hash() const {return crypto::cn_fast_hash(username.data(), username.size());}
+
+    std::vector<uint8_t> username = std::vector<uint8_t>(64, 0); //todo decide if we would use utf8 or something else
+
+  };
 
 /**
 * It is indicator in transaction version 2 extra field, to ease transaction verification
@@ -38,6 +65,8 @@ namespace safex
       donate_network_fee = 0x04, /* Donate safex cash to newtork token holders */
       distribute_network_fee = 0x05, /* Distribute collected newtork fee to token holders */
       simple_purchase = 0x06,
+      create_account = 0x0A, /* Create Safex account */
+      edit_account = 0x0B, /* Edit Safex account */
       invalid_command
   };
 

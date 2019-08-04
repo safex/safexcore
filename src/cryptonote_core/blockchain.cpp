@@ -3471,6 +3471,7 @@ void Blockchain::check_migration_signature(const crypto::hash &tx_prefix_hash,
     get_migration_verification_public_key(m_nettype, sender_public_key);
     result = crypto::check_signature(tx_prefix_hash, sender_public_key, signature) ? 1 : 0;
 }
+
 //------------------------------------------------------------------
 static uint64_t get_fee_quantization_mask()
 {

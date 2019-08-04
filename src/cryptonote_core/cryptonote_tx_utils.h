@@ -59,6 +59,7 @@ namespace cryptonote
     uint64_t token_amount = 0;          //tokens
     cryptonote::tx_out_type referenced_output_type = tx_out_type::out_cash;
     safex::command_t command_type = safex::command_t::nop;
+    cryptonote::blobdata command_safex_data;
 
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
@@ -73,6 +74,7 @@ namespace cryptonote
       FIELD(token_amount)
       FIELD(referenced_output_type)
       FIELD(command_type)
+      FIELD(command_safex_data)
 
 
       if (real_output >= outputs.size())
@@ -89,6 +91,7 @@ namespace cryptonote
     bool token_transaction;             //output is safex tokens, not safex cash
     bool script_output;                 // if this is advanced output
     tx_out_type output_type;            //type of the output
+    cryptonote::blobdata output_data;   //output safex data
 
     tx_destination_entry() : amount(0), token_amount(0), addr(AUTO_VAL_INIT(addr)), is_subaddress(false),
     token_transaction(false), script_output(false), output_type{tx_out_type::out_cash} {
@@ -97,8 +100,9 @@ namespace cryptonote
 
 
 
-    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, tx_out_type _out_type = tx_out_type::out_cash) :
-    amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)), output_type(_out_type)
+    tx_destination_entry(uint64_t a, const account_public_address &ad, bool is_subaddress, tx_out_type _out_type = tx_out_type::out_cash, cryptonote::blobdata _output_data={}) :
+    amount(0), token_amount(0), addr(ad), is_subaddress(is_subaddress), token_transaction(is_token_output(_out_type)), script_output(is_script_output(_out_type)),
+    output_type(_out_type), output_data{_output_data}
     {
       if ((_out_type == tx_out_type::out_token)
           || (_out_type == tx_out_type::out_staked_token))

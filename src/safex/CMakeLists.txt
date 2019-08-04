@@ -33,11 +33,13 @@ set(safex_core_sources
         command.cpp
         fee_distribution.cpp
         safex_core.cpp
+        safex_account.cpp
         )
 
 set(safex_core_headers
         command.h
-        fee_distribution.h)
+        fee_distribution.h
+        safex_account.h)
 
 set(safex_core_private_headers)
 

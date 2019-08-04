@@ -309,6 +309,11 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     {
       remove_spent_key(boost::get<txin_token_migration>(tx_input).k_image);
     }
+    else if (tx_input.type() == typeid(txin_to_script))
+    {
+      remove_spent_key(boost::get<txin_to_script>(tx_input).k_image);
+    }
+
   }
 
   // need tx as tx.vout has the tx outputs, and the output amounts are needed

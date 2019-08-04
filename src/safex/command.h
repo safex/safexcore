@@ -43,6 +43,8 @@ namespace safex
   {
     bool valid = false;
     execution_status status = execution_status::invalid;
+
+    virtual ~execution_result() = default;
   };
 
   struct token_stake_result : public execution_result
@@ -82,6 +84,22 @@ namespace safex
     uint64_t amount = 0; //cash amount do donate to newtork token holders
   };
 
+  struct create_account_result : public execution_result
+  {
+    create_account_result(const std::vector<uint8_t> &_username, const crypto::public_key &_pkey, std::vector<uint8_t>& _account_data):
+            username{_username}, pkey{_pkey}, account_data{_account_data} {
+    }
+
+    std::vector<uint8_t> username{};
+    crypto::public_key pkey{};
+    std::vector<uint8_t> account_data{};
+  };
+
+  struct edit_account_result : public execution_result
+  {
+
+  };
+
 
 
 
@@ -107,6 +125,45 @@ namespace safex
       VARINT_FIELD(reserved)
     END_SERIALIZE()
   };
+
+  struct create_account_data : public command_data
+  {
+    std::vector<uint8_t> username{};
+    crypto::public_key pkey;
+    std::vector<uint8_t> account_data{};
+
+    create_account_data() {}
+    create_account_data(const std::string &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data): username(_username.begin(), _username.end()), pkey{_pkey}, account_data{_account_data}
+    {
+
+    }
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(username)
+      FIELD(pkey)
+      FIELD(account_data)
+    END_SERIALIZE()
+  };
+
+  struct edit_account_data : public command_data
+  {
+    std::vector<char> username{};
+    std::vector<uint8_t> account_data{};
+
+    edit_account_data() {}
+
+    edit_account_data(const std::string &_username, const std::vector<uint8_t> &_account_data): username(_username.begin(), _username.end()), account_data{_account_data}
+    {
+
+    }
+
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(username)
+      FIELD(account_data)
+    END_SERIALIZE()
+  };
+
 
 
   /**
@@ -135,6 +192,7 @@ namespace safex
       }
 
       virtual execution_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) = 0;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) = 0;
 
       uint32_t get_version() const
       { return version; }
@@ -165,6 +223,7 @@ namespace safex
       dummy_command() :  command(0, command_t::nop) {}
 
       virtual execution_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override {return new execution_result{};};
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override {return execution_status::ok;};
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -194,6 +253,7 @@ namespace safex
       uint64_t get_staked_token_amount() const { return stake_token_amount; }
 
       virtual token_stake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -230,6 +290,7 @@ namespace safex
       uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
       virtual token_unstake_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command*>(this))
@@ -263,6 +324,7 @@ namespace safex
       uint64_t get_staked_token_output_index() const { return staked_token_output_index; }
 
       virtual token_collect_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -292,6 +354,7 @@ namespace safex
       uint64_t get_locked_token_output_index() const { return donation_safex_cash_amount; }
 
       virtual donate_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -321,6 +384,7 @@ namespace safex
       uint64_t get_simple_purhcase_price() const { return simple_purchase_price; }
 
       virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -351,6 +415,7 @@ namespace safex
       uint64_t get_staked_token_output_index() const { return safex_cash_amount; }
 
       virtual distribute_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
@@ -363,8 +428,82 @@ namespace safex
       uint64_t safex_cash_amount;
   };
 
+  class create_account : public command
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _username //new account username
+       * @param _pkey //public account key, that is used to verify signatures of account owner actions
+       * @param _account_data //account description
+      * */
+      create_account(const uint32_t _version, std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data) :
+      command(_version, command_t::create_account), username(_username), pkey{_pkey}, account_data{_account_data} {}
+
+      create_account() : command(0, command_t::create_account), username{}, pkey{}, account_data{} {}
+
+      std::string get_username() const { return std::string(std::begin(username), std::end(username)); }
+      crypto::public_key get_account_key() const { return pkey; }
+      std::vector<uint8_t> get_account_data() const { return account_data; }
+
+      virtual create_account_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_account);
+        FIELD(username)
+        FIELD(pkey)
+        FIELD(account_data)
+      END_SERIALIZE()
+
+    private:
+
+      std::vector<uint8_t> username{};
+      crypto::public_key pkey;
+      std::vector<uint8_t> account_data{};
+  };
+
+  class edit_account : public command
+  {
+    public:
+      friend class safex_command_serializer;
+
+      /**
+       * @param _version Safex command protocol version
+       * @param _username //new account username
+       * @param _account_data //new account description data
+      * */
+      edit_account(const uint32_t _version, const  std::vector<uint8_t> _username, const crypto::public_key _pkey, const std::vector<uint8_t> _new_account_data) :
+              command(_version, command_t::edit_account), username(_username), new_account_data{_new_account_data} {}
+
+      edit_account() : command(0, command_t::edit_account), username{}, new_account_data{} {}
+
+      std::string get_username() const { return std::string(username.begin(), username.end()); }
+      std::vector<uint8_t> get_new_account_data() const { return new_account_data; }
+
+      virtual edit_account_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::edit_account);
+        FIELD(username)
+        FIELD(new_account_data)
+      END_SERIALIZE()
+
+    private:
+
+      std::vector<uint8_t> username{};
+      std::vector<uint8_t> new_account_data{};
+  };
+
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
+  /* Validation is like execution, but without effects on the database */
+  bool validate_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin);
 
 
 
@@ -403,6 +542,9 @@ namespace safex
             break;
           case safex::command_t::simple_purchase:
             return std::unique_ptr<command>(parse_safex_object<simple_purchase>(buffer));
+            break;
+          case safex::command_t::create_account:
+            return std::unique_ptr<command>(parse_safex_object<create_account>(buffer));
             break;
 
           default:

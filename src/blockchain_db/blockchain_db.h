@@ -36,6 +36,7 @@
 #include <string>
 #include <exception>
 #include <boost/program_options.hpp>
+#include <safex/safex_account.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"
@@ -147,6 +148,8 @@ namespace cryptonote
     size_t size() const { return 4 * sizeof(uint64_t) + sizeof(pubkey) + data.size();}
   } outkey_advanced;
 #pragma pack(pop)
+
+
 /**
  * @brief a struct containing txpool per transaction metadata
  */
@@ -380,6 +383,19 @@ namespace cryptonote
       {}
 
       KEY_IMAGE_EXISTS(const char *s) : DB_EXCEPTION(s)
+      {}
+  };
+
+  /**
+ * @brief thrown when a safex account trying to be added already exists
+ */
+  class SAFEX_ACCOUNT_EXISTS : public DB_EXCEPTION
+  {
+    public:
+      SAFEX_ACCOUNT_EXISTS() : DB_EXCEPTION("The safex account to be added already exists!")
+      {}
+
+      SAFEX_ACCOUNT_EXISTS(const char *s) : DB_EXCEPTION(s)
       {}
   };
 
@@ -640,7 +656,6 @@ namespace cryptonote
         * @return token staked sum for this interval
         */
       virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) = 0;
-
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
       uint64_t time_commit1 = 0;  //!< a performance metric
@@ -1689,6 +1704,27 @@ namespace cryptonote
        */
       virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
 
+
+
+      /**
+       * Get safex account public key
+       *
+       * @param username safex account username
+       * @param pkey publik key output parameter
+       *
+       * @return true if account exists, false otherwise
+       */
+      virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const = 0;
+
+      /**
+       * Get safex account data
+       *
+       * @param username safex account username
+       * @param data publik key output parameter
+       *
+       * @return true if account exists, false otherwise
+       */
+      virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const = 0;
 
 
 
