@@ -97,7 +97,11 @@ namespace safex
 
   struct edit_account_result : public execution_result
   {
-
+    edit_account_result(const std::vector<uint8_t> &_username, std::vector<uint8_t>& _account_data):
+            username{_username}, account_data{_account_data} {
+    }
+    std::vector<uint8_t> username{};
+    std::vector<uint8_t> account_data{};
   };
 
 
@@ -147,7 +151,7 @@ namespace safex
 
   struct edit_account_data : public command_data
   {
-    std::vector<char> username{};
+    std::vector<uint8_t> username{};
     std::vector<uint8_t> account_data{};
 
     edit_account_data() {}
@@ -476,7 +480,7 @@ namespace safex
        * @param _username //new account username
        * @param _account_data //new account description data
       * */
-      edit_account(const uint32_t _version, const  std::vector<uint8_t> _username, const crypto::public_key _pkey, const std::vector<uint8_t> _new_account_data) :
+      edit_account(const uint32_t _version, const std::vector<uint8_t> _username, const std::vector<uint8_t> _new_account_data) :
               command(_version, command_t::edit_account), username(_username), new_account_data{_new_account_data} {}
 
       edit_account() : command(0, command_t::edit_account), username{}, new_account_data{} {}
@@ -545,6 +549,9 @@ namespace safex
             break;
           case safex::command_t::create_account:
             return std::unique_ptr<command>(parse_safex_object<create_account>(buffer));
+            break;
+          case safex::command_t::edit_account:
+            return std::unique_ptr<command>(parse_safex_object<edit_account>(buffer));
             break;
 
           default:

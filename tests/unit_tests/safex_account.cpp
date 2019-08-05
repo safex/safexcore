@@ -55,7 +55,8 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 10;
+  const int NUMBER_OF_BLOCKS = 20;
+  const int NUMBER_OF_BLOCKS1 = 10;
   const int NUMBER_OF_BLOCKS2 = 20;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
@@ -159,10 +160,10 @@ namespace
           }
           else if (i == 14)
           {
-//            tx_list.resize(tx_list.size() + 1);
-//            cryptonote::transaction &tx = tx_list.back();                                                           \
-//            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new);
-//            m_txmap[get_transaction_hash(tx)] = tx;
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new);
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
 
 
@@ -305,7 +306,7 @@ namespace
     this->get_filenames();
     this->init_hard_fork();
 
-    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
+    for (int i = 0; i < NUMBER_OF_BLOCKS1 - 1; i++)
     {
       ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
@@ -340,7 +341,7 @@ namespace
   }
 #endif
 
-#if 0
+#if 1
 
   TYPED_TEST(SafexAccountTest, EditAccount)
   {
@@ -356,14 +357,7 @@ namespace
 
     for (int i = 0; i < NUMBER_OF_BLOCKS2 - 1; i++)
     {
-//      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-      try
-      {
-        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
-      }
-      catch (std::exception &ex) {
-        std::cout << "Exception caught: "<< ex.what() << std::endl;
-      }
+      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
     }
 
     crypto::public_key pkey{};
@@ -374,7 +368,16 @@ namespace
 
     std::vector<uint8_t> accdata01;
     this->m_db->get_account_data(username01, accdata01);
-    ASSERT_TRUE(std::equal(this->m_safex_account1.account_data.begin(), this->m_safex_account1.account_data.end(), this->data1_new.begin()));
+    ASSERT_TRUE(std::equal(accdata01.begin(), accdata01.end(), this->data1_new.begin()));
+
+    memset((void *)&pkey, 0, sizeof(pkey));
+    const safex::account_username username03{this->m_safex_account3.username};
+    this->m_db->get_account_key(username03, pkey);
+    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account3.pkey, sizeof(pkey)), 0);
+
+    std::vector<uint8_t> accdata03;
+    this->m_db->get_account_data(username03, accdata03);
+    ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
 
 
     ASSERT_NO_THROW(this->m_db->close());
