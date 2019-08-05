@@ -42,7 +42,7 @@
 #include "safex/safex_core.h"
 
 #include "chaingen.h"
-#include "token_lock.h"
+#include "token_stake.h"
 
 
 

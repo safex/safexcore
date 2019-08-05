@@ -44,7 +44,7 @@
 //#include "rct.h"
 #include "chain_migration.h"
 #include "token_transactions.h"
-#include "token_lock.h"
+#include "token_stake.h"
 #include "network_fee.h"
 /************************************************************************/
 /*                                                                      */
