@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
 
 #else
 
-    GENERATE_AND_PLAY(gen_token_lock_001);
+    GENERATE_AND_PLAY(gen_safex_account_001);
 
 #endif
 

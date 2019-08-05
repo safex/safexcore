@@ -366,7 +366,8 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
             const tx_out &out = tx.vout[j];
             const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
-            if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_staked_token))
+            if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_staked_token)
+                || (out_type == cryptonote::tx_out_type::out_safex_account) || (out_type == cryptonote::tx_out_type::out_safex_account_update))
             {
               if (out.target.type() == typeid(cryptonote::txout_token_to_key))
               {
@@ -675,6 +676,18 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               ts.referenced_output_type = cryptonote::tx_out_type::out_cash;
               ts.command_type = safex::command_t::donate_network_fee;
             }
+            else if (out_type == cryptonote::tx_out_type::out_safex_account)
+            {
+              ts.token_amount = oi.token_amount;
+              ts.referenced_output_type = cryptonote::tx_out_type::out_token;
+              ts.command_type = safex::command_t::create_account;
+            }
+            else if (out_type == cryptonote::tx_out_type::out_safex_account_update)
+            {
+              ts.referenced_output_type = cryptonote::tx_out_type::out_safex_account;
+              ts.command_type = safex::command_t::edit_account;
+              sources_found = true;
+            }
             else
             {
               throw std::runtime_error("unknown referenced output type");
@@ -695,8 +708,9 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               sources_cash_amount += ts.amount;
               sources_found = value_amount <= sources_cash_amount;
             }
-            else if ((out_type == cryptonote::tx_out_type::out_token) ||
-                     (out_type == cryptonote::tx_out_type::out_staked_token))
+            else if ((out_type == cryptonote::tx_out_type::out_token)
+                     || (out_type == cryptonote::tx_out_type::out_staked_token)
+                     || (out_type == cryptonote::tx_out_type::out_safex_account))
             {
               sources_token_amount += ts.token_amount;
               sources_found = value_amount <= sources_token_amount;
@@ -1025,6 +1039,14 @@ tx_destination_entry create_interest_destination(const cryptonote::account_base 
   return tx_destination_entry{cash_amount, to.get_keys().m_account_address, false, tx_out_type::out_cash};
 }
 
+tx_destination_entry create_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const crypto::public_key &pkey,
+                                                      const std::vector<uint8_t> &account_data)
+{
+  safex::create_account_data acc_output_data{username, pkey, account_data};
+  blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account, blobdata};
+}
+
 void fill_token_stake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const block &blk_head,
                                                   const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                                   std::vector<tx_destination_entry> &destinations)
@@ -1126,6 +1148,63 @@ void fill_donation_tx_sources_and_destinations(const std::vector<test_event_entr
     tx_destination_entry de_change = create_tx_destination(from, cache_back);
     destinations.push_back(de_change);
   }
+}
+
+void fill_create_account_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+                                                  const cryptonote::account_base &from, uint64_t token_amount,
+                                                  uint64_t fee, size_t nmix, const std::string &username, const crypto::public_key &pkey,
+                                                  const std::vector<uint8_t> &account_data, std::vector<tx_source_entry> &sources,
+                                                  std::vector<tx_destination_entry> &destinations)
+{
+  sources.clear();
+  destinations.clear();
+
+  const cryptonote::account_base &to = from;
+
+  //token amount is amount of tokens we want to lock for a period for creating account
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(sources, events, blk_head,  from, fee, nmix, cryptonote::tx_out_type::out_cash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //locked token source
+  if (!fill_tx_sources(sources, events, blk_head,  from, token_amount, nmix, cryptonote::tx_out_type::out_safex_account))
+    throw std::runtime_error("couldn't fill token transaction sources for create account");
+
+  //update source with new account data
+  for (auto &ts: sources) {
+    if (ts.command_type == safex::command_t::create_account) {
+      safex::create_account_data account{username, pkey, account_data};
+      ts.command_safex_data = t_serializable_object_to_blob(account);
+    }
+
+  }
+
+  //destinations
+
+  //locked token destination
+  tx_destination_entry de_token = create_token_tx_destination(to, token_amount);
+  destinations.push_back(de_token);
+
+  //destination token change
+  uint64_t token_back = get_inputs_token_amount(sources) - token_amount;
+  if (0 < token_back)
+  {
+    tx_destination_entry de_token_change = create_token_tx_destination(from, token_back);
+    destinations.push_back(de_token_change);
+  }
+
+  //sender change for fee
+  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    tx_destination_entry de_change = create_tx_destination(from, cache_back);
+    destinations.push_back(de_change);
+  }
+
+  //account
+  tx_destination_entry de_account = create_safex_account_destination(from, username, pkey, account_data);
+  destinations.push_back(de_account);
 }
 
 
@@ -1248,6 +1327,17 @@ bool construct_fee_donation_transaction(const std::vector<test_event_entry>& eve
   std::vector<tx_destination_entry> destinations;
 
   fill_donation_tx_sources_and_destinations(events, blk_head, from, cash_amount, fee, nmix, sources, destinations);
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+}
+
+bool construct_create_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
+                                          const cryptonote::account_base &from, uint64_t fee,
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data)
+{
+  std::vector<tx_source_entry> sources;
+  std::vector<tx_destination_entry> destinations;
+  fill_create_account_sources_and_destinations(events, blk_head, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, pkey, account_data, sources, destinations);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }

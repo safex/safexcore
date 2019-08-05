@@ -705,8 +705,11 @@ namespace cryptonote
 
           }
 
-          CHECK_AND_NO_ASSERT_MES(0 < out.amount || 0 < out.token_amount, false,
-                                  "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        CHECK_AND_NO_ASSERT_MES((0 < out.amount || 0 < out.token_amount || (out.target.type() == typeid(txout_to_script))), false,
+                                "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+
 
 
           auto pkey_opt = boost::apply_visitor(destination_public_key_visitor(), out.target);
