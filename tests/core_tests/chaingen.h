@@ -256,6 +256,10 @@ bool construct_fee_donation_transaction(const std::vector<test_event_entry>& eve
 bool construct_create_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
                                           size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
 
+bool construct_edit_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
+                                        const cryptonote::account_base &from, uint64_t fee,
+                                        size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data);
+
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs);
 bool find_block_chain(const std::vector<test_event_entry>& events, std::vector<cryptonote::block>& blockchain, map_hash2tx_t& mtx, const crypto::hash& head);
 void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
@@ -808,6 +812,17 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, HEAD) \
     std::list<cryptonote::transaction> SET_NAME; \
     MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, HEAD);
+
+
+#define MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, HEAD) MAKE_EDIT_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, 0, HEAD)
+
+#define MAKE_EDIT_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, NMIX, HEAD) \
+  {                                                                                      \
+    cryptonote::transaction t;                                                           \
+    construct_edit_account_transaction(VEC_EVENTS, t, HEAD, FROM, TESTS_DEFAULT_FEE, NMIX, USERNAME, ACCOUNT_DATA); \
+    SET_NAME.push_back(t);                                                               \
+    VEC_EVENTS.push_back(t);                                                             \
+  }
 
 #define MAKE_MINER_TX_MANUALLY(TX, BLK) MAKE_MINER_TX_AND_KEY_MANUALLY(TX, BLK, 0)
 

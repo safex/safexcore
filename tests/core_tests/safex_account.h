@@ -61,6 +61,9 @@ public:
   safex::safex_account safex_account_bob;
   safex::safex_account safex_account_daniel;
 
+  static const std::string data2_alternative;
+
+
   static const size_t expected_blockchain_total_transactions = 319;
   static const size_t expected_blockchain_height = 308;
 

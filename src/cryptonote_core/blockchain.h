@@ -999,6 +999,8 @@ namespace cryptonote
     uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const;
 
     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
+
+    bool get_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const;
   private:
 
     struct outputs_generic_visitor

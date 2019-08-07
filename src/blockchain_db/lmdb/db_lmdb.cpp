@@ -1084,7 +1084,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype); // interval for currently processed output
     update_current_staked_token_sum(tx_output.token_amount, +1);
 
-    //Add tocken lock expiry values
+    //Add token lock expiry values
     //SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD
     MDB_cursor *cur_token_lock_expiry;
     CURSOR(token_lock_expiry);
@@ -1109,10 +1109,6 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
     update_network_fee_sum_for_interval(interval, tx_output.amount);
   }
-
-
-
-
 
 }
 

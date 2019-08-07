@@ -430,7 +430,8 @@ void fill_migration_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vect
 
 }
 
-bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vector<tx_source_entry> &sources, const cryptonote::account_base &from, uint64_t value_amount, size_t nmix,
+bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vector<tx_source_entry> &sources,
+                     const cryptonote::account_base &from, uint64_t value_amount, size_t nmix,
                      cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash)
 {
   map_output_idx_t outs;
@@ -884,7 +885,7 @@ bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<crypto
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
-  fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, new_account_data, sources, destinations);
+  fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, username, new_account_data, sources, destinations);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
