@@ -53,19 +53,19 @@ using namespace cryptonote;
 
 
 const std::string gen_safex_account_001::data2_alternative{"Bob's alternative data"};
+const std::string gen_safex_account_001::data2_alternative_2{"Bob's second alternative data"};
+const std::string gen_safex_account_001::data3_alternative{"Daniels's alternative data 2 ----------------------------------------------------- some other data here -----------------------------------------------"
+" and more data here ----------------------------------------------------------------------------------*****************--------------------------------"};
 
-// class safex_account_001;
-crypto::hash gen_safex_account_001::get_hash_from_string(const std::string hashstr) {
-    //parse bitcoin transaction hash
-    cryptonote::blobdata expected_bitcoin_hash_data;
-    if (!epee::string_tools::parse_hexstr_to_binbuff(std::string(hashstr), expected_bitcoin_hash_data) || expected_bitcoin_hash_data.size() != sizeof(crypto::hash))
-    {
-        std::cerr << "failed to parse bitcoin transaction hash" << endl;
-        return boost::value_initialized<crypto::hash>();
-    }
-    const crypto::hash bitcoin_transaction_hash = *reinterpret_cast<const crypto::hash*>(expected_bitcoin_hash_data.data());
-    return bitcoin_transaction_hash;
-}
+bool gen_safex_account_001::expected_data_fields_intialized{false};
+crypto::public_key gen_safex_account_001::expected_alice_account_key{};
+crypto::public_key gen_safex_account_001::expected_bob_account_key{};
+crypto::public_key gen_safex_account_001::expected_daniel_account_key{};
+
+std::vector<uint8_t> gen_safex_account_001::expected_alice_account_data;
+std::vector<uint8_t> gen_safex_account_001::expected_bob_account_data;
+std::vector<uint8_t> gen_safex_account_001::expected_daniel_account_data;
+
 
 gen_safex_account_001::gen_safex_account_001()
 {
@@ -73,24 +73,45 @@ gen_safex_account_001::gen_safex_account_001()
   safex::safex_account_key_handler m_safex_account1_keys{};
   safex::safex_account_key_handler m_safex_account2_keys{};
   safex::safex_account_key_handler m_safex_account3_keys{};
+  safex::safex_account_key_handler m_safex_account4_keys{};
 
   m_safex_account1_keys.generate();
   m_safex_account2_keys.generate();
   m_safex_account3_keys.generate();
+  m_safex_account4_keys.generate();
 
   safex_account_alice.username = "alice01";
   safex_account_alice.pkey = m_safex_account1_keys.get_keys().m_public_key;
   safex_account_alice.account_data = {'l','o','r','e','m',' ','i','p','s','u','m'};
+
 
   safex_account_bob.username = "bob02";
   safex_account_bob.pkey = m_safex_account2_keys.get_keys().m_public_key;
   std::string data2 = "Bob's data";
   safex_account_bob.account_data = std::vector<uint8_t>(data2.begin(), data2.end());
 
+
   safex_account_daniel.username = "daniel03";
   safex_account_daniel.pkey = m_safex_account3_keys.get_keys().m_public_key;
   std::string data3 = "This is some data for test";
   safex_account_daniel.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
+
+
+  safex_account_edward.username = "edward04";
+  safex_account_edward.pkey = m_safex_account4_keys.get_keys().m_public_key;
+  std::string data4 = "Тхис ис соме Едвардс дата фор тест";
+  safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
+
+  if (!expected_data_fields_intialized)
+  {
+    expected_alice_account_key = safex_account_alice.pkey;
+    expected_bob_account_key = safex_account_bob.pkey;
+    expected_daniel_account_key = safex_account_daniel.pkey;
+    expected_data_fields_intialized = true;
+    expected_alice_account_data = std::vector<uint8_t>(std::begin(safex_account_alice.account_data), std::end(safex_account_alice.account_data));
+    expected_bob_account_data = std::vector<uint8_t>(std::begin(data2_alternative), std::end(data2_alternative));
+    expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
+  }
 
   REGISTER_CALLBACK("verify_safex_account", gen_safex_account_001::verify_safex_account);
 }
@@ -111,7 +132,7 @@ bool gen_safex_account_001::generate(std::vector<test_event_entry> &events)
     MAKE_ACCOUNT(events, alice);
     MAKE_ACCOUNT(events, bob);
     MAKE_ACCOUNT(events, daniel);
-    MAKE_ACCOUNT(events, jack);
+    MAKE_ACCOUNT(events, edward);
 
     MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
     MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
@@ -119,7 +140,7 @@ bool gen_safex_account_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_2r, blk_2, miner);
     MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
     MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(25000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_4, blk_3, miner);
 
@@ -127,18 +148,21 @@ bool gen_safex_account_001::generate(std::vector<test_event_entry> &events)
     //create alice and bob accounts
     MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, alice, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, blk_4);
     MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(events, txlist_2, bob, safex_account_bob.username, safex_account_bob.pkey, safex_account_bob.account_data, blk_4);
+    MAKE_MIGRATION_TX_LIST(events, txlist_2, miner, edward, MK_TOKENS(8000), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[3]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_2);
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
     MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_3, daniel, safex_account_daniel.username, safex_account_daniel.pkey, safex_account_daniel.account_data, blk_6);
     MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(events, txlist_3, bob, safex_account_bob.username, std::vector<uint8_t>(data2_alternative.begin(), data2_alternative.end()), blk_6);
+    MAKE_MIGRATION_TX_LIST(events, txlist_3, miner, bob, MK_TOKENS(20000), blk_6, get_hash_from_string(bitcoin_tx_hashes_str[4]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_3);
     REWIND_BLOCKS(events, blk_8, blk_7, miner);
 
-
-
-
-
+    MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(events, txlist_4, daniel, safex_account_daniel.username, std::vector<uint8_t>(data3_alternative.begin(), data3_alternative.end()), blk_8);
+    //MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(events, txlist_4, bob, safex_account_bob.username, std::vector<uint8_t>(data2_alternative.begin(), data2_alternative.end()), blk_8);
+    MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(events, txlist_4, edward, safex_account_edward.username, safex_account_edward.pkey, safex_account_edward.account_data, blk_8);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_9, blk_8, miner, txlist_4);
+    REWIND_BLOCKS(events, blk_10, blk_9, miner);
 
 
     DO_CALLBACK(events, "verify_safex_account");
@@ -170,25 +194,31 @@ bool gen_safex_account_001::verify_safex_account(cryptonote::core &c, size_t ev_
     bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
     CHECK_TEST_CONDITION(re);
 
-#if 0
-    //cout << "check_token_lock_balance: cash alice = " << get_balance(alice_account, blocks, mtx) << endl;
-    cout << "final alice token balance= " << print_money(get_token_balance(alice_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(alice_account, blocks, mtx)) << endl;
-    cout << "final bob token balance= " << print_money(get_token_balance(bob_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(bob_account, blocks, mtx)) << endl;
-    cout << "final daniel token balance= " << print_money(get_token_balance(daniel_account, blocks, mtx)) << " locked token balance= " << print_money(get_locked_token_balance(daniel_account, blocks, mtx)) << endl;
 
-    int64_t locked_tokens = c.get_staked_tokens(0, gen_safex_account_001::expected_blockchain_height);
-    uint64_t locked_tokens2 = c.get_staked_tokens();
-    cout << "total core locked tokens: " << print_money(locked_tokens) << " currently locked tokens" << print_money(locked_tokens2) << endl;
-    CHECK_EQ(static_cast<uint64_t>(locked_tokens), locked_tokens2);
+    crypto::public_key pkey{};
+    const safex::account_username username01{safex_account_alice.username};
+    c.get_blockchain_storage().get_safex_account_public_key(username01, pkey);
+    CHECK_EQ(memcmp((void *)&pkey, (void *)&expected_alice_account_key, sizeof(pkey)), 0);
 
-    CHECK_EQ(gen_safex_account_001::expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
-    CHECK_EQ(gen_safex_account_001::expected_bob_token_balance, get_token_balance(bob_account, blocks, mtx));
-    CHECK_EQ(gen_safex_account_001::expected_daniel_token_balance, get_token_balance(daniel_account, blocks, mtx));
-    CHECK_EQ(gen_safex_account_001::expected_staked_tokens, c.get_staked_tokens(0, gen_safex_account_001::expected_blockchain_height));
-#endif
+    crypto::public_key pkey2{};
+    const safex::account_username username02{safex_account_bob.username};
+    c.get_blockchain_storage().get_safex_account_public_key(username02, pkey2);
+    CHECK_EQ(memcmp((void *)&pkey2, (void *)&expected_bob_account_key, sizeof(pkey2)), 0);
+
+    crypto::public_key pkey3{};
+    const safex::account_username username03{safex_account_daniel.username};
+    c.get_blockchain_storage().get_safex_account_public_key(username03, pkey3);
+    CHECK_EQ(memcmp((void *)&pkey3, (void *)&expected_daniel_account_key, sizeof(pkey3)), 0);
 
 
-    //todo implement condition check
+  std::vector<uint8_t> accdata01;
+  c.get_blockchain_storage().get_safex_account_data(username01, accdata01);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_account_data.begin(), expected_alice_account_data.end(), accdata01.begin()));
+
+  std::vector<uint8_t> accdata02;
+  c.get_blockchain_storage().get_safex_account_data(username02, accdata02);
+  CHECK_TEST_CONDITION(std::equal(expected_bob_account_data.begin(), expected_bob_account_data.end(), accdata02.begin()));
+
 
     return true;
 }

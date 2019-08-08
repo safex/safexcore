@@ -277,13 +277,14 @@ struct output_index {
     bool spent;
     const cryptonote::block *p_blk;
     const cryptonote::transaction *p_tx;
+    cryptonote::tx_out_type out_type{cryptonote::tx_out_type::out_invalid};
 
     output_index(const cryptonote::txout_target_v &_out, uint64_t _a, uint64_t _t_a, size_t _h, size_t tno, size_t ono, const cryptonote::block *_pb, const cryptonote::transaction *_pt)
         : out(_out), amount(_a), token_amount(_t_a), blk_height(_h), tx_no(tno), out_no(ono), idx(0), spent(false), p_blk(_pb), p_tx(_pt) { }
 
     output_index(const output_index &other)
         : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx),
-        spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx), advanced_output_id{other.advanced_output_id} {  }
+        spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx), advanced_output_id{other.advanced_output_id}, out_type{other.out_type} {  }
 
     const std::string toString() const {
         std::stringstream ss;
@@ -295,6 +296,7 @@ struct output_index {
            << " token_amount=" << token_amount
            << " idx=" << idx
            << " spent=" << spent
+           << " out_type=" << static_cast<int>(out_type)
            << "}";
 
         return ss.str();
@@ -394,6 +396,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                   outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].idx = tx_global_idx;
                   outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].advanced_output_id = output_id_counter-1;
                   outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].blk_height = block_height;
+                  outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].out_type = static_cast<cryptonote::tx_out_type>(temp.output_type);
 
                   // Is out to me?
                   if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
@@ -653,6 +656,11 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
             if ((oi.spent) || (oi.token_amount > 0 && (out_type == cryptonote::tx_out_type::out_cash || out_type == cryptonote::tx_out_type::out_network_fee)) ||
                 (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token)))
               continue;
+
+            if (out_type == cryptonote::tx_out_type::out_safex_account_update && oi.out_type != cryptonote::tx_out_type::out_safex_account)
+                continue;
+
+
 
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
             if (out_type == cryptonote::tx_out_type::out_cash)

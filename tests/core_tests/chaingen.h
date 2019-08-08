@@ -824,6 +824,10 @@ inline bool do_replay_file(const std::string& filename)
     VEC_EVENTS.push_back(t);                                                             \
   }
 
+#define MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, HEAD) \
+    std::list<cryptonote::transaction> SET_NAME; \
+    MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, HEAD);
+
 #define MAKE_MINER_TX_MANUALLY(TX, BLK) MAKE_MINER_TX_AND_KEY_MANUALLY(TX, BLK, 0)
 
 #define SET_EVENT_VISITOR_SETT(VEC_EVENTS, SETT, VAL) VEC_EVENTS.push_back(event_visitor_settings(SETT, VAL));

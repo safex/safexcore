@@ -54,23 +54,29 @@ public:
 
   bool generate(std::vector<test_event_entry> &events);
   bool verify_safex_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
-  crypto::hash get_hash_from_string(const std::string hashstr);
 
 
   safex::safex_account safex_account_alice;
   safex::safex_account safex_account_bob;
   safex::safex_account safex_account_daniel;
+  safex::safex_account safex_account_edward;
 
   static const std::string data2_alternative;
+  static const std::string data2_alternative_2;
+  static const std::string data3_alternative;
 
 
   static const size_t expected_blockchain_total_transactions = 319;
   static const size_t expected_blockchain_height = 308;
 
-  static const uint64_t expected_alice_token_balance = 160000 * SAFEX_TOKEN;
-  static const uint64_t expected_bob_token_balance = 20000 * SAFEX_TOKEN;
-  static const uint64_t expected_daniel_token_balance = 10000 * SAFEX_TOKEN;
+  static bool expected_data_fields_intialized;
+  static crypto::public_key expected_alice_account_key;
+  static crypto::public_key expected_bob_account_key;
+  static crypto::public_key expected_daniel_account_key;
 
-  static const uint64_t expected_staked_tokens = 40000 * SAFEX_TOKEN;
+  static std::vector<uint8_t> expected_alice_account_data;
+  static std::vector<uint8_t> expected_bob_account_data;
+  static std::vector<uint8_t> expected_daniel_account_data;
+
 };
 

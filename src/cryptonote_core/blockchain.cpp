@@ -3049,7 +3049,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         cryptonote::parse_and_validate_from_blob(accblob, account);
         //check username for uniqueness
         crypto::public_key temppkey{};
-        if (get_account_public_key(safex::account_username{account.username}, temppkey))
+        if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
         {
           std::string username(std::begin(account.username), std::end(account.username));
           MERROR("Account with username "+username+" already exists");
@@ -5442,7 +5442,7 @@ std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interva
 }
 
 
-bool Blockchain::get_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const
+bool Blockchain::get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const
 {
 
   try {
@@ -5451,6 +5451,19 @@ bool Blockchain::get_account_public_key(const safex::account_username &username,
   }
   catch (std::exception &ex) {
     MERROR("Error fetching account public key: "+std::string(ex.what()));
+    return false;
+  }
+}
+
+bool Blockchain::get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const
+{
+
+  try {
+    bool result = m_db->get_account_data(username, data);
+    return result;
+  }
+  catch (std::exception &ex) {
+    MERROR("Error fetching account data: "+std::string(ex.what()));
     return false;
   }
 }

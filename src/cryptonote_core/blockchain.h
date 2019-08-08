@@ -1000,7 +1000,8 @@ namespace cryptonote
 
     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
 
-    bool get_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const;
+    bool get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const;
+    bool get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
   private:
 
     struct outputs_generic_visitor
