@@ -248,7 +248,6 @@ namespace safex {
 
     void outputs_protobuf::add_out_entry(const crypto::public_key key, bool unlocked, const uint64_t height, const crypto::hash& txid) 
     {
-        std::cout << "*****************" << std::endl;
         safex::Out_entry* entry = m_outs.add_outs();
         entry->set_key(key.data, 32*sizeof(char));
         entry->set_txid(txid.data, 32*sizeof(char));
@@ -266,4 +265,87 @@ namespace safex {
         return m_outs.SerializeAsString();
     }
 
+    cryptonote::transaction from_string::transaction(const std::string& input) {
+        cryptonote::transaction tx;
+
+        safex::Transaction proto_tx;
+        proto_tx.ParseFromString(input);
+
+        tx.unlock_time = proto_tx.unlock_time();
+        tx.version = proto_tx.version();
+
+        auto extra = proto_tx.extra();
+        tx.extra = std::vector<uint8_t>(extra.begin(), extra.end());
+        
+        size_t input_size = proto_tx.vin_size();
+        for (size_t i = 0; i < input_size; ++i) {
+            safex::txin_v input = proto_tx.vin(i);
+            if (input.has_txin_to_key()) {
+                cryptonote::txin_to_key txin;
+                txin.amount = input.txin_to_key().amount();
+                auto key_image = input.txin_to_key().k_image();
+                memcmp(txin.k_image.data, key_image.c_str(), key_image.length());
+
+                size_t offsets_size = input.txin_to_key().key_offsets_size();
+                for (size_t i = 0; i < offsets_size; ++i) {
+                    txin.key_offsets.push_back(input.txin_to_key().key_offsets(i));
+                }
+                tx.vin.push_back(txin);
+                continue;
+            }
+            
+            if (input.has_txin_token_to_key()) {
+                cryptonote::txin_token_to_key txin;
+                txin.token_amount = input.txin_token_to_key().token_amount();
+                auto key_image = input.txin_token_to_key().k_image();
+                memcmp(txin.k_image.data, key_image.c_str(), key_image.length());
+
+                size_t offsets_size = input.txin_token_to_key().key_offsets_size();
+                for (size_t i = 0; i < offsets_size; ++i) {
+                    txin.key_offsets.push_back(input.txin_token_to_key().key_offsets(i));
+                }
+                tx.vin.push_back(txin);
+            }
+        }
+
+        size_t output_size = proto_tx.vout_size();
+        for (size_t i = 0; i < output_size; ++i) {
+            safex::txout_target_v output = proto_tx.vout(i).target();
+
+            if(output.has_txout_to_key()) {
+                safex::txout_to_key proto_out = output.txout_to_key();
+                cryptonote::txout_to_key out;
+                auto key = proto_out.key();
+                memcmp(out.key.data, key.c_str(), key.length());
+                continue;
+            }
+
+            if(output.has_txout_token_to_key()) {
+                safex::txout_token_to_key proto_out = output.txout_token_to_key();
+                cryptonote::txout_token_to_key out;
+                auto key = proto_out.key();
+                memcmp(out.key.data, key.c_str(), key.length());
+                continue;
+            }
+            
+        }
+
+        size_t signatures_size = proto_tx.signatures_size();
+        for (size_t i = 0; i < signatures_size; ++i) {
+            safex::Signature signatures = proto_tx.signatures(i);
+            tx.signatures.emplace_back();
+            size_t signature_size = signatures.signature_size();
+            for (size_t j = 0; j < signature_size; ++j) {
+                safex::SigData signature = signatures.signature(j);
+                tx.signatures.back().emplace_back();
+                crypto::signature tx_sig = tx.signatures.back().back();
+                auto c = signature.c();
+                auto r = signature.r();
+                memcpy(tx_sig.c.data, c.data(), c.length());
+                memcpy(tx_sig.r.data, r.data(), r.length());
+            }
+        }
+
+        return tx;
+    }
 }
