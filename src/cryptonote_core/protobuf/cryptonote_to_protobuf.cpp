@@ -269,7 +269,7 @@ namespace safex {
         cryptonote::transaction tx;
 
         safex::Transaction proto_tx;
-        proto_tx.ParseFromString(input);
+        proto_tx.ParseFromArray(input.c_str(), input.length());
 
         tx.unlock_time = proto_tx.unlock_time();
         tx.version = proto_tx.version();
@@ -284,7 +284,7 @@ namespace safex {
                 cryptonote::txin_to_key txin;
                 txin.amount = input.txin_to_key().amount();
                 auto key_image = input.txin_to_key().k_image();
-                memcmp(txin.k_image.data, key_image.c_str(), key_image.length());
+                memcpy(txin.k_image.data, key_image.c_str(), key_image.length());
 
                 size_t offsets_size = input.txin_to_key().key_offsets_size();
                 for (size_t i = 0; i < offsets_size; ++i) {
@@ -298,7 +298,7 @@ namespace safex {
                 cryptonote::txin_token_to_key txin;
                 txin.token_amount = input.txin_token_to_key().token_amount();
                 auto key_image = input.txin_token_to_key().k_image();
-                memcmp(txin.k_image.data, key_image.c_str(), key_image.length());
+                memcpy(txin.k_image.data, key_image.c_str(), key_image.length());
 
                 size_t offsets_size = input.txin_token_to_key().key_offsets_size();
                 for (size_t i = 0; i < offsets_size; ++i) {
@@ -316,7 +316,7 @@ namespace safex {
                 safex::txout_to_key proto_out = output.txout_to_key();
                 cryptonote::txout_to_key out;
                 auto key = proto_out.key();
-                memcmp(out.key.data, key.c_str(), key.length());
+                memcpy(out.key.data, key.c_str(), key.length());
                 continue;
             }
 
@@ -324,7 +324,7 @@ namespace safex {
                 safex::txout_token_to_key proto_out = output.txout_token_to_key();
                 cryptonote::txout_token_to_key out;
                 auto key = proto_out.key();
-                memcmp(out.key.data, key.c_str(), key.length());
+                memcpy(out.key.data, key.c_str(), key.length());
                 continue;
             }
             

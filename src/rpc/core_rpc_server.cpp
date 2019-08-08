@@ -836,7 +836,8 @@ namespace cryptonote
     #ifdef SAFEX_PROTOBUF_RPC
 
       CHECK_CORE_READY();
-      cryptonote::transaction tx = safex::from_string::transaction(req.proto_tx);
+      cryptonote::transaction tx = safex::from_string::transaction(req.proto_content);
+      std::cout << "proto_tx: " << req.proto_content << std::endl;
       auto temp =  epee::string_tools::buff_to_hex_nodelimer(tx_to_blob(tx));
 
       std::string tx_blob;

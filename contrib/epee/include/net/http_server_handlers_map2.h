@@ -110,7 +110,7 @@
       MDEBUG( s_pattern << "() processed with " << ticks1-ticks << "/"<< ticks2-ticks1 << "/" << ticks3-ticks2 << "ms"); \
     }
 
-#define MAP_URI_AUTO_PROTOBUF(s_pattern, callback_f, command_type) \
+#define MAP_URI_AUTO_PROTOBUF_RES(s_pattern, callback_f, command_type) \
     else if(query_info.m_URI == s_pattern) \
     { \
       uint64_t ticks = misc_utils::get_tick_count(); \
@@ -132,6 +132,32 @@
       response_info.m_mime_tipe = " application/x-protobuf"; \
       response_info.m_header_info.m_content_type = " application/x-protobuf"; \
       MDEBUG( s_pattern << "() processed with " << ticks1-ticks << "/"<< ticks2-ticks1 << "/" << ticks3-ticks2 << "ms"); \
+    }
+
+#define MAP_URI_AUTO_PROTOBUF_RQ(s_pattern, callback_f, command_type) \
+    else if((query_info.m_URI == s_pattern)) \
+    { \
+      handled = true; \
+      uint64_t ticks = misc_utils::get_tick_count(); \
+      boost::value_initialized<command_type::request> req; \
+      static_cast<command_type::request&>(req).proto_content = query_info.m_body; \
+      bool parse_res = true; \
+      CHECK_AND_ASSERT_MES(parse_res, false, "Failed to parse json: \r\n" << query_info.m_body); \
+      uint64_t ticks1 = epee::misc_utils::get_tick_count(); \
+      boost::value_initialized<command_type::response> resp; \
+      if(!callback_f(static_cast<command_type::request&>(req), static_cast<command_type::response&>(resp))) \
+      { \
+        LOG_ERROR("Failed to " << #callback_f << "()"); \
+        response_info.m_response_code = 500; \
+        response_info.m_response_comment = "Internal Server Error"; \
+        return true; \
+      } \
+      uint64_t ticks2 = epee::misc_utils::get_tick_count(); \
+      epee::serialization::store_t_to_json(static_cast<command_type::response&>(resp), response_info.m_body); \
+      uint64_t ticks3 = epee::misc_utils::get_tick_count(); \
+      response_info.m_mime_tipe = "application/json"; \
+      response_info.m_header_info.m_content_type = " application/json"; \
+      MDEBUG( s_pattern << " processed with " << ticks1-ticks << "/"<< ticks2-ticks1 << "/" << ticks3-ticks2 << "ms"); \
     }
 
 

@@ -2431,14 +2431,14 @@ namespace cryptonote
   {
     struct request
     {
-      std::string proto_tx;
+      std::string proto_content;
       bool do_not_relay;
 
       request() {}
       explicit request(const transaction &);
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(proto_tx)
+        KV_SERIALIZE(proto_content)
         KV_SERIALIZE_OPT(do_not_relay, false)
       END_KV_SERIALIZE_MAP()
     };
