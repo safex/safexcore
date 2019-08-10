@@ -3,6 +3,7 @@
 //
 
 #include "cryptonote_to_protobuf.h"
+#include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include <algorithm>
 #include <memory>
@@ -311,24 +312,68 @@ namespace safex {
         size_t output_size = proto_tx.vout_size();
         for (size_t i = 0; i < output_size; ++i) {
             safex::txout_target_v output = proto_tx.vout(i).target();
-
+            cryptonote::tx_out main_output = AUTO_VAL_INIT(main_output);
             if(output.has_txout_to_key()) {
                 safex::txout_to_key proto_out = output.txout_to_key();
-                cryptonote::txout_to_key out;
+                cryptonote::txout_to_key out = AUTO_VAL_INIT(out);
+                main_output.amount = proto_tx.vout(i).amount();
+                main_output.token_amount = 0;
                 auto key = proto_out.key();
                 memcpy(out.key.data, key.c_str(), key.length());
+                main_output.target = out;
+                tx.vout.push_back(main_output);
                 continue;
             }
 
             if(output.has_txout_token_to_key()) {
                 safex::txout_token_to_key proto_out = output.txout_token_to_key();
-                cryptonote::txout_token_to_key out;
+                cryptonote::txout_token_to_key out = AUTO_VAL_INIT(out);
                 auto key = proto_out.key();
                 memcpy(out.key.data, key.c_str(), key.length());
+                main_output.amount = 0;
+                main_output.token_amount = proto_tx.vout(i).token_amount();
+                main_output.target = out;
+                tx.vout.push_back(main_output);
                 continue;
             }
             
         }
+        // --------------------------------------------------------------------------------
+        for (auto output : tx.vout) {
+            //bool token_type = false;
+            std::cout << "Amount: " << output.amount << std::endl;
+            std::cout << "Token Amount: " << output.token_amount << std::endl;
+           // token_type = cryptonote::is_token_output(output.target);
+
+            auto typeId = output.target.which();
+            char* key_data = nullptr;
+            switch (typeId) {
+                case 0:
+                    std::cout << "Type: txout_to_script output" << std::endl; break;
+                case 1:
+                    std::cout << "Type: txout_to_scripthash output" << std::endl; break;
+                case 2:
+                    std::cout << "Type: txout_to_key output" << std::endl; 
+                    key_data = boost::get<cryptonote::txout_to_key>(output.target).key.data; break;
+                case 3:
+                    std::cout << "Type: txout_token_to_key output" << std::endl;
+                    key_data = boost::get<cryptonote::txout_token_to_key>(output.target).key.data; break;
+                    
+            }
+            std::cout << "Key: ";
+            if (key_data != nullptr) {        
+                for (size_t i = 0; i < 32; ++i) {
+                    std::cout << (int) static_cast<uint8_t>(key_data[i]) << ' ';
+                }
+            } else {
+                std::cout << "Not relevant cause its null, wrong typeid";
+            }
+
+            std::cout << std::endl;
+
+        }
+        // --------------------------------------------------------------------------------
+
 
         size_t signatures_size = proto_tx.signatures_size();
         for (size_t i = 0; i < signatures_size; ++i) {
