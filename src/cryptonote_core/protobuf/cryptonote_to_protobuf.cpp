@@ -383,13 +383,23 @@ namespace safex {
             for (size_t j = 0; j < signature_size; ++j) {
                 safex::SigData signature = signatures.signature(j);
                 tx.signatures.back().emplace_back();
-                crypto::signature tx_sig = tx.signatures.back().back();
+                crypto::signature& tx_sig = tx.signatures.back().back();
                 auto c = signature.c();
                 auto r = signature.r();
                 memcpy(tx_sig.c.data, c.data(), c.length());
                 memcpy(tx_sig.r.data, r.data(), r.length());
             }
         }
+
+         // --------------------------------------------------------------------------------
+         std::cout << "Signatures: " << std::endl;
+         for (size_t i = 0; i < tx.signatures.size(); ++i) {
+             std::cout << "Signature " << i << ": " << std::endl;
+             for(size_t j = 0; j < tx.signatures[i].size(); ++j) {
+                 std::cout << "c: " << epee::string_tools::pod_to_hex(tx.signatures[i][j].c) << std::endl;
+                 std::cout << "r: " << epee::string_tools::pod_to_hex(tx.signatures[i][j].r) << std::endl;
+             }
+         }
 
         return tx;
     }
