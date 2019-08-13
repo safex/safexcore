@@ -1470,6 +1470,16 @@ namespace cryptonote
                                    const crypto::signature &signature, uint64_t &result);
 
     /**
+     * @brief validates a safex account transaction input signature
+     *
+     * @param tx_prefix_hash the transaction prefix' hash
+     * @param sender_safex_account_key safex account public key
+     * @param sig the signature generated for every command input account initiated
+     * @param result false if the account signature is invalid, otherwise true
+     */
+    void check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key,
+                                                   const crypto::signature &signature, uint64_t &result);
+    /**
      * @brief loads block hashes from compiled-in data set
      *
      * A (possibly empty) set of block hashes can be compiled into the

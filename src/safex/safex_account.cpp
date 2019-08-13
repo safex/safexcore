@@ -2,7 +2,15 @@
 // Created by amarko on 22.7.19..
 //
 
+#include <vector>
+#include <iostream>
+#include <stdint.h>
+
+#include "cryptonote_basic/cryptonote_format_utils.h"
+#include "cryptonote_core/cryptonote_core.h"
+#include "safex/command.h"
 #include "safex_account.h"
+
 
 
 namespace safex
@@ -82,5 +90,24 @@ namespace safex
 
 
 
+  bool parse_safex_account_key(const cryptonote::txout_target_v &txout, crypto::public_key& pkey)
+  {
+    const cryptonote::txout_to_script &out = boost::get<cryptonote::txout_to_script>(txout);
+    CHECK_AND_ASSERT_MES(out.output_type == static_cast<uint8_t>(cryptonote::tx_out_type::out_safex_account), false, "Parsing account key from non account output");
+    safex::create_account_data account{};
+    const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+    if (!cryptonote::parse_and_validate_from_blob(accblob, account))
+    {
+      ASSERT_MES_AND_THROW("Failed to parse and validate account from blob");
+    }
+
+    pkey = account.pkey;
+    return true;
+  }
+
+  bool check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key, const crypto::signature &signature)
+  {
+    return crypto::check_signature(tx_prefix_hash, sender_safex_account_key, signature) ? 1 : 0;
+  }
 
 }

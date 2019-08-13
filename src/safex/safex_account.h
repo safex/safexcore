@@ -7,13 +7,13 @@
 
 
 #include <string>
+#include <cryptonote_basic/cryptonote_basic.h>
 
 #include "device/device.hpp"
 #include "crypto/crypto.h"
 #include "serialization/keyvalue_serialization.h"
 
 #include "safex_core.h"
-#include "safex_account.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "safex_account"
@@ -23,22 +23,33 @@ namespace safex
 
   const int MAX_ACCOUNT_DATA_SIZE = 1024;
 
+
+  bool parse_safex_account_key(const cryptonote::txout_target_v &txout, crypto::public_key& pkey);
+
+  bool check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key, const crypto::signature &signature);
+
+
   struct safex_account_keys
   {
-      crypto::public_key m_public_key;
-      crypto::secret_key m_secret_key;
-      hw::device *m_device = &hw::get_device("default");
+    crypto::public_key m_public_key;
+    crypto::secret_key m_secret_key;
+    hw::device *m_device = &hw::get_device("default");
 
-    BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(m_public_key)
-        KV_SERIALIZE(m_secret_key)
-      END_KV_SERIALIZE_MAP()
+  BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(m_public_key)
+      KV_SERIALIZE(m_secret_key)
+    END_KV_SERIALIZE_MAP()
 
-      safex_account_keys &operator=(const safex_account_keys &) = default;
+    safex_account_keys &operator=(const safex_account_keys &) = default;
 
-      hw::device &get_device() const;
+    hw::device &get_device() const;
 
-      void set_device(hw::device &hwdev);
+    bool valid() const
+    {
+      return ((m_secret_key != crypto::secret_key{}) && (m_public_key != crypto::public_key{}) && crypto::check_key(m_public_key));
+    }
+
+    void set_device(hw::device &hwdev);
 
 
   };
@@ -102,6 +113,10 @@ namespace safex
       username{_username}, pkey{_pkey}, account_data{_account_data}
       {
 
+      }
+
+      bool valid() const {
+        return (!(username.empty()));
       }
 
     BEGIN_KV_SERIALIZE_MAP()

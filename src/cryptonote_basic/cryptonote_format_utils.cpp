@@ -444,7 +444,7 @@ namespace cryptonote
     return migration_pub_keys.data;
   }
 
-  crypto::public_key get_migration_pub_key_from_extra(const std::vector<uint8_t>& tx_extra, const int index)
+    crypto::public_key get_migration_pub_key_from_extra(const std::vector<uint8_t>& tx_extra, const int index)
   {
     return get_migration_pub_keys_from_extra(tx_extra)[index];
   }

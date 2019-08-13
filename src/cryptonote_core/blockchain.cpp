@@ -57,6 +57,7 @@
 #include "blocks/blocks.h"
 #endif
 #include "safex/command.h"
+#include "safex/safex_account.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "blockchain"
@@ -3470,6 +3471,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
           //todo atana nothing to do here
           results[sig_index] = true;
         }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          get_safex_account_public_key(cmd->get_username(), account_pkey);
+          tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                            std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+          );
+        }
         else {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_ring_signature, this, std::cref(tx_prefix_hash), std::cref(k_image), std::cref(pubkeys[sig_index]), std::cref(tx.signatures[sig_index]), std::ref(results[sig_index])));
         }
@@ -3560,6 +3569,14 @@ void Blockchain::check_migration_signature(const crypto::hash &tx_prefix_hash,
     get_migration_verification_public_key(m_nettype, sender_public_key);
     result = crypto::check_signature(tx_prefix_hash, sender_public_key, signature) ? 1 : 0;
 }
+//------------------------------------------------------------------
+void Blockchain::check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key,
+                                           const crypto::signature &signature, uint64_t &result)
+{
+
+  result = safex::check_safex_account_signature(tx_prefix_hash, sender_safex_account_key, signature) ? 1 : 0;
+}
+
 
 //------------------------------------------------------------------
 static uint64_t get_fee_quantization_mask()

@@ -1099,7 +1099,19 @@ namespace cryptonote
         if (txin.command_type == safex::command_t::distribute_network_fee) {
           // todo atana: check if this is necessary
           LOG_PRINT_L2("skip key image validation of distributed network fee");
-        } else {
+        } else if (txin.command_type == safex::command_t::edit_account) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
+          safex::edit_account_data account(cmd->get_username(), cmd->get_new_account_data());
+          crypto::hash cmd_hash{};
+          get_object_hash(account, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+
+          LOG_PRINT_L2("skip key image ");
+        }
+        else {
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           // invalid key_image
           if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))

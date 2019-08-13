@@ -446,6 +446,7 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
             const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
             std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
             subaddresses[from.get_keys().m_account_address.m_spend_public_key] = {0,0};
+            if (oi.out_type == tx_out_type::out_safex_account) continue; //key image check not relevant
             generate_key_image_helper(from.get_keys(), subaddresses, out_key, get_tx_pub_key_from_extra(*oi.p_tx), get_additional_tx_pub_keys_from_extra(*oi.p_tx), oi.out_no, in_ephemeral, img, hw::get_device(("default")));
 
             // lookup for this key image in the events vector
@@ -617,8 +618,19 @@ bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t
 
     if (append)
     {
-      const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
-      output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+      if (oi.out_type == tx_out_type::out_safex_account) {
+        crypto::public_key key{};
+        if (!safex::parse_safex_account_key(oi.out, key)) {
+          return false;
+        }
+        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+
+      }
+      else
+      {
+        const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
+        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+      }
     }
   }
 
@@ -1423,13 +1435,13 @@ bool construct_create_account_transaction(const std::vector<test_event_entry>& e
 
 bool construct_edit_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
                                           const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data)
+                                          size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, const safex::safex_account_keys &sfx_acc_keys)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_edit_account_tx_sources_and_destinations(events, blk_head, from, 0, fee, nmix, username, new_account_data, sources, destinations);
 
-  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
 
 
