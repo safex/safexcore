@@ -47,17 +47,18 @@ namespace cryptonote
     if (!try_connect_to_daemon())
       return true;
 
-    if ((command_type == CommandType::TransferStakeToken) ||
-            (command_type == CommandType::TransferDonation) ||
-            (command_type == CommandType::TransferUnstakeToken) ||
-            (command_type == CommandType::TransferDemoPurchase))
-    {
-      //do nothing
-    }
-    else
-    {
-      fail_msg_writer() << tr("command not supported");
-      return true;
+    switch (command_type) {
+      case CommandType::TransferStakeToken:
+      case CommandType::TransferDonation:
+      case CommandType::TransferUnstakeToken:
+      case CommandType::TransferDemoPurchase:
+      case CommandType::TransferCreateAccount:
+      case CommandType::TransferEditAccount:
+        //do nothing
+        break;
+      default:
+        fail_msg_writer() << tr("command not supported");
+        return true;
     }
 
     LOCK_IDLE_SCOPE();
@@ -132,7 +133,21 @@ namespace cryptonote
       return true;
     }
 
-    const size_t min_args = (command_type == CommandType::TransferDonation) ? 1:2;
+    size_t min_args{2};
+
+    switch (command_type) {
+      case CommandType::TransferDonation:
+        min_args = 1;
+      break;
+      case CommandType::TransferCreateAccount:
+        min_args = 3;
+      break;
+
+      default:
+        //min_args is 2
+        break;
+    }
+    
     if (local_args.size() < min_args)
     {
       fail_msg_writer() << tr("wrong number of arguments");
@@ -520,11 +535,10 @@ namespace cryptonote
     return create_command(CommandType::TransferDonation, args);
   }
 
-  bool simple_wallet::locked_token_balance(const std::vector<std::string> &args)
+  bool simple_wallet::staked_token_balance(const std::vector<std::string> &args)
   {
     return false;
   }
-
 
   bool simple_wallet::show_staked_token_balance_unlocked(bool detailed)
   {
@@ -589,6 +603,48 @@ namespace cryptonote
     for(auto& pair : interest_per_output)
     {
       success_msg_writer() << boost::format("%30s %20s") % pair.first % print_money(pair.second);
+    }
+    return true;
+  }
+
+  void simple_wallet::print_safex_accounts()
+  {
+    //todo Atana implement
+  }
+
+  bool simple_wallet::safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+  {
+    // Usage:
+    //   safex_account
+    //   safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>
+    //   safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>
+
+    if (args.empty())
+    {
+      // print all the existing accounts
+      LOCK_IDLE_SCOPE();
+      print_safex_accounts();
+      return true;
+    }
+
+    std::vector<std::string> local_args = args;
+    std::string command = local_args[0];
+    local_args.erase(local_args.begin());
+    if (command == "create")
+    {
+      // create a new safex account transaction
+      return create_command(CommandType::TransferCreateAccount, local_args);
+    }
+    else if (command == "edit" && local_args.size() == 1)
+    {
+      return create_command(CommandType::TransferEditAccount, local_args);
+    }
+    else
+    {
+      fail_msg_writer() << tr("usage:\n"
+                              "  safex_account\n"
+                              "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>\n"
+                              "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>");
     }
     return true;
   }

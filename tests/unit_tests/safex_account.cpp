@@ -97,6 +97,9 @@ namespace
         std::string data3 = "This is some data for test";
         m_safex_account3.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
 
+        std::cout << "Alice public key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_public_key) << std::endl;
+        std::cout << "Alice private key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_secret_key) << std::endl;
+
         const std::string data1_new_str = "Another data tesst for edit";
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 

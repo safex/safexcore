@@ -1300,7 +1300,7 @@ namespace cryptonote
           }
           else if (src_entr.referenced_output_type == tx_out_type::out_safex_account) {
             crypto::generate_signature(tx_prefix_hash, sfx_acc_keys.m_public_key, sfx_acc_keys.m_secret_key, *sigs.data());
-            MCINFO("construct_tx", "sfx account " << src_entr.real_output << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str());
+            MCINFO("construct_tx", "sfx account advanced_output_id="<< src_entr.real_output);
           }
           else if (src_entr.referenced_output_type == tx_out_type::out_network_fee && src_entr.command_type == safex::command_t::distribute_network_fee) {
             //todo Atana, figure out how to handle this case

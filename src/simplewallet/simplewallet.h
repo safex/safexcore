@@ -70,7 +70,9 @@ namespace cryptonote
     TransferStakeToken,
     TransferUnstakeToken,
     TransferDonation,
-    TransferDemoPurchase
+    TransferDemoPurchase,
+    TransferCreateAccount,
+    TransferEditAccount
   };
 
   /*!
@@ -233,11 +235,6 @@ namespace cryptonote
     bool blackballed(const std::vector<std::string>& args);
     bool version(const std::vector<std::string>& args);
 
-    bool get_my_interest(const std::vector<std::string>& args);
-
-    // ------ Mock up for demo
-    bool list_demo_offers(const std::vector<std::string>& args);
-
     uint64_t get_daemon_blockchain_height(std::string& err);
     bool try_connect_to_daemon(bool silent = false, uint32_t* version = nullptr);
     bool ask_wallet_create_if_needed();
@@ -249,14 +246,21 @@ namespace cryptonote
     bool print_seed(bool encrypted);
 
     /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
-    
+
+    bool get_my_interest(const std::vector<std::string>& args);
+    void print_safex_accounts();
+
+    // ------ Mock up for demo
+    bool list_demo_offers(const std::vector<std::string>& args);
+
     // Function responsible for 
     bool create_command(CommandType command_type, const std::vector<std::string> &args);
 
     bool stake_token(const std::vector<std::string> &args);
     bool unstake_token(const std::vector<std::string> &args);
     bool donate_safex_fee(const std::vector<std::string>& args);
-    bool locked_token_balance(const std::vector<std::string>& args);
+    bool staked_token_balance(const std::vector <std::string> &args);
+    bool safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/);
 
     bool demo_purchase(const std::vector<std::string>& args);
     /****************************************************************************************************************/
