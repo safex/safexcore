@@ -197,16 +197,9 @@ namespace safex
   };
 
   create_account_result* create_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount >= SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE), "Create account requires minimum "+
-      std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens", this->get_command_type());
 
-
-
-    //todo chek if account username is valid
-    //todo check if account username already exists
-    //todo check account description size
-
-
+    execution_status result = validate(blokchain, txin);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate create account command", this->get_command_type());
 
     create_account_result *cr = new create_account_result{this->username, this->pkey, this->account_data};
     cr->valid = true;
@@ -219,25 +212,25 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount >= SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE), "Create account requires minimum "+
                   std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens", this->get_command_type());
 
-    execution_status result = execution_status::ok;
     //todo chek if account username is valid
     //todo check if account username already exists
     //todo check account description size
 
 
+    execution_status result = execution_status::ok;
 
     return result;
   };
 
   edit_account_result* edit_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    edit_account_result *cr = new edit_account_result{};
 
-    //todo check if account username is valid and exists
-    //todo check account signature for new data
+    execution_status result = validate(blokchain, txin);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate edit account command", this->get_command_type());
 
-
+    edit_account_result *cr = new edit_account_result{this->username, this->new_account_data};
     cr->valid = true;
     cr->status = execution_status::ok;
+
     return cr;
   };
 

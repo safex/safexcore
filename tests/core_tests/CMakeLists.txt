@@ -37,7 +37,8 @@ set(core_tests_sources
   chaingen001.cpp
   chaingen_main.cpp
   token_transactions.cpp
-  token_lock.cpp
+  token_stake.cpp
+  safex_account.cpp
   double_spend.cpp
   integer_overflow.cpp
   ring_signature_1.cpp
@@ -63,7 +64,8 @@ set(core_tests_headers
   v2_tests.h
   chain_migration.h
   token_transactions.h
-  token_lock.h
+  token_stake.h
+  safex_account.h
   network_fee.h)
 
 add_executable(core_tests

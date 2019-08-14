@@ -192,11 +192,14 @@ int main(int argc, char* argv[])
     /* safex tx validation */
     GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
 
+    /* accounts */
+    GENERATE_AND_PLAY(gen_safex_account_001);
+
     //todo atana test unlock and interest invalid transacitons
 
 #else
 
-    GENERATE_AND_PLAY(gen_token_lock_001);
+    GENERATE_AND_PLAY(gen_safex_account_001);
 
 #endif
 

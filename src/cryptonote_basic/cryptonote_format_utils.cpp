@@ -205,7 +205,7 @@ namespace cryptonote
       additional_recv_derivations.push_back(additional_recv_derivation);
     }
 
-    boost::optional<subaddress_receive_info> subaddr_recv_info = is_out_to_acc_precomp(subaddresses, out_key, recv_derivation, additional_recv_derivations, real_output_index,hwdev);
+    boost::optional<subaddress_receive_info> subaddr_recv_info = is_out_to_acc_precomp(subaddresses, out_key, recv_derivation, additional_recv_derivations, real_output_index, hwdev);
     CHECK_AND_ASSERT_MES(subaddr_recv_info, false, "key image helper: given output pubkey doesn't seem to belong to this address");
 
     return generate_key_image_helper_precomp(ack, out_key, subaddr_recv_info->derivation, real_output_index, subaddr_recv_info->index, in_ephemeral, ki, hwdev);
@@ -705,8 +705,11 @@ namespace cryptonote
 
           }
 
-          CHECK_AND_NO_ASSERT_MES(0 < out.amount || 0 < out.token_amount, false,
-                                  "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        CHECK_AND_NO_ASSERT_MES((0 < out.amount || 0 < out.token_amount || (out.target.type() == typeid(txout_to_script))), false,
+                                "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+
 
 
           auto pkey_opt = boost::apply_visitor(destination_public_key_visitor(), out.target);

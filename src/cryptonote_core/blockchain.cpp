@@ -324,6 +324,12 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::distribute_network_fee:
       output_type = tx_out_type::out_network_fee;
       break;
+    case safex::command_t::create_account:
+      output_type = tx_out_type::out_token;
+      break;
+    case safex::command_t::edit_account:
+      output_type = tx_out_type::out_safex_account;
+      break;
     default:
       MERROR_VER("Unknown command type");
       return false;
@@ -339,6 +345,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   switch (output_type)
   {
     case tx_out_type::out_staked_token:
+    case tx_out_type::out_safex_account:
     {
       absolute_offsets = txin.key_offsets;
       break;
@@ -474,8 +481,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     }
   }
 /* Handle advanced outputs that should be spend in the transaction */
-  else if ((output_type == tx_out_type::out_staked_token) ||
-          (output_type == tx_out_type::out_network_fee)) {
+  else if ((output_type == tx_out_type::out_staked_token)
+           || (output_type == tx_out_type::out_network_fee)
+           || (output_type == tx_out_type::out_safex_account)) {
 
     std::vector<output_advanced_data_t> outputs;
     bool found = false;
@@ -2905,9 +2913,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     return false;
   }
 
-  //execute all command logic
+  //validate all command logic
   for (const txin_to_script* pcmd: input_commands_to_execute)
-    if (!safex::execute_safex_command(*m_db, *pcmd)) {
+    if (!safex::validate_safex_command(*m_db, *pcmd)) {
       tvc.m_safex_command_execution_failed = true;
       return false;
     }
@@ -3025,6 +3033,77 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       MERROR("Token unstake interest too high");
       tvc.m_safex_invalid_input = true;
       return false;
+    }
+  }
+  else if (command_type == safex::command_t::create_account)
+  {
+    //todo check if there are 100 tokens locked on output
+
+    for (const auto &vout: tx.vout)
+    {
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+      {
+        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+        safex::create_account_data account;
+        const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+        cryptonote::parse_and_validate_from_blob(accblob, account);
+        //check username for uniqueness
+        crypto::public_key temppkey{};
+        if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
+        {
+          std::string username(std::begin(account.username), std::end(account.username));
+          MERROR("Account with username "+username+" already exists");
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        //check if account pkey is valid
+        if (!crypto::check_key(account.pkey))
+        {
+          MERROR("Account public key not valid");
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+        {
+          MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+      }
+    }
+  }
+  else if (command_type == safex::command_t::edit_account)
+  {
+    //todo check for signature of account owner
+
+    for (const auto &vout: tx.vout)
+    {
+      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+      {
+        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+        safex::edit_account_data account;
+        const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+        cryptonote::parse_and_validate_from_blob(accblob, account);
+        //check username for uniqueness
+        crypto::public_key temppkey{};
+        if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
+        {
+          std::string username(std::begin(account.username), std::end(account.username));
+          MERROR("Account with username "+username+" does not exists");
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        //check account new data size
+        if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+        {
+          MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+      }
     }
   }
   else
@@ -3154,6 +3233,16 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   {
     //todo atana calculate if interest amount matches
     if (txin.amount == 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::create_account)
+  {
+    if (txin.amount != 0 || txin.token_amount < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::edit_account)
+  {
+    if (txin.amount > 0 || txin.token_amount > 0)
       return false;
   }
   else
@@ -5350,6 +5439,33 @@ std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interva
   }
 
   return interest_map;
+}
+
+
+bool Blockchain::get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const
+{
+
+  try {
+    bool result = m_db->get_account_key(username, pkey);
+    return result;
+  }
+  catch (std::exception &ex) {
+    MERROR("Error fetching account public key: "+std::string(ex.what()));
+    return false;
+  }
+}
+
+bool Blockchain::get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const
+{
+
+  try {
+    bool result = m_db->get_account_data(username, data);
+    return result;
+  }
+  catch (std::exception &ex) {
+    MERROR("Error fetching account data: "+std::string(ex.what()));
+    return false;
+  }
 }
 
 
