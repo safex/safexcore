@@ -120,6 +120,8 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
                          const cryptonote::account_base &from, cryptonote::tx_out_type out_type)
 {
 
+  int output_id_counter = 0;
+  int block_height = 0;
   BOOST_FOREACH (const block &blk, blockchain)
         {
           std::vector<const transaction *> vtx;
@@ -142,6 +144,7 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
 
             for (size_t j = 0; j < tx.vout.size(); ++j)
             {
+              output_id_counter+=1;
               const tx_out &out = tx.vout[j];
               const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
@@ -163,17 +166,22 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
                 else if (out.target.type() == typeid(cryptonote::txout_to_script))
                 {
                   const txout_to_script &temp = boost::get<txout_to_script>(out.target);
-                  if (temp.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
+                  if ((temp.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
+                      || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)))
                   {
                     //cast tx_out_type and use it as imaginary amount for advanced outputs
                     output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
-                    outs[static_cast<uint64_t>(tx_out_type::out_staked_token)].push_back(oi);
-                    size_t tx_global_idx = outs[static_cast<uint64_t>(tx_out_type::out_staked_token)].size() - 1;
-                    outs[static_cast<uint64_t>(tx_out_type::out_staked_token)][tx_global_idx].idx = tx_global_idx;
+                    outs[static_cast<uint64_t>(temp.output_type)].push_back(oi);
+                    size_t tx_global_idx = outs[static_cast<uint64_t>(temp.output_type)].size() - 1;
+                    outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].idx = tx_global_idx;
+                    outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].advanced_output_id = output_id_counter-1;
+                    outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].blk_height = block_height;
+                    outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].out_type = static_cast<cryptonote::tx_out_type>(temp.output_type);
+
                     // Is out to me?
                     if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
                     {
-                      outs_mine[static_cast<uint64_t>(tx_out_type::out_staked_token)].push_back(tx_global_idx);
+                      outs_mine[static_cast<uint64_t>(temp.output_type)].push_back(tx_global_idx);
                     }
                   }
                 }
@@ -196,6 +204,7 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
               }
             }
           }
+          block_height++;
         }
 
 
@@ -275,6 +284,53 @@ bool fill_output_entries(std::vector<output_index> &out_indices, size_t sender_o
     {
       const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
       output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+    }
+  }
+
+  return 0 == rest && sender_out_found;
+}
+
+bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t sender_out, size_t nmix, size_t& real_entry_idx, std::vector<tx_source_entry::output_entry>& output_entries)
+{
+  if (out_indices.size() <= nmix)
+    return false;
+
+  bool sender_out_found = false;
+  size_t rest = nmix;
+  for (size_t i = 0; i < out_indices.size() && (0 < rest || !sender_out_found); ++i)
+  {
+    const output_index& oi = out_indices[i];
+    if (oi.spent)
+      continue;
+
+    bool append = false;
+    if (i == sender_out)
+    {
+      append = true;
+      sender_out_found = true;
+      real_entry_idx = output_entries.size();
+    }
+    else if (0 < rest)
+    {
+      --rest;
+      append = true;
+    }
+
+    if (append)
+    {
+      if (oi.out_type == tx_out_type::out_safex_account) {
+        crypto::public_key key{};
+        if (!safex::parse_safex_account_key(oi.out, key)) {
+          return false;
+        }
+        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+
+      }
+      else
+      {
+        const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
+        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+      }
     }
   }
 
@@ -456,6 +512,9 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
                 (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token || out_type == cryptonote::tx_out_type::out_safex_account)))
               continue;
 
+            if (out_type == cryptonote::tx_out_type::out_safex_account_update && oi.out_type != cryptonote::tx_out_type::out_safex_account)
+              continue;
+
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
             if (out_type == cryptonote::tx_out_type::out_cash)
             {
@@ -489,7 +548,6 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
             {
               ts.referenced_output_type = cryptonote::tx_out_type::out_safex_account;
               ts.command_type = safex::command_t::edit_account;
-              sources_found = true;
             }
             else
             {
@@ -498,8 +556,29 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
             ts.real_output_in_tx_index = oi.out_no;
             ts.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // incoming tx public key
             size_t realOutput;
-            if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
-              continue;
+
+            switch (out_type) {
+              case cryptonote::tx_out_type::out_safex_account_update:
+              {
+                if (!fill_output_entries_advanced(outs[static_cast<uint64_t>(ts.referenced_output_type)], sender_out, nmix, realOutput, ts.outputs))
+                  continue;
+
+                sources_found = true;
+              }
+                break;
+
+              case cryptonote::tx_out_type::out_cash:
+              case cryptonote::tx_out_type::out_token:
+              case cryptonote::tx_out_type::out_network_fee:
+              case cryptonote::tx_out_type::out_staked_token:
+              case cryptonote::tx_out_type::out_safex_account:
+              default:
+              {
+                if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
+                  continue;
+              }
+                break;
+            }
 
             ts.real_output = realOutput;
 
@@ -881,13 +960,13 @@ bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryp
 }
 
 bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data)
+                                          size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, const safex::safex_account_keys &sfx_acc_keys)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, username, new_account_data, sources, destinations);
 
-  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
 
 
