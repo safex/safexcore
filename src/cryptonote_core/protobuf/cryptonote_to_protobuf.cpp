@@ -308,7 +308,7 @@ namespace safex {
                 tx.vin.push_back(txin);
             }
         }
-
+        
         size_t output_size = proto_tx.vout_size();
         for (size_t i = 0; i < output_size; ++i) {
             safex::txout_target_v output = proto_tx.vout(i).target();
@@ -337,43 +337,10 @@ namespace safex {
                 continue;
             }
             
+        
         }
+        
         // --------------------------------------------------------------------------------
-        for (auto output : tx.vout) {
-            //bool token_type = false;
-            std::cout << "Amount: " << output.amount << std::endl;
-            std::cout << "Token Amount: " << output.token_amount << std::endl;
-           // token_type = cryptonote::is_token_output(output.target);
-
-            auto typeId = output.target.which();
-            char* key_data = nullptr;
-            switch (typeId) {
-                case 0:
-                    std::cout << "Type: txout_to_script output" << std::endl; break;
-                case 1:
-                    std::cout << "Type: txout_to_scripthash output" << std::endl; break;
-                case 2:
-                    std::cout << "Type: txout_to_key output" << std::endl; 
-                    key_data = boost::get<cryptonote::txout_to_key>(output.target).key.data; break;
-                case 3:
-                    std::cout << "Type: txout_token_to_key output" << std::endl;
-                    key_data = boost::get<cryptonote::txout_token_to_key>(output.target).key.data; break;
-                    
-            }
-            std::cout << "Key: ";
-            if (key_data != nullptr) {        
-                for (size_t i = 0; i < 32; ++i) {
-                    std::cout << (int) static_cast<uint8_t>(key_data[i]) << ' ';
-                }
-            } else {
-                std::cout << "Not relevant cause its null, wrong typeid";
-            }
-
-            std::cout << std::endl;
-
-        }
-        // --------------------------------------------------------------------------------
-
 
         size_t signatures_size = proto_tx.signatures_size();
         for (size_t i = 0; i < signatures_size; ++i) {
@@ -390,16 +357,6 @@ namespace safex {
                 memcpy(tx_sig.r.data, r.data(), r.length());
             }
         }
-
-         // --------------------------------------------------------------------------------
-         std::cout << "Signatures: " << std::endl;
-         for (size_t i = 0; i < tx.signatures.size(); ++i) {
-             std::cout << "Signature " << i << ": " << std::endl;
-             for(size_t j = 0; j < tx.signatures[i].size(); ++j) {
-                 std::cout << "c: " << epee::string_tools::pod_to_hex(tx.signatures[i][j].c) << std::endl;
-                 std::cout << "r: " << epee::string_tools::pod_to_hex(tx.signatures[i][j].r) << std::endl;
-             }
-         }
 
         return tx;
     }
