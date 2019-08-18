@@ -830,6 +830,77 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+   bool core_rpc_server::on_send_proto_raw_tx(const COMMAND_RPC_PROTO_SEND_RAW_TX::request& req, COMMAND_RPC_PROTO_SEND_RAW_TX::response& res)
+  {
+    bool ok = false;
+    #ifdef SAFEX_PROTOBUF_RPC
+
+      CHECK_CORE_READY();
+      cryptonote::transaction tx = safex::from_string::transaction(req.proto_content);
+      auto temp =  epee::string_tools::buff_to_hex_nodelimer(tx_to_blob(tx));
+
+      std::string tx_blob;
+      if(!string_tools::parse_hexstr_to_binbuff(temp, tx_blob))
+      {
+        LOG_PRINT_L0("[on_send_raw_tx]: Failed to parse tx from hexbuff: " << temp);
+        res.status = "Failed";
+        return true;
+      }
+
+      cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
+      tx_verification_context tvc = AUTO_VAL_INIT(tvc);
+      if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verifivation_failed)
+      {
+        res.status = "Failed";
+        res.reason = "";
+        if ((res.low_mixin = tvc.m_low_mixin))
+          add_reason(res.reason, "ring size too small");
+        if ((res.double_spend = tvc.m_double_spend))
+          add_reason(res.reason, "double spend");
+        if ((res.invalid_input = tvc.m_invalid_input))
+          add_reason(res.reason, "invalid input");
+        if ((res.invalid_output = tvc.m_invalid_output))
+          add_reason(res.reason, "invalid output");
+        if ((res.too_big = tvc.m_too_big))
+          add_reason(res.reason, "too big");
+        if ((res.overspend = tvc.m_overspend))
+          add_reason(res.reason, "overspend");
+        if ((res.fee_too_low = tvc.m_fee_too_low))
+          add_reason(res.reason, "fee too low");
+        if ((res.not_rct = tvc.m_not_rct))
+          add_reason(res.reason, "tx is not ringct");
+        const std::string punctuation = res.reason.empty() ? "" : ": ";
+        if (tvc.m_verifivation_failed)
+        {
+          LOG_PRINT_L0("[on_send_raw_tx]: tx verification failed" << punctuation << res.reason);
+        }
+        else
+        {
+          LOG_PRINT_L0("[on_send_raw_tx]: Failed to process tx" << punctuation << res.reason);
+        }
+        return true;
+      }
+
+      if(!tvc.m_should_be_relayed)
+      {
+        LOG_PRINT_L0("[on_send_raw_tx]: tx accepted, but not relayed");
+        res.reason = "Not relayed";
+        res.not_relayed = true;
+        res.status = CORE_RPC_STATUS_OK;
+        return true;
+      }
+
+      NOTIFY_NEW_TRANSACTIONS::request r;
+      r.txs.push_back(tx_blob);
+      m_core.get_protocol()->relay_transactions(r, fake_context);
+      //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
+      res.status = CORE_RPC_STATUS_OK;
+
+    #endif
+
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_start_mining(const COMMAND_RPC_START_MINING::request& req, COMMAND_RPC_START_MINING::response& res)
   {
     PERF_TIMER(on_start_mining);
