@@ -31,6 +31,7 @@
 
 if(BUILD_SAFEX_PROTOBUF_RPC)
     add_definitions(-DSAFEX_PROTOBUF_RPC=1)
+    add_definitions(-DPROTOBUF_INLINE_NOT_IN_HEADERS=0)
     set(cryptonote_core_sources
         blockchain.cpp
         cryptonote_core.cpp
