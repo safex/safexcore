@@ -2557,6 +2557,7 @@ namespace cryptonote
 
     struct response
     {
+      std::string txid;
       std::string status;
       std::string reason;
       bool not_relayed;
@@ -2571,6 +2572,7 @@ namespace cryptonote
       bool untrusted;
 
       BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(txid)
         KV_SERIALIZE(status)
         KV_SERIALIZE(reason)
         KV_SERIALIZE(not_relayed)
