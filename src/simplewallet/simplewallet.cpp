@@ -1247,7 +1247,7 @@ simple_wallet::simple_wallet()
                               "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>\n"
                               "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>"),
                            tr("If no arguments are specified, the wallet shows all the existing safex accounts along with their balances.\n"
-                               "If the \"create\" argument is specified, the wallet creates a new safex account with with its username, label and account data initialized from parameters\n"
+                               "If the \"create\" argument is specified, the wallet creates a new safex account with username, label and account data initialized from parameters\n"
                                "If the \"edit\" argument is specified, the wallet edits account data specified by username.\n"
                                "Optionally set priority, ring_size for input tokens or subaddress index to use"));
 

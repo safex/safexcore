@@ -28,7 +28,9 @@
 #include "wallet/wallet_args.h"
 #include "version.h"
 #include <stdexcept>
+#include <safex/command.h>
 #include "simplewallet_common.h"
+#include "safex/safex_account.h"
 
 using namespace std;
 using namespace epee;
@@ -38,12 +40,21 @@ using boost::lexical_cast;
 namespace cryptonote
 {
 
+  tx_destination_entry create_safex_account_destination(const account_public_address &to, const std::string &username, const crypto::public_key &pkey,
+                                                        const std::vector<uint8_t> &account_data)
+  {
+    safex::create_account_data acc_output_data{username, pkey, account_data};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+    return tx_destination_entry{0, to, false, tx_out_type::out_safex_account, blobdata};
+  }
+
+
+
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
-
-    //  "stake_token [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <token_amount> [<payment_id>] [<offer_id]"
-    if (m_wallet->ask_password() && !get_and_verify_password())
-    { return true; }
+    //todo Uncomment
+//    if (m_wallet->ask_password() && !get_and_verify_password())
+//    { return true; }
     if (!try_connect_to_daemon())
       return true;
 
@@ -157,8 +168,9 @@ namespace cryptonote
     std::string payment_id_str;
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
+    bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) ? true: false;
     bool expect_even = (min_args % 2 == 1);
-    if ((expect_even ? 0 : 1) == local_args.size() % 2)
+    if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
       payment_id_str = local_args.back();
       local_args.pop_back();
@@ -193,89 +205,148 @@ namespace cryptonote
     uint64_t safex_network_fee = 0;
     
     vector<cryptonote::tx_destination_entry> dsts;
-    for (size_t i = 0; i < local_args.size(); i += 2)
-    {
+
+    if (command_type == CommandType::TransferCreateAccount || command_type == CommandType::TransferEditAccount) {
+      //use my own current subaddress as destination
       cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
-      cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
-
-      if (command_type == CommandType::TransferDonation) {
-        //use my own address as destination
-        std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
-        local_args.insert(local_args.begin()+i, destination_addr);
-      }
-
-      if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[i], oa_prompter))
+      std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
       {
         fail_msg_writer() << tr("failed to parse address");
         return true;
       }
-      de.addr = info.address;
-      de.is_subaddress = info.is_subaddress;
 
-      if (info.has_payment_id)
+      if ((command_type == CommandType::TransferCreateAccount))
       {
-        if (payment_id_seen)
+
+        const std::string &username = local_args[0];
+        const std::string &pkey_str = local_args[1];
+        crypto::public_key pkey;
+
+        if (!epee::string_tools::hex_to_pod(pkey_str.substr(0, 64), pkey))
         {
-          fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[i];
+          fail_msg_writer() << tr("failed to parse account public key");
           return true;
         }
 
-        std::string extra_nonce;
-        set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
-        bool r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
-        if (!r)
-        {
-          fail_msg_writer() << tr("failed to set up payment id, though it was decoded correctly");
+        if (!crypto::check_key(pkey)) {
+          fail_msg_writer() << tr("invalid public key");
           return true;
         }
-        payment_id_seen = true;
+
+        std::ostringstream accdata_ostr;
+        std::copy(local_args.begin() + 2, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
+        const std::string accdata_str = accdata_ostr.str();
+        std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
+        if (accdata.size() == 0) {
+          fail_msg_writer() << tr("failed to parse account data");
+          return false;
+        }
+        std::cout << "Data:" << accdata_str<<std::endl;
+        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, username, pkey, accdata);
+
+        dsts.push_back(de_account);
+
+        //lock tokens for account creation
+        cryptonote::tx_destination_entry token_create_fee = AUTO_VAL_INIT(token_create_fee);
+        token_create_fee.addr = info.address;
+        token_create_fee.is_subaddress = info.is_subaddress;
+        token_create_fee.token_amount = SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE;
+        token_create_fee.output_type = tx_out_type::out_token;
+        dsts.push_back(token_create_fee);
+
+
+
       }
+    }
+    else
+    {
 
-      uint64_t value_amount = 0;
-
-      bool ok = cryptonote::parse_amount(value_amount, local_args[i + 1]);
-      if (!ok || 0 == value_amount)
+      for (size_t i = 0; i < local_args.size(); i += 2)
       {
-        fail_msg_writer() << tr("amount is wrong: ") << local_args[i] << ' ' << local_args[i + 1] <<
-                          ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
-        return true;
-      }
-    
+        cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+        cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
-      if (command_type == CommandType::TransferStakeToken)
-      {
-        if (!tools::is_whole_token_amount(value_amount))
+        if ((command_type == CommandType::TransferDonation))
         {
-          fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+          //use my own address as destination
+          std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+          local_args.insert(local_args.begin() + i, destination_addr);
+        }
+
+        if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[i], oa_prompter))
+        {
+          fail_msg_writer() << tr("failed to parse address");
           return true;
         }
-        de.token_amount = value_amount;
-        de.script_output = true;
-        de.output_type = tx_out_type::out_staked_token;
-      }
-      else if (command_type == CommandType::TransferUnstakeToken)
-      {
-        if (!tools::is_whole_token_amount(value_amount))
+        de.addr = info.address;
+        de.is_subaddress = info.is_subaddress;
+
+        if (info.has_payment_id)
         {
-          fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+          if (payment_id_seen)
+          {
+            fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[i];
+            return true;
+          }
+
+          std::string extra_nonce;
+          set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+          bool r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
+          if (!r)
+          {
+            fail_msg_writer() << tr("failed to set up payment id, though it was decoded correctly");
+            return true;
+          }
+          payment_id_seen = true;
+        }
+
+        uint64_t value_amount = 0;
+
+        bool ok = cryptonote::parse_amount(value_amount, local_args[i + 1]);
+        if (!ok || 0 == value_amount)
+        {
+          fail_msg_writer() << tr("amount is wrong: ") << local_args[i] << ' ' << local_args[i + 1] <<
+                            ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
           return true;
         }
-        de.token_amount = value_amount;
-        de.script_output = false;
-        de.output_type = tx_out_type::out_token;
+
+
+        if (command_type == CommandType::TransferStakeToken)
+        {
+          if (!tools::is_whole_token_amount(value_amount))
+          {
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            return true;
+          }
+          de.token_amount = value_amount;
+          de.script_output = true;
+          de.output_type = tx_out_type::out_staked_token;
+        } else if (command_type == CommandType::TransferUnstakeToken)
+        {
+          if (!tools::is_whole_token_amount(value_amount))
+          {
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            return true;
+          }
+          de.token_amount = value_amount;
+          de.script_output = false;
+          de.output_type = tx_out_type::out_token;
+        } else if (command_type == CommandType::TransferDonation)
+        {
+          de.amount = value_amount;
+          de.script_output = true;
+          de.output_type = tx_out_type::out_network_fee;
+        }
+          // Allow to collect outputs for regular SFX transaction.
+        else if (command_type == CommandType::TransferDemoPurchase)
+        {
+          de.amount = value_amount * 95 / 100;
+          safex_network_fee += value_amount * 5 / 100;
+        }
+
+        dsts.push_back(de);
       }
-      else if (command_type == CommandType::TransferDonation) {
-        de.amount = value_amount;
-        de.script_output = true;
-        de.output_type = tx_out_type::out_network_fee;
-      }
-      // Allow to collect outputs for regular SFX transaction.
-      else if(command_type == CommandType::TransferDemoPurchase) {
-        de.amount = value_amount * 95 / 100;
-        safex_network_fee += value_amount * 5 / 100;
-      }
-    
-      dsts.push_back(de);
     }
 
     // If its demo purchase, make special destination_entry for network fee.
@@ -322,6 +393,14 @@ namespace cryptonote
 
         case CommandType::TransferDonation:
           command = safex::command_t::donate_network_fee;
+          break;
+
+        case CommandType::TransferCreateAccount:
+          command = safex::command_t::create_account;
+          break;
+
+        case CommandType::TransferEditAccount:
+          command = safex::command_t::edit_account;
           break;
 
         default:

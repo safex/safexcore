@@ -39,6 +39,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/variant/apply_visitor.hpp>
 #include "include_base_utils.h"
 using namespace epee;
 
@@ -68,6 +69,8 @@ using namespace epee;
 #include "common/base58.h"
 #include "common/dns_utils.h"
 #include "ringdb.h"
+
+#include "safex/command.h"
 
 extern "C"
 {
@@ -6251,6 +6254,21 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
   LOG_PRINT_L2("transfer_selected done");
 }
 
+//cryptonote::tx_source_entry prepare_advanced_matching_tx_source_entry(const cryptonote::tx_destination_entry &dt, const transfer_details& td) {
+//  if (dt.output_type == tx_out_type::out_safex_account) {
+//
+//    cryptonote::tx_source_entry src_create_account = AUTO_VAL_INIT(src_create_account);
+//    src_create_account.command_type = safex::command_t::create_account;
+//    src_create_account.token_amount = td.token_amount();
+//    src_create_account.amount = td.amount();
+//    src_create_account.referenced_output_type = td.get_out_type();
+//    src_create_account.command_safex_data = dt.output_data;
+//    return src_create_account;
+//  } else {
+//    THROW_WALLET_EXCEPTION( error::safex_unsuported_command_error);
+//    return cryptonote::tx_source_entry{};
+//  }
+//}
 
 template<typename T>
 void wallet::transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
@@ -6274,7 +6292,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   // throw if total amount overflows uint64_t
   for(auto& dt: dsts)
   {
-    //THROW_WALLET_EXCEPTION_IF((dt.output_type == tx_out_type::out_staked_token && dt.token_amount > 10000), error::insufficient_token_lock_amount);
     needed_money += dt.amount;
     if (command_type == safex::command_t::token_unstake)
     {
@@ -6315,7 +6332,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
 
   if (outs.empty()) {
 
-    if (command_type == safex::command_t::token_stake)
+    if ((command_type == safex::command_t::token_stake || command_type == safex::command_t::create_account))
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_token); // may throw
     else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_cash); // may throw
@@ -6324,7 +6341,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   }
 
 
-  if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake))
+  if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake) || (command_type == safex::command_t::create_account))
   {
     //find also outputs for cash fee payment in case of token transaction
     std::vector<std::vector<tools::wallet::get_outs_entry>> cash_fee_outs = AUTO_VAL_INIT(cash_fee_outs);
@@ -6345,23 +6362,33 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   typedef cryptonote::tx_source_entry::output_entry tx_output_entry;
   size_t i = 0, out_index = 0;
   std::vector<cryptonote::tx_source_entry> sources;
-  std::vector<cryptonote::tx_source_entry> additional_sources;
+  std::vector<cryptonote::tx_source_entry> additional_sources; //advanced command inputs
+
+  auto find_matching_advanced_output = [&](const tx_out_type out_type) {
+    for (const cryptonote::tx_destination_entry& dt: dsts )
+      if (dt.output_type == out_type) return dt;
+
+    THROW_WALLET_EXCEPTION(tools::error::safex_missing_outputs_error);
+    return cryptonote::tx_destination_entry{};
+  };
+
+  bool command_input_creted = false;
   for(size_t idx: selected_transfers)
   {
-    sources.resize(sources.size()+1);
-    cryptonote::tx_source_entry& src = sources.back();
-    const transfer_details& td = m_transfers[idx];
+    sources.resize(sources.size() + 1);
+    cryptonote::tx_source_entry &src = sources.back();
+    const transfer_details &td = m_transfers[idx];
     src.amount = td.amount();
     src.token_amount = td.token_amount();
     if (td.get_out_type() != tx_out_type::out_invalid && td.get_out_type() != tx_out_type::out_cash)
       src.referenced_output_type = td.get_out_type();
     else
-      src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token: tx_out_type::out_cash;
+      src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token : tx_out_type::out_cash;
 
     //paste keys (fake and real)
     for (size_t n = 0; n < fake_outputs_count + 1; ++n)
     {
-      tx_output_entry oe  = AUTO_VAL_INIT(oe);
+      tx_output_entry oe = AUTO_VAL_INIT(oe);
       oe.first = std::get<0>(outs[out_index][n]);
       oe.second.dest = rct::pk2rct(std::get<1>(outs[out_index][n]));
       oe.second.mask = std::get<2>(outs[out_index][n]);
@@ -6371,7 +6398,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     }
 
     //paste real transaction to the random index
-    auto it_to_replace = std::find_if(src.outputs.begin(), src.outputs.end(), [&](const tx_output_entry& a)
+    auto it_to_replace = std::find_if(src.outputs.begin(), src.outputs.end(), [&](const tx_output_entry &a)
     {
       return a.first == td.m_global_output_index;
     });
@@ -6390,7 +6417,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     //set command type
     if (command_type == safex::command_t::token_stake && src.referenced_output_type == tx_out_type::out_token)
       src.command_type = safex::command_t::token_stake;
-    else  if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
+    else if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
       src.command_type = safex::command_t::donate_network_fee;
     else if (command_type == safex::command_t::token_unstake && src.referenced_output_type == tx_out_type::out_staked_token)
     {
@@ -6410,10 +6437,19 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src_interest.amount = get_interest_for_transfer(td);
 
       // add source and destinations
-      if (src_interest.amount > 0) {
+      if (src_interest.amount > 0)
+      {
         additional_sources.push_back(src_interest);
       }
     }
+    else if (command_type == safex::command_t::create_account && (!command_input_creted))
+    {
+      const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_account);
+      src.command_safex_data = dt_account.output_data;
+      src.command_type = safex::command_t::create_account;
+      command_input_creted = true;
+    }
+
 
     detail::print_source_entry(src);
     ++out_index;
@@ -8263,7 +8299,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
 
       void add(const account_public_address &addr, bool is_subaddress, cryptonote::tx_out_type output_type, uint64_t amount, uint64_t token_amount,
-              unsigned int original_output_index, bool merge_destinations)
+              unsigned int original_output_index, bool merge_destinations, const cryptonote::blobdata& output_data={})
       {
         if (merge_destinations)
         {
@@ -8273,7 +8309,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
           if (i == dsts.end())
           {
-            dsts.emplace_back(0, addr, is_subaddress, output_type);
+            dsts.emplace_back(0, addr, is_subaddress, output_type, output_data);
             i = dsts.end() - 1;
           }
 
@@ -8287,7 +8323,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           THROW_WALLET_EXCEPTION_IF(original_output_index > dsts.size(), error::wallet_internal_error,
                                     std::string("original_output_index too large: ") + std::to_string(original_output_index) + " > " + std::to_string(dsts.size()));
           if (original_output_index == dsts.size())
-            dsts.emplace_back(0, addr, is_subaddress, output_type);
+            dsts.emplace_back(0, addr, is_subaddress, output_type, output_data);
             THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
             THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_token_amount(amount), error::wallet_internal_error,
                     "Token amount must be whole number.");
@@ -8339,6 +8375,18 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           LOG_PRINT_L2("transfer: donating " << print_money(dt.amount) << " safex cash to safex token holders, for a total of " << print_money(needed_cash) << " cash");
           THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
       }
+      else if (command_type == safex::command_t::create_account)
+      {
+        if (dt.script_output == false) {
+          THROW_WALLET_EXCEPTION_IF(dt.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, error::zero_destination);
+          needed_tokens += dt.token_amount;
+          LOG_PRINT_L2("creting account: locking " << print_money(dt.token_amount) << " safex token" << " cash");
+          THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+        } else {
+          THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_account, error::safex_invalid_output_error);
+        }
+
+      }
       else
       {
         THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -8346,7 +8394,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     }
 
     // throw if attempting a transaction with no money
-    THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::token_stake && needed_tokens == 0, error::zero_destination);
+    THROW_WALLET_EXCEPTION_IF((command_type == safex::command_t::token_stake || command_type == safex::command_t::create_account) && needed_tokens == 0, error::zero_destination);
     THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::token_unstake && needed_staked_tokens == 0, error::zero_destination);
     THROW_WALLET_EXCEPTION_IF(command_type == safex::command_t::donate_network_fee && needed_cash == 0, error::zero_destination);
 
@@ -8485,7 +8533,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       std::random_device rd;
       std::mt19937 g(rd());
 
-      //staked token outputs
       if (command_type == safex::command_t::token_unstake) {
         //staked token outputs
         std::shuffle(unused_staked_token_transfers_indices_per_subaddr.begin(), unused_staked_token_transfers_indices_per_subaddr.end(), g);
@@ -8498,8 +8545,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         if (unused_staked_token_transfers_indices_per_subaddr.empty())
           return std::vector<wallet::pending_tx>();
 
-      } else if (command_type == safex::command_t::token_stake || command_type == safex::command_t::token_collect) {
-        //shuffle token outputs
+      } else if (command_type == safex::command_t::token_stake || command_type == safex::command_t::token_collect || command_type == safex::command_t::create_account) {
+        //shuffle common token outputs
         std::shuffle(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), g);
         auto sort_token_predicate = [&unlocked_token_balance_per_subaddr](const std::pair<uint32_t, std::vector<size_t>> &x, const std::pair<uint32_t, std::vector<size_t>> &y)
         {
@@ -8563,7 +8610,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
 
     hwdev.set_mode(hw::device::TRANSACTION_CREATE_FAKE);
-    while ((!dsts.empty() && (dsts[0].token_amount > 0 || dsts[0].amount > 0)) || adding_fee)
+    while ((!dsts.empty() && (dsts[0].token_amount > 0 || dsts[0].amount > 0
+                              || dsts[0].output_type == tx_out_type::out_safex_account)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 
@@ -8593,6 +8641,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       {
         LOG_PRINT_L2("No more staked token outputs to choose from");
         THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_staked_token_balance(subaddr_account), needed_staked_tokens, accumulated_cash_fee + needed_fee);
+      }
+
+      if (dsts[0].output_type == tx_out_type::out_safex_account) {
+        //safex account is created from create command referencing token output, but does not directly references tokens locked for its creation (there is separate locked token output)
+
+        LOG_PRINT_L2("Adding account output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+                                         " with blobdata: " << dsts[0].output_data);
+
+        tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, false, dsts[0].output_data);
+
+        pop_index(dsts, 0);
+        ++original_output_index;
+        continue;
       }
 
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)

@@ -982,10 +982,10 @@ namespace cryptonote
           LOG_ERROR("Safex account private key not matching output account key!");
           return false;
         }
-
       }
       else if (!(in_ephemeral.pub == src_entr.outputs[src_entr.real_output].second.dest))
       {
+        //check that derivated key is equal with real output key
         LOG_ERROR("derived public key mismatch with output public key at index " << idx << ", real out " << src_entr.real_output << "! " << ENDL << "derived_key:"
                                                                                  << string_tools::pod_to_hex(in_ephemeral.pub) << ENDL << "real output_public_key:"
                                                                                  << string_tools::pod_to_hex(src_entr.outputs[src_entr.real_output].second.dest));

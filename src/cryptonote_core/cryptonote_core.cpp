@@ -1108,8 +1108,6 @@ namespace cryptonote
           get_object_hash(account, cmd_hash);
           if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
             return false;
-
-          LOG_PRINT_L2("skip key image ");
         }
         else {
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);

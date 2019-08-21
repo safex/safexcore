@@ -366,7 +366,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       break;
     }
     default:
-      MERROR_VER("Unknown command type");
+      MERROR_VER("Unknown output type");
       return false;
   }
 
@@ -2943,8 +2943,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
-
-
   }
   else if (command_type == safex::command_t::token_unstake)
   {
@@ -3024,10 +3022,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           }
         }
       }
-
-
     }
-
     /* Check if donated cash amount matches */
     if (distributed_cash_amount > expected_interest)
     {
@@ -3038,7 +3033,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::create_account)
   {
-    //todo check if there are 100 tokens locked on output
+    //todo Atana check if there are 100 tokens locked on output!!
+
 
     for (const auto &vout: tx.vout)
     {
