@@ -28,20 +28,52 @@
 #
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
-set(cryptonote_core_sources
-  blockchain.cpp
-  cryptonote_core.cpp
-  tx_pool.cpp
-  cryptonote_tx_utils.cpp)
 
-set(cryptonote_core_headers)
+if(BUILD_SAFEX_PROTOBUF_RPC)
+    add_definitions(-DSAFEX_PROTOBUF_RPC=1)
+    add_definitions(-DPROTOBUF_INLINE_NOT_IN_HEADERS=0)
+    set(cryptonote_core_sources
+        blockchain.cpp
+        cryptonote_core.cpp
+        tx_pool.cpp
+        cryptonote_tx_utils.cpp
+        protobuf/transactions.pb.cc
+        protobuf/output_histogram.pb.cc
+        protobuf/blocks.pb.cc
+        protobuf/get_outs.pb.cc
+        protobuf/cryptonote_to_protobuf.cpp
+        )
 
-set(cryptonote_core_private_headers
-  blockchain_storage_boost_serialization.h
-  blockchain.h
-  cryptonote_core.h
-  tx_pool.h
-  cryptonote_tx_utils.h)
+        set(cryptonote_core_headers)
+
+    set(cryptonote_core_private_headers
+      blockchain_storage_boost_serialization.h
+      blockchain.h
+      protobuf/transactions.pb.h
+      protobuf/output_histogram.pb.h
+      protobuf/blocks.pb.h
+      protobuf/get_outs.pb.h
+      protobuf/cryptonote_to_protobuf.h
+      cryptonote_core.h
+      tx_pool.h
+      cryptonote_tx_utils.h)
+else()
+    set(cryptonote_core_sources
+        blockchain.cpp
+        cryptonote_core.cpp
+        tx_pool.cpp
+        cryptonote_tx_utils.cpp
+        )
+
+    set(cryptonote_core_headers)
+
+    set(cryptonote_core_private_headers
+        blockchain_storage_boost_serialization.h
+        blockchain.h
+        cryptonote_core.h
+        tx_pool.h
+        cryptonote_tx_utils.h)
+endif()
 
 if(PER_BLOCK_CHECKPOINT)
   set(Blocks "blocks")
@@ -51,25 +83,53 @@ endif()
 
 safex_private_headers(cryptonote_core
   ${cryptonote_core_private_headers})
-safex_add_library(cryptonote_core
-  ${cryptonote_core_sources}
-  ${cryptonote_core_headers}
-  ${cryptonote_core_private_headers})
-target_link_libraries(cryptonote_core
-  PUBLIC
-    version
-    common
-    cncrypto
-    blockchain_db
-    multisig
-    ringct
-    device
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_SERIALIZATION_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-  PRIVATE
-    ${Blocks}
-    ${EXTRA_LIBRARIES})
+  
+if(BUILD_SAFEX_PROTOBUF_RPC)
+
+  safex_add_library(cryptonote_core
+    ${cryptonote_core_sources}
+    ${cryptonote_core_headers}
+    ${cryptonote_core_private_headers})
+  target_link_libraries(cryptonote_core
+    PUBLIC
+      version
+      common
+      cncrypto
+      blockchain_db
+      multisig
+      ringct
+      device
+      ${Boost_DATE_TIME_LIBRARY}
+      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+      ${Boost_SERIALIZATION_LIBRARY}
+      ${Boost_FILESYSTEM_LIBRARY}
+      ${Boost_SYSTEM_LIBRARY}
+      ${Boost_THREAD_LIBRARY}
+      ${PROTOBUF_LIBRARY}
+    PRIVATE
+      ${Blocks}
+      ${EXTRA_LIBRARIES})
+else()
+     safex_add_library(cryptonote_core
+    ${cryptonote_core_sources}
+    ${cryptonote_core_headers}
+    ${cryptonote_core_private_headers})
+  target_link_libraries(cryptonote_core
+    PUBLIC
+      version
+      common
+      cncrypto
+      blockchain_db
+      multisig
+      ringct
+      device
+      ${Boost_DATE_TIME_LIBRARY}
+      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+      ${Boost_SERIALIZATION_LIBRARY}
+      ${Boost_FILESYSTEM_LIBRARY}
+      ${Boost_SYSTEM_LIBRARY}
+      ${Boost_THREAD_LIBRARY}
+    PRIVATE
+      ${Blocks}
+      ${EXTRA_LIBRARIES}) 
+endif()

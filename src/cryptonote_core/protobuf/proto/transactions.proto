@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package safex;
+
+/* Inputs 
+ * -- @IMPORTANT txin_to_script and txin_to_scripthash are omitted on purpose. 
+ *				 REASON: Its not used at the moment.
+ */
+
+message txin_gen {
+	uint64 height = 1;
+}
+
+message txin_to_key {
+	uint64 amount = 1;
+	bytes k_image = 2;
+	repeated uint64 key_offsets = 3;
+}
+
+message txin_token_to_key {
+	uint64 token_amount = 1;
+	bytes k_image = 2;
+	repeated uint64 key_offsets = 3;
+}
+
+message txin_token_migration {
+	uint64 token_amount = 1;
+	string bitcoin_burn_transaction = 2;
+	bytes k_image = 3;
+}
+
+/* Variants are implemented with optional fields */
+message txin_v {
+	txin_gen txin_gen = 1;
+	txin_to_key txin_to_key = 2;
+	txin_token_to_key txin_token_to_key = 3;
+	txin_token_migration txin_token_migration = 4;
+}
+
+/* Outputs 
+ * -- @IMPORTANT txout_to_script and txout_to_scripthash are omitted on purpose. 
+ *				 REASON: Its not used at the moment.
+ */
+
+message txout_to_key {
+	bytes key = 1;
+}
+
+message txout_token_to_key {
+	bytes key = 1;
+}
+
+message txout_target_v {
+	txout_to_key txout_to_key = 1;
+	txout_token_to_key txout_token_to_key = 2;
+}
+
+message txout {
+    uint64 amount = 1;
+    uint64 token_amount = 2;
+    txout_target_v target = 3;
+}
+
+message SigData {
+	bytes r = 1;
+	bytes c = 2;
+}
+
+message Signature {
+    repeated SigData signature = 1;
+}
+
+message Transaction {
+	uint64 version = 1;
+
+	uint64 unlock_time = 2;
+	bytes extra = 3;
+	repeated txin_v vin = 4;
+	repeated txout vout = 5;
+	repeated Signature signatures = 6;
+
+	uint64 block_height = 7;
+    uint64 block_timestamp = 8;
+    bool double_spend_seen = 9;
+    bool in_pool = 10;
+    repeated uint64 output_indices = 11;
+    string tx_hash = 12;
+}
+
+message Transactions {
+    repeated Transaction tx = 1;
+    repeated string missed_txs = 2;
+}
