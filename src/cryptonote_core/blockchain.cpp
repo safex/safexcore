@@ -3234,7 +3234,7 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   }
   else if (txin.command_type == safex::command_t::create_account)
   {
-    if (txin.amount != 0 || txin.token_amount < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+    if (txin.amount != 0 || txin.token_amount == 0) //create account input references (spends some of token outputs), in total SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE
       return false;
   }
   else if (txin.command_type == safex::command_t::edit_account)
@@ -3412,6 +3412,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
     if (have_tx_keyimg_as_spent(k_image))
+
+
     {
       MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
       tvc.m_double_spend = true;
@@ -5463,7 +5465,7 @@ bool Blockchain::get_safex_account_public_key(const safex::account_username &use
     return result;
   }
   catch (std::exception &ex) {
-    MERROR("Error fetching account public key: "+std::string(ex.what()));
+    //MERROR("Error fetching account public key: "+std::string(ex.what()));
     return false;
   }
 }

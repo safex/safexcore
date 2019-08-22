@@ -242,7 +242,6 @@ namespace cryptonote
           fail_msg_writer() << tr("failed to parse account data");
           return false;
         }
-        std::cout << "Data:" << accdata_str<<std::endl;
         cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, username, pkey, accdata);
 
         dsts.push_back(de_account);
