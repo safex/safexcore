@@ -4184,6 +4184,29 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
 
     return pop_index(unused_indices, candidates[idx]);
   }
+  //----------------------------------------------------------------------------------------------------
+  size_t wallet::pop_advanced_output_from(const transfer_container &transfers,const std::vector<size_t>& selected_transfers, const std::string &acc_username, const cryptonote::tx_out_type out_type) const
+  {
+    std::vector<size_t> candidates;
+    for (size_t n = 0; n < transfers.size(); ++n)
+    {
+      const transfer_details &candidate = transfers[n];
+      if (candidate.get_out_type() != out_type) continue;
+      candidates.push_back(n);
+    }
+
+
+    size_t idx = 0;
+    for (size_t n = 0; n < candidates.size(); ++n)
+    {
+      const transfer_details &td = transfers[candidates[n]];
+      if (out_type == tx_out_type::out_safex_account && td.get_out_type() == tx_out_type::out_safex_account)
+      {
+          idx = n;
+      }
+    }
+    return candidates[idx];
+  }
 //----------------------------------------------------------------------------------------------------
 size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
 {
@@ -4194,6 +4217,12 @@ size_t wallet::pop_ideal_value(std::vector<size_t> &unused_indices, const std::v
 {
   return pop_ideal_value_from(m_transfers, unused_indices, selected_transfers, out_type, cash_amount, token_amount);
 }
+//----------------------------------------------------------------------------------------------------
+  size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const
+  {
+    const std::string acc_username_str(acc_username.begin(), acc_username.end());
+    return pop_advanced_output_from(m_transfers, selected_transfers,  acc_username_str, out_type);
+  }
 //----------------------------------------------------------------------------------------------------
 // Select random input sources for transaction.
 // returns:
@@ -6338,6 +6367,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_cash); // may throw
     else if (command_type == safex::command_t::token_unstake)
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_staked_token); // may throw
+    else if (command_type == safex::command_t::edit_account)
+      get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_safex_account); // may throw
   }
 
 
@@ -6449,6 +6480,13 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.command_type = safex::command_t::create_account;
       command_input_creted = true;
     }
+    else if (command_type == safex::command_t::edit_account)
+    {
+      const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_account_update);
+      src.command_safex_data = dt_account.output_data;
+      src.command_type = safex::command_t::edit_account;
+    }
+
 
 
     detail::print_source_entry(src);
@@ -8387,6 +8425,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         }
 
       }
+      else if (command_type == safex::command_t::edit_account)
+      {
+        THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_account_update, error::safex_invalid_output_error);
+      }
       else
       {
         THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -8611,7 +8653,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
     hwdev.set_mode(hw::device::TRANSACTION_CREATE_FAKE);
     while ((!dsts.empty() && (dsts[0].token_amount > 0 || dsts[0].amount > 0
-                              || dsts[0].output_type == tx_out_type::out_safex_account)) || adding_fee)
+                              || dsts[0].output_type == tx_out_type::out_safex_account
+                              || dsts[0].output_type == tx_out_type::out_safex_account_update)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 
@@ -8622,6 +8665,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       LOG_PRINT_L2("unused_cash_dust_indices: " << (unused_cash_dust_indices->size() < 100 ? strjoin(*unused_cash_dust_indices, " ") : "too big to print"));
       LOG_PRINT_L2("dsts size " << dsts.size() << ", first " << (dsts.empty() ? "-" : cryptonote::print_money(dsts[0].token_amount)));
       LOG_PRINT_L2("adding_fee " << adding_fee);
+
+      const bool advanced_output_reference = (dsts[0].output_type == tx_out_type::out_safex_account_update);
 
 
       // if we need to spend cash and don't have any left, we fail
@@ -8643,24 +8688,24 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_staked_token_balance(subaddr_account), needed_staked_tokens, accumulated_cash_fee + needed_fee);
       }
 
-      if (dsts[0].output_type == tx_out_type::out_safex_account) {
+      if ((dsts[0].output_type == tx_out_type::out_safex_account)) {
         //safex account is created from create command referencing token output, but does not directly references tokens locked for its creation (there is separate locked token output)
 
-        LOG_PRINT_L2("Adding account output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+        LOG_PRINT_L2("Adding advanced output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
                                          " with blobdata: " << dsts[0].output_data);
 
         tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, false, dsts[0].output_data);
 
         pop_index(dsts, 0);
         ++original_output_index;
-        continue;
+        if (dsts[0].output_type == tx_out_type::out_safex_account) continue; //no need to match any index
       }
 
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
       size_t idx;
       if ((dsts.empty() || ((needed_tokens > 0 && dsts[0].token_amount == 0) || (needed_cash > 0 && dsts[0].amount == 0) || (needed_staked_tokens > 0 && dsts[0].token_amount == 0)))
-          && !adding_fee)
+          && !adding_fee && !advanced_output_reference)
       {
         std::vector<size_t> indices;
 
@@ -8722,6 +8767,14 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           pop_if_present(*unused_cash_transfers_indices, idx);
           pop_if_present(*unused_cash_dust_indices, idx);
         }
+        else if (dsts[0].output_type == tx_out_type::out_safex_account_update) {
+          safex::edit_account_data account;
+          cryptonote::parse_and_validate_from_blob(dsts[0].output_data, account);
+          //find account output
+          idx = pop_advanced_output(tx.selected_transfers, account.username, tx_out_type::out_safex_account);
+
+
+        }
       }
       else if (adding_fee)
       {
@@ -8741,6 +8794,16 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         {
           idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true, tx_out_type::out_cash);
         }
+        else if (dsts[0].output_type == tx_out_type::out_safex_account_update) {
+          safex::edit_account_data account;
+          cryptonote::parse_and_validate_from_blob(dsts[0].output_data, account);
+          //find account output
+          idx = pop_advanced_output(tx.selected_transfers, account.username, tx_out_type::out_safex_account);
+
+
+        }
+
+
       }
 
 

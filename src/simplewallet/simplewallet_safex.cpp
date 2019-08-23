@@ -48,6 +48,14 @@ namespace cryptonote
     return tx_destination_entry{0, to, false, tx_out_type::out_safex_account, blobdata};
   }
 
+  tx_destination_entry edit_safex_account_destination(const account_public_address &to, const std::string &username, const std::vector<uint8_t> &account_data)
+  {
+    safex::edit_account_data acc_output_data{username, account_data};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+    return tx_destination_entry{0, to, false, tx_out_type::out_safex_account_update, blobdata};
+  }
+
+
 
 
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
@@ -253,8 +261,21 @@ namespace cryptonote
         token_create_fee.token_amount = SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE;
         token_create_fee.output_type = tx_out_type::out_token;
         dsts.push_back(token_create_fee);
+      }
+      else if (command_type == CommandType::TransferEditAccount) {
+        const std::string &username = local_args[0];
 
+        std::ostringstream accdata_ostr;
+        std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
+        const std::string accdata_str = accdata_ostr.str();
+        std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
+        if (accdata.size() == 0) {
+          fail_msg_writer() << tr("failed to parse account data");
+          return false;
+        }
+        cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, username, accdata);
 
+        dsts.push_back(de_account_update);
 
       }
     }
@@ -713,7 +734,7 @@ namespace cryptonote
       // create a new safex account transaction
       return create_command(CommandType::TransferCreateAccount, local_args);
     }
-    else if (command == "edit" && local_args.size() == 1)
+    else if (command == "edit")
     {
       return create_command(CommandType::TransferEditAccount, local_args);
     }
