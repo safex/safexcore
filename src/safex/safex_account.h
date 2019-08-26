@@ -31,14 +31,7 @@ namespace safex
 
   struct safex_account_keys
   {
-    crypto::public_key m_public_key;
-    crypto::secret_key m_secret_key;
-    hw::device *m_device = &hw::get_device("default");
 
-  BEGIN_KV_SERIALIZE_MAP()
-      KV_SERIALIZE(m_public_key)
-      KV_SERIALIZE(m_secret_key)
-    END_KV_SERIALIZE_MAP()
 
     safex_account_keys &operator=(const safex_account_keys &) = default;
 
@@ -49,7 +42,23 @@ namespace safex
       return ((m_secret_key != crypto::secret_key{}) && (m_public_key != crypto::public_key{}) && crypto::check_key(m_public_key));
     }
 
+    template <typename t_archive>
+    inline void serialize(t_archive &a, const unsigned int ver)
+    {
+      a & m_public_key;
+      a & m_secret_key;
+    }
+
     void set_device(hw::device &hwdev);
+
+    crypto::public_key m_public_key;
+    crypto::secret_key m_secret_key;
+    hw::device *m_device = &hw::get_device("default");
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(m_public_key)
+      KV_SERIALIZE(m_secret_key)
+    END_KV_SERIALIZE_MAP()
 
 
   };
@@ -130,6 +139,14 @@ namespace safex
         FIELD(pkey)
         FIELD(account_data)
       END_SERIALIZE()
+
+      template<class t_archive>
+      inline void serialize(t_archive &a, const unsigned int /*ver*/)
+      {
+        a & username;
+        a & pkey;
+        a & account_data;
+      }
 
 
       std::string username;

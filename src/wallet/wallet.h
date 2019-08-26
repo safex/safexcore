@@ -56,6 +56,7 @@
 #include "ringct/rctOps.h"
 #include "checkpoints/checkpoints.h"
 #include "safex/safex_core.h"
+#include "safex/safex_account.h"
 
 #include "wallet_errors.h"
 #include "common/password.h"
@@ -764,6 +765,14 @@ namespace tools
       a & m_unconfirmed_payments;
       a & m_account_tags;
       a & m_ring_history_saved;
+
+      if (ver < 1) return;
+
+      a & m_safex_accounts;
+      a & m_safex_accounts_keys;
+
+
+
     }
 
     /*!
@@ -1026,6 +1035,10 @@ namespace tools
     uint64_t get_interest_for_transfer(const transfer_details& td);
     uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
 
+    bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
+    bool get_safex_account(const std::string &username, safex::safex_account &acc);
+    std::vector<safex::safex_account> get_safex_accounts();
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
@@ -1190,9 +1203,12 @@ namespace tools
     std::string m_ring_database;
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
+
+    std::vector<safex::safex_account> m_safex_accounts;
+    std::vector<safex::safex_account_key_handler> m_safex_accounts_keys;
   };
 }
-BOOST_CLASS_VERSION(tools::wallet, 0)
+BOOST_CLASS_VERSION(tools::wallet, 1)
 BOOST_CLASS_VERSION(tools::wallet::transfer_details, 1)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info::LR, 0)
@@ -1208,6 +1224,9 @@ BOOST_CLASS_VERSION(tools::wallet::signed_tx_set, 0)
 BOOST_CLASS_VERSION(tools::wallet::tx_construction_data, 0)
 BOOST_CLASS_VERSION(tools::wallet::pending_tx, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_sig, 0)
+BOOST_CLASS_VERSION(safex::safex_account, 0)
+BOOST_CLASS_VERSION(safex::safex_account_keys, 0)
+BOOST_CLASS_VERSION(safex::safex_account_key_handler, 0)
 
 namespace boost
 {
@@ -1414,6 +1433,7 @@ namespace boost
       a & x.construction_data;
       a & x.multisig_sigs;
     }
+
   }
 }
 
@@ -1507,7 +1527,9 @@ namespace tools
     {
       std::string indexes;
       std::for_each(src.outputs.begin(), src.outputs.end(), [&](const cryptonote::tx_source_entry::output_entry& s_e) { indexes += boost::to_string(s_e.first) + " "; });
-      LOG_PRINT_L0("amount=" << cryptonote::print_money(src.amount) << ", real_output=" <<src.real_output << ", real_output_in_tx_index=" << src.real_output_in_tx_index << ", indexes: " << indexes);
+      LOG_PRINT_L0("source referenced type=" << static_cast<int>(src.referenced_output_type) << ", command=" << static_cast<int>(src.command_type)
+              << ", amount=" << cryptonote::print_money(src.amount) << ", token_amount=" << cryptonote::print_money(src.token_amount) <<
+              ", real_output=" <<src.real_output << ", real_output_in_tx_index=" << src.real_output_in_tx_index << ", indexes: " << indexes);
     }
     //----------------------------------------------------------------------------------------------------
     inline void print_token_source_entry(const cryptonote::tx_source_entry& src)

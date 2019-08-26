@@ -156,10 +156,8 @@ namespace cryptonote
 
     switch (command_type) {
       case CommandType::TransferDonation:
-        min_args = 1;
-      break;
       case CommandType::TransferCreateAccount:
-        min_args = 3;
+        min_args = 1;
       break;
 
       default:
@@ -227,30 +225,19 @@ namespace cryptonote
       if ((command_type == CommandType::TransferCreateAccount))
       {
 
-        const std::string &username = local_args[0];
-        const std::string &pkey_str = local_args[1];
-        crypto::public_key pkey;
+        safex::safex_account my_account;
+         if (!m_wallet->get_safex_account(local_args[0], my_account)) {
+           fail_msg_writer() << tr("unknown account username");
+           return true;
+         };
 
-        if (!epee::string_tools::hex_to_pod(pkey_str.substr(0, 64), pkey))
-        {
-          fail_msg_writer() << tr("failed to parse account public key");
+
+        if (!crypto::check_key(my_account.pkey)) {
+          fail_msg_writer() << tr("invalid account public key");
           return true;
         }
 
-        if (!crypto::check_key(pkey)) {
-          fail_msg_writer() << tr("invalid public key");
-          return true;
-        }
-
-        std::ostringstream accdata_ostr;
-        std::copy(local_args.begin() + 2, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
-        const std::string accdata_str = accdata_ostr.str();
-        std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
-        if (accdata.size() == 0) {
-          fail_msg_writer() << tr("failed to parse account data");
-          return false;
-        }
-        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, username, pkey, accdata);
+        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_account.username, my_account.pkey, my_account.account_data);
 
         dsts.push_back(de_account);
 
@@ -708,14 +695,19 @@ namespace cryptonote
 
   void simple_wallet::print_safex_accounts()
   {
-    //todo Atana implement
+    success_msg_writer() << tr("Safex accounts");
+    success_msg_writer() << boost::format("%30s %80s") % tr("Account Username") % tr("Account Data");
+    for (auto& acc: m_wallet->get_safex_accounts()) {
+      success_msg_writer() << boost::format("%30s %80s ") % acc.username % std::string(begin(acc.account_data), end(acc.account_data));
+    }
   }
 
   bool simple_wallet::safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
   {
     // Usage:
     //   safex_account
-    //   safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>
+    //   safex_account new <account_username>
+    //   safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username>
     //   safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>
 
     if (args.empty())
@@ -729,7 +721,28 @@ namespace cryptonote
     std::vector<std::string> local_args = args;
     std::string command = local_args[0];
     local_args.erase(local_args.begin());
-    if (command == "create")
+    if (command == "new")
+    {
+      const std::string &username = local_args[0];
+
+      std::ostringstream accdata_ostr;
+      std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
+      const std::string accdata_str = accdata_ostr.str();
+      std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
+      if (accdata.size() == 0) {
+        fail_msg_writer() << tr("failed to parse account data");
+        return false;
+      }
+
+      if (m_wallet->generate_safex_account(username, accdata)) {
+        success_msg_writer() << tr("New account created");
+        return true;
+      } else {
+        fail_msg_writer() << tr("Failed to create account");
+        return false;
+      }
+    }
+    else if (command == "create")
     {
       // create a new safex account transaction
       return create_command(CommandType::TransferCreateAccount, local_args);
@@ -742,7 +755,7 @@ namespace cryptonote
     {
       fail_msg_writer() << tr("usage:\n"
                               "  safex_account\n"
-                              "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>\n"
+                              "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username>\n"
                               "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>");
     }
     return true;
