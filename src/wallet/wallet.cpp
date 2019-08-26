@@ -5611,6 +5611,18 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
 
   if (fake_outputs_count > 0)
   {
+    std::vector<size_t> cash_token_selected_transfers;
+
+    for(size_t idx: selected_transfers)
+    {
+      if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account) //no fake outputs count for accounts
+        continue;
+
+      cash_token_selected_transfers.push_back(idx);
+
+    }
+
+
     uint64_t segregation_fork_height = get_segregation_fork_height();
     // check whether we're shortly after the fork
     uint64_t height;
@@ -5623,7 +5635,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     cryptonote::COMMAND_RPC_GET_OUTPUT_HISTOGRAM::request req_t = AUTO_VAL_INIT(req_t);
     cryptonote::COMMAND_RPC_GET_OUTPUT_HISTOGRAM::response resp_t = AUTO_VAL_INIT(resp_t);
     m_daemon_rpc_mutex.lock();
-    for(size_t idx: selected_transfers)
+    for(size_t idx: cash_token_selected_transfers)
     {
 
       if (out_type == tx_out_type::out_token)
@@ -5650,7 +5662,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     {
       cryptonote::COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request req_t = AUTO_VAL_INIT(req_t);
       cryptonote::COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response resp_t = AUTO_VAL_INIT(resp_t);
-      for(size_t idx: selected_transfers)
+      for(size_t idx: cash_token_selected_transfers)
       {
         if (out_type == tx_out_type::out_token)
           req_t.amounts.push_back(m_transfers[idx].token_amount());
@@ -5673,7 +5685,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       THROW_WALLET_EXCEPTION_IF(resp_t.status != CORE_RPC_STATUS_OK, error::get_output_distribution, resp_t.status);
 
       // check we got all data
-      for(size_t idx: selected_transfers)
+      for(size_t idx: cash_token_selected_transfers)
       {
 
         const uint64_t value_amount = (out_type == tx_out_type::out_token ? m_transfers[idx].token_amount() : m_transfers[idx].amount());
@@ -5710,7 +5722,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     req.out_type = out_type;
 
     size_t num_selected_transfers = 0;
-    for(size_t idx: selected_transfers)
+    for(size_t idx: cash_token_selected_transfers)
     {
 
       const transfer_details &td = m_transfers[idx];
@@ -5953,7 +5965,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     std::unordered_map<uint64_t, uint64_t> scanty_outs;
     size_t base = 0;
     outs.reserve(num_selected_transfers);
-    for(size_t idx: selected_transfers)
+    for(size_t idx: cash_token_selected_transfers)
     {
       //skip cash outputs if getting token outputs or other way round
       if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
@@ -6071,12 +6083,13 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       const transfer_details &td = m_transfers[idx];
       //skip cash outputs if getting token outputs or other way round
       if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
-          || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash))
+          || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash)
+          || (out_type == tx_out_type::out_safex_account && m_transfers[idx].m_output_type != out_type))
         continue;
 
       std::vector<get_outs_entry> v;
-      const uint64_t value_amount = td.is_rct() ? 0 : (td.m_token_transfer ? td.token_amount(): td.amount());
-      const rct::key mask = td.is_rct() ? rct::commit(value_amount, td.m_mask) : rct::zeroCommit(value_amount);
+      const uint64_t value_amount = td.m_token_transfer ? td.token_amount(): td.amount();
+      const rct::key mask = rct::zeroCommit(value_amount);
       v.push_back(std::make_tuple(td.m_global_output_index, td.get_public_key(), mask));
       outs.push_back(v);
     }
@@ -6283,21 +6296,6 @@ void wallet::transfer_selected(const std::vector<cryptonote::tx_destination_entr
   LOG_PRINT_L2("transfer_selected done");
 }
 
-//cryptonote::tx_source_entry prepare_advanced_matching_tx_source_entry(const cryptonote::tx_destination_entry &dt, const transfer_details& td) {
-//  if (dt.output_type == tx_out_type::out_safex_account) {
-//
-//    cryptonote::tx_source_entry src_create_account = AUTO_VAL_INIT(src_create_account);
-//    src_create_account.command_type = safex::command_t::create_account;
-//    src_create_account.token_amount = td.token_amount();
-//    src_create_account.amount = td.amount();
-//    src_create_account.referenced_output_type = td.get_out_type();
-//    src_create_account.command_safex_data = dt.output_data;
-//    return src_create_account;
-//  } else {
-//    THROW_WALLET_EXCEPTION( error::safex_unsuported_command_error);
-//    return cryptonote::tx_source_entry{};
-//  }
-//}
 
 template<typename T>
 void wallet::transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
@@ -6368,11 +6366,12 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     else if (command_type == safex::command_t::token_unstake)
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_staked_token); // may throw
     else if (command_type == safex::command_t::edit_account)
-      get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_safex_account); // may throw
+      get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
   }
 
 
-  if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake) || (command_type == safex::command_t::create_account))
+  if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake)
+      || (command_type == safex::command_t::create_account) || (command_type == safex::command_t::edit_account))
   {
     //find also outputs for cash fee payment in case of token transaction
     std::vector<std::vector<tools::wallet::get_outs_entry>> cash_fee_outs = AUTO_VAL_INIT(cash_fee_outs);
@@ -6480,7 +6479,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.command_type = safex::command_t::create_account;
       command_input_creted = true;
     }
-    else if (command_type == safex::command_t::edit_account)
+    else if (command_type == safex::command_t::edit_account && m_transfers[idx].m_output_type == tx_out_type::out_safex_account)
     {
       const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_account_update);
       src.command_safex_data = dt_account.output_data;
