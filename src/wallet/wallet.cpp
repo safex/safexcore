@@ -6301,7 +6301,7 @@ template<typename T>
 void wallet::transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
         size_t fake_outputs_count, std::vector<std::vector<tools::wallet::get_outs_entry>> &outs,
         uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy,
-        cryptonote::transaction& tx, pending_tx &ptx)
+        cryptonote::transaction& tx, pending_tx &ptx, const safex::safex_account &sfx_acc)
 {
   using namespace cryptonote;
   // throw if attempting a transaction with no destinations
@@ -6314,6 +6314,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   uint64_t needed_tokens = 0;
   uint64_t needed_staked_tokens = 0;
   LOG_PRINT_L2("transfer: starting with fee " << print_money (needed_money));
+
+  safex::safex_account_keys my_safex_keys = AUTO_VAL_INIT(my_safex_keys);
 
   // calculate total amount being sent to all destinations
   // throw if total amount overflows uint64_t
@@ -6478,12 +6480,16 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.command_safex_data = dt_account.output_data;
       src.command_type = safex::command_t::create_account;
       command_input_creted = true;
+      bool res = get_safex_account_keys(sfx_acc.username, my_safex_keys);
+      THROW_WALLET_EXCEPTION_IF(!res, error::wallet_internal_error, "safex account keys missing");
     }
     else if (command_type == safex::command_t::edit_account && m_transfers[idx].m_output_type == tx_out_type::out_safex_account)
     {
       const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_account_update);
       src.command_safex_data = dt_account.output_data;
       src.command_type = safex::command_t::edit_account;
+      bool res = get_safex_account_keys(sfx_acc.username, my_safex_keys);
+      THROW_WALLET_EXCEPTION_IF(!res, error::wallet_internal_error, "safex account keys missing");
     }
 
 
@@ -6530,7 +6536,10 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   crypto::secret_key tx_key = AUTO_VAL_INIT(tx_key);
   std::vector<crypto::secret_key> additional_tx_keys;
   LOG_PRINT_L2("constructing tx");
-  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys);
+
+
+
+  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, my_safex_keys);
   LOG_PRINT_L2("constructed tx, r="<<r);
   THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
   THROW_WALLET_EXCEPTION_IF(upper_transaction_size_limit <= get_object_blobsize(tx), error::tx_too_big, tx, upper_transaction_size_limit);
@@ -8312,7 +8321,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
 
 std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts,
         const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t> &extra,
-        uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon)
+        uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc)
   {
     //ensure device is let in NONE mode in any case
     hw::device &hwdev = m_account.get_device();
@@ -8942,7 +8951,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         LOG_PRINT_L2("Trying to create a tx now, with " << tx.dsts.size() << " outputs and " <<
                                                         tx.selected_transfers.size() << " inputs");
         transfer_advanced<detail::split_strategy_function>(command_type, tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time,
-                needed_fee, extra, detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD), test_tx, test_ptx);
+                needed_fee, extra, detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD), test_tx, test_ptx, sfx_acc);
 
         auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
         needed_fee = calculate_fee(fee_per_kb, txBlob, fee_multiplier);
@@ -9078,7 +9087,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
                         detail::digit_split_strategy,
                         tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD),
                         test_tx,
-                        test_ptx);
+                        test_ptx,
+                        sfx_acc);
 
       auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
       tx.tx = test_tx;

@@ -252,7 +252,7 @@ namespace tools
     new_safex_account.pkey = new_safex_account_keys.get_keys().m_public_key;
     new_safex_account.account_data = account_data;
 
-    m_safex_accounts_keys.push_back(new_safex_account_keys);
+    m_safex_accounts_keys.push_back(new_safex_account_keys.get_keys());
     m_safex_accounts.push_back(new_safex_account);
 
     return true;
@@ -274,6 +274,21 @@ namespace tools
 
   std::vector<safex::safex_account> wallet::get_safex_accounts() {
     return std::vector<safex::safex_account>(m_safex_accounts.begin(), m_safex_accounts.end());
+  }
+
+  //-----------------------------------------------------------------------------------------------------------------
+  bool wallet::get_safex_account_keys(const std::string &username, safex::safex_account_keys &sfx_acc_keys)
+  {
+    for (size_t i = 0; i < m_safex_accounts.size(); ++i)
+    {
+      if (username == m_safex_accounts[i].username)
+      {
+        sfx_acc_keys = m_safex_accounts_keys[i];
+        return true;
+      }
+    }
+
+    return false;
   }
 
 }

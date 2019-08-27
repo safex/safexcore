@@ -212,6 +212,7 @@ namespace cryptonote
     
     vector<cryptonote::tx_destination_entry> dsts;
 
+    safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
     if (command_type == CommandType::TransferCreateAccount || command_type == CommandType::TransferEditAccount) {
       //use my own current subaddress as destination
       cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
@@ -225,19 +226,17 @@ namespace cryptonote
       if ((command_type == CommandType::TransferCreateAccount))
       {
 
-        safex::safex_account my_account;
-         if (!m_wallet->get_safex_account(local_args[0], my_account)) {
+         if (!m_wallet->get_safex_account(local_args[0], my_safex_account)) {
            fail_msg_writer() << tr("unknown account username");
            return true;
          };
 
-
-        if (!crypto::check_key(my_account.pkey)) {
+        if (!crypto::check_key(my_safex_account.pkey)) {
           fail_msg_writer() << tr("invalid account public key");
           return true;
         }
 
-        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_account.username, my_account.pkey, my_account.account_data);
+        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_safex_account.username, my_safex_account.pkey, my_safex_account.account_data);
 
         dsts.push_back(de_account);
 
@@ -404,6 +403,7 @@ namespace cryptonote
 
         case CommandType::TransferCreateAccount:
           command = safex::command_t::create_account;
+
           break;
 
         case CommandType::TransferEditAccount:
@@ -414,8 +414,11 @@ namespace cryptonote
           LOG_ERROR("Unknown command method, using original");
           return true;
       }
+
+
+
       
-      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon);
+      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
       
       
 

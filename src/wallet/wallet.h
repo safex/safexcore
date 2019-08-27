@@ -697,7 +697,7 @@ namespace tools
     void transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
                                    size_t fake_outputs_count, std::vector<std::vector<tools::wallet::get_outs_entry>> &outs,
                                    uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy,
-                                   cryptonote::transaction& tx, pending_tx &ptx);
+                                   cryptonote::transaction& tx, pending_tx &ptx, const safex::safex_account &safexacc = safex::safex_account{});
 
     void commit_tx(pending_tx& ptx_vector);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
@@ -720,7 +720,7 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);
+    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{});
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -1038,6 +1038,7 @@ namespace tools
     bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
     bool get_safex_account(const std::string &username, safex::safex_account &acc);
     std::vector<safex::safex_account> get_safex_accounts();
+    bool get_safex_account_keys(const std::string &username, safex::safex_account_keys &sfx_acc_keys);
 
   private:
     /*!
@@ -1205,7 +1206,7 @@ namespace tools
     std::unique_ptr<ringdb> m_ringdb;
 
     std::vector<safex::safex_account> m_safex_accounts;
-    std::vector<safex::safex_account_key_handler> m_safex_accounts_keys;
+    std::vector<safex::safex_account_keys> m_safex_accounts_keys;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 1)
