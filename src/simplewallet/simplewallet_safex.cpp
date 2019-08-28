@@ -223,14 +223,14 @@ namespace cryptonote
         return true;
       }
 
+      const std::string &sfx_username = local_args[0];
+      if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
+        fail_msg_writer() << tr("unknown safex account username");
+        return true;
+      };
+
       if ((command_type == CommandType::TransferCreateAccount))
       {
-
-         if (!m_wallet->get_safex_account(local_args[0], my_safex_account)) {
-           fail_msg_writer() << tr("unknown account username");
-           return true;
-         };
-
         if (!crypto::check_key(my_safex_account.pkey)) {
           fail_msg_writer() << tr("invalid account public key");
           return true;
@@ -249,17 +249,16 @@ namespace cryptonote
         dsts.push_back(token_create_fee);
       }
       else if (command_type == CommandType::TransferEditAccount) {
-        const std::string &username = local_args[0];
 
         std::ostringstream accdata_ostr;
         std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
         const std::string accdata_str = accdata_ostr.str();
-        std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
-        if (accdata.size() == 0) {
+        std::vector<uint8_t> new_accdata(accdata_str.begin(), accdata_str.end()-1);
+        if (new_accdata.size() == 0) {
           fail_msg_writer() << tr("failed to parse account data");
           return false;
         }
-        cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, username, accdata);
+        cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, my_safex_account.username, new_accdata);
 
         dsts.push_back(de_account_update);
 
@@ -419,7 +418,7 @@ namespace cryptonote
 
       
       ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
-      
+
       
 
       if (ptx_vector.empty())

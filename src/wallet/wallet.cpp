@@ -4196,15 +4196,25 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
     }
 
 
-    size_t idx = 0;
+    THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_account);
+
+    int idx = -1;
     for (size_t n = 0; n < candidates.size(); ++n)
     {
       const transfer_details &td = transfers[candidates[n]];
       if (out_type == tx_out_type::out_safex_account && td.get_out_type() == tx_out_type::out_safex_account)
       {
-          idx = n;
+          const txout_to_script &current = boost::get<const cryptonote::txout_to_script&>(td.m_tx.vout[td.m_internal_output_index].target);
+          const cryptonote::blobdata blobdata1(begin(current.data), end(current.data));
+          safex::create_account_data account_output_data;
+          parse_and_validate_object_from_blob(blobdata1, account_output_data);
+          const std::string current_username = std::string(begin(account_output_data.username), end(account_output_data.username));
+          if (current_username == acc_username) idx = (int)n;
       }
     }
+
+    THROW_WALLET_EXCEPTION_IF(idx == -1, error::safex_unknown_account);
+
     return candidates[idx];
   }
 //----------------------------------------------------------------------------------------------------
@@ -6418,7 +6428,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token : tx_out_type::out_cash;
 
     //paste keys (fake and real)
-    for (size_t n = 0; n < fake_outputs_count + 1; ++n)
+    const size_t fake_outputs_count_revised = src.referenced_output_type == tx_out_type::out_safex_account ? 0 : fake_outputs_count;
+    for (size_t n = 0; n < fake_outputs_count_revised + 1; ++n)
     {
       tx_output_entry oe = AUTO_VAL_INIT(oe);
       oe.first = std::get<0>(outs[out_index][n]);
@@ -8993,7 +9004,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           while (needed_fee > test_ptx.fee)
           {
             transfer_advanced(command_type, tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
-                              detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD), test_tx, test_ptx);
+                              detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD, ::config::DEFAULT_TOKEN_DUST_THRESHOLD), test_tx, test_ptx, sfx_acc);
             txBlob = t_serializable_object_to_blob(test_ptx.tx);
             needed_fee = calculate_fee(fee_per_kb, txBlob, fee_multiplier);
             LOG_PRINT_L2("Made an attempt at a  final " << get_size_string(txBlob) << " tx, with " << print_money(test_ptx.fee) <<

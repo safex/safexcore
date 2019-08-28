@@ -1261,7 +1261,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
     }
     else if (output_type == tx_out_type::out_safex_account) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
-      const cryptonote::blobdata blobdata1 = cryptonote::t_serializable_object_to_blob(txout_to_script1.data);
+      const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
       safex::create_account_data account_output_data;
       parse_and_validate_object_from_blob(blobdata1, account_output_data);
       remove_safex_account(account_output_data.username);

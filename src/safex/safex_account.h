@@ -55,6 +55,14 @@ namespace safex
     crypto::secret_key m_secret_key;
     hw::device *m_device = &hw::get_device("default");
 
+    crypto::public_key get_public_key() const {
+      return m_public_key;
+    }
+
+    crypto::secret_key get_secret_key() const {
+      return m_secret_key;
+    }
+
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(m_public_key)
       KV_SERIALIZE(m_secret_key)
