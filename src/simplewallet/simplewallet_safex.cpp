@@ -763,4 +763,28 @@ namespace cryptonote
     return true;
   }
 
+  //----------------------------------------------------------------------------------------------------
+  void simple_wallet::on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index)
+  {
+    if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
+      safex::create_account_data account;
+      const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+      cryptonote::parse_and_validate_from_blob(accblob, account);
+      std::string accusername(begin(account.username), end(account.username));
+
+      message_writer(console_color_green, false) << "\r" <<
+                                                 tr("Height ") << height << ", " <<
+                                                 tr("txid ") << txid << ", " <<
+                                                 tr("Output of type account, username: ") << accusername << " received, " <<
+                                                 tr("idx ") << subaddr_index;
+    }
+
+
+    if (m_auto_refresh_refreshing)
+      m_cmd_binder.print_prompt();
+    else
+      m_refresh_progress_reporter.update(height, true);
+  }
+//----------------------------------------------------------------------------------------------------
+
 }

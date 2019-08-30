@@ -893,6 +893,8 @@ void wallet::set_unspent(size_t idx)
 void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation &derivation, const std::vector<crypto::key_derivation> &additional_derivations, size_t i, tx_scan_info_t &tx_scan_info) const
 {
   hw::device &hwdev = m_account.get_device();
+
+
   boost::unique_lock<hw::device> hwdev_lock (hwdev);
   hwdev.set_mode(hw::device::TRANSACTION_PARSE);
   if (!cryptonote::is_valid_transaction_output_type(o.target))
@@ -904,7 +906,18 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
 
   tx_scan_info.token_transfer = cryptonote::is_token_output(o.target);
   const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), o.target);
-  tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);
+  if (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account)
+  {
+    boost::optional<cryptonote::subaddress_receive_info> result = AUTO_VAL_INIT(result);
+    for (auto &sfx_acc_keys: m_safex_accounts_keys)
+      if (result = is_safex_output_to_acc_precomp(sfx_acc_keys, m_subaddresses, out_key, i, hwdev))
+      {
+        tx_scan_info.received = result;
+        break;
+      }
+  }
+  else
+    tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);
   if(tx_scan_info.received)
   {
     tx_scan_info.money_transfered = o.amount; // may be 0 for token outputs
@@ -1052,6 +1065,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
           if (tx_scan_info[i].received)
           {
+            if (tx_scan_info[i].output_type == tx_out_type::out_safex_account) {
+              outs.push_back(i);
+              continue;
+            }
+
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
@@ -1075,6 +1093,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
         if (tx_scan_info[i].received)
         {
+          if (tx_scan_info[i].output_type == tx_out_type::out_safex_account) {
+            outs.push_back(i);
+            continue;
+          }
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
         }
@@ -1100,6 +1122,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
 
     if(!outs.empty() && num_vouts_received > 0)
     {
+
       //good news - got money! take care about it
       //usually we have only one transfer for user in transaction
       if (!pool)
@@ -1111,6 +1134,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
 
       for(size_t o: outs)
       {
+
         THROW_WALLET_EXCEPTION_IF(tx.vout.size() <= o, error::wallet_internal_error, "wrong out in transaction: internal index=" +
             std::to_string(o) + ", total_outs=" + std::to_string(tx.vout.size()));
 
@@ -1159,6 +1183,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             if (0 != m_callback) {
               if (td.m_token_transfer)
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
+              else if (output_type == tx_out_type::out_safex_account) {
+                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+              }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
