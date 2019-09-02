@@ -918,6 +918,7 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
   }
   else
     tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);
+
   if(tx_scan_info.received)
   {
     tx_scan_info.money_transfered = o.amount; // may be 0 for token outputs

@@ -844,7 +844,7 @@ namespace cryptonote
   {
     if (acc.m_public_key == out_key) {
       //my account output
-      return subaddress_receive_info{subaddresses.begin()->second, crypto::key_derivation{}};
+      return subaddress_receive_info{subaddress_index{0,0}, crypto::key_derivation{}};
     }
 
     return boost::none;
