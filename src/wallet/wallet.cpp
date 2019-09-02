@@ -8895,7 +8895,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
                                            " for " << print_money(dsts[0].amount)<<" cash " << print_money(dsts[0].output_type == tx_out_type::out_token && dsts[0].token_amount)<<" tokens"
                                            << print_money(dsts[0].output_type == tx_out_type::out_staked_token &&  dsts[0].token_amount)<<" staked tokens");
 
-          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, m_merge_destinations);
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, m_merge_destinations, dsts[0].output_data);
           if (command_type == safex::command_t::token_unstake)
             available_staked_token_amount -=  dsts[0].token_amount;
           else
@@ -8914,7 +8914,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
                                                " for " << print_money(available_staked_token_amount) << "/" << print_money(dsts[0].token_amount));
-          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, 0, available_staked_token_amount, original_output_index, m_merge_destinations);
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, 0, available_staked_token_amount, original_output_index, m_merge_destinations, dsts[0].output_data);
           dsts[0].token_amount -= available_staked_token_amount;
           available_staked_token_amount = 0;
         }
@@ -8926,7 +8926,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
                                                " for " << print_money(available_token_amount) << "/" << print_money(dsts[0].token_amount));
-          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, 0, available_token_amount, original_output_index, m_merge_destinations);
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, 0, available_token_amount, original_output_index, m_merge_destinations, dsts[0].output_data);
           dsts[0].token_amount -= available_token_amount;
           available_token_amount = 0;
         }
@@ -8937,7 +8937,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
                                                " for " << print_money(available_cash_amount) << "/" << print_money(dsts[0].amount));
-          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, available_cash_amount, 0, original_output_index, m_merge_destinations);
+          tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, available_cash_amount, 0, original_output_index, m_merge_destinations, dsts[0].output_data);
           dsts[0].amount -= available_cash_amount;
           available_cash_amount = 0;
         }
