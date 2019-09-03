@@ -2244,6 +2244,22 @@ namespace cryptonote
     return true;
   }
 
+  bool core_rpc_server::on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res)
+  {
+
+    safex::safex_account account;
+    if (!m_core.get_safex_account_info(req.username, account)) {
+      res.status = "Unable to retrieve account data";
+      return false;
+    }
+
+    res.pkey = epee::string_tools::pod_to_hex(account.pkey);
+
+    res.account_data = std::string(std::begin(account.account_data), std::end(account.account_data));
+    res.status = "OK";
+
+    return true;
+  }
   //------------------------------------------------------------------------------------------------------------------------------
 
 

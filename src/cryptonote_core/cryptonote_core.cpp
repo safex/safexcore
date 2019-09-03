@@ -1049,6 +1049,24 @@ namespace cryptonote
     return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(interval));
   }
 
+  //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_account_info(const std::string& username, safex::safex_account& account) const
+  {
+    std::vector<uint8_t> accdata;
+    if (!this->m_blockchain_storage.get_safex_account_data(username, accdata)) {
+      MERROR_VER("Unable to get safex account data for username " << username);
+      return false;
+    }
+    crypto::public_key pkey;
+    if (!this->m_blockchain_storage.get_safex_account_public_key(username, pkey)) {
+      MERROR_VER("Unable to get safex account pkey for username " << username);
+      return false;
+    }
+
+    account = safex::safex_account{username, pkey, accdata};
+    return true;
+  }
+
 
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
