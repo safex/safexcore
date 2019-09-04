@@ -756,6 +756,27 @@ namespace cryptonote
         fail_msg_writer() << tr("Failed to remove account ") << username;
       }
     }
+    else if (command == "recover")
+    {
+
+      if (local_args.size() != 2) {
+        fail_msg_writer() << tr("Please provide username and secret key for account recovery ");
+        return true;
+      }
+
+      const std::string &username = local_args[0];
+      const std::string &private_key = local_args[1];
+
+
+      crypto::secret_key skey{};
+      epee::string_tools::hex_to_pod(private_key, skey);
+
+      if (m_wallet->recover_safex_account(username, skey)) {
+        success_msg_writer() << tr("Account recovered");
+      } else {
+        fail_msg_writer() << tr("Failed to recover account ") << username;
+      }
+    }
     else if (command == "keys")
     {
       const std::string &username = local_args[0];
