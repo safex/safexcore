@@ -1244,9 +1244,17 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("safex_account",
                            boost::bind(&simple_wallet::safex_account, this, _1),
                            tr("safex_account\n"
+                              "  safex_account new <account_username> <account_data>\n"
+                              "  safex_account remove <account_username>\n"
+                              "  safex_account recover <account_username> <account_private_key>\n"
+                              "  safex_account keys <account_username>\n"
                               "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>\n"
                               "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>"),
                            tr("If no arguments are specified, the wallet shows all the existing safex accounts along with their balances.\n"
+                               "If the \"new\" argument is specified, keys for specified username and provided account data are generated\n"
+                               "If the \"remove\" argument is specified, account with provided username is deleted\n"
+                               "If the \"recover\" argument is specified, account with provided username and private key is recovered\n"
+                               "If the \"keys\" argument is specified, public/private account keys are printed\n"
                                "If the \"create\" argument is specified, the wallet creates a new safex account with username, label and account data initialized from parameters\n"
                                "If the \"edit\" argument is specified, the wallet edits account data specified by username.\n"
                                "Optionally set priority, ring_size for input tokens or subaddress index to use"));

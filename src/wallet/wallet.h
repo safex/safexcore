@@ -1037,9 +1037,10 @@ namespace tools
     uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
 
     bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
+    bool remove_safex_account(const std::string &username);
     bool get_safex_account(const std::string &username, safex::safex_account &acc);
+    bool get_safex_account_keys(const std::string &username, safex::safex_account_keys &acckeys);
     std::vector<safex::safex_account> get_safex_accounts();
-    bool get_safex_account_keys(const std::string &username, safex::safex_account_keys &sfx_acc_keys);
 
   private:
     /*!

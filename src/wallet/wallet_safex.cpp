@@ -258,6 +258,22 @@ namespace tools
     return true;
 
   }
+  //-----------------------------------------------------------------------------------------------------------------
+  bool wallet::remove_safex_account(const std::string &username)
+  {
+
+    safex::safex_account new_safex_account;
+
+    for (uint32_t i=0;i<m_safex_accounts.size();i++) {
+      if (m_safex_accounts[i].username == username) {
+         m_safex_accounts.erase(m_safex_accounts.begin()+i);
+         m_safex_accounts_keys.erase(m_safex_accounts_keys.begin()+i);
+      }
+    }
+
+    return true;
+
+  }
 //-----------------------------------------------------------------------------------------------------------------
   bool wallet::get_safex_account(const std::string &username, safex::safex_account &my_account) {
     for (const safex::safex_account& acc: m_safex_accounts) {
@@ -272,18 +288,19 @@ namespace tools
   }
 //-----------------------------------------------------------------------------------------------------------------
 
-  std::vector<safex::safex_account> wallet::get_safex_accounts() {
+  std::vector<safex::safex_account> wallet::get_safex_accounts()
+  {
     return std::vector<safex::safex_account>(m_safex_accounts.begin(), m_safex_accounts.end());
   }
-
   //-----------------------------------------------------------------------------------------------------------------
-  bool wallet::get_safex_account_keys(const std::string &username, safex::safex_account_keys &sfx_acc_keys)
+  bool wallet::get_safex_account_keys(const std::string &username, safex::safex_account_keys &acckeys)
   {
-    for (size_t i = 0; i < m_safex_accounts.size(); ++i)
+
+    for (uint32_t i = 0; i < m_safex_accounts.size(); i++)
     {
-      if (username == m_safex_accounts[i].username)
+      if (m_safex_accounts[i].username == username)
       {
-        sfx_acc_keys = m_safex_accounts_keys[i];
+        acckeys = m_safex_accounts_keys[i];
         return true;
       }
     }

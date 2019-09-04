@@ -709,6 +709,9 @@ namespace cryptonote
     // Usage:
     //   safex_account
     //   safex_account new <account_username>
+    //   safex_account remove <account_username>
+    //   safex_account recover <account_username> <account_private_key>
+    //   safex_account keys <account_username>
     //   safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username>
     //   safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>
 
@@ -733,15 +736,40 @@ namespace cryptonote
       std::vector<uint8_t> accdata(accdata_str.begin(), accdata_str.end()-1);
       if (accdata.size() == 0) {
         fail_msg_writer() << tr("failed to parse account data");
-        return false;
+        return true;
       }
 
       if (m_wallet->generate_safex_account(username, accdata)) {
         success_msg_writer() << tr("New account created");
-        return true;
       } else {
         fail_msg_writer() << tr("Failed to create account");
-        return false;
+      }
+    }
+    else if (command == "remove")
+    {
+      const std::string &username = local_args[0];
+
+
+      if (m_wallet->remove_safex_account(username)) {
+        success_msg_writer() << tr("Account removed");
+      } else {
+        fail_msg_writer() << tr("Failed to remove account ") << username;
+      }
+    }
+    else if (command == "keys")
+    {
+      const std::string &username = local_args[0];
+
+      if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }
+
+      safex::safex_account_keys keys = AUTO_VAL_INIT(keys);
+      if (m_wallet->get_safex_account_keys(username, keys)) {
+        success_msg_writer() << tr("Account ") << username<< tr(" keys:");
+        success_msg_writer() << tr("Public key: ") <<  epee::string_tools::pod_to_hex(keys.m_public_key) ;
+        success_msg_writer() << tr("Secret key: ") <<  epee::string_tools::pod_to_hex(keys.m_secret_key) ;
+
+      } else {
+        fail_msg_writer() << tr("Failed to print account keys ") << username;
       }
     }
     else if (command == "create")
@@ -755,8 +783,12 @@ namespace cryptonote
     }
     else
     {
-      fail_msg_writer() << tr("usage:\n"
+      success_msg_writer() << tr("usage:\n"
                               "  safex_account\n"
+                              "  safex_account new <account_username> <account_data>\n"
+                              "  safex_account remove <account_username>\n"
+                              "  safex_account keys <account_username>\n"
+                              "  safex_account recover <account_username> <account_private_key>\n"
                               "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username>\n"
                               "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>");
     }
