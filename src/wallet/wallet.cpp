@@ -1339,8 +1339,18 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
-        else if (m_transfers[kit->second].m_spent || m_transfers[kit->second].amount() >= tx.vout[o].amount || m_transfers[kit->second].token_amount() >= tx.vout[o].token_amount)
+        // @note What are default values for token_amount() ?
+        else if ( m_transfers[kit->second].m_spent || 
+                  (!m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].amount() >= tx.vout[o].amount)) || 
+                  (m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].token_amount() >= tx.vout[o].token_amount)))
         {
+          LOG_PRINT_L0("============================= DEBUG ===========================================");
+          LOG_PRINT_L0("m_transfers[kit->second].amount() = " << m_transfers[kit->second].amount() );
+          LOG_PRINT_L0("tx.vout[o].amount = " << tx.vout[o].amount);
+          LOG_PRINT_L0("m_transfers[kit->second].token_amount() = " << m_transfers[kit->second].token_amount());
+          LOG_PRINT_L0("tx.vout[o].token_amount = " << tx.vout[o].token_amount);
+          LOG_PRINT_L0("===============================================================================");
+
           if (m_transfers[kit->second].m_token_transfer) {
             LOG_ERROR("Public key " << epee::string_tools::pod_to_hex(kit->first)
             << " from received " << print_money(tx.vout[o].token_amount) << " token output already exists with "
@@ -1633,6 +1643,15 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
       total_received_2 += i.second;
     for (const auto& i : tx_tokens_got_in_outs)
       total_token_received_2 += i.second;
+    
+    // @todo remove this logs!
+    LOG_PRINT_L0("============================= DEBUG ===========================================");    
+    LOG_PRINT_L0("total_received_1 = " << total_received_1);
+    LOG_PRINT_L0("total_received_2 = " << total_received_2);
+    LOG_PRINT_L0("total_token_received_1 = " << total_token_received_1);
+    LOG_PRINT_L0("total_token_received_2 = " << total_token_received_2);
+    LOG_PRINT_L0("===============================================================================");
+
     if ((total_received_1 != total_received_2) || (total_token_received_1 != total_token_received_2))
     {
       const el::Level level = el::Level::Warning;
