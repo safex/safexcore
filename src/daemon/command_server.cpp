@@ -304,6 +304,12 @@ t_command_server::t_command_server(
     , std::bind(&t_command_parser_executor::network_fee_on_interval, &m_parser, p::_1)
     , "Print amount of network fee for given interval (or for current interval if interval is not specified)"
     );
+    m_command_lookup.set_handler(
+          "safex_account_info"
+          , std::bind(&t_command_parser_executor::safex_account_info, &m_parser, p::_1)
+          , "safex_account_info <username>"
+          , "Print safex account info"
+  );
 
 }
 

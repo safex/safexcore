@@ -57,6 +57,7 @@
 #include "blocks/blocks.h"
 #endif
 #include "safex/command.h"
+#include "safex/safex_account.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "blockchain"
@@ -365,7 +366,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       break;
     }
     default:
-      MERROR_VER("Unknown command type");
+      MERROR_VER("Unknown output type");
       return false;
   }
 
@@ -2942,8 +2943,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       tvc.m_safex_invalid_command_params = true;
       return false;
     }
-
-
   }
   else if (command_type == safex::command_t::token_unstake)
   {
@@ -3023,10 +3022,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           }
         }
       }
-
-
     }
-
     /* Check if donated cash amount matches */
     if (distributed_cash_amount > expected_interest)
     {
@@ -3037,7 +3033,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::create_account)
   {
-    //todo check if there are 100 tokens locked on output
+    //todo Atana check if there are 100 tokens locked on output!!
+
 
     for (const auto &vout: tx.vout)
     {
@@ -3237,7 +3234,7 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   }
   else if (txin.command_type == safex::command_t::create_account)
   {
-    if (txin.amount != 0 || txin.token_amount < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+    if (txin.amount != 0 || txin.token_amount == 0) //create account input references (spends some of token outputs), in total SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE
       return false;
   }
   else if (txin.command_type == safex::command_t::edit_account)
@@ -3415,6 +3412,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
     if (have_tx_keyimg_as_spent(k_image))
+
+
     {
       MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
       tvc.m_double_spend = true;
@@ -3469,6 +3468,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
           //todo atana nothing to do here
           results[sig_index] = true;
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          get_safex_account_public_key(cmd->get_username(), account_pkey);
+          tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                            std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+          );
         }
         else {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_ring_signature, this, std::cref(tx_prefix_hash), std::cref(k_image), std::cref(pubkeys[sig_index]), std::cref(tx.signatures[sig_index]), std::ref(results[sig_index])));
@@ -3560,6 +3567,14 @@ void Blockchain::check_migration_signature(const crypto::hash &tx_prefix_hash,
     get_migration_verification_public_key(m_nettype, sender_public_key);
     result = crypto::check_signature(tx_prefix_hash, sender_public_key, signature) ? 1 : 0;
 }
+//------------------------------------------------------------------
+void Blockchain::check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key,
+                                           const crypto::signature &signature, uint64_t &result)
+{
+
+  result = safex::check_safex_account_signature(tx_prefix_hash, sender_safex_account_key, signature) ? 1 : 0;
+}
+
 
 //------------------------------------------------------------------
 static uint64_t get_fee_quantization_mask()
@@ -5450,7 +5465,7 @@ bool Blockchain::get_safex_account_public_key(const safex::account_username &use
     return result;
   }
   catch (std::exception &ex) {
-    MERROR("Error fetching account public key: "+std::string(ex.what()));
+    //MERROR("Error fetching account public key: "+std::string(ex.what()));
     return false;
   }
 }

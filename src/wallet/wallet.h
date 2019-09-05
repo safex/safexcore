@@ -56,6 +56,7 @@
 #include "ringct/rctOps.h"
 #include "checkpoints/checkpoints.h"
 #include "safex/safex_core.h"
+#include "safex/safex_account.h"
 
 #include "wallet_errors.h"
 #include "common/password.h"
@@ -79,6 +80,7 @@ namespace tools
     virtual void on_new_block(uint64_t height, const cryptonote::block& block) {}
     virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index) {}
     virtual void on_tokens_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t token_amount, const cryptonote::subaddress_index& subaddr_index) {}
+    virtual void on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const cryptonote::txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index){}
     virtual void on_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index) {}
     virtual void on_unconfirmed_tokens_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t token_amount, const cryptonote::subaddress_index& subaddr_index) {}
     virtual void on_money_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx, uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index) {}
@@ -696,7 +698,7 @@ namespace tools
     void transfer_advanced(safex::command_t command_type, const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers,
                                    size_t fake_outputs_count, std::vector<std::vector<tools::wallet::get_outs_entry>> &outs,
                                    uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy,
-                                   cryptonote::transaction& tx, pending_tx &ptx);
+                                   cryptonote::transaction& tx, pending_tx &ptx, const safex::safex_account &safexacc = safex::safex_account{});
 
     void commit_tx(pending_tx& ptx_vector);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
@@ -719,7 +721,7 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);
+    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{});
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -764,6 +766,14 @@ namespace tools
       a & m_unconfirmed_payments;
       a & m_account_tags;
       a & m_ring_history_saved;
+
+      if (ver < 1) return;
+
+      a & m_safex_accounts;
+      a & m_safex_accounts_keys;
+
+
+
     }
 
     /*!
@@ -886,8 +896,10 @@ namespace tools
 
     size_t pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) const;
     size_t pop_ideal_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const;
+    size_t pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const std::string &acc_username,  const cryptonote::tx_out_type out_type) const;
     size_t pop_best_value(std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) const;
     size_t pop_ideal_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const;
+    size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const;
 
     void set_tx_note(const crypto::hash &txid, const std::string &note);
     std::string get_tx_note(const crypto::hash &txid) const;
@@ -1023,6 +1035,13 @@ namespace tools
 
     uint64_t get_interest_for_transfer(const transfer_details& td);
     uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
+
+    bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
+    bool remove_safex_account(const std::string &username);
+    bool get_safex_account(const std::string &username, safex::safex_account &acc);
+    bool get_safex_account_keys(const std::string &username, safex::safex_account_keys &acckeys);
+    std::vector<safex::safex_account> get_safex_accounts();
+    bool recover_safex_account(const std::string &username, const crypto::secret_key &secret_key);
 
   private:
     /*!
@@ -1188,9 +1207,12 @@ namespace tools
     std::string m_ring_database;
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
+
+    std::vector<safex::safex_account> m_safex_accounts;
+    std::vector<safex::safex_account_keys> m_safex_accounts_keys;
   };
 }
-BOOST_CLASS_VERSION(tools::wallet, 0)
+BOOST_CLASS_VERSION(tools::wallet, 1)
 BOOST_CLASS_VERSION(tools::wallet::transfer_details, 1)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_info::LR, 0)
@@ -1206,6 +1228,9 @@ BOOST_CLASS_VERSION(tools::wallet::signed_tx_set, 0)
 BOOST_CLASS_VERSION(tools::wallet::tx_construction_data, 0)
 BOOST_CLASS_VERSION(tools::wallet::pending_tx, 0)
 BOOST_CLASS_VERSION(tools::wallet::multisig_sig, 0)
+BOOST_CLASS_VERSION(safex::safex_account, 0)
+BOOST_CLASS_VERSION(safex::safex_account_keys, 0)
+BOOST_CLASS_VERSION(safex::safex_account_key_handler, 0)
 
 namespace boost
 {
@@ -1412,6 +1437,7 @@ namespace boost
       a & x.construction_data;
       a & x.multisig_sigs;
     }
+
   }
 }
 
@@ -1505,7 +1531,9 @@ namespace tools
     {
       std::string indexes;
       std::for_each(src.outputs.begin(), src.outputs.end(), [&](const cryptonote::tx_source_entry::output_entry& s_e) { indexes += boost::to_string(s_e.first) + " "; });
-      LOG_PRINT_L0("amount=" << cryptonote::print_money(src.amount) << ", real_output=" <<src.real_output << ", real_output_in_tx_index=" << src.real_output_in_tx_index << ", indexes: " << indexes);
+      LOG_PRINT_L0("source referenced type=" << static_cast<int>(src.referenced_output_type) << ", command=" << static_cast<int>(src.command_type)
+              << ", amount=" << cryptonote::print_money(src.amount) << ", token_amount=" << cryptonote::print_money(src.token_amount) <<
+              ", real_output=" <<src.real_output << ", real_output_in_tx_index=" << src.real_output_in_tx_index << ", indexes: " << indexes);
     }
     //----------------------------------------------------------------------------------------------------
     inline void print_token_source_entry(const cryptonote::tx_source_entry& src)

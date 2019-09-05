@@ -97,6 +97,9 @@ namespace
         std::string data3 = "This is some data for test";
         m_safex_account3.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
 
+        std::cout << "Alice public key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_public_key) << std::endl;
+        std::cout << "Alice private key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_secret_key) << std::endl;
+
         const std::string data1_new_str = "Another data tesst for edit";
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
@@ -162,7 +165,7 @@ namespace
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new);
+            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 

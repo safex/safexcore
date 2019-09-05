@@ -947,6 +947,45 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
+    struct create_account_fee_error : public transfer_error
+    {
+      explicit create_account_fee_error(std::string&& loc)
+              : transfer_error(std::move(loc), "invalid token create account lock fee")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_invalid_output_error : public transfer_error
+    {
+      explicit safex_invalid_output_error(std::string&& loc)
+              : transfer_error(std::move(loc), "invalid output type")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_unsuported_command_error : public transfer_error
+    {
+      explicit safex_unsuported_command_error(std::string&& loc)
+              : transfer_error(std::move(loc), "unsuported safex command")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_missing_outputs_error : public transfer_error
+    {
+      explicit safex_missing_outputs_error(std::string&& loc)
+              : transfer_error(std::move(loc), "missing advanced output")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_unknown_account : public transfer_error
+    {
+      explicit safex_unknown_account(std::string&& loc)
+              : transfer_error(std::move(loc), "account does not exists")
+      {
+      }
+    };
 
 #if !defined(_MSC_VER)
 

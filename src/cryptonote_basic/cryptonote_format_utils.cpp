@@ -444,7 +444,7 @@ namespace cryptonote
     return migration_pub_keys.data;
   }
 
-  crypto::public_key get_migration_pub_key_from_extra(const std::vector<uint8_t>& tx_extra, const int index)
+    crypto::public_key get_migration_pub_key_from_extra(const std::vector<uint8_t>& tx_extra, const int index)
   {
     return get_migration_pub_keys_from_extra(tx_extra)[index];
   }
@@ -814,6 +814,12 @@ namespace cryptonote
     return false;
   }
   //---------------------------------------------------------------
+  bool is_safex_out_to_acc(const safex::safex_account_keys& acc, const crypto::public_key& out_key, size_t output_index)
+  {
+    //todo Atana implement
+    return false;
+  }
+  //---------------------------------------------------------------
   boost::optional<subaddress_receive_info> is_out_to_acc_precomp(const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, const crypto::key_derivation& derivation, const std::vector<crypto::key_derivation>& additional_derivations, size_t output_index, hw::device &hwdev)
   {
     // try the shared tx pubkey
@@ -831,6 +837,16 @@ namespace cryptonote
       if (found != subaddresses.end())
         return subaddress_receive_info{ found->second, additional_derivations[output_index] };
     }
+    return boost::none;
+  }
+  //---------------------------------------------------------------
+  boost::optional<subaddress_receive_info> is_safex_output_to_acc_precomp(const safex::safex_account_keys& acc, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, size_t output_index, hw::device &hwdev)
+  {
+    if (acc.m_public_key == out_key) {
+      //my account output
+      return subaddress_receive_info{subaddress_index{0,0}, crypto::key_derivation{}};
+    }
+
     return boost::none;
   }
   //---------------------------------------------------------------

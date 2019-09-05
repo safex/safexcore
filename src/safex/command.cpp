@@ -209,8 +209,8 @@ namespace safex
   };
 
   execution_status create_account::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount >= SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE), "Create account requires minimum "+
-                  std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount > 0), "Create account must reference at least one token output and in total is "+
+                  std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens needed for locking", this->get_command_type());
 
     //todo chek if account username is valid
     //todo check if account username already exists

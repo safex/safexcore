@@ -50,6 +50,8 @@
 #include "warnings.h"
 #include "crypto/hash.h"
 
+#include "safex/safex_account.h"
+
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
 
@@ -779,6 +781,15 @@ namespace cryptonote
      uint64_t get_distributed_network_fee(const uint64_t start_offset, const size_t count) const;
      
      uint64_t get_network_fee_for_interval(const uint64_t& interval) const;
+
+     //-----------------------------------------------------------------------------------------------
+       /**
+      * @brief get safex account info
+      *
+      * @return structure with account info
+      */
+     bool get_safex_account_info(const std::string& username, safex::safex_account& account) const;
+
 
      /**
       * @brief get the network type we're on

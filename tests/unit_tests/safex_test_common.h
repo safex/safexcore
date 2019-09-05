@@ -20,16 +20,19 @@ struct output_index
   size_t tx_no; // index of transaction in block
   size_t out_no; // index of out in transaction
   size_t idx;
+  size_t advanced_output_id{0};
   bool spent;
   const cryptonote::block *p_blk;
   const cryptonote::transaction *p_tx;
+  cryptonote::tx_out_type out_type{cryptonote::tx_out_type::out_invalid};
 
   output_index(const cryptonote::txout_target_v &_out, uint64_t _a, uint64_t _t_a, size_t _h, size_t tno, size_t ono, const cryptonote::block *_pb, const cryptonote::transaction *_pt)
           : out(_out), amount(_a), token_amount(_t_a), blk_height(_h), tx_no(tno), out_no(ono), idx(0), spent(false), p_blk(_pb), p_tx(_pt)
   {}
 
   output_index(const output_index &other)
-          : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no), idx(other.idx), spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx)
+          : out(other.out), amount(other.amount), token_amount(other.token_amount), blk_height(other.blk_height), tx_no(other.tx_no), out_no(other.out_no),
+            idx(other.idx), spent(other.spent), p_blk(other.p_blk), p_tx(other.p_tx), advanced_output_id{other.advanced_output_id}, out_type{other.out_type}
   {}
 
   const std::string toString() const
@@ -115,7 +118,7 @@ bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryp
                                           size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
 
 bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                        size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data);
+                                        size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, const safex::safex_account_keys &sfx_acc_keys);
 
 bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc,
         uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list);

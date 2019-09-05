@@ -524,6 +524,11 @@ namespace safex
         return true;
       }
 
+      template<typename CMD>
+      static std::unique_ptr <CMD> parse_safex_command(const std::vector <uint8_t> &buffer)
+      {
+        return std::unique_ptr<CMD>(parse_safex_object<CMD>(buffer));
+      }
 
       static std::unique_ptr<command> parse_safex_object(const std::vector<uint8_t> &buffer, const safex::command_t command_type)
       {
@@ -558,7 +563,6 @@ namespace safex
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
             break;
         }
-
       }
 
       static inline command_t get_command_type(const std::vector<uint8_t> &script)

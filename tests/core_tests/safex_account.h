@@ -55,6 +55,10 @@ public:
   bool generate(std::vector<test_event_entry> &events);
   bool verify_safex_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
+  safex::safex_account_key_handler m_safex_account1_keys;
+  safex::safex_account_key_handler m_safex_account2_keys;
+  safex::safex_account_key_handler m_safex_account3_keys;
+  safex::safex_account_key_handler m_safex_account4_keys;
 
   safex::safex_account safex_account_alice;
   safex::safex_account safex_account_bob;
@@ -67,7 +71,7 @@ public:
 
 
   static const size_t expected_blockchain_total_transactions = 319;
-  static const size_t expected_blockchain_height = 308;
+  static const size_t expected_blockchain_height = 307;
 
   static bool expected_data_fields_intialized;
   static crypto::public_key expected_alice_account_key;

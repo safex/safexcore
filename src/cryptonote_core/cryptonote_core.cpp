@@ -1049,6 +1049,24 @@ namespace cryptonote
     return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(interval));
   }
 
+  //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_account_info(const std::string& username, safex::safex_account& account) const
+  {
+    std::vector<uint8_t> accdata;
+    if (!this->m_blockchain_storage.get_safex_account_data(username, accdata)) {
+      MERROR_VER("Unable to get safex account data for username " << username);
+      return false;
+    }
+    crypto::public_key pkey;
+    if (!this->m_blockchain_storage.get_safex_account_public_key(username, pkey)) {
+      MERROR_VER("Unable to get safex account pkey for username " << username);
+      return false;
+    }
+
+    account = safex::safex_account{username, pkey, accdata};
+    return true;
+  }
+
 
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
@@ -1099,7 +1117,17 @@ namespace cryptonote
         if (txin.command_type == safex::command_t::distribute_network_fee) {
           // todo atana: check if this is necessary
           LOG_PRINT_L2("skip key image validation of distributed network fee");
-        } else {
+        } else if (txin.command_type == safex::command_t::edit_account) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
+          safex::edit_account_data account(cmd->get_username(), cmd->get_new_account_data());
+          crypto::hash cmd_hash{};
+          get_object_hash(account, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+        }
+        else {
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           // invalid key_image
           if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))

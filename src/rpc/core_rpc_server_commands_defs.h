@@ -2500,6 +2500,29 @@ namespace cryptonote
     };
   };
 
+  struct COMMAND_RPC_SAFEX_ACCOUNT_INFO
+  {
+    struct request
+    {
+      std::string username;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(username)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string pkey;
+      std::string account_data;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(pkey)
+        KV_SERIALIZE(account_data)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
   struct COMMAND_RPC_GET_INTEREST_MAP
   {
     struct request
