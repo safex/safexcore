@@ -830,6 +830,19 @@ namespace cryptonote
                                                  tr("txid ") << txid << ", " <<
                                                  tr("Output of type account, username: ") << accusername << " received, " <<
                                                  tr("idx ") << subaddr_index;
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account_update)) {
+      safex::edit_account_data account;
+      const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+      cryptonote::parse_and_validate_from_blob(accblob, account);
+      std::string accusername(begin(account.username), end(account.username));
+      m_wallet->update_safex_account_data(accusername, account.account_data);
+
+
+      message_writer(console_color_green, false) << "\r" <<
+                                                 tr("Height ") << height << ", " <<
+                                                 tr("txid ") << txid << ", " <<
+                                                 tr("Updated for account, username: ") << accusername << " received, " <<
+                                                 tr("idx ") << subaddr_index;
     }
 
 
