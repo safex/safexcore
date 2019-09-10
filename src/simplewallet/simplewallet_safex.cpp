@@ -379,7 +379,8 @@ namespace cryptonote
     {
       // figure out what tx will be necessary
       std::vector<tools::wallet::pending_tx> ptx_vector;
-      uint64_t bc_height, unlock_block = 0;
+      uint64_t bc_height = m_wallet->get_blockchain_current_height();
+      uint64_t unlock_block = 0;
       std::string err;
       safex::command_t command = safex::command_t::nop;
       switch (command_type)
@@ -402,6 +403,7 @@ namespace cryptonote
 
         case CommandType::TransferCreateAccount:
           command = safex::command_t::create_account;
+          unlock_block = bc_height + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD + 10; //just in case
 
           break;
 
@@ -417,7 +419,7 @@ namespace cryptonote
 
 
       
-      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, 0 /* unlock_time */, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
+      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
 
       
 
@@ -817,13 +819,13 @@ namespace cryptonote
   }
 
   //----------------------------------------------------------------------------------------------------
-  void simple_wallet::on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index)
-  {
+  void simple_wallet::on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index){
     if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
       safex::create_account_data account;
       const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
       cryptonote::parse_and_validate_from_blob(accblob, account);
       std::string accusername(begin(account.username), end(account.username));
+      m_wallet->update_safex_account_data(accusername, account.account_data);
 
       message_writer(console_color_green, false) << "\r" <<
                                                  tr("Height ") << height << ", " <<

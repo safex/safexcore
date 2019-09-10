@@ -1148,7 +1148,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         + "got " + (kit == m_pub_keys.end() ? "<none>" : boost::lexical_cast<std::string>(kit->second))
         + ", m_transfers.size() is " + boost::lexical_cast<std::string>(m_transfers.size()));
         if ((kit == m_pub_keys.end())
-            || (kit != m_pub_keys.end() && (cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account_update))
+            || (kit != m_pub_keys.end() && (cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account_update
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account))
            )
         {
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
@@ -1300,6 +1301,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             if (0 != m_callback) {
               if (td.m_token_transfer)
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
+              else if ((td.m_output_type == tx_out_type::out_safex_account) ||
+                       (td.m_output_type == tx_out_type::out_safex_account_update)) {
+                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+              }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
