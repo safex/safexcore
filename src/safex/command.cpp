@@ -213,27 +213,24 @@ namespace safex
                   std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens needed for locking", this->get_command_type());
 
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
-    execution_status result = execution_status::ok;
 
-
-    //todo chek if account username is valid
     for (auto ch: cmd->get_username()) {
       if (!std::isalnum(ch) && ch!='_') {
-        result = execution_status::error_invalid_account_name;
+        return execution_status::error_invalid_account_name;
       }
     }
 
     std::vector<uint8_t>  dummy{};
     if (blokchain.get_account_data(cmd->get_username(), dummy)) {
-      result = execution_status::error_account_already_exists;
+      return execution_status::error_account_already_exists;
     }
 
     if (cmd->get_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
     {
-      result = execution_status::error_account_data_too_big;
+      return execution_status::error_account_data_too_big;
     }
 
-    return result;
+    return execution_status::ok;
   };
 
   edit_account_result* edit_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {

@@ -98,7 +98,8 @@ namespace cryptonote
   bool get_payment_id_from_tx_extra_nonce(const blobdata& extra_nonce, crypto::hash& payment_id);
   bool get_encrypted_payment_id_from_tx_extra_nonce(const blobdata& extra_nonce, crypto::hash8& payment_id);
   bool is_out_to_acc(const account_keys& acc, const crypto::public_key& out_key, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_public_keys, size_t output_index);
-  bool is_safex_out_to_acc(const safex::safex_account_keys& acc, const crypto::public_key& out_key, size_t output_index);
+  bool is_safex_out_to_acc(const safex::safex_account_keys& acc, const crypto::public_key& out_key);
+  bool is_safex_out_to_acc(const crypto::public_key& safex_acc_pkey, const crypto::public_key& out_key);
   struct subaddress_receive_info
   {
     subaddress_index index;

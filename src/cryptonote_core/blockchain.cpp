@@ -3412,8 +3412,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
     if (have_tx_keyimg_as_spent(k_image))
-
-
     {
       MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
       tvc.m_double_spend = true;

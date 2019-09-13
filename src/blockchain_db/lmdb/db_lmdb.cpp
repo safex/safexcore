@@ -4457,7 +4457,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
     if (get_result == MDB_NOTFOUND)
     {
-      throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+      //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+      return false;
     }
     else if (get_result)
     {
@@ -4493,7 +4494,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
     if (get_result == MDB_NOTFOUND)
     {
-      throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+      //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+      return false;
     }
     else if (get_result)
     {
