@@ -34,6 +34,7 @@ set(safex_core_sources
         fee_distribution.cpp
         safex_core.cpp
         safex_account.cpp
+        safex_offer.cpp
         )
 
 set(safex_core_headers
