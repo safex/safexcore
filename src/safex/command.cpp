@@ -212,14 +212,25 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount > 0), "Create account must reference at least one token output and in total is "+
                   std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens needed for locking", this->get_command_type());
 
-    //todo chek if account username is valid
-    //todo check if account username already exists
-    //todo check account description size
+    std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
+    for (auto ch: cmd->get_username()) {
+      if (!std::isalnum(ch) && ch!='_') {
+        return execution_status::error_invalid_account_name;
+      }
+    }
 
-    execution_status result = execution_status::ok;
+    std::vector<uint8_t>  dummy{};
+    if (blokchain.get_account_data(cmd->get_username(), dummy)) {
+      return execution_status::error_account_already_exists;
+    }
 
-    return result;
+    if (cmd->get_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+    {
+      return execution_status::error_account_data_too_big;
+    }
+
+    return execution_status::ok;
   };
 
   edit_account_result* edit_account::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
@@ -235,10 +246,21 @@ namespace safex
   };
 
   execution_status edit_account::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
-    execution_status result = execution_status::ok;
 
-    //todo check if account username is valid and exists
-    //todo check account signature for new data
+    execution_status result = execution_status::ok;
+    std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
+
+
+    for (auto ch: cmd->get_username()) {
+      if (!std::isalnum(ch) && ch!='_') {
+        result = execution_status::error_invalid_account_name;
+      }
+    }
+
+    std::vector<uint8_t>  dummy{};
+    if (!blokchain.get_account_data(cmd->get_username(), dummy)) {
+      result = execution_status::error_account_non_existant;
+    }
 
     return result;
   };

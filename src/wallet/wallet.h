@@ -1042,6 +1042,7 @@ namespace tools
     bool get_safex_account_keys(const std::string &username, safex::safex_account_keys &acckeys);
     std::vector<safex::safex_account> get_safex_accounts();
     bool recover_safex_account(const std::string &username, const crypto::secret_key &secret_key);
+    bool update_safex_account_data(const std::string &username, const std::vector<uint8_t> accdata);
 
   private:
     /*!

@@ -814,9 +814,11 @@ namespace cryptonote
     return false;
   }
   //---------------------------------------------------------------
-  bool is_safex_out_to_acc(const safex::safex_account_keys& acc, const crypto::public_key& out_key, size_t output_index)
+  bool is_safex_out_to_acc(const  crypto::public_key& safex_acc_pkey, const crypto::public_key& out_key)
   {
-    //todo Atana implement
+    if (safex_acc_pkey == out_key)
+      return true;
+
     return false;
   }
   //---------------------------------------------------------------

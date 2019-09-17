@@ -275,6 +275,20 @@ namespace tools
 
   }
   //-----------------------------------------------------------------------------------------------------------------
+  bool wallet::update_safex_account_data(const std::string &username, const std::vector<uint8_t> accdata)
+  {
+
+    for (uint32_t i = 0; i < m_safex_accounts.size(); i++)
+    {
+      if (m_safex_accounts[i].username == username)
+      {
+        m_safex_accounts[i].account_data = accdata;
+      }
+    }
+
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------------------------
   bool wallet::recover_safex_account(const std::string &username, const crypto::secret_key &secret_key)
   {
 

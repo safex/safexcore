@@ -34,9 +34,13 @@ namespace safex
 
   enum class execution_status
   {
-      ok = 0,
-      wrong_input_params = 1,
-      invalid = 2
+    ok = 0,
+    invalid = 1,
+    error_wrong_input_params = 1,
+    error_account_data_too_big = 10,
+    error_account_already_exists = 11,
+    error_invalid_account_name = 12,
+    error_account_non_existant = 13
   };
 
   struct execution_result

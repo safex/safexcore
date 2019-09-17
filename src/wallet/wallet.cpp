@@ -906,7 +906,8 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
 
   tx_scan_info.token_transfer = cryptonote::is_token_output(o.target);
   const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), o.target);
-  if (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account)
+  if ((cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account) ||
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account_update))
   {
     boost::optional<cryptonote::subaddress_receive_info> result = AUTO_VAL_INIT(result);
     for (auto &sfx_acc_keys: m_safex_accounts_keys)
@@ -1066,7 +1067,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
           if (tx_scan_info[i].received)
           {
-            if (tx_scan_info[i].output_type == tx_out_type::out_safex_account) {
+            if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)){
               outs.push_back(i);
               continue;
             }
@@ -1094,7 +1096,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
         if (tx_scan_info[i].received)
         {
-          if (tx_scan_info[i].output_type == tx_out_type::out_safex_account) {
+          if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)) {
             outs.push_back(i);
             continue;
           }
@@ -1144,7 +1147,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             error::wallet_internal_error, std::string("Unexpected transfer index from public key: ")
         + "got " + (kit == m_pub_keys.end() ? "<none>" : boost::lexical_cast<std::string>(kit->second))
         + ", m_transfers.size() is " + boost::lexical_cast<std::string>(m_transfers.size()));
-        if (kit == m_pub_keys.end())
+        if ((kit == m_pub_keys.end())
+            || (kit != m_pub_keys.end() && (cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account_update
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account))
+           )
         {
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
           uint64_t token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
@@ -1184,7 +1190,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             if (0 != m_callback) {
               if (td.m_token_transfer)
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
-              else if (output_type == tx_out_type::out_safex_account) {
+              else if ((output_type == tx_out_type::out_safex_account) ||
+                      (output_type == tx_out_type::out_safex_account_update)) {
                 const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                 m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
               }
@@ -1294,6 +1301,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             if (0 != m_callback) {
               if (td.m_token_transfer)
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
+              else if ((td.m_output_type == tx_out_type::out_safex_account) ||
+                       (td.m_output_type == tx_out_type::out_safex_account_update)) {
+                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+              }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
