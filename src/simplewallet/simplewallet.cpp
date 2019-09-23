@@ -1248,7 +1248,7 @@ simple_wallet::simple_wallet()
                               "  safex_account remove <account_username>\n"
                               "  safex_account recover <account_username> <account_private_key>\n"
                               "  safex_account keys <account_username>\n"
-                              "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <account_key> <account_data>\n"
+                              "  safex_account create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username>\n"
                               "  safex_account edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <new_account_data>"),
                            tr("If no arguments are specified, the wallet shows all the existing safex accounts along with their balances.\n"
                                "If the \"new\" argument is specified, keys for specified username and provided account data are generated\n"
