@@ -78,7 +78,7 @@ uint64_t get_inputs_token_amount(const std::vector<cryptonote::tx_source_entry> 
 bool fill_output_entries(std::vector<output_index> &out_indices, size_t sender_out, size_t nmix, size_t &real_entry_idx, std::vector<cryptonote::tx_source_entry::output_entry> &output_entries);
 
 bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<uint64_t, std::vector<size_t> > &outs_mine, const std::vector<cryptonote::block> &blockchain,
-                         const cryptonote::account_base &from, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash);
+                         const cryptonote::account_base &from, cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash, const crypto::public_key& safex_account_pkey = {});
 
 bool init_spent_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, map_output_t &outs_mine, const std::vector<cryptonote::block> &blockchain,
                                const cryptonote::account_base &from);
@@ -115,7 +115,7 @@ bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<crypt
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);
 
 bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, const safex::safex_account_keys &sfx_acc_keys);
 
 bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
                                         size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, const safex::safex_account_keys &sfx_acc_keys);

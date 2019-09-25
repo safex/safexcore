@@ -117,7 +117,7 @@ tx_destination_entry edit_safex_account_destination(const cryptonote::account_ba
 
 
 bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<uint64_t, std::vector<size_t> > &outs_mine, const std::vector<cryptonote::block> &blockchain,
-                         const cryptonote::account_base &from, cryptonote::tx_out_type out_type)
+                         const cryptonote::account_base &from, cryptonote::tx_out_type out_type, const crypto::public_key& safex_account_pkey)
 {
 
   int output_id_counter = 0;
@@ -179,7 +179,10 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
                     outs[static_cast<uint64_t>(temp.output_type)][tx_global_idx].out_type = static_cast<cryptonote::tx_out_type>(temp.output_type);
 
                     // Is out to me?
-                    if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
+                    if (is_safex_out_to_acc(safex_account_pkey, out_key)) {
+                        outs_mine[static_cast<uint64_t>(temp.output_type)].push_back(tx_global_idx);
+                    }
+                    else if (is_out_to_acc(from.get_keys(), out_key, get_tx_pub_key_from_extra(tx), get_additional_tx_pub_keys_from_extra(tx), j))
                     {
                       outs_mine[static_cast<uint64_t>(temp.output_type)].push_back(tx_global_idx);
                     }
@@ -488,11 +491,11 @@ void fill_migration_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vect
 
 bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vector<tx_source_entry> &sources,
                      const cryptonote::account_base &from, uint64_t value_amount, size_t nmix,
-                     cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash)
+                     cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash, const crypto::public_key& safex_account_pkey = {})
 {
   map_output_idx_t outs;
   map_output_t outs_mine;
-  if (!init_output_indices(txmap, outs, outs_mine, blocks, from, out_type))
+  if (!init_output_indices(txmap, outs, outs_mine, blocks, from, out_type, safex_account_pkey))
     return false;
 
   if (!init_spent_output_indices(txmap, outs, outs_mine, blocks, from))
@@ -698,7 +701,7 @@ void fill_create_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std:
 
 void fill_edit_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, uint64_t token_amount,
                                                      uint64_t fee, size_t nmix, const std::string &username, const std::vector<uint8_t> &new_account_data, std::vector<tx_source_entry> &sources,
-                                                     std::vector<tx_destination_entry> &destinations)
+                                                     std::vector<tx_destination_entry> &destinations, const crypto::public_key& safex_account_pkey = {})
 {
   sources.clear();
   destinations.clear();
@@ -709,7 +712,7 @@ void fill_edit_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
   if (!fill_tx_sources(txmap, blocks, sources, from, fee, nmix, cryptonote::tx_out_type::out_cash))
     throw std::runtime_error("couldn't fill transaction sources");
 
-  if (!fill_tx_sources(txmap, blocks, sources, from, 0, nmix, cryptonote::tx_out_type::out_safex_account_update))
+  if (!fill_tx_sources(txmap, blocks, sources, from, 0, nmix, cryptonote::tx_out_type::out_safex_account_update, safex_account_pkey))
     throw std::runtime_error("couldn't fill token transaction sources for edit account");
 
   //update source with new account data
@@ -950,13 +953,13 @@ bool construct_fee_donation_transaction(map_hash2tx_t &txmap,  std::vector<crypt
 
 
 bool construct_create_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data)
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, const safex::safex_account_keys &sfx_acc_keys)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_create_account_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, pkey, account_data, sources, destinations);
 
-  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
 
 bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
@@ -964,7 +967,7 @@ bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<crypto
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
-  fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, username, new_account_data, sources, destinations);
+  fill_edit_account_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, username, new_account_data, sources, destinations, sfx_acc_keys.m_public_key);
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }

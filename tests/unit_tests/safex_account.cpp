@@ -29,12 +29,9 @@
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/predicate.hpp>
 #include <cstdio>
 #include <iostream>
 #include <chrono>
-#include <thread>
-#include <cryptonote_core/blockchain.h>
 
 #include "gtest/gtest.h"
 
@@ -42,7 +39,6 @@
 #include "blockchain_db/blockchain_db.h"
 #include "blockchain_db/lmdb/db_lmdb.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
-#include "cryptonote_core/cryptonote_tx_utils.h"
 #include "safex/safex_account.h"
 #include "safex_test_common.h"
 
@@ -146,19 +142,19 @@ namespace
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey, m_safex_account1.account_data);
+            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, m_safex_account1.pkey, m_safex_account1.account_data, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data);
+            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx2)] = tx2;
           }
           else if (i == 7)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account3.username, m_safex_account3.pkey, m_safex_account3.account_data);
+            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account3.username, m_safex_account3.pkey, m_safex_account3.account_data, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 14)
@@ -248,14 +244,9 @@ namespace
     account1.generate();
     account2.generate();
 
-    std::string test_data_str01 = "Some test data that should be signed";
-    const blobdata test_data01 = test_data_str01;
-
-    std::string test_data_str02 = "Some test data that should be signed2";
-    const blobdata test_data02 = test_data_str02;
-
-    std::string test_data_str03 = "Some test data that should be signed, here is also some addition 123241";
-    const blobdata test_data03 = test_data_str03;
+    const blobdata test_data01 = std::string("Some test data that should be signed");
+    const blobdata test_data02 = std::string("Some test data that should be signed2");
+    const blobdata test_data03 = std::string("Some test data that should be signed, here is also some addition 123241");
 
     //calculate hash of signature
     crypto::hash message_hash01 =  get_blob_hash(test_data01);
