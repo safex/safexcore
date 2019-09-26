@@ -174,20 +174,20 @@ namespace safex
 
     struct create_offer_data : public command_data
     {
-        std::vector<uint8_t> username{};
+        crypto::hash offer_id{};
         crypto::public_key pkey;
-        std::vector<uint8_t> account_data{};
+        std::vector<uint8_t> offer_data{};
 
         create_offer_data() {}
-        create_offer_data(const std::string &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data): username(_username.begin(), _username.end()), pkey{_pkey}, account_data{_account_data}
+        create_offer_data(const crypto::hash id, const crypto::public_key &_pkey, const std::vector<uint8_t> &_offer_data): offer_id{id}, pkey{_pkey}, offer_data{_offer_data}
         {
 
         }
 
         BEGIN_SERIALIZE_OBJECT()
-            FIELD(username)
+            FIELD(offer_id)
             FIELD(pkey)
-            FIELD(account_data)
+            FIELD(offer_data)
         END_SERIALIZE()
     };
 

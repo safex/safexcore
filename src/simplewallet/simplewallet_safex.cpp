@@ -59,8 +59,8 @@ namespace cryptonote
                                                           const std::vector<uint8_t> &account_data)
     {
      //TODO: Change to calls for real offer
-        safex::create_offer_data offer_output_data{username, pkey, account_data};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
+//        safex::create_offer_data offer_output_data{username, pkey, account_data};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(std::string{"Test string"});
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer, blobdata};
     }
 

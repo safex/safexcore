@@ -12,6 +12,8 @@
 #include "device/device.hpp"
 #include "crypto/crypto.h"
 #include "serialization/keyvalue_serialization.h"
+#include "cryptonote_basic/cryptonote_format_utils.h"
+
 
 #include "safex_core.h"
 
@@ -52,6 +54,7 @@ namespace safex
     uint64_t percent;
   };
 
+
   struct safex_offer
   {
     public:
@@ -60,8 +63,20 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, const std::vector<uint8_t> &_description,
-      bool _active, const crypto::signature &_sig, const uint64_t _id):
+      bool _active, const crypto::signature &_sig, crypto::hash _id):
               title{_title}, quantity{_quantity}, price{_price}, description{_description}, description_sig{_sig}, active{_active}, shipping{}, id{_id}, version{0} {
+
+      }
+
+
+      safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, std::string& _description,
+                  bool _active, const safex_account_keys& keys, std::string username):
+              title{_title}, quantity{_quantity}, price{_price}, active{_active}, shipping{}, version{0} {
+
+          description = std::vector<uint8_t>(_description.begin(),_description.end());
+          description_sig = generate_description_signature(keys);
+
+          id = create_offer_id(username);
 
       }
 
@@ -111,8 +126,41 @@ namespace safex
       crypto::signature description_sig; //signature of description, from the account that created offer
       bool active; //is offer active
       std::vector<uint8_t> shipping;
-      uint64_t id; //unique id of the offer
+      crypto::hash id; //unique id of the offer
       uint64_t version; //offer can be updated, increment version in that case
+
+  private:
+      crypto::hash create_offer_id(std::string& username){
+
+          crypto::hash offer_id{};
+          std::string offer_id_string = username;
+
+          auto time_now = std::chrono::system_clock::now();
+          std::time_t current_time = std::chrono::system_clock::to_time_t(time_now);
+          std::string time_now_string{std::ctime(&current_time)};
+
+          offer_id_string.append(time_now_string);
+
+          bool res = cryptonote::get_object_hash(std::vector<uint8_t>{offer_id_string.begin(),offer_id_string.end()},offer_id);
+
+          if(!res){
+              //error
+          }
+          return offer_id;
+      }
+
+      crypto::signature generate_description_signature(const safex_account_keys& keys){
+          crypto::hash message_hash01{};
+          bool res = cryptonote::get_object_hash(description,message_hash01);
+          if(!res){
+              //error
+          }
+
+          crypto::signature message_sig01{};
+          crypto::generate_signature(message_hash01, keys.m_public_key, keys.m_secret_key, message_sig01);
+          return message_sig01;
+      }
+
   };
 }
 
