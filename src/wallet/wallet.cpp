@@ -8748,7 +8748,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_staked_token_balance(subaddr_account), needed_staked_tokens, accumulated_cash_fee + needed_fee);
       }
 
-      if ((dsts[0].output_type == tx_out_type::out_safex_account)) {
+      if (dsts[0].output_type == tx_out_type::out_safex_account) {
         //safex account is created from create command referencing token output, but does not directly references tokens locked for its creation (there is separate locked token output)
 
         LOG_PRINT_L2("Adding advanced output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<

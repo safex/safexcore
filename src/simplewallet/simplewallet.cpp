@@ -1259,6 +1259,17 @@ simple_wallet::simple_wallet()
                                "If the \"edit\" argument is specified, the wallet edits account data specified by username.\n"
                                "Optionally set priority, ring_size for input tokens or subaddress index to use"));
 
+    m_cmd_binder.set_handler("safex_offer",
+                             boost::bind(&simple_wallet::safex_offer, this, _1),
+                             tr("safex_offer\n"
+                                "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_data> <offer_price> <offer_quantity>\n"
+                                "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_data> <offer_price> <offer_quantity>\n"
+                                "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>"),
+                             tr("If no arguments are specified, the wallet shows all the existing safex offers for current account.\n"
+                                "If the \"create\" argument is specified, the wallet creates a new safex offer and create a transaction\n"
+                                "If the \"edit\" argument is specified, given offer will be edited with new arguments\n"
+                                "If the \"close\" argument is specified, offer is closed and no longer active"));
+
 
     // ---------------- DEMO Offer ID mock up ------------------------------
     simple_trade_ids.insert(std::make_pair<std::string, std::string>("#1", "First order"));

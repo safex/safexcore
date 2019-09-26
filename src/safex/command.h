@@ -172,6 +172,24 @@ namespace safex
     END_SERIALIZE()
   };
 
+    struct create_offer_data : public command_data
+    {
+        std::vector<uint8_t> username{};
+        crypto::public_key pkey;
+        std::vector<uint8_t> account_data{};
+
+        create_offer_data() {}
+        create_offer_data(const std::string &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data): username(_username.begin(), _username.end()), pkey{_pkey}, account_data{_account_data}
+        {
+
+        }
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(username)
+            FIELD(pkey)
+            FIELD(account_data)
+        END_SERIALIZE()
+    };
 
 
   /**

@@ -225,6 +225,9 @@ namespace cryptonote
     out_network_fee = 12, //safex cash collected as network trading fee
     out_safex_account = 15, //safex account output
     out_safex_account_update = 16, //safex account output update
+    out_safex_offer = 20,
+    out_safex_offer_update = 21,
+    out_safex_offer_close = 22,
     out_invalid = 100
   };
 
