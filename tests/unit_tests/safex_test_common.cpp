@@ -157,7 +157,8 @@ bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<
               const crypto::public_key &out_key = *boost::apply_visitor(cryptonote::destination_public_key_visitor(), out.target);
 
               if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_staked_token)
-                  || (out_type == cryptonote::tx_out_type::out_safex_account) || (out_type == cryptonote::tx_out_type::out_safex_account_update))
+                  || (out_type == cryptonote::tx_out_type::out_safex_account) || (out_type == cryptonote::tx_out_type::out_safex_account_update)
+                  || (out_type == cryptonote::tx_out_type::out_safex_offer))
               {
                 if (out.target.type() == typeid(cryptonote::txout_token_to_key))
                 {
@@ -523,7 +524,8 @@ bool fill_tx_sources(map_hash2tx_t &txmap,  std::vector<block> &blocks,std::vect
                 (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token || out_type == cryptonote::tx_out_type::out_safex_account)))
               continue;
 
-            if (out_type == cryptonote::tx_out_type::out_safex_account_update && oi.out_type != cryptonote::tx_out_type::out_safex_account)
+            if ((out_type == cryptonote::tx_out_type::out_safex_account_update || out_type == cryptonote::tx_out_type::out_safex_offer)
+                    && oi.out_type != cryptonote::tx_out_type::out_safex_account)
               continue;
 
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);

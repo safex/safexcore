@@ -318,6 +318,8 @@ const char* const LMDB_TOKEN_STAKED_SUM_TOTAL = "token_staked_sum_total";
 const char* const LMDB_NETWORK_FEE_SUM = "network_fee_sum";
 const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
 const char* const LMDB_SAFEX_ACCOUNT = "safex_account";
+const char* const LMDB_SAFEX_OFFER = "safex_offer";
+
 
 const char* const LMDB_PROPERTIES = "properties";
 
@@ -1426,6 +1428,20 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
     edit_safex_account(safex::account_username{result->username}, result->account_data);
 
   }
+  else if (txin.command_type == safex::command_t::create_offer)
+  {
+
+      std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+      std::unique_ptr<safex::create_offer_result> result(dynamic_cast<safex::create_offer_result*>(cmd->execute(*this, txin)));
+      if (result->status != safex::execution_status::ok)
+      {
+          LOG_ERROR("Execution of edit account command failed, status:" << static_cast<int>(result->status));
+          throw1(DB_ERROR("Error executing add safex account command"));
+      }
+
+      add_safex_offer(result->offer_id, result->offer_data);
+
+  }
   else {
     throw1(DB_ERROR("Unknown safex command type"));
   }
@@ -1619,6 +1635,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_NETWORK_FEE_SUM, MDB_INTEGERKEY | MDB_CREATE, m_network_fee_sum, "Failed to open db handle for m_network_fee_sum");//use zero key
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
   lmdb_db_open(txn, LMDB_SAFEX_ACCOUNT, MDB_CREATE, m_safex_account, "Failed to open db handle for m_safex_account");
+  lmdb_db_open(txn, LMDB_SAFEX_OFFER, MDB_CREATE, m_safex_offer, "Failed to open db handle for m_safex_offer");
 
 
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
@@ -1637,8 +1654,10 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   mdb_set_compare(txn, m_txpool_meta, compare_hash32);
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
   mdb_set_compare(txn, m_safex_account, compare_hash32);
+  mdb_set_compare(txn, m_safex_offer, compare_hash32);
 
-  mdb_set_compare(txn, m_properties, compare_string);
+
+    mdb_set_compare(txn, m_properties, compare_string);
 
   if (!(mdb_flags & MDB_RDONLY))
   {
@@ -1802,6 +1821,8 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_token_lock_expiry: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_safex_account, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_account: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_safex_offer, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_offer: ", result).c_str()));
 
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
@@ -4436,8 +4457,32 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
   }
 
+    void BlockchainLMDB::add_safex_offer(const crypto::hash &offer_id, const std::vector<uint8_t> &offer_data){
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+        MDB_cursor *cur_safex_offer;
+        CURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
 
-  bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
+
+        int result;
+        result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&offer_id, NULL, MDB_SET);
+        if (result == 0) {
+            throw1(SAFEX_ACCOUNT_EXISTS(std::string("Attempting to add safex offer that's already in the db (offerID ").append(offer_id.data).append(")").c_str()));
+        } else if (result != MDB_NOTFOUND) {
+            throw1(DB_ERROR(lmdb_error(std::string("Error checking if offer exists for offerID ").append(offer_id.data) + ": ", result).c_str()));
+        }
+
+        MDB_val_copy2<char[32], const std::vector<uint8_t>> offer_info(offer_id.data, sizeof(offer_id), offer_data);
+        result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&offer_id, &offer_info, MDB_NOOVERWRITE);
+        if (result)
+            throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
+  }
+
+
+
+    bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
 
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();

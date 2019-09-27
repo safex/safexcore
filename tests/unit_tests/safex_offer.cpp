@@ -107,9 +107,11 @@ namespace
 
 
         m_safex_offer = create_demo_safex_offer("Apple",100,10,"This is an apple");
+        m_safex_offer2 = create_demo_safex_offer("Barbie",500,30,"This is a Barbie");
+        m_safex_offer3 = create_demo_safex_offer("Car",1000,1,"This is a car");
 
 
-        for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
+          for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
           block blk;
           std::list<cryptonote::transaction> tx_list; // fill tx list with transactions for that block
@@ -155,7 +157,7 @@ namespace
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account1_keys.get_keys());
+            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx2)] = tx2;
           }
           else if (i == 7)
@@ -164,6 +166,18 @@ namespace
             cryptonote::transaction &tx = tx_list.back();                                                           \
             construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
+
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx2 = tx_list.back();                                                           \
+            construct_create_offer_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_safex_offer2, m_safex_account2_keys.get_keys());
+            m_txmap[get_transaction_hash(tx2)] = tx2;
+          }
+          else if (i == 12)
+          {
+              tx_list.resize(tx_list.size() + 1);
+              cryptonote::transaction &tx = tx_list.back();                                                           \
+              construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer3, m_safex_account1_keys.get_keys());
+              m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 14)
           {
@@ -213,6 +227,9 @@ namespace
 
 
       safex::safex_offer m_safex_offer;
+      safex::safex_offer m_safex_offer2;
+      safex::safex_offer m_safex_offer3;
+
 
       std::vector<uint8_t> data1_new;
 

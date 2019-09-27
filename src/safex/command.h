@@ -108,6 +108,15 @@ namespace safex
     std::vector<uint8_t> account_data{};
   };
 
+struct create_offer_result : public execution_result
+{
+    create_offer_result(const crypto::hash &_offer_id, std::vector<uint8_t>& _offer_data):
+            offer_id{_offer_id}, offer_data{_offer_data} {
+    }
+    crypto::hash offer_id{};
+    std::vector<uint8_t> offer_data{};
+};
+
 
 
 
@@ -525,6 +534,40 @@ namespace safex
       std::vector<uint8_t> username{};
       std::vector<uint8_t> new_account_data{};
   };
+
+class create_offer : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _offerid //ID of the offer
+     * @param _offer_data //offer data
+    * */
+    create_offer(const uint32_t _version, const crypto::hash _offer_id, const std::vector<uint8_t> _offer_data) :
+            command(_version, command_t::create_offer), offer_id(_offer_id), offer_data{_offer_data} {}
+
+    create_offer() : command(0, command_t::create_offer), offer_id{}, offer_data{} {}
+
+    crypto::hash get_offerid() const { return offer_id; }
+    std::vector<uint8_t> get_offer_data() const { return offer_data; }
+
+    virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_offer);
+        FIELD(offer_id)
+        FIELD(offer_data)
+    END_SERIALIZE()
+
+private:
+
+    crypto::hash offer_id{};
+    std::vector<uint8_t> offer_data{};
+};
 
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
