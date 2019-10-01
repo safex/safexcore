@@ -64,12 +64,12 @@ namespace
   class SafexOfferTest : public testing::Test
   {
     protected:
-      safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint8_t quantity, std::string desc) {
+      safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint8_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
 
           safex::safex_price m_safex_price1{price,price,5};
 
           return safex::safex_offer(title, quantity, m_safex_price1,
-                               desc, true,m_safex_account1_keys.get_keys(),m_safex_account1.username);
+                               desc, true, keys.get_keys(), curr_account.username);
       }
 
       SafexOfferTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
@@ -106,9 +106,9 @@ namespace
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
 
-        m_safex_offer = create_demo_safex_offer("Apple",100,10,"This is an apple");
-        m_safex_offer2 = create_demo_safex_offer("Barbie",500,30,"This is a Barbie");
-        m_safex_offer3 = create_demo_safex_offer("Car",1000,1,"This is a car");
+        m_safex_offer = create_demo_safex_offer("Apple",100,10,"This is an apple", m_safex_account1_keys, m_safex_account1);
+        m_safex_offer2 = create_demo_safex_offer("Barbie",500,30,"This is a Barbie",m_safex_account2_keys, m_safex_account2);
+        m_safex_offer3 = create_demo_safex_offer("Car",1000,1,"This is a car",m_safex_account1_keys, m_safex_account1);
 
 
           for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
@@ -314,9 +314,9 @@ namespace
 
   }
 #endif
-#if 0
+#if 1
 
-  TYPED_TEST(SafexOfferTest, CreateAccountCommand)
+  TYPED_TEST(SafexOfferTest, CreateOfferCommand)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     std::string dirPath = tempPath.string();
@@ -363,7 +363,7 @@ namespace
   }
 #endif
 
-#if 0
+#if 1
 
   TYPED_TEST(SafexOfferTest, EditAccount)
   {

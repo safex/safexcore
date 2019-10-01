@@ -136,8 +136,8 @@ namespace safex
           std::string offer_id_string = username;
 
           auto time_now = std::chrono::system_clock::now();
-          std::time_t current_time = std::chrono::system_clock::to_time_t(time_now);
-          std::string time_now_string{std::ctime(&current_time)};
+          auto nanosec = time_now.time_since_epoch();
+          std::string time_now_string{std::to_string(nanosec.count())};
 
           offer_id_string.append(time_now_string);
 

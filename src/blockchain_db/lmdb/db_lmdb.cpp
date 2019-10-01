@@ -1435,8 +1435,8 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::unique_ptr<safex::create_offer_result> result(dynamic_cast<safex::create_offer_result*>(cmd->execute(*this, txin)));
       if (result->status != safex::execution_status::ok)
       {
-          LOG_ERROR("Execution of edit account command failed, status:" << static_cast<int>(result->status));
-          throw1(DB_ERROR("Error executing add safex account command"));
+          LOG_ERROR("Execution of add saffex offer command failed, status:" << static_cast<int>(result->status));
+          throw1(DB_ERROR("Error executing add safex offer command"));
       }
 
       add_safex_offer(result->offer_id, result->offer_data);
@@ -4467,7 +4467,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
 
         int result;
-        result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&offer_id, NULL, MDB_SET);
+        MDB_val_set(val_offer_id, offer_id);
+        result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&val_offer_id, NULL, MDB_SET);
         if (result == 0) {
             throw1(SAFEX_ACCOUNT_EXISTS(std::string("Attempting to add safex offer that's already in the db (offerID ").append(offer_id.data).append(")").c_str()));
         } else if (result != MDB_NOTFOUND) {
@@ -4475,9 +4476,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
 
         MDB_val_copy2<char[32], const std::vector<uint8_t>> offer_info(offer_id.data, sizeof(offer_id), offer_data);
-        result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&offer_id, &offer_info, MDB_NOOVERWRITE);
+        result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, MDB_NOOVERWRITE);
         if (result)
-            throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
+            throw0(DB_ERROR(lmdb_error("Failed to add offer data to db transaction: ", result).c_str()));
   }
 
 

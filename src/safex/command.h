@@ -623,7 +623,9 @@ private:
           case safex::command_t::edit_account:
             return std::unique_ptr<command>(parse_safex_object<edit_account>(buffer));
             break;
-
+          case safex::command_t::create_offer:
+            return std::unique_ptr<command>(parse_safex_object<create_offer>(buffer));
+            break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
             break;
