@@ -1084,7 +1084,12 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
         error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key");
   }
 
+  const crypto::public_key &temp_out_key = *boost::apply_visitor(destination_public_key_visitor(), tx.vout[i].target);
+  LOG_PRINT_L0("Adding output with key and index: " << epee::string_tools::pod_to_hex(temp_out_key) << ", " << i);
+  
   outs.push_back(i);
+  THROW_WALLET_EXCEPTION_IF(std::find(outs.begin(), outs.end(), i) != outs.end(), error::wallet_internal_error, "Same output cannot be added twice");
+  
   if (tx_scan_info.token_transfer)
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
@@ -1116,7 +1121,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   // (that is, the prunable stuff may or may not be included)
   if (!miner_tx && !pool)
     process_unconfirmed(txid, tx, height);
-  std::vector<size_t> outs;
+  
   std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_money_got_in_outs;  // per receiving subaddress index
   std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_tokens_got_in_outs;  // per receiving subaddress index
   crypto::public_key tx_pub_key = null_pkey;
@@ -1135,6 +1140,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   uint64_t total_token_received_1 = 0;
   while (!tx.vout.empty())
   {
+    std::vector<size_t> outs;
     // if tx.vout is not empty, we loop through all tx pubkeys
 
     tx_extra_pub_key pub_key_field;
@@ -1207,6 +1213,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           if (tx_scan_info[i].received)
           {
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+            LOG_PRINT_L0("SAFEX_LOG: scan_output call at: " << __LINE__ );
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
         }
@@ -1230,6 +1237,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         if (tx_scan_info[i].received)
         {
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
         }
       }
@@ -1246,12 +1254,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           hwdev_lock.lock();
           hwdev.set_mode(hw::device::NONE);
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           hwdev_lock.unlock();
         }
       }
     }
-
+    LOG_PRINT_L0("outs size: " << outs.size() << ", num_vouts_received: " << num_vouts_received);
     if(!outs.empty() && num_vouts_received > 0)
     {
       //good news - got money! take care about it
@@ -1336,19 +1345,21 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
+          LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
         // @note What are default values for token_amount() ?
         else if ( m_transfers[kit->second].m_spent || 
-                  (!m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].amount() >= tx.vout[o].amount)) || 
-                  (m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].token_amount() >= tx.vout[o].token_amount)))
+                  (!m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].amount() >= tx_scan_info[o].amount)) || 
+                  (m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].token_amount() >= tx_scan_info[o].token_amount)))
         {
           LOG_PRINT_L0("============================= DEBUG ===========================================");
           LOG_PRINT_L0("m_transfers[kit->second].amount() = " << m_transfers[kit->second].amount() );
           LOG_PRINT_L0("tx.vout[o].amount = " << tx.vout[o].amount);
           LOG_PRINT_L0("m_transfers[kit->second].token_amount() = " << m_transfers[kit->second].token_amount());
           LOG_PRINT_L0("tx.vout[o].token_amount = " << tx.vout[o].token_amount);
+          LOG_PRINT_L0("At output: " << o);
           LOG_PRINT_L0("===============================================================================");
 
           if (m_transfers[kit->second].m_token_transfer) {
@@ -1458,7 +1469,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
-
+            LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
           }
