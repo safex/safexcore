@@ -115,7 +115,8 @@ public:
   virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}
-
+  virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const { return true;}
+  virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true; };
 
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }
   virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const { return true; }

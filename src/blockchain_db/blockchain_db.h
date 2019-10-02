@@ -1726,6 +1726,27 @@ namespace cryptonote
        */
       virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const = 0;
 
+      /**
+     * Get safex offer data
+     *
+     * @param offer_id safex offer id
+     * @param data offer description
+     *
+     * @return true if offer exists, false otherwise
+     */
+      virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const = 0;
+
+      /**
+     * Get safex offer username of seller
+     *
+     * @param offer_id safex offer id
+     * @param username username of offer seller
+     *
+     * @return true if offer exists, false otherwise
+     */
+      virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const = 0;
+
+
 
 
       //

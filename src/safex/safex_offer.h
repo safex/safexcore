@@ -41,6 +41,12 @@ namespace safex
     KV_SERIALIZE(percent)
     END_KV_SERIALIZE_MAP()
 
+      BEGIN_SERIALIZE_OBJECT()
+          FIELD(cost)
+          FIELD(price)
+          FIELD(percent)
+      END_SERIALIZE()
+
     template<class t_archive>
     inline void serialize(t_archive &a, const unsigned int /*ver*/)
       {
@@ -58,25 +64,25 @@ namespace safex
   struct safex_offer
   {
     public:
-      safex_offer(): title{}, quantity{}, price{}, description{}, description_sig{}, active{false}, shipping{}, id{0}, version{0} {
+      safex_offer(): title{}, quantity{}, price{}, description{}, description_sig{}, active{false}, shipping{}, id{0}, version{0}, username{} {
 
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, const std::vector<uint8_t> &_description,
-      bool _active, const crypto::signature &_sig, crypto::hash _id):
-              title{_title}, quantity{_quantity}, price{_price}, description{_description}, description_sig{_sig}, active{_active}, shipping{}, id{_id}, version{0} {
+      bool _active, const crypto::signature &_sig, crypto::hash _id, std::string seller_username):
+              title{_title}, quantity{_quantity}, price{_price}, description{_description}, description_sig{_sig}, active{_active}, shipping{}, id{_id}, version{0}, username{seller_username}{
 
       }
 
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, std::string& _description,
-                  bool _active, const safex_account_keys& keys, std::string username):
-              title{_title}, quantity{_quantity}, price{_price}, active{_active}, shipping{}, version{0} {
+                  bool _active, const safex_account_keys& keys, std::string seller_username):
+              title{_title}, quantity{_quantity}, price{_price}, active{_active}, shipping{}, version{0}, username{seller_username} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           description_sig = generate_description_signature(keys);
 
-          id = create_offer_id(username);
+          id = create_offer_id(seller_username);
 
       }
 
@@ -89,6 +95,7 @@ namespace safex
         KV_SERIALIZE(active)
         KV_SERIALIZE(shipping)
         KV_SERIALIZE(id)
+        KV_SERIALIZE(username)
         KV_SERIALIZE(version)
       END_KV_SERIALIZE_MAP()
 
@@ -101,6 +108,7 @@ namespace safex
         FIELD(active)
         FIELD(shipping)
         FIELD(id)
+        FIELD(username)
         FIELD(version)
       END_SERIALIZE()
 
@@ -115,6 +123,7 @@ namespace safex
         a & active;
         a & shipping;
         a & id;
+        a & username;
         a & version;
       }
 
@@ -127,6 +136,7 @@ namespace safex
       bool active; //is offer active
       std::vector<uint8_t> shipping;
       crypto::hash id; //unique id of the offer
+      std::string username; // username of the seller
       uint64_t version; //offer can be updated, increment version in that case
 
   private:

@@ -302,6 +302,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
     virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
     virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}
+    virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const { return true;}
+    virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true;}
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty,
             const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash)

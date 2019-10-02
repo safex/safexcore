@@ -1438,8 +1438,9 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
           LOG_ERROR("Execution of add saffex offer command failed, status:" << static_cast<int>(result->status));
           throw1(DB_ERROR("Error executing add safex offer command"));
       }
-
-      add_safex_offer(result->offer_id, result->offer_data);
+      blobdata blob{};
+      t_serializable_object_to_blob(*result,blob);
+      add_safex_offer(result->offer_id, blob);
 
   }
   else {
@@ -4457,7 +4458,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
   }
 
-    void BlockchainLMDB::add_safex_offer(const crypto::hash &offer_id, const std::vector<uint8_t> &offer_data){
+    void BlockchainLMDB::add_safex_offer(const crypto::hash &offer_id, const blobdata &blob) {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();
         mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -4475,7 +4476,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw1(DB_ERROR(lmdb_error(std::string("Error checking if offer exists for offerID ").append(offer_id.data) + ": ", result).c_str()));
         }
 
-        MDB_val_copy2<char[32], const std::vector<uint8_t>> offer_info(offer_id.data, sizeof(offer_id), offer_data);
+        MDB_val_copy<blobdata> offer_info(blob);
         result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, MDB_NOOVERWRITE);
         if (result)
             throw0(DB_ERROR(lmdb_error("Failed to add offer data to db transaction: ", result).c_str()));
@@ -4522,42 +4523,118 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   };
 
   bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
-    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-    check_open();
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
 
-    TXN_PREFIX_RDONLY();
+      TXN_PREFIX_RDONLY();
 
-    MDB_cursor *cur_safex_account;
-    RCURSOR(safex_account);
-    cur_safex_account = m_cur_safex_account;
+      MDB_cursor *cur_safex_account;
+      RCURSOR(safex_account);
+      cur_safex_account = m_cur_safex_account;
 
-    crypto::hash username_hash = username.hash();
+      crypto::hash username_hash = username.hash();
 
-    uint8_t temp[SAFEX_ACCOUNT_DATA_MAX_SIZE + sizeof(crypto::public_key)];
+      uint8_t temp[SAFEX_ACCOUNT_DATA_MAX_SIZE + sizeof(crypto::public_key)];
 
-    MDB_val_set(k, username_hash);
-    MDB_val_set(v, temp);
-    auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
-    if (get_result == MDB_NOTFOUND)
-    {
-      //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
-      return false;
-    }
-    else if (get_result)
-    {
-      throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()), get_result).c_str()));
-    }
-    else if (get_result == MDB_SUCCESS)
-    {
-      uint8_t *ptr = (uint8_t *)v.mv_data + sizeof(crypto::public_key);
-      data = std::vector<uint8_t>(ptr, ptr+v.mv_size-sizeof(crypto::public_key));
-    }
+      MDB_val_set(k, username_hash);
+      MDB_val_set(v, temp);
+      auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
+      if (get_result == MDB_NOTFOUND) {
+          //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+          return false;
+      } else if (get_result) {
+          throw0(DB_ERROR(
+                  lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()),
+                             get_result).c_str()));
+      } else if (get_result == MDB_SUCCESS) {
+          uint8_t *ptr = (uint8_t *) v.mv_data + sizeof(crypto::public_key);
+          data = std::vector<uint8_t>(ptr, ptr + v.mv_size - sizeof(crypto::public_key));
+      }
 
-    TXN_POSTFIX_RDONLY();
+      TXN_POSTFIX_RDONLY();
 
-    return true;
-  }
+      return true;
+  };
 
+    bool BlockchainLMDB::get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const{
+
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_offer;
+        RCURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
+
+
+        uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
+
+        MDB_val_set(k, offer_id);
+        MDB_val_set(v, temp);
+        auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (get_result == MDB_NOTFOUND)
+        {
+            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+            return false;
+        }
+        else if (get_result)
+        {
+            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
+        }
+        else if (get_result == MDB_SUCCESS)
+        {
+            safex::create_offer_result offer;
+            std::string tmp{(char*)v.mv_data, v.mv_size};
+            parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
+
+            data = offer.offer_data;
+        }
+
+        TXN_POSTFIX_RDONLY();
+
+        return true;
+    };
+
+    bool BlockchainLMDB::get_offer_seller(const crypto::hash offer_id, std::string &username) const{
+
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_offer;
+        RCURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
+
+
+        uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
+
+        MDB_val_set(k, offer_id);
+        MDB_val_set(v, temp);
+        auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (get_result == MDB_NOTFOUND)
+        {
+            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+            return false;
+        }
+        else if (get_result)
+        {
+            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
+        }
+        else if (get_result == MDB_SUCCESS)
+        {
+            safex::create_offer_result offer;
+            std::string tmp{(char*)v.mv_data, v.mv_size};
+            parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
+
+            username = std::string(offer.seller.begin(),offer.seller.end());
+        }
+
+        TXN_POSTFIX_RDONLY();
+
+        return true;
+    };
 
 
 }  // namespace cryptonote

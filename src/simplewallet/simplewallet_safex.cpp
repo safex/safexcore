@@ -55,7 +55,7 @@ namespace cryptonote
     return tx_destination_entry{0, to, false, tx_out_type::out_safex_account_update, blobdata};
   }
 
-    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const std::string &username, const crypto::public_key &pkey,
+    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const std::string &username,
                                                           const std::vector<uint8_t> &account_data)
     {
      //TODO: Change to calls for real offer
@@ -308,7 +308,7 @@ namespace cryptonote
 
         if (command_type == CommandType::TransferCreateOffer) {
 
-            cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, my_safex_account.username, my_safex_account.pkey, my_safex_account.account_data);
+            cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, my_safex_account.username,  my_safex_account.account_data);
             dsts.push_back(de_offer);
 
         }

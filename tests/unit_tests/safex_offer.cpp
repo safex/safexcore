@@ -106,9 +106,9 @@ namespace
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
 
-        m_safex_offer = create_demo_safex_offer("Apple",100,10,"This is an apple", m_safex_account1_keys, m_safex_account1);
-        m_safex_offer2 = create_demo_safex_offer("Barbie",500,30,"This is a Barbie",m_safex_account2_keys, m_safex_account2);
-        m_safex_offer3 = create_demo_safex_offer("Car",1000,1,"This is a car",m_safex_account1_keys, m_safex_account1);
+        m_safex_offer[0] = create_demo_safex_offer("Apple",100,10,"This is an apple", m_safex_account1_keys, m_safex_account1);
+        m_safex_offer[1] = create_demo_safex_offer("Barbie",500,30,"This is a Barbie",m_safex_account2_keys, m_safex_account2);
+        m_safex_offer[2] = create_demo_safex_offer("Car",1000,1,"This is a car",m_safex_account1_keys, m_safex_account1);
 
 
           for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
@@ -164,19 +164,19 @@ namespace
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer, m_safex_account1_keys.get_keys());
+            construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer[0], m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_create_offer_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_safex_offer2, m_safex_account2_keys.get_keys());
+            construct_create_offer_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_safex_offer[1], m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx2)] = tx2;
           }
           else if (i == 12)
           {
               tx_list.resize(tx_list.size() + 1);
               cryptonote::transaction &tx = tx_list.back();                                                           \
-              construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer3, m_safex_account1_keys.get_keys());
+              construct_create_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer[2], m_safex_account1_keys.get_keys());
               m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 14)
@@ -226,9 +226,7 @@ namespace
       safex::safex_account m_safex_account3;
 
 
-      safex::safex_offer m_safex_offer;
-      safex::safex_offer m_safex_offer2;
-      safex::safex_offer m_safex_offer3;
+      safex::safex_offer m_safex_offer[3];
 
 
       std::vector<uint8_t> data1_new;
@@ -262,100 +260,37 @@ namespace
 
   TYPED_TEST_CASE(SafexOfferTest, implementations);
 
-
-#if 1
-  TYPED_TEST(SafexOfferTest, SafexOfferSignature)
-  {
-    safex::safex_account_key_handler account1;
-    safex::safex_account_key_handler account2;
-    account1.generate();
-    account2.generate();
-
-    const blobdata test_data01 = std::string("Some test data that should be signed");
-    const blobdata test_data02 = std::string("Some test data that should be signed2");
-    const blobdata test_data03 = std::string("Some test data that should be signed, here is also some addition 123241");
-
-    //calculate hash of signature
-    crypto::hash message_hash01 =  get_blob_hash(test_data01);
-    crypto::hash message_hash02 =  get_blob_hash(test_data02);
-    crypto::hash message_hash03 =  get_blob_hash(test_data03);
-
-    crypto::signature message_sig01{};
-    crypto::signature message_sig02{};
-
-    crypto::generate_signature(message_hash01, account1.get_keys().m_public_key, account1.get_keys().m_secret_key, message_sig01);
-    crypto::generate_signature(message_hash02, account2.get_keys().m_public_key, account2.get_keys().m_secret_key, message_sig02);
-
-
-    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig01), true);
-    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig02), false);
-    ASSERT_EQ(crypto::check_signature(message_hash02, account1.get_keys().m_public_key, message_sig02), false);
-    ASSERT_EQ(crypto::check_signature(message_hash02, account2.get_keys().m_public_key, message_sig02), true);
-    ASSERT_EQ(crypto::check_signature(message_hash01, account2.get_keys().m_public_key, message_sig02), false);
-
-    //check create from keys
-    crypto::secret_key skey;
-    crypto::public_key pkey;
-    crypto::signature message_sig03{};
-    char skeydata[32]{6, -13, -3, 101, 39, 96, -33, 20, -25, -59, -42, 91, 108, -120, 39, -120, -93, 21, -7, 87, 6, -115, 60, 75, 29, 125, -87, -26, 16, -18, 37, 14};
-    memcpy(skey.data, skeydata, 32);
-    safex::safex_account_key_handler account3{};
-    account3.create_from_keys(skey);
-    crypto::generate_signature(message_hash03, account3.get_keys().m_public_key, account3.get_keys().m_secret_key, message_sig03);
-    crypto::hash message_hash04 =  message_hash03;
-    message_hash04.data[12] = 0x35;
-
-    char pkeydata[32]{30, 55, 2, -52, 116, 83, -100, 86, -70, 87, 28, 44, 120, -16, 18, 100, -100, -68, 67, -74, -94, -52, -91, -29, 123, 22, 79, 64, 69, -15, 92, 15};
-    memcpy(pkey.data, pkeydata, 32);
-
-    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig03), true);
-    ASSERT_EQ(crypto::check_signature(message_hash04, pkey, message_sig03), false);
-    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig02), false);
-
-  }
-#endif
 #if 1
 
-  TYPED_TEST(SafexOfferTest, CreateOfferCommand)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
+  TYPED_TEST(SafexOfferTest, CreateOfferCommand) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
 
-    this->set_prefix(dirPath);
+        this->set_prefix(dirPath);
 
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
 
-    for (int i = 0; i < NUMBER_OF_BLOCKS1 - 1; i++)
-    {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-    }
+        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
 
-    crypto::public_key pkey{};
-    const safex::account_username username01{this->m_safex_account1.username};
-    this->m_db->get_account_key(username01, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
+        for (auto safex_offer: this->m_safex_offer) {
 
+            std::vector<uint8_t> offer_desc;
+            const crypto::hash offer_id{safex_offer.id};
+            this->m_db->get_offer_description(offer_id, offer_desc);
+            ASSERT_TRUE(std::equal(safex_offer.description.begin(), safex_offer.description.end(),
+                                   offer_desc.begin()));
 
-    memset((void *)&pkey, 0, sizeof(pkey));
-    const safex::account_username username02{this->m_safex_account2.username};
-    this->m_db->get_account_key(username02, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account2.pkey, sizeof(pkey)), 0);
+            std::string username;
+            this->m_db->get_offer_seller(safex_offer.id, username);
+            ASSERT_EQ(username.compare(safex_offer.username), 0);
 
-    memset((void *)&pkey, 0, sizeof(pkey));
-    const safex::account_username username03{this->m_safex_account3.username};
-    this->m_db->get_account_key(username03, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account3.pkey, sizeof(pkey)), 0);
-
-    std::vector<uint8_t> accdata01;
-    this->m_db->get_account_data(username01, accdata01);
-    ASSERT_TRUE(std::equal(this->m_safex_account1.account_data.begin(), this->m_safex_account1.account_data.end(), accdata01.begin()));
-
-    std::vector<uint8_t> accdata03;
-    this->m_db->get_account_data(username03, accdata03);
-    ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
+        }
 
 
     ASSERT_NO_THROW(this->m_db->close());

@@ -19,6 +19,7 @@
 #include "safex_core.h"
 
 #include "misc_log_ex.h"
+#include "safex_offer.h"
 
 #define CHECK_COMMAND_TYPE(TYPE_TO_CHECK,EXPECTED_TYPE) SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((TYPE_TO_CHECK == EXPECTED_TYPE), "Could not create command, wrong command type", TYPE_TO_CHECK);
 
@@ -110,11 +111,27 @@ namespace safex
 
 struct create_offer_result : public execution_result
 {
-    create_offer_result(const crypto::hash &_offer_id, std::vector<uint8_t>& _offer_data):
-            offer_id{_offer_id}, offer_data{_offer_data} {
+
+    create_offer_result(){}
+
+    create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, safex_price _price, uint64_t _quantity,
+                        std::vector<uint8_t> _offer_data): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},offer_data{_offer_data} {
+
     }
+
     crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    uint64_t quantity{};
+    safex_price price;
     std::vector<uint8_t> offer_data{};
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELD(seller)
+        FIELD(price)
+        FIELD(quantity)
+        FIELD(offer_data)
+    END_SERIALIZE()
+
 };
 
 
@@ -184,18 +201,21 @@ struct create_offer_result : public execution_result
     struct create_offer_data : public command_data
     {
         crypto::hash offer_id{};
-        crypto::public_key pkey;
+        std::vector<uint8_t> seller{};
+        uint64_t quantity;
+        safex_price price;
         std::vector<uint8_t> offer_data{};
 
         create_offer_data() {}
-        create_offer_data(const crypto::hash id, const crypto::public_key &_pkey, const std::vector<uint8_t> &_offer_data): offer_id{id}, pkey{_pkey}, offer_data{_offer_data}
+        create_offer_data(const safex::safex_offer& offer): offer_id{offer.id}, offer_data{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.username.begin(),offer.username.end())
         {
-
         }
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
-            FIELD(pkey)
+            FIELD(seller)
+            FIELD(price)
+            FIELD(quantity)
             FIELD(offer_data)
         END_SERIALIZE()
     };
@@ -545,12 +565,15 @@ public:
      * @param _offerid //ID of the offer
      * @param _offer_data //offer data
     * */
-    create_offer(const uint32_t _version, const crypto::hash _offer_id, const std::vector<uint8_t> _offer_data) :
-            command(_version, command_t::create_offer), offer_id(_offer_id), offer_data{_offer_data} {}
+    create_offer(const uint32_t _version, const safex::create_offer_data &offer) :
+            command(_version, command_t::create_offer), offer_id(offer.offer_id), offer_data{offer.offer_data},
+            seller{offer.seller},price{offer.price},quantity{offer.quantity}{
+    }
 
     create_offer() : command(0, command_t::create_offer), offer_id{}, offer_data{} {}
 
     crypto::hash get_offerid() const { return offer_id; }
+    safex::safex_price get_price() const { return price; }
     std::vector<uint8_t> get_offer_data() const { return offer_data; }
 
     virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -560,12 +583,17 @@ public:
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_offer);
         FIELD(offer_id)
+        FIELD(seller)
+        FIELD(price)
+        FIELD(quantity)
         FIELD(offer_data)
     END_SERIALIZE()
 
 private:
-
     crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    uint64_t quantity{};
+    safex_price price;
     std::vector<uint8_t> offer_data{};
 };
 

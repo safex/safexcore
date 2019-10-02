@@ -114,9 +114,9 @@ tx_destination_entry edit_safex_account_destination(const cryptonote::account_ba
   return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account_update, blobdata};
 }
 
-tx_destination_entry create_safex_offer_destination(const cryptonote::account_base &to, const crypto::hash &offer_id, const crypto::public_key &pkey, const std::vector<uint8_t> &offer_data)
+tx_destination_entry create_safex_offer_destination(const cryptonote::account_base &to, const safex::safex_offer &offer)
 {
-    safex::create_offer_data new_offer_output_data{offer_id, pkey, offer_data};
+    safex::create_offer_data new_offer_output_data{offer};
     blobdata blobdata = cryptonote::t_serializable_object_to_blob(new_offer_output_data);
     return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer, blobdata};
 }
@@ -773,7 +773,7 @@ void fill_create_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
     //update source with new account data
     for (auto &ts: sources) {
         if (ts.command_type == safex::command_t::create_offer) {
-            safex::create_offer_data offer_data{sfx_offer.id, pkey, sfx_offer.description};
+            safex::create_offer_data offer_data{sfx_offer};
             ts.command_safex_data = t_serializable_object_to_blob(offer_data);
         }
     }
@@ -789,7 +789,7 @@ void fill_create_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
     }
 
     //new_account
-    tx_destination_entry de_offer = create_safex_offer_destination(from, sfx_offer.id, pkey, sfx_offer.description);
+    tx_destination_entry de_offer = create_safex_offer_destination(from, sfx_offer);
     destinations.push_back(de_offer);
 }
 

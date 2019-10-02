@@ -123,6 +123,7 @@ typedef struct mdb_rflags
   bool m_rf_network_fee_sum;
   bool m_rf_token_lock_expiry;
   bool m_rf_safex_account;
+  bool m_rf_safex_offer;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -311,6 +312,8 @@ public:
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
+  virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const;
+  virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const;
 
 
 
@@ -491,7 +494,7 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
      *
      */
-    void add_safex_offer(const crypto::hash &offer_id, const std::vector<uint8_t> &offer_data);
+    void add_safex_offer(const crypto::hash &offer_id, const blobdata &blob);
 
 protected:
 

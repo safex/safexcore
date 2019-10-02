@@ -701,9 +701,11 @@ namespace cryptonote
         safex::create_offer_data offer;
         parse_and_validate_from_blob(src_entr.command_safex_data, offer);
 
+        safex::create_offer cmd(SAFEX_COMMAND_PROTOCOL_VERSION, offer);
 
-        safex::create_offer cmd(SAFEX_COMMAND_PROTOCOL_VERSION, offer.offer_id, offer.offer_data);
         safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+
+
     }
     else
     {
