@@ -316,6 +316,7 @@ public:
   virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const;
   virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const;
   virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const;
+  virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const;
 
 
 

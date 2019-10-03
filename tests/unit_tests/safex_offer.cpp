@@ -223,8 +223,6 @@ namespace
       safex::safex_account_key_handler m_safex_account2_keys{};
       safex::safex_account m_safex_account1;
       safex::safex_account m_safex_account2;
-      safex::safex_account m_safex_account3;
-
 
       safex::safex_offer m_safex_offer[3];
 
@@ -296,6 +294,10 @@ namespace
             uint64_t quantity;
             this->m_db->get_offer_quantity(safex_offer.id, quantity);
             ASSERT_EQ(safex_offer.quantity, quantity);
+
+            bool active;
+            this->m_db->get_offer_active_status(safex_offer.id, active);
+            ASSERT_EQ(safex_offer.active, active);
 
         }
 

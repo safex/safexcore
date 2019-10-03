@@ -119,6 +119,7 @@ public:
   virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true; };
   virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const { return true; };
   virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const { return true; };
+  virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; };
 
 
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }

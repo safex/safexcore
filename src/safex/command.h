@@ -115,7 +115,7 @@ struct create_offer_result : public execution_result
     create_offer_result(){}
 
     create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, safex_price _price, uint64_t _quantity,
-                        std::vector<uint8_t> _offer_data): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},offer_data{_offer_data} {
+                        std::vector<uint8_t> _offer_data, bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},offer_data{_offer_data},active(_active) {
 
     }
 
@@ -124,11 +124,13 @@ struct create_offer_result : public execution_result
     uint64_t quantity{};
     safex_price price;
     std::vector<uint8_t> offer_data{};
+    bool active{};
 
     BEGIN_SERIALIZE_OBJECT()
         FIELD(seller)
         FIELD(price)
         FIELD(quantity)
+        FIELD(active)
         FIELD(offer_data)
     END_SERIALIZE()
 
@@ -205,9 +207,10 @@ struct create_offer_result : public execution_result
         uint64_t quantity;
         safex_price price;
         std::vector<uint8_t> offer_data{};
+        bool active{false};
 
         create_offer_data() {}
-        create_offer_data(const safex::safex_offer& offer): offer_id{offer.id}, offer_data{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.username.begin(),offer.username.end())
+        create_offer_data(const safex::safex_offer& offer): offer_id{offer.id}, offer_data{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.username.begin(),offer.username.end()),active{offer.active}
         {
         }
 
@@ -216,6 +219,7 @@ struct create_offer_result : public execution_result
             FIELD(seller)
             FIELD(price)
             FIELD(quantity)
+            FIELD(active)
             FIELD(offer_data)
         END_SERIALIZE()
     };
@@ -567,7 +571,7 @@ public:
     * */
     create_offer(const uint32_t _version, const safex::create_offer_data &offer) :
             command(_version, command_t::create_offer), offer_id(offer.offer_id), offer_data{offer.offer_data},
-            seller{offer.seller},price{offer.price},quantity{offer.quantity}{
+            seller{offer.seller},price{offer.price},quantity{offer.quantity},active{offer.active}{
     }
 
     create_offer() : command(0, command_t::create_offer), offer_id{}, offer_data{} {}
@@ -586,6 +590,7 @@ public:
         FIELD(seller)
         FIELD(price)
         FIELD(quantity)
+        FIELD(active)
         FIELD(offer_data)
     END_SERIALIZE()
 
@@ -595,6 +600,7 @@ private:
     uint64_t quantity{};
     safex_price price;
     std::vector<uint8_t> offer_data{};
+    bool active{};
 };
 
 

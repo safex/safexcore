@@ -1769,6 +1769,17 @@ namespace cryptonote
      */
       virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const = 0;
 
+      /**
+      * Get safex offer active status
+      *
+      * @param offer_id safex offer id
+      * @param active offer status is active
+      *
+      * @return true if offer exists, false otherwise
+      */
+      virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const = 0;
+
+
 
       //
       // Hard fork related storage

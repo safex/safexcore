@@ -271,7 +271,7 @@ namespace safex
         execution_status result = validate(blokchain, txin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate create offer command", this->get_command_type());
 
-        create_offer_result *cr = new create_offer_result{this->offer_id,this->seller,this->price,this->quantity,this->offer_data};
+        create_offer_result *cr = new create_offer_result{this->offer_id,this->seller,this->price,this->quantity,this->offer_data,this->active};
         cr->valid = true;
         cr->status = execution_status::ok;
 
