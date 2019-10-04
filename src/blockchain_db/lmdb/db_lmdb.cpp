@@ -1111,6 +1111,33 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
     update_network_fee_sum_for_interval(interval, tx_output.amount);
   }
+  else if (output_type_c == cryptonote::tx_out_type::out_safex_offer){
+
+      MDB_cursor *cur_safex_offer;
+      CURSOR(safex_offer)
+      cur_safex_offer = m_cur_safex_offer;
+
+      int result;
+      MDB_val val_offer_id;
+      MDB_val val_data;
+      result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&val_offer_id, (MDB_val*)&val_data, MDB_GET_CURRENT);
+      if(result)
+          LOG_PRINT_L0(result);
+
+      safex::create_offer_result offer;
+      std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
+      parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
+
+      offer.output_id = output_id;
+
+      blobdata blob{};
+      t_serializable_object_to_blob(offer,blob);
+      MDB_val_copy<blobdata> offer_info(blob);
+
+
+      if ((result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, (unsigned int) MDB_CURRENT)))
+          throw0(DB_ERROR(lmdb_error("Failed to add staked token output expiry entry: ", result).c_str()));
+    }
 
 }
 
