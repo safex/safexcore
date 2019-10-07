@@ -312,7 +312,7 @@ public:
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
-  virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const;
+  virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const;
   virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const;
   virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const;
   virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const;

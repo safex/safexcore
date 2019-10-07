@@ -1171,7 +1171,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   okadv.unlock_time = unlock_time;
   okadv.output_id = output_id;
   okadv.pubkey = txout.keys[0]; //todo if there are multiple keys, rest will go to data
-  okadv.data = t_serializable_object_to_blob(txout.data);
+  okadv.data = blobdata(txout.data.begin(),txout.data.end()); //no need to serialize vector to blob. Just copy it.
 
   MDB_val_copy<cryptonote::output_advanced_data_t> adv_value(okadv);
 
@@ -4583,42 +4583,80 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       return true;
   };
 
-    bool BlockchainLMDB::get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const{
+    bool BlockchainLMDB::get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const{
 
-//        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-//        check_open();
-//
-//        TXN_PREFIX_RDONLY();
-//
-//        MDB_cursor *cur_safex_offer;
-//        RCURSOR(safex_offer)
-//        cur_safex_offer = m_cur_safex_offer;
-//
-//
-//        uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
-//
-//        MDB_val_set(k, offer_id);
-//        MDB_val_set(v, temp);
-//        auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
-//        if (get_result == MDB_NOTFOUND)
-//        {
-//            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
-//            return false;
-//        }
-//        else if (get_result)
-//        {
-//            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
-//        }
-//        else if (get_result == MDB_SUCCESS)
-//        {
-//            safex::create_offer_result offer;
-//            std::string tmp{(char*)v.mv_data, v.mv_size};
-//            parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
-//
-//            data = offer.offer_data;
-//        }
-//
-//        TXN_POSTFIX_RDONLY();
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_offer;
+        RCURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
+
+        uint64_t outputID;
+
+
+        uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
+
+        MDB_val_set(k, offer_id);
+        MDB_val_set(v, temp);
+        auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (get_result == MDB_NOTFOUND)
+        {
+            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+            return false;
+        }
+        else if (get_result)
+        {
+            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
+        }
+        else if (get_result == MDB_SUCCESS)
+        {
+            safex::create_offer_result offer_result;
+            std::string tmp{(char*)v.mv_data, v.mv_size};
+            parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer_result);
+
+            outputID = offer_result.output_id;
+        }
+
+
+
+
+        MDB_cursor *cur_output_advanced;
+        RCURSOR(output_advanced);
+        cur_output_advanced = m_cur_output_advanced;
+
+        MDB_val_set(key, outputID);
+        blobdata blob;
+        MDB_val_set(value_blob, blob);
+
+        output_advanced_data_t current = AUTO_VAL_INIT(current);
+
+        get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
+
+        if (get_result == MDB_SUCCESS)
+        {
+            current = parse_output_advanced_data_from_mdb(value_blob);
+            safex::create_offer_data offer_result;
+            parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
+
+            offer.description = offer_result.offer_data;
+            offer.username = std::string{offer_result.seller.begin(),offer_result.seller.end()};
+            offer.quantity = offer_result.quantity;
+            offer.price = offer_result.price;
+            offer.id = offer_result.offer_id;
+            offer.active = offer_result.active;
+        }
+        else if (get_result == MDB_NOTFOUND)
+        {
+            throw0(DB_ERROR(lmdb_error("Attemting to get keys from advanced output with current id " + std::to_string(outputID) + " but not found: ", get_result).c_str()));
+        }
+        else
+            throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
+
+
+        TXN_POSTFIX_RDONLY();
 
         return true;
     };

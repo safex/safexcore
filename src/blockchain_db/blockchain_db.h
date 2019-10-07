@@ -1731,11 +1731,11 @@ namespace cryptonote
      * Get safex offer data
      *
      * @param offer_id safex offer id
-     * @param data offer description
+     * @param offer data offer
      *
      * @return true if offer exists, false otherwise
      */
-      virtual bool get_offer_description(const crypto::hash offer_id, std::vector<uint8_t> &data) const = 0;
+      virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const = 0;
 
       /**
      * Get safex offer username of seller
