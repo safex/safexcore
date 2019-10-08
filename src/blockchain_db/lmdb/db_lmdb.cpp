@@ -4494,7 +4494,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         cur_safex_offer = m_cur_safex_offer;
 
 
-
         int result;
         MDB_val_set(val_offer_id, offer_id);
         result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&val_offer_id, NULL, MDB_SET);

@@ -1269,7 +1269,7 @@ namespace cryptonote
 
           //find matching script input
           const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
-          SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create offer", safex::command_t::edit_account);
+          SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create offer", safex::command_t::create_offer);
 
           out.target = txs;
           tx.vout.push_back(out);

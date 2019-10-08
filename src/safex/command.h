@@ -585,7 +585,6 @@ public:
     bool get_active() const { return active; }
     std::vector<uint8_t> get_offer_data() const { return offer_data; }
 
-
     virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
 
