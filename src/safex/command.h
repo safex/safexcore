@@ -213,6 +213,8 @@ struct create_offer_result : public execution_result
         create_offer_data(const safex::safex_offer& offer): offer_id{offer.id}, offer_data{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.username.begin(),offer.username.end()),active{offer.active}
         {
         }
+        create_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const uint64_t &_quantity, const safex_price &_price, const std::vector<uint8_t> &_offer_data,const bool &_active):
+                                    offer_id{_offer_id},seller{_seller},quantity{_quantity},price{_price},offer_data{_offer_data},active{_active}{}
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
@@ -577,8 +579,12 @@ public:
     create_offer() : command(0, command_t::create_offer), offer_id{}, offer_data{} {}
 
     crypto::hash get_offerid() const { return offer_id; }
+    std::vector<uint8_t> get_seller() const { return seller; }
     safex::safex_price get_price() const { return price; }
+    uint64_t get_quantity() const { return quantity; }
+    bool get_active() const { return active; }
     std::vector<uint8_t> get_offer_data() const { return offer_data; }
+
 
     virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;

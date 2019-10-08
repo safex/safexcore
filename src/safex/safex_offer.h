@@ -176,4 +176,4 @@ namespace safex
 }
 
 
-#endif //SAFEX_SAFEX_ACCOUNT_H
+#endif //SAFEX_SAFEX_OFFER_H

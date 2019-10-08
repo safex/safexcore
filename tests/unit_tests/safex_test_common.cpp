@@ -788,7 +788,7 @@ void fill_create_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
         destinations.push_back(de_change);
     }
 
-    //new_account
+    //offer
     tx_destination_entry de_offer = create_safex_offer_destination(from, sfx_offer);
     destinations.push_back(de_offer);
 }
