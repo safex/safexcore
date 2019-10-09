@@ -3109,7 +3109,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   else if (command_type == safex::command_t::create_offer)
   {
       //todo check for signature of account owner
-      //TODO:
+      //TODO: Make additional checks
       for (const auto &vout: tx.vout)
       {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)

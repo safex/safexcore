@@ -1325,7 +1325,7 @@ void fill_create_offer_sources_and_destinations(const std::vector<test_event_ent
 
     const cryptonote::account_base &to = from;
 
-    //token amount is amount of tokens we want to lock for a period for creating account
+    //token amount is amount of tokens we want to lock for a period for creating offer
 
     //fill cache sources for fee
     if (!fill_tx_sources(sources, events, blk_head,  from, fee, nmix, cryptonote::tx_out_type::out_cash))

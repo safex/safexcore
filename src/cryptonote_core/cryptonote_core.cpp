@@ -1130,10 +1130,6 @@ namespace cryptonote
             //todo Atana optimize somehow key image validation, so many conversions
             const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
             std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
-
-            for(auto ti: cmd->get_offerid().data)
-                LOG_PRINT_L0((int)ti<<" IS IT BAD NOW?");
-
             safex::create_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_quantity(),cmd->get_price(),cmd->get_offer_data(),cmd->get_active());
             crypto::hash cmd_hash{};
             get_object_hash(offer, cmd_hash);
