@@ -55,28 +55,23 @@ namespace cryptonote
     return tx_destination_entry{0, to, false, tx_out_type::out_safex_account_update, blobdata};
   }
 
-    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const std::string &username,
-                                                          const std::vector<uint8_t> &account_data)
+    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
     {
-     //TODO: Change to calls for real offer
-//        safex::create_offer_data offer_output_data{username, pkey, account_data};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(std::string{"Test string"});
+        safex::create_offer_data offer_output_data{sfx_offer};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer, blobdata};
     }
 
-    tx_destination_entry edit_safex_offer_destination(const account_public_address &to, const std::string &username, const std::vector<uint8_t> &account_data)
+    tx_destination_entry edit_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
     {
-    //TODO: Change to calls for real offer
-        safex::create_account_data acc_output_data{};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+        safex::create_offer_data offer_output_data{sfx_offer};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
     }
 
-    tx_destination_entry close_safex_offer_destination(const account_public_address &to, const std::string &username)
+    tx_destination_entry close_safex_offer_destination(const account_public_address &to, const crypto::hash &offerID)
     {
-    //TODO: Change to calls for real offer
-        safex::create_account_data acc_output_data{};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offerID);
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_close, blobdata};
     }
 
@@ -200,7 +195,8 @@ namespace cryptonote
     std::string payment_id_str;
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
-    bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount);
+    bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) &&
+                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&(command_type != CommandType::TransferCloseOffer);
     bool expect_even = (min_args % 2 == 1);
     if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
@@ -308,7 +304,24 @@ namespace cryptonote
 
         if (command_type == CommandType::TransferCreateOffer) {
 
-            cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, my_safex_account.username,  my_safex_account.account_data);
+            std::string offer_title = local_args[1];
+            uint64_t quantity = stoi(local_args[2]);
+            uint64_t price= stoi(local_args[3]);
+            safex::safex_price sfx_price{price,price,5};
+
+            std::ostringstream offerdata_ostr;
+            std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
+            std::string description = offerdata_ostr.str();
+
+            safex::safex_account_keys keys;
+            bool res = m_wallet->get_safex_account_keys(my_safex_account.username,keys);
+
+
+
+            safex::safex_offer sfx_offer{offer_title, quantity, sfx_price, description,
+            true, keys, my_safex_account.username};
+
+            cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer);
 
         }
@@ -322,14 +335,14 @@ namespace cryptonote
                 fail_msg_writer() << tr("failed to parse account data");
                 return false;
             }
-            cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, my_safex_account.username, new_accdata);
-            dsts.push_back(de_offer_update);
+//            cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, my_safex_account.username, new_accdata);
+//            dsts.push_back(de_offer_update);
 
         }
         else if (command_type == CommandType::TransferCloseOffer) {
 
-            cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, my_safex_account.username);
-            dsts.push_back(de_offer_close);
+//            cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, my_safex_account.username);
+//            dsts.push_back(de_offer_close);
 
         }
     }
@@ -947,7 +960,7 @@ namespace cryptonote
         {
             success_msg_writer() << tr("usage:\n"
                                        "  safex_offer\n"
-                                       "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_name> <offer_data> <offer_price> <offer_quantity>\n"
+                                       "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_name> <offer_name> <offer_quantity> <offer_price> <offer_description>\n"
                                        "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <offer_data> <offer_price> <offer_quantity>\n"
                                        "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id>");
         }
