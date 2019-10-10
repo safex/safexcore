@@ -3129,9 +3129,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               }
 
               //check offer data size
-              if (offer.offer_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+              if (offer.offer_data.size() > SAFEX_OFFER_DATA_MAX_SIZE)
               {
-                  MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
+                  MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
                   tvc.m_safex_invalid_input = true;
                   return false;
               }
