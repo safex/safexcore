@@ -189,6 +189,14 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
 
+    std::string new_str_desc{"Now without worms!!"};
+    std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};;
+    safex_offer_alice.description = new_desc;
+
+    MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
+    REWIND_BLOCKS(events, blk_14, blk_13, miner);
+
     DO_CALLBACK(events, "verify_safex_offer");
 
     return true;
@@ -245,9 +253,13 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
   CHECK_TEST_CONDITION(expected_alice_safex_offer_seller.compare(offer_seller) == 0);
 
+  //TODO: Add tests for title, description, price,...
   std::string offer_title;
   std::vector<uint8_t> offer_desc;
 
+  //TODO: Add tests for edit offer
+
+  //TODO: Add tests for erase offer
 
 
     return true;
