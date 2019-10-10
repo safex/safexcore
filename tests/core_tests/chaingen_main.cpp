@@ -195,6 +195,8 @@ int main(int argc, char* argv[])
     /* accounts */
     GENERATE_AND_PLAY(gen_safex_account_001);
 
+    GENERATE_AND_PLAY(gen_safex_offer_001);
+
     //todo atana test unlock and interest invalid transacitons
 
 #else

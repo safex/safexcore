@@ -72,7 +72,10 @@ namespace cryptonote
     TransferDonation,
     TransferDemoPurchase,
     TransferCreateAccount,
-    TransferEditAccount
+    TransferEditAccount,
+    TransferCreateOffer,
+    TransferEditOffer,
+    TransferCloseOffer
   };
 
   /*!
@@ -249,8 +252,10 @@ namespace cryptonote
 
     bool get_my_interest(const std::vector<std::string>& args);
     void print_safex_accounts();
+    void print_safex_offers();
 
-    // ------ Mock up for demo
+
+      // ------ Mock up for demo
     bool list_demo_offers(const std::vector<std::string>& args);
 
     // Function responsible for 
@@ -261,6 +266,8 @@ namespace cryptonote
     bool donate_safex_fee(const std::vector<std::string>& args);
     bool staked_token_balance(const std::vector <std::string> &args);
     bool safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/);
+
+    bool safex_offer(const std::vector<std::string> &args);
 
     bool demo_purchase(const std::vector<std::string>& args);
     /****************************************************************************************************************/

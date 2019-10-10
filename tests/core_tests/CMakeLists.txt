@@ -39,6 +39,7 @@ set(core_tests_sources
   token_transactions.cpp
   token_stake.cpp
   safex_account.cpp
+  safex_offer.cpp
   double_spend.cpp
   integer_overflow.cpp
   ring_signature_1.cpp
@@ -66,6 +67,7 @@ set(core_tests_headers
   token_transactions.h
   token_stake.h
   safex_account.h
+  safex_offer.h
   network_fee.h)
 
 add_executable(core_tests
@@ -79,6 +81,7 @@ target_link_libraries(core_tests
     version
     epee
     device
+    ${GTEST_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${EXTRA_LIBRARIES})
 set_property(TARGET core_tests

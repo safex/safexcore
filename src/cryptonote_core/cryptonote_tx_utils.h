@@ -128,6 +128,7 @@ namespace cryptonote
       FIELD(token_transaction)
       FIELD(script_output)
       FIELD(output_type)
+      FIELD(output_data)
     END_SERIALIZE()
   };
 

@@ -245,25 +245,46 @@ namespace safex
     return cr;
   };
 
-  execution_status edit_account::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+    execution_status edit_account::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
 
-    execution_status result = execution_status::ok;
-    std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
+        execution_status result = execution_status::ok;
+        std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
 
 
-    for (auto ch: cmd->get_username()) {
-      if (!std::isalnum(ch) && ch!='_') {
-        result = execution_status::error_invalid_account_name;
-      }
-    }
+        for (auto ch: cmd->get_username()) {
+            if (!std::isalnum(ch) && ch!='_') {
+                result = execution_status::error_invalid_account_name;
+            }
+        }
 
-    std::vector<uint8_t>  dummy{};
-    if (!blokchain.get_account_data(cmd->get_username(), dummy)) {
-      result = execution_status::error_account_non_existant;
-    }
+        std::vector<uint8_t>  dummy{};
+        if (!blokchain.get_account_data(cmd->get_username(), dummy)) {
+            result = execution_status::error_account_non_existant;
+        }
 
-    return result;
-  };
+        return result;
+    };
+
+
+    create_offer_result* create_offer::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+
+        execution_status result = validate(blokchain, txin);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate create offer command", this->get_command_type());
+
+        create_offer_result *cr = new create_offer_result{this->offer_id,this->seller,this->price,this->quantity,this->active};
+        cr->valid = true;
+        cr->status = execution_status::ok;
+
+        return cr;
+    };
+
+    execution_status create_offer::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+
+        execution_status result = execution_status::ok;
+        std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
+
+        return result;
+    };
 
 
   bool validate_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin)

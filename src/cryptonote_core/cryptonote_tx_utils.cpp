@@ -688,6 +688,25 @@ namespace cryptonote
       safex::edit_account cmd(SAFEX_COMMAND_PROTOCOL_VERSION, account.username, account.account_data);
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
+    else if (src_entr.command_type == safex::command_t::create_offer)
+    {
+        input.k_image = img;
+
+        //fill outputs array and use relative offsets
+        for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
+            input.key_offsets.push_back(out_entry.first);
+
+        input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
+
+        safex::create_offer_data offer;
+        parse_and_validate_from_blob(src_entr.command_safex_data, offer);
+
+        safex::create_offer cmd(SAFEX_COMMAND_PROTOCOL_VERSION, offer);
+
+        safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
+
+
+    }
     else
     {
       SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
@@ -847,6 +866,27 @@ namespace cryptonote
         return matched_inputs;
 
       }
+        case tx_out_type::out_safex_offer:
+        {
+            counter = std::count_if(sources.begin(), sources.end(), [](const tx_source_entry &entry)
+            { return entry.command_type == safex::command_t::create_offer; });
+            SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter == 1, "Must be one create offer command per transaction", safex::command_t::create_offer);
+
+            std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
+            {
+                if (txin.type() == typeid(txin_to_script))
+                {
+                    const txin_to_script &cmd = boost::get<txin_to_script>(txin);
+                    if (cmd.command_type == safex::command_t::create_offer)
+                    {
+                        matched_inputs.push_back(&cmd);
+                    };
+                }
+            });
+
+            return matched_inputs;
+
+        }
       default:
         SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex output type", safex::command_t::invalid_command);
     }
@@ -1219,6 +1259,20 @@ namespace cryptonote
 
         out.target = txs;
         tx.vout.push_back(out);
+      }
+      else if (dst_entr.output_type == tx_out_type::out_safex_offer)
+      {
+          txout_to_script txs = AUTO_VAL_INIT(txs);
+          txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_offer);
+          txs.keys.push_back(sfx_acc_keys.m_public_key);
+          txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
+
+          //find matching script input
+          const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
+          SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create offer", safex::command_t::create_offer);
+
+          out.target = txs;
+          tx.vout.push_back(out);
       }
       else
       {

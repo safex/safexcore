@@ -37,6 +37,7 @@
 #include <exception>
 #include <boost/program_options.hpp>
 #include <safex/safex_account.h>
+#include <safex/safex_offer.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"
@@ -1725,6 +1726,58 @@ namespace cryptonote
        * @return true if account exists, false otherwise
        */
       virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const = 0;
+
+      /**
+     * Get safex offer data
+     *
+     * @param offer_id safex offer id
+     * @param offer data offer
+     *
+     * @return true if offer exists, false otherwise
+     */
+      virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const = 0;
+
+      /**
+     * Get safex offer username of seller
+     *
+     * @param offer_id safex offer id
+     * @param username username of offer seller
+     *
+     * @return true if offer exists, false otherwise
+     */
+      virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const = 0;
+
+
+      /**
+       * Get safex offer price
+       *
+       * @param offer_id safex offer id
+       * @param price price of offer
+       *
+       * @return true if offer exists, false otherwise
+       */
+      virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const = 0;
+
+
+      /**
+     * Get safex offer quantity
+     *
+     * @param offer_id safex offer id
+     * @param quantity quantity of offer
+     *
+     * @return true if offer exists, false otherwise
+     */
+      virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const = 0;
+
+      /**
+      * Get safex offer active status
+      *
+      * @param offer_id safex offer id
+      * @param active offer status is active
+      *
+      * @return true if offer exists, false otherwise
+      */
+      virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const = 0;
 
 
 
