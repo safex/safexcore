@@ -283,6 +283,51 @@ namespace safex
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
 
+        for (auto ch: cmd->get_seller()) {
+            if (!std::isalnum(ch) && ch!='_') {
+                result = execution_status::error_invalid_account_name;
+            }
+        }
+
+        std::vector<uint8_t>  dummy{};
+        if (!blokchain.get_account_data(cmd->get_seller(), dummy)) {
+            result = execution_status::error_account_non_existant;
+        }
+
+        return result;
+    };
+
+    edit_offer_result* edit_offer::execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+        execution_status result = validate(blokchain, txin);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate edit offer command", this->get_command_type());
+
+        edit_offer_result *cr = new edit_offer_result{this->offer_id,this->seller,this->price,this->quantity,this->active};
+        cr->valid = true;
+        cr->status = execution_status::ok;
+
+        return cr;
+    };
+
+    execution_status edit_offer::validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) {
+
+        execution_status result = execution_status::ok;
+        std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
+
+        for (auto ch: cmd->get_seller()) {
+            if (!std::isalnum(ch) && ch!='_') {
+                result = execution_status::error_invalid_account_name;
+            }
+        }
+
+        std::vector<uint8_t>  dummy{};
+        if (!blokchain.get_account_data(cmd->get_seller(), dummy)) {
+            result = execution_status::error_account_non_existant;
+        }
+
+        safex::safex_offer sfx_dummy{};
+        if (!blokchain.get_offer(cmd->get_offerid(), sfx_dummy)) {
+            result = execution_status::error_offer_non_existant;
+        }
         return result;
     };
 

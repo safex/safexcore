@@ -53,7 +53,7 @@ namespace
 {  // anonymous namespace
 
   const int NUMBER_OF_BLOCKS = 20;
-  const int NUMBER_OF_BLOCKS1 = 10;
+  const int NUMBER_OF_BLOCKS1 = 15;
   const int NUMBER_OF_BLOCKS2 = 20;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
@@ -110,8 +110,13 @@ namespace
         m_safex_offer[1] = create_demo_safex_offer("Barbie",500,30,"This is a Barbie",m_safex_account2_keys, m_safex_account2);
         m_safex_offer[2] = create_demo_safex_offer("Car",1000,1,"This is a car",m_safex_account1_keys, m_safex_account1);
 
+        std::string new_str_desc{"Now without worms!!"};
+        std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};
+        m_edited_safex_offer = m_safex_offer[0];
+        m_edited_safex_offer.description = new_desc;
 
-          for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
+
+         for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
           block blk;
           std::list<cryptonote::transaction> tx_list; // fill tx list with transactions for that block
@@ -186,6 +191,13 @@ namespace
             construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
+          else if (i == 16)
+          {
+              tx_list.resize(tx_list.size() + 1);
+              cryptonote::transaction &tx = tx_list.back();                                                           \
+              construct_edit_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_edited_safex_offer, m_safex_account1_keys.get_keys());
+              m_txmap[get_transaction_hash(tx)] = tx;
+          }
 
 
           construct_block(blk, i, prev_hash, m_miner_acc, 0, m_test_sizes[i], tx_list);
@@ -225,6 +237,8 @@ namespace
       safex::safex_account m_safex_account2;
 
       safex::safex_offer m_safex_offer[3];
+
+      safex::safex_offer m_edited_safex_offer;
 
 
       std::vector<uint8_t> data1_new;
@@ -271,7 +285,7 @@ namespace
         this->get_filenames();
         this->init_hard_fork();
 
-        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
             ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
                                                   this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
         }
@@ -300,6 +314,32 @@ namespace
             ASSERT_EQ(safex_offer.active, active);
 
         }
+
+        for (int i = NUMBER_OF_BLOCKS1; i < NUMBER_OF_BLOCKS2; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        safex::safex_offer saved_offer;
+        this->m_db->get_offer(this->m_edited_safex_offer.id,saved_offer);
+        ASSERT_TRUE(std::equal(this->m_edited_safex_offer.description.begin(), this->m_edited_safex_offer.description.end(),
+                               saved_offer.description.begin()));
+
+        std::string username;
+        this->m_db->get_offer_seller(this->m_edited_safex_offer.id, username);
+        ASSERT_EQ(username.compare(this->m_edited_safex_offer.username), 0);
+
+        safex::safex_price price;
+        this->m_db->get_offer_price(this->m_edited_safex_offer.id, price);
+        ASSERT_EQ(memcmp((void *)&price, (void *)&this->m_edited_safex_offer.price, sizeof(price)), 0);
+
+        uint64_t quantity;
+        this->m_db->get_offer_quantity(this->m_edited_safex_offer.id, quantity);
+        ASSERT_EQ(this->m_edited_safex_offer.quantity, quantity);
+
+        bool active;
+        this->m_db->get_offer_active_status(this->m_edited_safex_offer.id, active);
+        ASSERT_EQ(this->m_edited_safex_offer.active, active);
 
 
     ASSERT_NO_THROW(this->m_db->close());

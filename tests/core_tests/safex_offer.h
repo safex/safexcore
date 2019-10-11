@@ -74,8 +74,8 @@ public:
   static const std::string data3_alternative;
 
 
-  static const size_t expected_blockchain_total_transactions = 381;
-  static const size_t expected_blockchain_height = 368;
+  static const size_t expected_blockchain_total_transactions = 443;
+  static const size_t expected_blockchain_height = 429;
 
   static bool expected_data_fields_intialized;
   static crypto::public_key expected_alice_account_key;
