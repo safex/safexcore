@@ -296,6 +296,7 @@ namespace
             this->m_db->get_offer(safex_offer.id,saved_offer);
             ASSERT_TRUE(std::equal(safex_offer.description.begin(), safex_offer.description.end(),
                                    saved_offer.description.begin()));
+            ASSERT_EQ(safex_offer.title,saved_offer.title);
 
             std::string username;
             this->m_db->get_offer_seller(safex_offer.id, username);
@@ -324,6 +325,7 @@ namespace
         this->m_db->get_offer(this->m_edited_safex_offer.id,saved_offer);
         ASSERT_TRUE(std::equal(this->m_edited_safex_offer.description.begin(), this->m_edited_safex_offer.description.end(),
                                saved_offer.description.begin()));
+        ASSERT_EQ(this->m_edited_safex_offer.title,saved_offer.title);
 
         std::string username;
         this->m_db->get_offer_seller(this->m_edited_safex_offer.id, username);

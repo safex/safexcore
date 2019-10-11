@@ -90,7 +90,11 @@ public:
   static std::string expected_alice_safex_offer_seller;
   static std::string expected_alice_safex_offer_title;
   static crypto::hash expected_alice_safex_offer_id;
+  static safex::safex_price expected_alice_safex_offer_price;
+  static uint64_t  expected_alice_safex_offer_quantity;
+  static bool expected_alice_safex_offer_active_status;
   static std::vector<uint8_t> expected_alice_safex_offer_description;
+  static std::vector<uint8_t> expected_alice_safex_offer_new_description;
 
 
 };

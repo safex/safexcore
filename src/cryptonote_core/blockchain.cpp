@@ -5584,7 +5584,55 @@ bool Blockchain::get_safex_offer_seller(const crypto::hash &offerID, std::string
         return result;
     }
     catch (std::exception &ex) {
-        MERROR("Error fetching account data: "+std::string(ex.what()));
+        MERROR("Error fetching offer seller username: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const
+{
+    try {
+        bool result = m_db->get_offer(offerID, offer);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_price(const crypto::hash &offerID, safex::safex_price &price) const
+{
+    try {
+        bool result = m_db->get_offer_price(offerID, price);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer price: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const
+{
+    try {
+        bool result = m_db->get_offer_quantity(offerID, quantity);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer quantity: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const
+{
+    try {
+        bool result = m_db->get_offer_active_status(offerID, active);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer active status: "+std::string(ex.what()));
         return false;
     }
 }

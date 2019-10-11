@@ -4693,6 +4693,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             offer.price = offer_result.price;
             offer.id = offer_result.offer_id;
             offer.active = offer_result.active;
+            offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
         }
         else if (get_result == MDB_NOTFOUND)
         {

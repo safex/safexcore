@@ -70,6 +70,11 @@ crypto::hash gen_safex_offer_001::expected_alice_safex_offer_id;
 std::string gen_safex_offer_001::expected_alice_safex_offer_seller;
 std::string gen_safex_offer_001::expected_alice_safex_offer_title;
 std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_description;
+std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_new_description;
+safex::safex_price gen_safex_offer_001::expected_alice_safex_offer_price;
+uint64_t  gen_safex_offer_001::expected_alice_safex_offer_quantity;
+bool gen_safex_offer_001::expected_alice_safex_offer_active_status;
+
 
 safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint8_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
 
@@ -130,6 +135,13 @@ gen_safex_offer_001::gen_safex_offer_001()
     expected_alice_safex_offer_title = safex_offer_alice.title;
     expected_alice_safex_offer_seller = safex_offer_alice.username;
     expected_alice_safex_offer_description = safex_offer_alice.description;
+
+    expected_alice_safex_offer_price = safex_offer_alice.price;
+    expected_alice_safex_offer_quantity = safex_offer_alice.quantity;
+    expected_alice_safex_offer_active_status = safex_offer_alice.active;
+
+    std::string new_str_desc{"Now in white!!!"};
+    expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};;
   }
 
   REGISTER_CALLBACK("verify_safex_offer", gen_safex_offer_001::verify_safex_offer);
@@ -189,9 +201,8 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
 
-    std::string new_str_desc{"Now without worms!!"};
-    std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};;
-    safex_offer_alice.description = new_desc;
+
+    safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
     MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
@@ -253,11 +264,25 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
   CHECK_TEST_CONDITION(expected_alice_safex_offer_seller.compare(offer_seller) == 0);
 
-  //TODO: Add tests for title, description, price,...
-  std::string offer_title;
-  std::vector<uint8_t> offer_desc;
+  safex::safex_price offer_price;
+  c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer_id,offer_price);
+  CHECK_EQ(memcmp((void *)&offer_price, (void *)&expected_alice_safex_offer_price, sizeof(offer_price)), 0);
 
-  //TODO: Add tests for edit offer
+  uint64_t offer_quantity;
+  c.get_blockchain_storage().get_safex_offer_quantity(expected_alice_safex_offer_id,offer_quantity);
+  CHECK_EQ(expected_alice_safex_offer_quantity, offer_quantity);
+
+  bool offer_active;
+  c.get_blockchain_storage().get_safex_offer_active_status(expected_alice_safex_offer_id,offer_active);
+  CHECK_EQ(expected_alice_safex_offer_active_status, offer_active);
+
+  safex::safex_offer sfx_offer;
+  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_id,sfx_offer);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_title.compare(sfx_offer.title) == 0);
+
+  std::string desc1{sfx_offer.description.begin(),sfx_offer.description.end()};
+  std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
+  CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
 
   //TODO: Add tests for erase offer
 
