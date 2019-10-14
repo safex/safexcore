@@ -128,9 +128,9 @@ tx_destination_entry edit_safex_offer_destination(const cryptonote::account_base
     return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_update, blobdata};
 }
 
-tx_destination_entry close_safex_offer_destination(const cryptonote::account_base &to, const safex::safex_offer &offer)
+tx_destination_entry close_safex_offer_destination(const cryptonote::account_base &to, const crypto::hash &offer_id)
 {
-    safex::close_offer_data closed_offer_output_data{offer};
+    safex::close_offer_data closed_offer_output_data{offer_id};
     blobdata blobdata = cryptonote::t_serializable_object_to_blob(closed_offer_output_data);
     return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_close, blobdata};
 }
@@ -863,7 +863,7 @@ void fill_edit_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vec
 }
 
 void fill_close_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, uint64_t token_amount,
-                                                 uint64_t fee, size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, std::vector<tx_source_entry> &sources,
+                                                 uint64_t fee, size_t nmix, const crypto::public_key &pkey, const crypto::hash &offer_id, std::vector<tx_source_entry> &sources,
                                                  std::vector<tx_destination_entry> &destinations)
 {
     sources.clear();
@@ -881,7 +881,7 @@ void fill_close_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::ve
     //update source with close offer data
     for (auto &ts: sources) {
         if (ts.command_type == safex::command_t::close_offer) {
-            safex::close_offer_data offer_data{sfx_offer};
+            safex::close_offer_data offer_data{offer_id};
             ts.command_safex_data = t_serializable_object_to_blob(offer_data);
         }
     }
@@ -897,7 +897,7 @@ void fill_close_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::ve
     }
 
     //offer
-    tx_destination_entry de_offer = close_safex_offer_destination(from, sfx_offer);
+    tx_destination_entry de_offer = close_safex_offer_destination(from, offer_id);
     destinations.push_back(de_offer);
 }
 
@@ -1156,11 +1156,11 @@ bool construct_edit_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptono
 }
 
 bool construct_close_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
-                                       size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, const safex::safex_account_keys &sfx_acc_keys)
+                                       size_t nmix, const crypto::public_key &pkey, const crypto::hash &offer_id, const safex::safex_account_keys &sfx_acc_keys)
 {
     std::vector<tx_source_entry> sources;
     std::vector<tx_destination_entry> destinations;
-    fill_close_offer_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, pkey, sfx_offer, sources, destinations);
+    fill_close_offer_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, pkey, offer_id, sources, destinations);
 
     return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
