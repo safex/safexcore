@@ -67,6 +67,7 @@ std::vector<uint8_t> gen_safex_offer_001::expected_bob_account_data;
 std::vector<uint8_t> gen_safex_offer_001::expected_daniel_account_data;
 
 crypto::hash gen_safex_offer_001::expected_alice_safex_offer_id;
+crypto::hash gen_safex_offer_001::expected_bob_safex_offer_id;
 std::string gen_safex_offer_001::expected_alice_safex_offer_seller;
 std::string gen_safex_offer_001::expected_alice_safex_offer_title;
 std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_description;
@@ -76,7 +77,7 @@ uint64_t  gen_safex_offer_001::expected_alice_safex_offer_quantity;
 bool gen_safex_offer_001::expected_alice_safex_offer_active_status;
 
 
-safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint8_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
+safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
 
     safex::safex_price m_safex_price1{price,price,5};
 
@@ -119,6 +120,8 @@ gen_safex_offer_001::gen_safex_offer_001()
 
   safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",1999,100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
                                                 m_safex_account1_keys, safex_account_alice);
+  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
+                                                m_safex_account2_keys, safex_account_bob);
 
   if (!expected_data_fields_intialized)
   {
@@ -135,6 +138,8 @@ gen_safex_offer_001::gen_safex_offer_001()
     expected_alice_safex_offer_title = safex_offer_alice.title;
     expected_alice_safex_offer_seller = safex_offer_alice.username;
     expected_alice_safex_offer_description = safex_offer_alice.description;
+
+    expected_bob_safex_offer_id = safex_offer_bob.id;
 
     expected_alice_safex_offer_price = safex_offer_alice.price;
     expected_alice_safex_offer_quantity = safex_offer_alice.quantity;
@@ -196,7 +201,7 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
 
     //create test offer
     MAKE_TX_CREATE_SAFEX_OFFER_LIST_START(events, txlist_5, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_10);
-//    MAKE_CREATE_SAFEX_OFFER_TX_LIST(events, txlist_5, bob, safex_account_bob.pkey, safex_offer_alice, m_safex_account2_keys.get_keys(), blk_10);
+    MAKE_CREATE_SAFEX_OFFER_TX_LIST(events, txlist_5, bob, safex_account_bob.pkey, safex_offer_bob, m_safex_account2_keys.get_keys(), blk_10);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_11, blk_10, miner, txlist_5);
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
@@ -205,6 +210,7 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
     MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
+    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(events, txlist_6, bob, safex_account_bob.pkey, safex_offer_bob.id, m_safex_account2_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
@@ -284,7 +290,8 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
   CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
 
-  //TODO: Add tests for erase offer
+  bool result = c.get_blockchain_storage().get_safex_offer(expected_bob_safex_offer_id,sfx_offer);
+  CHECK_TEST_CONDITION(!result);
 
 
     return true;
