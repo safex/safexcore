@@ -3322,6 +3322,11 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
       if (txin.amount > 0 || txin.token_amount > 0)
           return false;
   }
+  else if (txin.command_type == safex::command_t::close_offer)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
+          return false;
+  }
   else
   {
     MERROR_VER("Unknown input command type");

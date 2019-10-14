@@ -128,6 +128,12 @@ tx_destination_entry edit_safex_offer_destination(const cryptonote::account_base
     return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_update, blobdata};
 }
 
+tx_destination_entry close_safex_offer_destination(const cryptonote::account_base &to, const safex::safex_offer &offer)
+{
+    safex::close_offer_data closed_offer_output_data{offer};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(closed_offer_output_data);
+    return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_close, blobdata};
+}
 
 
 
@@ -794,7 +800,7 @@ void fill_create_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
     if (!fill_tx_sources(txmap, blocks, sources, from, 0, nmix, cryptonote::tx_out_type::out_safex_offer, pkey))
         throw std::runtime_error("couldn't fill token transaction sources for create offer");
 
-    //update source with new account data
+    //update source with new offer data
     for (auto &ts: sources) {
         if (ts.command_type == safex::command_t::create_offer) {
             safex::create_offer_data offer_data{sfx_offer};
@@ -833,7 +839,7 @@ void fill_edit_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vec
     if (!fill_tx_sources(txmap, blocks, sources, from, 0, nmix, cryptonote::tx_out_type::out_safex_offer_update, pkey))
         throw std::runtime_error("couldn't fill token transaction sources for edit offer");
 
-    //update source with new account data
+    //update source with new edited offer data
     for (auto &ts: sources) {
         if (ts.command_type == safex::command_t::edit_offer) {
             safex::edit_offer_data offer_data{sfx_offer};
@@ -853,6 +859,45 @@ void fill_edit_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vec
 
     //offer
     tx_destination_entry de_offer = edit_safex_offer_destination(from, sfx_offer);
+    destinations.push_back(de_offer);
+}
+
+void fill_close_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, uint64_t token_amount,
+                                                 uint64_t fee, size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, std::vector<tx_source_entry> &sources,
+                                                 std::vector<tx_destination_entry> &destinations)
+{
+    sources.clear();
+    destinations.clear();
+
+    const cryptonote::account_base &to = from;
+
+    //fill cache sources for fee
+    if (!fill_tx_sources(txmap, blocks, sources, from, fee, nmix, cryptonote::tx_out_type::out_cash))
+        throw std::runtime_error("couldn't fill transaction sources");
+
+    if (!fill_tx_sources(txmap, blocks, sources, from, 0, nmix, cryptonote::tx_out_type::out_safex_offer_close, pkey))
+        throw std::runtime_error("couldn't fill token transaction sources for close offer");
+
+    //update source with close offer data
+    for (auto &ts: sources) {
+        if (ts.command_type == safex::command_t::close_offer) {
+            safex::close_offer_data offer_data{sfx_offer};
+            ts.command_safex_data = t_serializable_object_to_blob(offer_data);
+        }
+    }
+
+    //destinations
+
+    //sender change for fee
+    uint64_t cache_back = get_inputs_amount(sources) - fee;
+    if (0 < cache_back)
+    {
+        tx_destination_entry de_change = create_tx_destination(from, cache_back);
+        destinations.push_back(de_change);
+    }
+
+    //offer
+    tx_destination_entry de_offer = close_safex_offer_destination(from, sfx_offer);
     destinations.push_back(de_offer);
 }
 
@@ -1093,7 +1138,6 @@ bool construct_edit_account_transaction(map_hash2tx_t &txmap, std::vector<crypto
 bool construct_create_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
                                         size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, const safex::safex_account_keys &sfx_acc_keys)
 {
-
     std::vector<tx_source_entry> sources;
     std::vector<tx_destination_entry> destinations;
     fill_create_offer_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, pkey, sfx_offer, sources, destinations);
@@ -1104,7 +1148,6 @@ bool construct_create_offer_transaction(map_hash2tx_t &txmap, std::vector<crypto
 bool construct_edit_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
                                         size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, const safex::safex_account_keys &sfx_acc_keys)
 {
-
     std::vector<tx_source_entry> sources;
     std::vector<tx_destination_entry> destinations;
     fill_edit_offer_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, pkey, sfx_offer, sources, destinations);
@@ -1112,6 +1155,15 @@ bool construct_edit_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptono
     return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
 
+bool construct_close_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                       size_t nmix, const crypto::public_key &pkey, const safex::safex_offer &sfx_offer, const safex::safex_account_keys &sfx_acc_keys)
+{
+    std::vector<tx_source_entry> sources;
+    std::vector<tx_destination_entry> destinations;
+    fill_close_offer_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, pkey, sfx_offer, sources, destinations);
+
+    return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
+}
 
 uint64_t get_inputs_token_amount(const std::vector<cryptonote::tx_source_entry> &s)
 {
