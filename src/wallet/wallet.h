@@ -57,6 +57,7 @@
 #include "checkpoints/checkpoints.h"
 #include "safex/safex_core.h"
 #include "safex/safex_account.h"
+#include "safex/safex_offer.h"
 
 #include "wallet_errors.h"
 #include "common/password.h"
@@ -1044,6 +1045,8 @@ namespace tools
     bool recover_safex_account(const std::string &username, const crypto::secret_key &secret_key);
     bool update_safex_account_data(const std::string &username, const std::vector<uint8_t> accdata);
 
+    bool add_safex_offer(const safex::safex_offer& offer);
+    std::vector<safex::safex_offer> get_safex_offers();
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
@@ -1211,6 +1214,8 @@ namespace tools
 
     std::vector<safex::safex_account> m_safex_accounts;
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;
+
+    std::vector<safex::safex_offer> m_safex_offers;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 1)

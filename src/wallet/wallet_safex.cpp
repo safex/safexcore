@@ -340,5 +340,17 @@ namespace tools
     return false;
   }
 
+  bool wallet::add_safex_offer(const safex::safex_offer& offer){
+
+      m_safex_offers.push_back(offer);
+
+      return true;
+  }
+
+  std::vector<safex::safex_offer> wallet::get_safex_offers()
+  {
+    return std::vector<safex::safex_offer>(m_safex_offers.begin(), m_safex_offers.end());
+  }
+
 }
 
