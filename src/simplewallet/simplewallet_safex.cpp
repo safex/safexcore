@@ -69,9 +69,10 @@ namespace cryptonote
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
     }
 
-    tx_destination_entry close_safex_offer_destination(const account_public_address &to, const crypto::hash &offer_id)
+    tx_destination_entry close_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer, const crypto::public_key &pkey)
     {
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_id);
+        safex::close_offer_data offer_output_data{sfx_offer.id,pkey,sfx_offer.username};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_close, blobdata};
     }
 
@@ -358,10 +359,22 @@ namespace cryptonote
         }
         else if (command_type == CommandType::TransferCloseOffer) {
 
-           crypto::hash offer_id_close;
-           strcpy(offer_id_close.data, local_args[1].c_str());
+            safex::safex_offer sfx_offer{};
 
-            cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, offer_id_close);
+           crypto::hash offer_id_close{};
+            for(int i=0, j=0;i<64;i+=2,j++){
+                offer_id_close.data[j] = 0;
+                std::stringstream ss;
+                std::string str{local_args[1][i]};
+                str+=local_args[1][i+1];
+                unsigned int x = std::stoul(str, nullptr, 16);
+                offer_id_close.data[j] = x;
+            }
+
+            sfx_offer.id = offer_id_close;
+            sfx_offer.username = sfx_username;
+
+            cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, sfx_offer,my_safex_account.pkey);
             dsts.push_back(de_offer_close);
 
         }
@@ -1031,6 +1044,13 @@ namespace cryptonote
                                      offer.offer_data,offer.active,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
 
         m_wallet->update_safex_offer(sfx_offer);
+
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_close)){
+        safex::close_offer_data offer;
+        const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+        cryptonote::parse_and_validate_from_blob(offblob, offer);
+
+        m_wallet->close_safex_offer(offer.offer_id);
 
     }
 

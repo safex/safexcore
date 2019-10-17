@@ -303,14 +303,17 @@ struct close_offer_result : public execution_result
     {
         crypto::hash offer_id{};
         crypto::public_key safex_account_pkey{};
+        std::vector<uint8_t> seller{};
         close_offer_data() {}
-        close_offer_data(const safex::safex_offer& offer): offer_id{offer.id}
+        close_offer_data(const safex::safex_offer& offer): offer_id{offer.id},seller{offer.username.begin(),offer.username.end()}
         {
         }
-        close_offer_data(const crypto::hash &_offer_id, const crypto::public_key& _safex_account_pkey): offer_id{_offer_id},safex_account_pkey{_safex_account_pkey}{}
+        close_offer_data(const crypto::hash &_offer_id, const crypto::public_key& _safex_account_pkey, const std::string &_seller = {}):
+                            offer_id{_offer_id},safex_account_pkey{_safex_account_pkey},seller{_seller.begin(),_seller.end()}{}
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
+            FIELD(seller)
             FIELD(safex_account_pkey)
         END_SERIALIZE()
     };
@@ -760,13 +763,14 @@ public:
      * @param _offerid //ID of the offer
     * */
     close_offer(const uint32_t _version, const safex::close_offer_data &offer) :
-            command(_version, command_t::close_offer), offer_id(offer.offer_id), safex_account_pkey(offer.safex_account_pkey){
+            command(_version, command_t::close_offer), offer_id(offer.offer_id), safex_account_pkey(offer.safex_account_pkey), seller{offer.seller}{
     }
 
     close_offer() : command(0, command_t::close_offer), offer_id{},safex_account_pkey{}{}
 
     crypto::hash get_offerid() const { return offer_id; }
     crypto::public_key get_safex_account_pkey() const { return safex_account_pkey; }
+    std::vector<uint8_t> get_seller() const { return seller; }
 
     virtual close_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -776,11 +780,13 @@ public:
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::close_offer);
         FIELD(offer_id)
         FIELD(safex_account_pkey)
+        FIELD(seller)
     END_SERIALIZE()
 
 private:
     crypto::hash offer_id{};
     crypto::public_key safex_account_pkey{};
+    std::vector<uint8_t> seller{};
 };
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);

@@ -1047,6 +1047,8 @@ namespace tools
 
     bool add_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::safex_offer& offer);
+    bool close_safex_offer(const crypto::hash &offer_id);
+
     std::vector<safex::safex_offer> get_safex_offers();
   private:
     /*!
