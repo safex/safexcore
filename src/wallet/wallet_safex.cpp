@@ -347,6 +347,20 @@ namespace tools
       return true;
   }
 
+    bool wallet::update_safex_offer(const safex::safex_offer& offer){
+
+        for (uint32_t i = 0; i < m_safex_offers.size(); i++)
+        {
+            if (m_safex_offers[i].id == offer.id)
+            {
+                m_safex_offers[i]=offer;
+                return true;
+            }
+        }
+
+        return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_safex_offers()
   {
     return std::vector<safex::safex_offer>(m_safex_offers.begin(), m_safex_offers.end());

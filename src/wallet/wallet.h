@@ -1046,6 +1046,7 @@ namespace tools
     bool update_safex_account_data(const std::string &username, const std::vector<uint8_t> accdata);
 
     bool add_safex_offer(const safex::safex_offer& offer);
+    bool update_safex_offer(const safex::safex_offer& offer);
     std::vector<safex::safex_offer> get_safex_offers();
   private:
     /*!
