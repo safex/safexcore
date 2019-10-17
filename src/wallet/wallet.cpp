@@ -1087,9 +1087,13 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
   const crypto::public_key &temp_out_key = *boost::apply_visitor(destination_public_key_visitor(), tx.vout[i].target);
   LOG_PRINT_L0("Adding output with key and index: " << epee::string_tools::pod_to_hex(temp_out_key) << ", " << i);
   
+  // Preventing adding same output twice in transaction.
+  if (std::find(outs.begin(), outs.end(), i) != outs.end()) {
+    return;
+  }
+
   outs.push_back(i);
-  THROW_WALLET_EXCEPTION_IF(std::find(outs.begin(), outs.end(), i) != outs.end(), error::wallet_internal_error, "Same output cannot be added twice");
-  
+
   if (tx_scan_info.token_transfer)
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
