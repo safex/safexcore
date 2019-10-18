@@ -203,7 +203,7 @@ namespace
           {
               tx_list.resize(tx_list.size() + 1);
               cryptonote::transaction &tx = tx_list.back();                                                           \
-              construct_close_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer[0].id, m_safex_account1_keys.get_keys());
+              construct_close_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer[0].offer_id, m_safex_account1_keys.get_keys());
               m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -303,29 +303,29 @@ namespace
         for (auto safex_offer: this->m_safex_offer) {
 
             safex::safex_offer saved_offer;
-            result = this->m_db->get_offer(safex_offer.id,saved_offer);
+            result = this->m_db->get_offer(safex_offer.offer_id,saved_offer);
             ASSERT_TRUE(result);
             ASSERT_TRUE(std::equal(safex_offer.description.begin(), safex_offer.description.end(),
                                    saved_offer.description.begin()));
             ASSERT_EQ(safex_offer.title,saved_offer.title);
 
             std::string username;
-            result = this->m_db->get_offer_seller(safex_offer.id, username);
+            result = this->m_db->get_offer_seller(safex_offer.offer_id, username);
             ASSERT_TRUE(result);
-            ASSERT_EQ(username.compare(safex_offer.username), 0);
+            ASSERT_EQ(username.compare(safex_offer.seller), 0);
 
             safex::safex_price price;
-            result = this->m_db->get_offer_price(safex_offer.id, price);
+            result = this->m_db->get_offer_price(safex_offer.offer_id, price);
             ASSERT_TRUE(result);
             ASSERT_EQ(memcmp((void *)&price, (void *)&safex_offer.price, sizeof(price)), 0);
 
             uint64_t quantity;
-            result = this->m_db->get_offer_quantity(safex_offer.id, quantity);
+            result = this->m_db->get_offer_quantity(safex_offer.offer_id, quantity);
             ASSERT_TRUE(result);
             ASSERT_EQ(safex_offer.quantity, quantity);
 
             bool active;
-            result = this->m_db->get_offer_active_status(safex_offer.id, active);
+            result = this->m_db->get_offer_active_status(safex_offer.offer_id, active);
             ASSERT_TRUE(result);
             ASSERT_EQ(safex_offer.active, active);
 
@@ -337,29 +337,29 @@ namespace
         }
         //Checking edited offer
         safex::safex_offer saved_offer;
-        result = this->m_db->get_offer(this->m_edited_safex_offer.id,saved_offer);
+        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,saved_offer);
         ASSERT_TRUE(result);
         ASSERT_TRUE(std::equal(this->m_edited_safex_offer.description.begin(), this->m_edited_safex_offer.description.end(),
                                saved_offer.description.begin()));
         ASSERT_EQ(this->m_edited_safex_offer.title,saved_offer.title);
 
         std::string username;
-        result = this->m_db->get_offer_seller(this->m_edited_safex_offer.id, username);
+        result = this->m_db->get_offer_seller(this->m_edited_safex_offer.offer_id, username);
         ASSERT_TRUE(result);
-        ASSERT_EQ(username.compare(this->m_edited_safex_offer.username), 0);
+        ASSERT_EQ(username.compare(this->m_edited_safex_offer.seller), 0);
 
         safex::safex_price price;
-        result = this->m_db->get_offer_price(this->m_edited_safex_offer.id, price);
+        result = this->m_db->get_offer_price(this->m_edited_safex_offer.offer_id, price);
         ASSERT_TRUE(result);
         ASSERT_EQ(memcmp((void *)&price, (void *)&this->m_edited_safex_offer.price, sizeof(price)), 0);
 
         uint64_t quantity;
-        result = this->m_db->get_offer_quantity(this->m_edited_safex_offer.id, quantity);
+        result = this->m_db->get_offer_quantity(this->m_edited_safex_offer.offer_id, quantity);
         ASSERT_TRUE(result);
         ASSERT_EQ(this->m_edited_safex_offer.quantity, quantity);
 
         bool active;
-        result = this->m_db->get_offer_active_status(this->m_edited_safex_offer.id, active);
+        result = this->m_db->get_offer_active_status(this->m_edited_safex_offer.offer_id, active);
         ASSERT_TRUE(result);
         ASSERT_EQ(this->m_edited_safex_offer.active, active);
 
@@ -369,7 +369,7 @@ namespace
         }
         //Checking closed offer
         safex::safex_offer closed_offer;
-        result = this->m_db->get_offer(this->m_edited_safex_offer.id,saved_offer);
+        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,saved_offer);
         ASSERT_FALSE(result);
 
 

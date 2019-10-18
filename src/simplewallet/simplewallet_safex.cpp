@@ -71,7 +71,7 @@ namespace cryptonote
 
     tx_destination_entry close_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer, const crypto::public_key &pkey)
     {
-        safex::close_offer_data offer_output_data{sfx_offer.id,pkey,sfx_offer.username};
+        safex::close_offer_data offer_output_data{sfx_offer.offer_id,pkey,sfx_offer.seller};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_close, blobdata};
     }
@@ -371,8 +371,8 @@ namespace cryptonote
                 offer_id_close.data[j] = x;
             }
 
-            sfx_offer.id = offer_id_close;
-            sfx_offer.username = sfx_username;
+            sfx_offer.offer_id = offer_id_close;
+            sfx_offer.seller = sfx_username;
 
             cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, sfx_offer,my_safex_account.pkey);
             dsts.push_back(de_offer_close);
@@ -837,8 +837,8 @@ namespace cryptonote
       success_msg_writer() << tr("Safex offers");
       success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
       for (auto &offer: m_wallet->get_safex_offers()) {
-          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price.price % offer.quantity % offer.username %
-                                  std::string(begin(offer.description), end(offer.description)) % offer.id;
+          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price.price % offer.quantity % offer.seller %
+                                  std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
   }
 
@@ -1032,7 +1032,7 @@ namespace cryptonote
         safex::create_offer_data offer;
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
         cryptonote::parse_and_validate_from_blob(offblob, offer);
-        safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.offer_data,offer.active,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+        safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.active,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
 
         m_wallet->add_safex_offer(sfx_offer);
 
@@ -1041,7 +1041,7 @@ namespace cryptonote
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
         cryptonote::parse_and_validate_from_blob(offblob, offer);
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
-                                     offer.offer_data,offer.active,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+                                     offer.description,offer.active,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
 
         m_wallet->update_safex_offer(sfx_offer);
 

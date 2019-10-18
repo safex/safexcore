@@ -4732,11 +4732,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             safex::create_offer_data offer_result;
             parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
 
-            offer.description = offer_result.offer_data;
-            offer.username = std::string{offer_result.seller.begin(),offer_result.seller.end()};
+            offer.description = offer_result.description;
+            offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
             offer.quantity = offer_result.quantity;
             offer.price = offer_result.price;
-            offer.id = offer_result.offer_id;
+            offer.offer_id = offer_result.offer_id;
             offer.active = offer_result.active;
             offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
         }

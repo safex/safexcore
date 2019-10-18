@@ -351,7 +351,7 @@ namespace tools
 
         for (uint32_t i = 0; i < m_safex_offers.size(); i++)
         {
-            if (m_safex_offers[i].id == offer.id)
+            if (m_safex_offers[i].offer_id == offer.offer_id)
             {
                 m_safex_offers[i]=offer;
                 return true;
@@ -365,7 +365,7 @@ namespace tools
 
         for (auto it = m_safex_offers.begin(); it != m_safex_offers.end(); ++it)
         {
-            if (it->id == offer_id)
+            if (it->offer_id == offer_id)
             {
                 m_safex_offers.erase(it);
                 return true;

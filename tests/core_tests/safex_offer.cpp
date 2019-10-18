@@ -134,12 +134,12 @@ gen_safex_offer_001::gen_safex_offer_001()
     expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
 
 
-    expected_alice_safex_offer_id = safex_offer_alice.id;
+    expected_alice_safex_offer_id = safex_offer_alice.offer_id;
     expected_alice_safex_offer_title = safex_offer_alice.title;
-    expected_alice_safex_offer_seller = safex_offer_alice.username;
+    expected_alice_safex_offer_seller = safex_offer_alice.seller;
     expected_alice_safex_offer_description = safex_offer_alice.description;
 
-    expected_bob_safex_offer_id = safex_offer_bob.id;
+    expected_bob_safex_offer_id = safex_offer_bob.offer_id;
 
     expected_alice_safex_offer_price = safex_offer_alice.price;
     expected_alice_safex_offer_quantity = safex_offer_alice.quantity;
@@ -210,7 +210,7 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
     MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
-    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(events, txlist_6, bob, safex_account_bob.pkey, safex_offer_bob.id, m_safex_account2_keys.get_keys(), blk_12);
+    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(events, txlist_6, bob, safex_account_bob.pkey, safex_offer_bob.offer_id, m_safex_account2_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
