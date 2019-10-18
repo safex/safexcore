@@ -64,26 +64,32 @@ namespace safex
   struct safex_offer
   {
     public:
-      safex_offer(): title{}, quantity{}, price{}, description{}, description_sig{}, active{false}, shipping{}, id{0}, version{0}, username{} {
+      safex_offer(): title{}, quantity{}, price{}, description{}, description_sig{}, active{false}, shipping{}, offer_id{0}, version{0}, seller{} {
 
+      }
+
+      safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, const std::vector<uint8_t> &_description,
+                  bool _active, crypto::hash _id, std::string seller_username):title{_title},quantity{_quantity},price{_price},
+                                                             description{_description},offer_id{_id},seller{seller_username},active{_active}
+      {
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, const std::vector<uint8_t> &_description,
       bool _active, const crypto::signature &_sig, crypto::hash _id, std::string seller_username):
               title{_title}, quantity{_quantity}, price{_price}, description{_description},
-              description_sig{_sig}, active{_active}, shipping{}, id{_id}, version{0}, username{seller_username}{
+              description_sig{_sig}, active{_active}, shipping{}, offer_id{_id}, version{0}, seller{seller_username}{
 
       }
 
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const safex_price& _price, std::string& _description,
                   bool _active, const safex_account_keys& keys, std::string seller_username):
-              title{_title}, quantity{_quantity}, price{_price}, active{_active}, shipping{}, version{0}, username{seller_username} {
+              title{_title}, quantity{_quantity}, price{_price}, active{_active}, shipping{}, version{0}, seller{seller_username} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           description_sig = generate_description_signature(keys);
 
-          id = create_offer_id(seller_username);
+          offer_id = create_offer_id(seller_username);
 
       }
 
@@ -95,8 +101,8 @@ namespace safex
         KV_SERIALIZE(description_sig)
         KV_SERIALIZE(active)
         KV_SERIALIZE(shipping)
-        KV_SERIALIZE(id)
-        KV_SERIALIZE(username)
+        KV_SERIALIZE(offer_id)
+        KV_SERIALIZE(seller)
         KV_SERIALIZE(version)
       END_KV_SERIALIZE_MAP()
 
@@ -108,8 +114,8 @@ namespace safex
         FIELD(description_sig)
         FIELD(active)
         FIELD(shipping)
-        FIELD(id)
-        FIELD(username)
+        FIELD(offer_id)
+        FIELD(seller)
         FIELD(version)
       END_SERIALIZE()
 
@@ -123,8 +129,8 @@ namespace safex
         a & description_sig;
         a & active;
         a & shipping;
-        a & id;
-        a & username;
+        a & offer_id;
+        a & seller;
         a & version;
       }
 
@@ -136,41 +142,14 @@ namespace safex
       crypto::signature description_sig; //signature of description, from the account that created offer
       bool active; //is offer active
       std::vector<uint8_t> shipping;
-      crypto::hash id; //unique id of the offer
-      std::string username; // username of the seller
+      crypto::hash offer_id; //unique id of the offer
+      std::string seller; // username of the seller
       uint64_t version; //offer can be updated, increment version in that case
 
   private:
-      crypto::hash create_offer_id(std::string& username){
+      crypto::hash create_offer_id(std::string& username);
 
-          crypto::hash offer_id{};
-          std::string offer_id_string = username;
-
-          auto time_now = std::chrono::system_clock::now();
-          auto nanosec = time_now.time_since_epoch();
-          std::string time_now_string{std::to_string(nanosec.count())};
-
-          offer_id_string.append(time_now_string);
-
-          bool res = cryptonote::get_object_hash(std::vector<uint8_t>{offer_id_string.begin(),offer_id_string.end()},offer_id);
-
-          if(!res){
-              //error
-          }
-          return offer_id;
-      }
-
-      crypto::signature generate_description_signature(const safex_account_keys& keys){
-          crypto::hash message_hash01{};
-          bool res = cryptonote::get_object_hash(description,message_hash01);
-          if(!res){
-              //error
-          }
-
-          crypto::signature message_sig01{};
-          crypto::generate_signature(message_hash01, keys.m_public_key, keys.m_secret_key, message_sig01);
-          return message_sig01;
-      }
+      crypto::signature generate_description_signature(const safex_account_keys& keys);
 
   };
 }

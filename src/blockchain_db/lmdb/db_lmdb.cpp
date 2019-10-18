@@ -1136,7 +1136,7 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
 
 
       if ((result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, (unsigned int) MDB_CURRENT)))
-          throw0(DB_ERROR(lmdb_error("Failed to add staked token output expiry entry: ", result).c_str()));
+          throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex offer entry: ", result).c_str()));
     }
 
 }
@@ -1483,6 +1483,21 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       blobdata blob{};
       t_serializable_object_to_blob(*result,blob);
       edit_safex_offer(result->offer_id, blob);
+
+  }
+  else if (txin.command_type == safex::command_t::close_offer)
+  {
+
+      std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+      std::unique_ptr<safex::close_offer_result> result(dynamic_cast<safex::close_offer_result*>(cmd->execute(*this, txin)));
+      if (result->status != safex::execution_status::ok)
+      {
+          LOG_ERROR("Execution of close saffex offer command failed, status:" << static_cast<int>(result->status));
+          throw1(DB_ERROR("Error executing close safex offer command"));
+      }
+      blobdata blob{};
+      t_serializable_object_to_blob(*result,blob);
+      close_safex_offer(result->offer_id, blob);
 
   }
   else {
@@ -4555,6 +4570,36 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
     }
 
+    void BlockchainLMDB::close_safex_offer(const crypto::hash &offer_id, const blobdata &blob) {
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+        MDB_cursor *cur_safex_offer;
+        CURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
+
+
+        int result;
+        MDB_val_set(k, offer_id);
+        MDB_val v;
+
+        result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (result == MDB_SUCCESS)
+        {
+            MDB_val_copy<blobdata> offer_info(blob);
+            auto result2 = mdb_cursor_del(cur_safex_offer, (unsigned int) MDB_CURRENT);
+            if (result2 != MDB_SUCCESS)
+                throw0(DB_ERROR(lmdb_error("Failed to close offer for offer id: "+boost::lexical_cast<std::string>(offer_id), result2).c_str()));
+        }
+        else if (result == MDB_NOTFOUND)
+        {
+            throw0(DB_ERROR(lmdb_error("DB error attempting to edit offer, does not exists: ", result).c_str()));
+        }
+        else
+        {
+            throw0(DB_ERROR(lmdb_error("DB error attempting to edit offer: ", result).c_str()));
+        }
+    }
 
 
     bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
@@ -4687,12 +4732,13 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             safex::create_offer_data offer_result;
             parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
 
-            offer.description = offer_result.offer_data;
-            offer.username = std::string{offer_result.seller.begin(),offer_result.seller.end()};
+            offer.description = offer_result.description;
+            offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
             offer.quantity = offer_result.quantity;
             offer.price = offer_result.price;
-            offer.id = offer_result.offer_id;
+            offer.offer_id = offer_result.offer_id;
             offer.active = offer_result.active;
+            offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
         }
         else if (get_result == MDB_NOTFOUND)
         {

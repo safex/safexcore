@@ -337,6 +337,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::edit_offer:
       output_type = tx_out_type::out_safex_account;
       break;
+    case safex::command_t::close_offer:
+      output_type = tx_out_type::out_safex_account;
+      break;
     default:
       MERROR_VER("Unknown command type");
       return false;
@@ -3132,7 +3135,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               }
 
               //check offer data size
-              if (offer.offer_data.size() > SAFEX_OFFER_DATA_MAX_SIZE)
+              if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
               {
                   MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
                   tvc.m_safex_invalid_input = true;
@@ -3164,12 +3167,26 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               }
 
               //check offer data size
-              if (offer.offer_data.size() > SAFEX_OFFER_DATA_MAX_SIZE)
+              if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
               {
                   MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
                   tvc.m_safex_invalid_input = true;
                   return false;
               }
+          }
+      }
+  }
+  else if (command_type == safex::command_t::close_offer)
+  {
+      //TODO: Make additional checks
+      for (const auto &vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_close)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::close_offer_data offer;
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
           }
       }
   }
@@ -3318,6 +3335,11 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
           return false;
   }
   else if (txin.command_type == safex::command_t::edit_offer)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::close_offer)
   {
       if (txin.amount > 0 || txin.token_amount > 0)
           return false;
@@ -3567,6 +3589,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
             std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(boost::get<txin_to_script>(txin).script);
             crypto::public_key account_pkey{};
             get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                              std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+            );
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::close_offer)) {
+            std::unique_ptr<safex::close_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::close_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{cmd->get_safex_account_pkey()};
             tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
                                               std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
             );
@@ -5584,7 +5613,55 @@ bool Blockchain::get_safex_offer_seller(const crypto::hash &offerID, std::string
         return result;
     }
     catch (std::exception &ex) {
-        MERROR("Error fetching account data: "+std::string(ex.what()));
+        MERROR("Error fetching offer seller username: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const
+{
+    try {
+        bool result = m_db->get_offer(offerID, offer);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_price(const crypto::hash &offerID, safex::safex_price &price) const
+{
+    try {
+        bool result = m_db->get_offer_price(offerID, price);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer price: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const
+{
+    try {
+        bool result = m_db->get_offer_quantity(offerID, quantity);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer quantity: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const
+{
+    try {
+        bool result = m_db->get_offer_active_status(offerID, active);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer active status: "+std::string(ex.what()));
         return false;
     }
 }
