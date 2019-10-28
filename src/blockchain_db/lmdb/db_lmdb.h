@@ -38,6 +38,7 @@
 #include <lmdb.h>
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
+#include <safex/safex_purchase.h>
 
 #define ENABLE_AUTO_RESIZE
 
@@ -518,7 +519,16 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
      *
      */
-    void close_safex_offer(const crypto::hash &offer_id, const blobdata &blob);
+    void close_safex_offer(const crypto::hash &offer_id);
+    /**
+    * Create purchase in database
+    *
+    * @param result safex purchase data
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void create_safex_purchase(const safex::safex_purchase& result);
 
 protected:
 

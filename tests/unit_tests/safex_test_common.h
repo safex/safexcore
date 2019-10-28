@@ -11,6 +11,7 @@
 #include "cryptonote_core/cryptonote_tx_utils.h"
 #include "safex/safex_account.h"
 #include "safex/safex_offer.h"
+#include "safex/safex_purchase.h"
 
 struct output_index
 {
@@ -129,6 +130,9 @@ bool construct_edit_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptono
 
 bool construct_close_offer_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
                                       size_t nmix, const crypto::public_key &pkey, const crypto::hash &offer_id, const safex::safex_account_keys &sfx_acc_keys);
+
+bool construct_create_purchase_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from,
+                                           uint64_t fee, size_t nmix, const safex::safex_purchase &sfx_purchase, const cryptonote::account_public_address seller_address);
 
 bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc,
         uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list);

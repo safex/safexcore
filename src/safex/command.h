@@ -20,6 +20,7 @@
 
 #include "misc_log_ex.h"
 #include "safex_offer.h"
+#include "safex_purchase.h"
 
 #define CHECK_COMMAND_TYPE(TYPE_TO_CHECK,EXPECTED_TYPE) SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((TYPE_TO_CHECK == EXPECTED_TYPE), "Could not create command, wrong command type", TYPE_TO_CHECK);
 
@@ -81,8 +82,27 @@ namespace safex
 
   struct simple_purchase_result : public execution_result
   {
-    uint64_t cash_amount = 0; //cash amount that seller gets
-    uint64_t network_fee = 0; //network fee for purchase
+
+      simple_purchase_result(){}
+
+      simple_purchase_result(const crypto::hash &_offer_id, uint64_t _quantity, safex::safex_price _price, bool _shipping, uint64_t _version) :
+                                                                                                offer_id(_offer_id),quantity{_quantity},
+                                                                                                price{_price},shipping{_shipping},
+                                                                                                version{_version}{}
+
+      crypto::hash offer_id{}; //unique id of the offer
+      uint64_t quantity{};
+      safex_price price;
+      bool shipping{};
+      uint64_t version{};
+
+      BEGIN_SERIALIZE_OBJECT()
+          FIELD(offer_id)
+          VARINT_FIELD(quantity)
+          FIELD(price)
+          FIELD(shipping)
+          FIELD(version)
+      END_SERIALIZE()
   };
 
   struct distribute_fee_result : public execution_result
@@ -320,6 +340,30 @@ struct close_offer_result : public execution_result
         END_SERIALIZE()
     };
 
+    struct create_purchase_data : public command_data
+    {
+        crypto::hash offer_id{}; //unique id of the offer
+        uint64_t quantity{};
+        safex_price price;
+        bool shipping{};
+        uint64_t version{};
+
+        create_purchase_data() {}
+        create_purchase_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id},quantity{purchase.quantity},price{purchase.price},
+                                                                     version{purchase.version},shipping{purchase.shipping}
+        {
+        }
+        create_purchase_data(const crypto::hash &_offer_id, const uint64_t &_quantity, const safex_price &_price):
+                offer_id{_offer_id},quantity{_quantity},price{_price}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            VARINT_FIELD(quantity)
+            FIELD(price)
+            FIELD(shipping)
+            FIELD(version)
+        END_SERIALIZE()
+    };
 
   /**
   * @brief script command representation
@@ -531,12 +575,13 @@ struct close_offer_result : public execution_result
        * @param _version Safex command protocol version
        * @param _simple_purchase_price Simple purschase cash amount
       * */
-      simple_purchase(const uint32_t _version, const uint64_t _simple_purchase_price) : command(_version, command_t::simple_purchase),
-                                                                                        simple_purchase_price(_simple_purchase_price) {}
+      simple_purchase(const uint32_t _version, const safex::create_purchase_data &sfx_purchase) : command(_version, command_t::simple_purchase),
+                                                                                                  offer_id(sfx_purchase.offer_id),quantity{sfx_purchase.quantity},
+                                                                                                  price{sfx_purchase.price},shipping{sfx_purchase.shipping},
+                                                                                                  version{sfx_purchase.version}{}
 
-      simple_purchase() : command(0, command_t::simple_purchase), simple_purchase_price(0) {}
+      simple_purchase() : command(0, command_t::simple_purchase) {}
 
-      uint64_t get_simple_purhcase_price() const { return simple_purchase_price; }
 
       virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
       virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -544,12 +589,20 @@ struct close_offer_result : public execution_result
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::simple_purchase);
-        VARINT_FIELD(simple_purchase_price)
+        FIELD(offer_id)
+        VARINT_FIELD(quantity)
+        FIELD(price)
+        FIELD(shipping)
+        FIELD(version)
       END_SERIALIZE()
 
     private:
 
-      uint64_t simple_purchase_price;
+      crypto::hash offer_id{}; //unique id of the offer
+      uint64_t quantity{};
+      safex_price price;
+      bool shipping{};
+      uint64_t version{};
   };
 
 
