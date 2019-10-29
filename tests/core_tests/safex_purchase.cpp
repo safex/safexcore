@@ -42,7 +42,7 @@
 #include "safex/safex_core.h"
 
 #include "chaingen.h"
-#include "safex_offer.h"
+#include "safex_purchase.h"
 
 
 
@@ -52,32 +52,32 @@ using namespace epee;
 using namespace cryptonote;
 
 
-const std::string gen_safex_offer_001::data2_alternative{"Bob's alternative data"};
-const std::string gen_safex_offer_001::data2_alternative_2{"Bob's second alternative data"};
-const std::string gen_safex_offer_001::data3_alternative{"Daniels's alternative data 2 ----------------------------------------------------- some other data here -----------------------------------------------"
+const std::string gen_safex_purchase_001::data2_alternative{"Bob's alternative data"};
+const std::string gen_safex_purchase_001::data2_alternative_2{"Bob's second alternative data"};
+const std::string gen_safex_purchase_001::data3_alternative{"Daniels's alternative data 2 ----------------------------------------------------- some other data here -----------------------------------------------"
 " and more data here ----------------------------------------------------------------------------------*****************--------------------------------"};
 
-bool gen_safex_offer_001::expected_data_fields_intialized{false};
-crypto::public_key gen_safex_offer_001::expected_alice_account_key{};
-crypto::public_key gen_safex_offer_001::expected_bob_account_key{};
-crypto::public_key gen_safex_offer_001::expected_daniel_account_key{};
+bool gen_safex_purchase_001::expected_data_fields_intialized{false};
+crypto::public_key gen_safex_purchase_001::expected_alice_account_key{};
+crypto::public_key gen_safex_purchase_001::expected_bob_account_key{};
+crypto::public_key gen_safex_purchase_001::expected_daniel_account_key{};
 
-std::vector<uint8_t> gen_safex_offer_001::expected_alice_account_data;
-std::vector<uint8_t> gen_safex_offer_001::expected_bob_account_data;
-std::vector<uint8_t> gen_safex_offer_001::expected_daniel_account_data;
+std::vector<uint8_t> gen_safex_purchase_001::expected_alice_account_data;
+std::vector<uint8_t> gen_safex_purchase_001::expected_bob_account_data;
+std::vector<uint8_t> gen_safex_purchase_001::expected_daniel_account_data;
 
-crypto::hash gen_safex_offer_001::expected_alice_safex_offer_id;
-crypto::hash gen_safex_offer_001::expected_bob_safex_offer_id;
-std::string gen_safex_offer_001::expected_alice_safex_offer_seller;
-std::string gen_safex_offer_001::expected_alice_safex_offer_title;
-std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_description;
-std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_new_description;
-safex::safex_price gen_safex_offer_001::expected_alice_safex_offer_price;
-uint64_t  gen_safex_offer_001::expected_alice_safex_offer_quantity;
-bool gen_safex_offer_001::expected_alice_safex_offer_active_status;
+crypto::hash gen_safex_purchase_001::expected_alice_safex_offer_id;
+crypto::hash gen_safex_purchase_001::expected_bob_safex_offer_id;
+std::string gen_safex_purchase_001::expected_alice_safex_offer_seller;
+std::string gen_safex_purchase_001::expected_alice_safex_offer_title;
+std::vector<uint8_t> gen_safex_purchase_001::expected_alice_safex_offer_description;
+std::vector<uint8_t> gen_safex_purchase_001::expected_alice_safex_offer_new_description;
+safex::safex_price gen_safex_purchase_001::expected_alice_safex_offer_price;
+uint64_t  gen_safex_purchase_001::expected_alice_safex_offer_quantity;
+bool gen_safex_purchase_001::expected_alice_safex_offer_active_status;
 
 
-safex::safex_offer gen_safex_offer_001::create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
+safex::safex_offer gen_safex_purchase_001::create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
 
     safex::safex_price m_safex_price1{price,price,5};
 
@@ -86,7 +86,7 @@ safex::safex_offer gen_safex_offer_001::create_demo_safex_offer(std::string titl
 }
 
 
-gen_safex_offer_001::gen_safex_offer_001()
+gen_safex_purchase_001::gen_safex_purchase_001()
 {
 
 
@@ -123,7 +123,11 @@ gen_safex_offer_001::gen_safex_offer_001()
   safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
                                                 m_safex_account2_keys, safex_account_bob);
 
-  if (!expected_data_fields_intialized)
+
+//   safex_purchase_alice{};
+
+
+    if (!expected_data_fields_intialized)
   {
     expected_alice_account_key = safex_account_alice.pkey;
     expected_bob_account_key = safex_account_bob.pkey;
@@ -149,10 +153,10 @@ gen_safex_offer_001::gen_safex_offer_001()
     expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};;
   }
 
-  REGISTER_CALLBACK("verify_safex_offer", gen_safex_offer_001::verify_safex_offer);
+  REGISTER_CALLBACK("verify_safex_purchase", gen_safex_purchase_001::verify_safex_purchase);
 }
 
-bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
+bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
 {
     uint64_t ts_start = 1530720632;
 
@@ -209,26 +213,25 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
 
     safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
-    MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
-    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(events, txlist_6, bob, safex_account_bob.pkey, safex_offer_bob.offer_id, m_safex_account2_keys.get_keys(), blk_12);
+    MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_6, alice, safex_purchase_alice, bob.get_keys().m_account_address,  blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
-    DO_CALLBACK(events, "verify_safex_offer");
+    DO_CALLBACK(events, "verify_safex_purchase");
 
     return true;
 }
 
-bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-    DEFINE_TESTS_ERROR_CONTEXT("gen_safex_offer_001::verify_safex_offer");
+    DEFINE_TESTS_ERROR_CONTEXT("gen_safex_purchase_001::verify_safex_purchase");
     std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
 
-    CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_safex_offer_001::expected_blockchain_height);
-    CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == gen_safex_offer_001::expected_blockchain_total_transactions);
+    CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_safex_purchase_001::expected_blockchain_height);
+    CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == gen_safex_purchase_001::expected_blockchain_total_transactions);
 
     std::list<cryptonote::block> block_list;
-    bool r = c.get_blocks((uint64_t)0, gen_safex_offer_001::expected_blockchain_height, block_list);
+    bool r = c.get_blocks((uint64_t)0, gen_safex_purchase_001::expected_blockchain_height, block_list);
     CHECK_TEST_CONDITION(r);
 
     cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
@@ -290,8 +293,11 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
   CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
 
-  bool result = c.get_blockchain_storage().get_safex_offer(expected_bob_safex_offer_id,sfx_offer);
-  CHECK_TEST_CONDITION(!result);
+    int64_t network_fee_collected = c.get_collected_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
+    cout << "total network fee collected: " << print_money(network_fee_collected) << endl;
+
+    int64_t network_fee_distributed = c.get_distributed_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
+    cout << "total network fee distributed: " << print_money(network_fee_distributed) << endl;
 
 
     return true;

@@ -38,6 +38,7 @@
 #include <boost/program_options.hpp>
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
+#include <safex/safex_purchase.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"

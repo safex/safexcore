@@ -1649,6 +1649,17 @@ bool construct_close_offer_transaction(const std::vector<test_event_entry>& even
     return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }
 
+bool construct_create_purchase_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
+                                           size_t nmix, const safex::safex_purchase &sfx_purchase, const cryptonote::account_public_address seller_address){
+
+    std::vector<tx_source_entry> sources;
+    std::vector<tx_destination_entry> destinations;
+    //TODO: GRKI Add this for core tests
+    //fill_create_purchase_tx_sources_and_destinations(events, blk_head, from, sfx_purchase.price.cost, fee, nmix, sfx_purchase, seller_address, sources, destinations);
+
+    return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
+}
+
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx) {
     uint64_t res = 0;
     std::map<uint64_t, std::vector<output_index> > outs;
