@@ -3093,7 +3093,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::edit_account)
   {
-    //todo check for signature of account owner
+    //todo Do we need to check for signature of account owner or is it enough in tx_input check? Line: 3490
 
     for (const auto &vout: tx.vout)
     {
@@ -3506,6 +3506,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
           //todo atana nothing to do here
           results[sig_index] = true;
+        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
+            std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_username(), account_pkey);
+            check_safex_account_signature(tx_prefix_hash,account_pkey,tx.signatures[sig_index][0],results[sig_index]);
         }
         else {
           check_ring_signature(tx_prefix_hash, k_image, pubkeys[sig_index], tx.signatures[sig_index], results[sig_index]);
