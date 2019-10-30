@@ -254,7 +254,7 @@ bool construct_fee_donation_transaction(const std::vector<test_event_entry>& eve
                                         const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee, size_t nmix);
 
 bool construct_create_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, const safex::safex_account_keys &sfx_acc_keys);
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, uint64_t unlock_time, const safex::safex_account_keys &sfx_acc_keys);
 
 bool construct_edit_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
                                         const cryptonote::account_base &from, uint64_t fee,
@@ -799,19 +799,19 @@ inline bool do_replay_file(const std::string& filename)
 
 
 
-#define MAKE_CREATE_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, NMIX, HEAD) \
+#define MAKE_CREATE_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, UNLOCK_TIME, NMIX, HEAD) \
   {                                                                                      \
     cryptonote::transaction t;                                                           \
-    construct_create_account_transaction(VEC_EVENTS, t, HEAD, FROM, TESTS_DEFAULT_FEE, NMIX, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS); \
+    construct_create_account_transaction(VEC_EVENTS, t, HEAD, FROM, TESTS_DEFAULT_FEE, NMIX, USERNAME, PKEY, ACCOUNT_DATA, UNLOCK_TIME, ACC_KEYS); \
     SET_NAME.push_back(t);                                                               \
     VEC_EVENTS.push_back(t);                                                             \
   }
 
-#define MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, HEAD) MAKE_CREATE_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, 0, HEAD)
+#define MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, UNLOCK_TIME, HEAD) MAKE_CREATE_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, UNLOCK_TIME, 0, HEAD)
 
-#define MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, HEAD) \
+#define MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, UNLOCK_TIME, HEAD) \
     std::list<cryptonote::transaction> SET_NAME; \
-    MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, HEAD);
+    MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, PKEY, ACCOUNT_DATA, ACC_KEYS, UNLOCK_TIME, HEAD);
 
 
 #define MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, ACC_KEYS, HEAD) MAKE_EDIT_SAFEX_ACCOUNT_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, USERNAME, ACCOUNT_DATA, ACC_KEYS, 0, HEAD)

@@ -1428,13 +1428,13 @@ bool construct_fee_donation_transaction(const std::vector<test_event_entry>& eve
 
 bool construct_create_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
                                           const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, const safex::safex_account_keys &sfx_acc_keys)
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, uint64_t unlock_time, const safex::safex_account_keys &sfx_acc_keys)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_create_account_sources_and_destinations(events, blk_head, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, pkey, account_data, sources, destinations);
 
-  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx , unlock_time, sfx_acc_keys);
 }
 
 bool construct_edit_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
