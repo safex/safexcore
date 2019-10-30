@@ -3033,8 +3033,15 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::create_account)
   {
-    //todo Atana check if there are 100 tokens locked on output!!
 
+    if( tx.unlock_time < get_current_blockchain_height() + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD )
+    {
+        MERROR("Invalid unlock token period");
+        tvc.m_safex_invalid_input = true;
+        return false;
+    }
+
+    uint64_t total_locked_tokens = 0;
 
     for (const auto &vout: tx.vout)
     {
@@ -3068,8 +3075,21 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           tvc.m_safex_invalid_input = true;
           return false;
         }
+          total_locked_tokens += vout.token_amount;
       }
+        if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token)
+        {
+          total_locked_tokens += vout.token_amount;
+        }
+
     }
+
+    if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
+        MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
+        tvc.m_safex_invalid_input = true;
+        return false;
+    }
+
   }
   else if (command_type == safex::command_t::edit_account)
   {
