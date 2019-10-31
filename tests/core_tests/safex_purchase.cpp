@@ -118,13 +118,13 @@ gen_safex_purchase_001::gen_safex_purchase_001()
   std::string data4 = "Тхис ис соме Едвардс дата фор тест";
   safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
 
-  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",1999,100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
+  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",1999*SAFEX_CASH_COIN,100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
                                                 m_safex_account1_keys, safex_account_alice);
-  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
+  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999*SAFEX_CASH_COIN,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
                                                 m_safex_account2_keys, safex_account_bob);
 
 
-//   safex_purchase_alice{};
+   safex_purchase_alice = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false, 1};
 
 
     if (!expected_data_fields_intialized)
@@ -188,6 +188,7 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, alice, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), blk_4);
     MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(events, txlist_2, bob, safex_account_bob.username, safex_account_bob.pkey, safex_account_bob.account_data, m_safex_account2_keys.get_keys(), blk_4);
     MAKE_MIGRATION_TX_LIST(events, txlist_2, miner, edward, MK_TOKENS(8000), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[3]));
+    //MAKE_TX_LIST(events, txlist_2, miner, alice, MK_COINS(3000), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_2);
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
@@ -289,9 +290,7 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
   c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_id,sfx_offer);
   CHECK_TEST_CONDITION(expected_alice_safex_offer_title.compare(sfx_offer.title) == 0);
 
-  std::string desc1{sfx_offer.description.begin(),sfx_offer.description.end()};
-  std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
-  CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
+
 
     int64_t network_fee_collected = c.get_collected_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
     cout << "total network fee collected: " << print_money(network_fee_collected) << endl;

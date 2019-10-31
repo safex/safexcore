@@ -98,7 +98,7 @@ namespace safex
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(offer_id)
-          VARINT_FIELD(quantity)
+          FIELD(quantity)
           FIELD(price)
           FIELD(shipping)
           FIELD(version)
@@ -358,7 +358,7 @@ struct close_offer_result : public execution_result
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
-            VARINT_FIELD(quantity)
+            FIELD(quantity)
             FIELD(price)
             FIELD(shipping)
             FIELD(version)
@@ -590,7 +590,7 @@ struct close_offer_result : public execution_result
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::simple_purchase);
         FIELD(offer_id)
-        VARINT_FIELD(quantity)
+        FIELD(quantity)
         FIELD(price)
         FIELD(shipping)
         FIELD(version)

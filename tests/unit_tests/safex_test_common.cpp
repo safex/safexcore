@@ -949,12 +949,12 @@ void fill_create_purchase_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
 
 
     //sender change for fee
-//    uint64_t cache_back = get_inputs_amount(sources) - fee - cash_amount;
-//    if (0 < cache_back)
-//    {
-//        tx_destination_entry de_change = create_tx_destination(from, cache_back);
-//        destinations.push_back(de_change);
-//    }
+    uint64_t cache_back = get_inputs_amount(sources) - fee - cash_amount;
+    if (0 < cache_back)
+    {
+        tx_destination_entry de_change = create_tx_destination(from, cache_back);
+        destinations.push_back(de_change);
+    }
 
     //purchase
     tx_destination_entry de_purchase = create_safex_purchase_destination(from, sfx_purchase);

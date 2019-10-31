@@ -173,6 +173,8 @@
 #define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
 #define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD  ((uint64_t)15) //15 blocks for tests, TBD
 #define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
+#define SAFEX_CREATE_OFFER_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
+#define SAFEX_CREATE_OFFER_TOKEN_LOCK_PERIOD  ((uint64_t)15) //15 blocks for tests, TBD
 #define SAFEX_OFFER_DATA_MAX_SIZE               2048
 
 

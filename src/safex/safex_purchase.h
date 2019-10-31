@@ -39,7 +39,7 @@ namespace safex
 
       }
 
-      safex_purchase(const uint64_t _quantity, const safex_price& _price, crypto::hash &_id, bool _shipping, uint64_t _version, safex_purchase_status _status):quantity{_quantity},price{_price},
+      safex_purchase(const uint64_t _quantity, const safex_price& _price, crypto::hash &_id, bool _shipping, uint64_t _version, safex_purchase_status _status = safex_purchase_started):quantity{_quantity},price{_price},
                                                                                             offer_id{_id},shipping{_shipping},version{_version},status{_status}
       {
       }
@@ -56,7 +56,7 @@ namespace safex
 
       BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
-        VARINT_FIELD(quantity)
+        FIELD(quantity)
         FIELD(price)
         FIELD(shipping)
         FIELD(version)
