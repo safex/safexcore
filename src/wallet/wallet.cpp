@@ -1117,6 +1117,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         {
           hwdev_lock.lock();
           hwdev.set_mode(hw::device::NONE);
+          if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)) {
+              outs.push_back(i);
+              continue;
+          }
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           hwdev_lock.unlock();
