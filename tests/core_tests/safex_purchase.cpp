@@ -76,6 +76,9 @@ safex::safex_price gen_safex_purchase_001::expected_alice_safex_offer_price;
 uint64_t  gen_safex_purchase_001::expected_alice_safex_offer_quantity;
 bool gen_safex_purchase_001::expected_alice_safex_offer_active_status;
 
+uint64_t  gen_safex_purchase_001::expected_alice_balance;
+uint64_t  gen_safex_purchase_001::expected_bob_balance;
+
 
 safex::safex_offer gen_safex_purchase_001::create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
 
@@ -118,13 +121,13 @@ gen_safex_purchase_001::gen_safex_purchase_001()
   std::string data4 = "Тхис ис соме Едвардс дата фор тест";
   safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
 
-  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",1999*SAFEX_CASH_COIN,100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
+  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",MK_COINS(10),100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
                                                 m_safex_account1_keys, safex_account_alice);
-  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999*SAFEX_CASH_COIN,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
+  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",MK_COINS(10),1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
                                                 m_safex_account2_keys, safex_account_bob);
 
 
-   safex_purchase_alice = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false, 1};
+  safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false, 1};
 
 
     if (!expected_data_fields_intialized)
@@ -150,7 +153,22 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_alice_safex_offer_active_status = safex_offer_alice.active;
 
     std::string new_str_desc{"Now in white!!!"};
-    expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};;
+    expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};
+
+    expected_alice_balance = 0;
+    expected_bob_balance = 0;
+    expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
+    expected_alice_balance += MK_COINS(30);
+    expected_alice_balance -=safex_alice_purchase_from_bob.price.cost;
+    expected_alice_balance -= TESTS_DEFAULT_FEE;
+    expected_bob_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    expected_bob_balance += MK_TOKENS(20000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    expected_bob_balance -= 4*TESTS_DEFAULT_FEE;
+    expected_bob_balance +=safex_alice_purchase_from_bob.price.cost*95/100;
+
+
+
   }
 
   REGISTER_CALLBACK("verify_safex_purchase", gen_safex_purchase_001::verify_safex_purchase);
@@ -188,7 +206,7 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, alice, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), blk_4);
     MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(events, txlist_2, bob, safex_account_bob.username, safex_account_bob.pkey, safex_account_bob.account_data, m_safex_account2_keys.get_keys(), blk_4);
     MAKE_MIGRATION_TX_LIST(events, txlist_2, miner, edward, MK_TOKENS(8000), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[3]));
-    //MAKE_TX_LIST(events, txlist_2, miner, alice, MK_COINS(3000), blk_4);
+    MAKE_TX_LIST(events, txlist_2, miner, alice, MK_COINS(30), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_2);
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
@@ -214,7 +232,7 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
 
     safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
-    MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_6, alice, safex_purchase_alice, bob.get_keys().m_account_address,  blk_12);
+    MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_6, alice, safex_alice_purchase_from_bob, bob.get_keys().m_account_address,  blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
@@ -272,7 +290,7 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
 
   std::string offer_seller;
   c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_seller.compare(offer_seller) == 0);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_seller == offer_seller);
 
   safex::safex_price offer_price;
   c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer_id,offer_price);
@@ -288,7 +306,7 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
 
   safex::safex_offer sfx_offer;
   c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_id,sfx_offer);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_title.compare(sfx_offer.title) == 0);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_title == sfx_offer.title);
 
 
 
@@ -298,6 +316,13 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
     int64_t network_fee_distributed = c.get_distributed_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
     cout << "total network fee distributed: " << print_money(network_fee_distributed) << endl;
 
+    uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
+    cout << "Alice balance: " << print_money(alice_balance) << endl;
+    cout << "Alice balance expected: " << print_money(expected_alice_balance) << endl;
+
+    uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
+    cout << "Bob balance: " << print_money(bob_balance) << endl;
+    cout << "Bob balance expected: " << print_money(expected_bob_balance) << endl;
 
     return true;
 }

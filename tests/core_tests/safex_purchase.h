@@ -73,7 +73,7 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
-  safex::safex_purchase safex_purchase_alice;
+  safex::safex_purchase safex_alice_purchase_from_bob;
 
 
   static const std::string data2_alternative;
@@ -81,7 +81,7 @@ public:
   static const std::string data3_alternative;
 
 
-  static const size_t expected_blockchain_total_transactions = 444;
+  static const size_t expected_blockchain_total_transactions = 445;
   static const size_t expected_blockchain_height = 429;
 
   static bool expected_data_fields_intialized;
@@ -104,6 +104,8 @@ public:
   static std::vector<uint8_t> expected_alice_safex_offer_description;
   static std::vector<uint8_t> expected_alice_safex_offer_new_description;
 
+  static uint64_t  expected_alice_balance;
+  static uint64_t  expected_bob_balance;
 
 };
 
