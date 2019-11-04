@@ -85,25 +85,8 @@ public:
   static const size_t expected_blockchain_height = 429;
 
   static bool expected_data_fields_intialized;
-  static crypto::public_key expected_alice_account_key;
-  static crypto::public_key expected_bob_account_key;
-  static crypto::public_key expected_daniel_account_key;
 
-
-  static std::vector<uint8_t> expected_alice_account_data;
-  static std::vector<uint8_t> expected_bob_account_data;
-  static std::vector<uint8_t> expected_daniel_account_data;
-
-  static std::string expected_alice_safex_offer_seller;
-  static std::string expected_alice_safex_offer_title;
-  static crypto::hash expected_alice_safex_offer_id;
-  static crypto::hash expected_bob_safex_offer_id;
-  static safex::safex_price expected_alice_safex_offer_price;
-  static uint64_t  expected_alice_safex_offer_quantity;
-  static bool expected_alice_safex_offer_active_status;
-  static std::vector<uint8_t> expected_alice_safex_offer_description;
-  static std::vector<uint8_t> expected_alice_safex_offer_new_description;
-
+  static uint64_t  expected_network_fee;
   static uint64_t  expected_alice_balance;
   static uint64_t  expected_bob_balance;
 

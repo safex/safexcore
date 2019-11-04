@@ -58,24 +58,8 @@ const std::string gen_safex_purchase_001::data3_alternative{"Daniels's alternati
 " and more data here ----------------------------------------------------------------------------------*****************--------------------------------"};
 
 bool gen_safex_purchase_001::expected_data_fields_intialized{false};
-crypto::public_key gen_safex_purchase_001::expected_alice_account_key{};
-crypto::public_key gen_safex_purchase_001::expected_bob_account_key{};
-crypto::public_key gen_safex_purchase_001::expected_daniel_account_key{};
 
-std::vector<uint8_t> gen_safex_purchase_001::expected_alice_account_data;
-std::vector<uint8_t> gen_safex_purchase_001::expected_bob_account_data;
-std::vector<uint8_t> gen_safex_purchase_001::expected_daniel_account_data;
-
-crypto::hash gen_safex_purchase_001::expected_alice_safex_offer_id;
-crypto::hash gen_safex_purchase_001::expected_bob_safex_offer_id;
-std::string gen_safex_purchase_001::expected_alice_safex_offer_seller;
-std::string gen_safex_purchase_001::expected_alice_safex_offer_title;
-std::vector<uint8_t> gen_safex_purchase_001::expected_alice_safex_offer_description;
-std::vector<uint8_t> gen_safex_purchase_001::expected_alice_safex_offer_new_description;
-safex::safex_price gen_safex_purchase_001::expected_alice_safex_offer_price;
-uint64_t  gen_safex_purchase_001::expected_alice_safex_offer_quantity;
-bool gen_safex_purchase_001::expected_alice_safex_offer_active_status;
-
+uint64_t  gen_safex_purchase_001::expected_network_fee;
 uint64_t  gen_safex_purchase_001::expected_alice_balance;
 uint64_t  gen_safex_purchase_001::expected_bob_balance;
 
@@ -132,42 +116,24 @@ gen_safex_purchase_001::gen_safex_purchase_001()
 
     if (!expected_data_fields_intialized)
   {
-    expected_alice_account_key = safex_account_alice.pkey;
-    expected_bob_account_key = safex_account_bob.pkey;
-    expected_daniel_account_key = safex_account_daniel.pkey;
     expected_data_fields_intialized = true;
-    expected_alice_account_data = std::vector<uint8_t>(std::begin(safex_account_alice.account_data), std::end(safex_account_alice.account_data));
-    expected_bob_account_data = std::vector<uint8_t>(std::begin(data2_alternative_2), std::end(data2_alternative_2));
-    expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
-
-
-    expected_alice_safex_offer_id = safex_offer_alice.offer_id;
-    expected_alice_safex_offer_title = safex_offer_alice.title;
-    expected_alice_safex_offer_seller = safex_offer_alice.seller;
-    expected_alice_safex_offer_description = safex_offer_alice.description;
-
-    expected_bob_safex_offer_id = safex_offer_bob.offer_id;
-
-    expected_alice_safex_offer_price = safex_offer_alice.price;
-    expected_alice_safex_offer_quantity = safex_offer_alice.quantity;
-    expected_alice_safex_offer_active_status = safex_offer_alice.active;
-
-    std::string new_str_desc{"Now in white!!!"};
-    expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};
 
     expected_alice_balance = 0;
     expected_bob_balance = 0;
+    expected_network_fee = 0;
+
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
     expected_alice_balance += MK_COINS(30);
     expected_alice_balance -=safex_alice_purchase_from_bob.price.cost;
     expected_alice_balance -= TESTS_DEFAULT_FEE;
+
     expected_bob_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance += MK_TOKENS(20000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance -= 4*TESTS_DEFAULT_FEE;
     expected_bob_balance +=safex_alice_purchase_from_bob.price.cost*95/100;
 
-
+    expected_network_fee += safex_alice_purchase_from_bob.price.cost*5/100;
 
   }
 
@@ -228,10 +194,7 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_11, blk_10, miner, txlist_5);
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
-
-
-    safex_offer_alice.description = expected_alice_safex_offer_new_description;
-
+    //create purchase
     MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_6, alice, safex_alice_purchase_from_bob, bob.get_keys().m_account_address,  blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
@@ -263,66 +226,15 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
     bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
     CHECK_TEST_CONDITION(re);
 
-    crypto::public_key pkey{};
-    const safex::account_username username01{safex_account_alice.username};
-    c.get_blockchain_storage().get_safex_account_public_key(username01, pkey);
-    CHECK_EQ(memcmp((void *)&pkey, (void *)&expected_alice_account_key, sizeof(pkey)), 0);
-
-    crypto::public_key pkey2{};
-    const safex::account_username username02{safex_account_bob.username};
-    c.get_blockchain_storage().get_safex_account_public_key(username02, pkey2);
-    CHECK_EQ(memcmp((void *)&pkey2, (void *)&expected_bob_account_key, sizeof(pkey2)), 0);
-
-    crypto::public_key pkey3{};
-    const safex::account_username username03{safex_account_daniel.username};
-    c.get_blockchain_storage().get_safex_account_public_key(username03, pkey3);
-    CHECK_EQ(memcmp((void *)&pkey3, (void *)&expected_daniel_account_key, sizeof(pkey3)), 0);
-
-
-  std::vector<uint8_t> accdata01;
-  c.get_blockchain_storage().get_safex_account_data(username01, accdata01);
-  CHECK_TEST_CONDITION(std::equal(expected_alice_account_data.begin(), expected_alice_account_data.end(), accdata01.begin()));
-
-
-  std::vector<uint8_t> accdata02;
-  c.get_blockchain_storage().get_safex_account_data(username02, accdata02);
-  CHECK_TEST_CONDITION(std::equal(expected_bob_account_data.begin(), expected_bob_account_data.end(), accdata02.begin()));
-
-  std::string offer_seller;
-  c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_seller == offer_seller);
-
-  safex::safex_price offer_price;
-  c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer_id,offer_price);
-  CHECK_EQ(memcmp((void *)&offer_price, (void *)&expected_alice_safex_offer_price, sizeof(offer_price)), 0);
-
-  uint64_t offer_quantity;
-  c.get_blockchain_storage().get_safex_offer_quantity(expected_alice_safex_offer_id,offer_quantity);
-  CHECK_EQ(expected_alice_safex_offer_quantity, offer_quantity);
-
-  bool offer_active;
-  c.get_blockchain_storage().get_safex_offer_active_status(expected_alice_safex_offer_id,offer_active);
-  CHECK_EQ(expected_alice_safex_offer_active_status, offer_active);
-
-  safex::safex_offer sfx_offer;
-  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_id,sfx_offer);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_title == sfx_offer.title);
-
-
-
     int64_t network_fee_collected = c.get_collected_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
-    cout << "total network fee collected: " << print_money(network_fee_collected) << endl;
+    CHECK_EQ(network_fee_collected, expected_network_fee);
 
-    int64_t network_fee_distributed = c.get_distributed_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
-    cout << "total network fee distributed: " << print_money(network_fee_distributed) << endl;
 
     uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
-    cout << "Alice balance: " << print_money(alice_balance) << endl;
-    cout << "Alice balance expected: " << print_money(expected_alice_balance) << endl;
+    CHECK_EQ(alice_balance, expected_alice_balance);
 
     uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
-    cout << "Bob balance: " << print_money(bob_balance) << endl;
-    cout << "Bob balance expected: " << print_money(expected_bob_balance) << endl;
+    CHECK_EQ(bob_balance, expected_bob_balance);
 
     return true;
 }
