@@ -486,7 +486,7 @@ static void serialize_wallet_test_init_vm(boost::program_options::variables_map 
   boost::program_options::options_description desc_params("Allowed options");
   tools::wallet::init_options(desc_params);
   const int argc = 4;
-  const char* argv[] = {"wallet","--testnet","--shared-ringdb-dir", dir.string().c_str()};
+  const char* argv[] = {"wallet","--testnet","--password","","--shared-ringdb-dir", dir.string().c_str()};
   bool r = command_line::handle_error_helper(desc_params, [&]()
   {
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_params), vm);

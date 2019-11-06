@@ -34,6 +34,7 @@
 #include <memory>
 
 #include <boost/program_options/options_description.hpp>
+#include <utility>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/vector.hpp>
@@ -57,6 +58,7 @@
 #include "checkpoints/checkpoints.h"
 #include "safex/safex_core.h"
 #include "safex/safex_account.h"
+#include "common/command_line.h"
 #include "safex/safex_offer.h"
 
 #include "wallet_errors.h"
@@ -568,6 +570,8 @@ namespace tools
      */
     void store_to(const std::string &path, const epee::wipeable_string &password);
 
+    void set_vm(boost::program_options::variables_map vm){ m_vm = std::move(vm);}
+
     std::string path() const;
 
     /*!
@@ -776,6 +780,38 @@ namespace tools
 
 
     }
+
+      static std::string get_default_ringdb_path()
+      {
+          boost::filesystem::path dir = tools::get_default_data_dir();
+          // remove .bitsafex, replace with .shared-ringdb
+          dir = dir.remove_filename();
+          dir /= ".shared-ringdb";
+          return dir.string();
+      }
+
+      // Create on-demand to prevent static initialization order fiasco issues.
+      struct options {
+          const command_line::arg_descriptor<std::string> daemon_address = {"daemon-address", tools::wallet::tr("Use daemon instance at <host>:<port>"), ""};
+          const command_line::arg_descriptor<std::string> daemon_host = {"daemon-host", tools::wallet::tr("Use daemon instance at host <arg> instead of localhost"), ""};
+          const command_line::arg_descriptor<std::string> password = {"password", tools::wallet::tr("Wallet password (escape/quote as needed)"), "", true};
+          const command_line::arg_descriptor<std::string> password_file = {"password-file", tools::wallet::tr("Wallet password file"), "", true};
+          const command_line::arg_descriptor<int> daemon_port = {"daemon-port", tools::wallet::tr("Use daemon instance at port <arg> instead of 18081"), 0};
+          const command_line::arg_descriptor<std::string> daemon_login = {"daemon-login", tools::wallet::tr("Specify username[:password] for daemon RPC client"), "", true};
+          const command_line::arg_descriptor<bool> testnet = {"testnet", tools::wallet::tr("For testnet. Daemon must also be launched with --testnet flag"), false};
+          const command_line::arg_descriptor<bool> stagenet = {"stagenet", tools::wallet::tr("For stagenet. Daemon must also be launched with --stagenet flag"), false};
+          const command_line::arg_descriptor<bool> restricted = {"restricted-rpc", tools::wallet::tr("Restricts to view-only commands"), false};
+          const command_line::arg_descriptor<std::string, false, true> shared_ringdb_dir = {
+                  "shared-ringdb-dir", tools::wallet::tr("Set shared ring database path"),
+                  get_default_ringdb_path(),
+                  testnet,
+                  [](bool _testnet, bool defaulted, std::string val)->std::string {
+                      if (_testnet)
+                          return (boost::filesystem::path(val) / "testnet").string();
+                      return val;
+                  }
+          };
+      };
 
     /*!
      * \brief  Check if wallet keys and bin files exist
@@ -1059,12 +1095,15 @@ namespace tools
      * \return                Whether it was successful.
      */
     bool store_keys(const std::string& keys_file_name, const epee::wipeable_string& password, bool watch_only = false);
+
+    bool store_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password);
     /*!
      * \brief Load wallet information from wallet file.
      * \param keys_file_name Name of wallet file
      * \param password       Password of wallet file
      */
     bool load_keys(const std::string& keys_file_name, const epee::wipeable_string& password);
+    bool load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password);
     void process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen);
     void process_new_blockchain_entry(const cryptonote::block& b, const cryptonote::block_complete_entry& bche, const crypto::hash& bl_id, uint64_t height, const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices &o_indices);
     void detach_blockchain(uint64_t height);
@@ -1127,6 +1166,7 @@ namespace tools
     std::string m_daemon_address;
     std::string m_wallet_file;
     std::string m_keys_file;
+    std::string m_safex_keys_file;
     epee::net_utils::http::http_simple_client m_http_client;
     hashchain m_blockchain;
     std::atomic<uint64_t> m_local_bc_height; //temporary workaround
@@ -1214,6 +1254,8 @@ namespace tools
     std::string m_ring_database;
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
+
+    boost::program_options::variables_map m_vm;
 
     std::vector<safex::safex_account> m_safex_accounts;
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;
