@@ -291,11 +291,14 @@ namespace tools
   //-----------------------------------------------------------------------------------------------------------------
   bool wallet::recover_safex_account(const std::string &username, const crypto::secret_key &secret_key)
   {
+    safex::safex_account recover_safex_account = AUTO_VAL_INIT(recover_safex_account);
+
+    if(get_safex_account(username,recover_safex_account))
+      return true;
 
     safex::safex_account_key_handler recover_safex_account_keys;
     recover_safex_account_keys.create_from_keys(secret_key);
 
-    safex::safex_account recover_safex_account = AUTO_VAL_INIT(recover_safex_account);
 
     recover_safex_account.username = username;
     recover_safex_account.pkey = recover_safex_account_keys.get_keys().m_public_key;
