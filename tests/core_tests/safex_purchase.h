@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include "safex/safex_purchase.h"
 #include "chaingen.h"
 #include "block_reward.h"
 #include "block_validation.h"
@@ -45,17 +46,17 @@
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-class gen_safex_offer_001: public test_chain_unit_base
+class gen_safex_purchase_001: public test_chain_unit_base
 {
 public:
-  gen_safex_offer_001();
+    gen_safex_purchase_001();
 
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
                                                 "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
 
   bool generate(std::vector<test_event_entry> &events);
-  bool verify_safex_offer(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool verify_safex_purchase(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account);
 
 
@@ -72,6 +73,8 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
+  safex::safex_purchase safex_alice_purchase_from_bob;
+
 
   static const std::string data2_alternative;
   static const std::string data2_alternative_2;
@@ -82,25 +85,10 @@ public:
   static const size_t expected_blockchain_height = 429;
 
   static bool expected_data_fields_intialized;
-  static crypto::public_key expected_alice_account_key;
-  static crypto::public_key expected_bob_account_key;
-  static crypto::public_key expected_daniel_account_key;
 
-
-  static std::vector<uint8_t> expected_alice_account_data;
-  static std::vector<uint8_t> expected_bob_account_data;
-  static std::vector<uint8_t> expected_daniel_account_data;
-
-  static std::string expected_alice_safex_offer_seller;
-  static std::string expected_alice_safex_offer_title;
-  static crypto::hash expected_alice_safex_offer_id;
-  static crypto::hash expected_bob_safex_offer_id;
-  static safex::safex_price expected_alice_safex_offer_price;
-  static uint64_t  expected_alice_safex_offer_quantity;
-  static bool expected_alice_safex_offer_active_status;
-  static std::vector<uint8_t> expected_alice_safex_offer_description;
-  static std::vector<uint8_t> expected_alice_safex_offer_new_description;
-
+  static uint64_t  expected_network_fee;
+  static uint64_t  expected_alice_balance;
+  static uint64_t  expected_bob_balance;
 
 };
 

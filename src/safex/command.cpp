@@ -152,9 +152,7 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate simple purchase command", this->get_command_type());
 
     simple_purchase_result *cr = new simple_purchase_result{};
-    cr->network_fee = calculate_safex_network_fee(txin.amount, blokchainDB.get_net_type(), txin.command_type);
-    cr->cash_amount = txin.amount - cr->network_fee;
-
+    cr->offer_id = this->offer_id;
     cr->valid = true;
     cr->status = execution_status::ok;
 

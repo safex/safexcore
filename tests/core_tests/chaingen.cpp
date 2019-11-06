@@ -390,7 +390,8 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                 const txout_to_script &temp = boost::get<txout_to_script>(out.target);
                 if ((temp.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
                   || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account))
-                  || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer)))
+                  || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer))
+                  || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)))
                 {
                   //cast tx_out_type and use it as imaginary amount for advanced outputs
                   output_index oi(out.target, out.amount, out.token_amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
@@ -413,7 +414,8 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
               }
 
             }
-            else if ((out_type == cryptonote::tx_out_type::out_cash) || (out_type == cryptonote::tx_out_type::out_network_fee))
+            else if ((out_type == cryptonote::tx_out_type::out_cash) || (out_type == cryptonote::tx_out_type::out_network_fee)
+                    || (out_type == cryptonote::tx_out_type::out_safex_purchase))
             {
               if (out.target.type() == typeid(cryptonote::txout_to_key))
               { // out_to_key
@@ -672,8 +674,8 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
         {
             size_t sender_out = o.second[i];
             const output_index &oi = outs[o.first][sender_out];
-            if ((oi.spent) || (oi.token_amount > 0 && (out_type == cryptonote::tx_out_type::out_cash || out_type == cryptonote::tx_out_type::out_network_fee)) ||
-                (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token)))
+            if ((oi.spent) || (oi.token_amount > 0 && (out_type == cryptonote::tx_out_type::out_cash || out_type == cryptonote::tx_out_type::out_network_fee || out_type == cryptonote::tx_out_type::out_safex_purchase)) ||
+                (oi.amount > 0 && (out_type == cryptonote::tx_out_type::out_token || out_type == cryptonote::tx_out_type::out_staked_token || out_type == cryptonote::tx_out_type::out_safex_account)))
               continue;
 
             if ((out_type == cryptonote::tx_out_type::out_safex_account_update || out_type == cryptonote::tx_out_type::out_safex_offer)
@@ -734,6 +736,12 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
                 ts.referenced_output_type = cryptonote::tx_out_type::out_safex_offer;
                 ts.command_type = safex::command_t::close_offer;
             }
+            else if (out_type == cryptonote::tx_out_type::out_safex_purchase)
+            {
+                ts.amount = oi.amount;
+                ts.referenced_output_type = cryptonote::tx_out_type::out_cash;
+                ts.command_type = safex::command_t::simple_purchase;
+            }
             else
             {
               throw std::runtime_error("unknown referenced output type");
@@ -760,6 +768,7 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               case cryptonote::tx_out_type::out_network_fee:
               case cryptonote::tx_out_type::out_staked_token:
               case cryptonote::tx_out_type::out_safex_account:
+              case cryptonote::tx_out_type::out_safex_purchase:
               default:
                 {
                 if (!fill_output_entries(outs[o.first], sender_out, nmix, realOutput, ts.outputs))
@@ -773,7 +782,8 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
             sources.push_back(ts);
 
             if ((out_type == cryptonote::tx_out_type::out_cash) ||
-                (out_type == cryptonote::tx_out_type::out_network_fee))
+                (out_type == cryptonote::tx_out_type::out_network_fee)
+                || (out_type == cryptonote::tx_out_type::out_safex_purchase))
             {
               sources_cash_amount += ts.amount;
               sources_found = value_amount <= sources_cash_amount;
@@ -1145,6 +1155,13 @@ tx_destination_entry create_close_safex_offer_destination(const cryptonote::acco
     return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_close, blobdata};
 }
 
+tx_destination_entry create_safex_purchase_destination(const cryptonote::account_base &to, const safex::safex_purchase &sfx_purchase)
+{
+    safex::create_purchase_data safex_purchase_output_data{sfx_purchase};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+    return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_purchase, blobdata};
+}
+
 void fill_token_stake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const block &blk_head,
                                                   const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                                   std::vector<tx_destination_entry> &destinations)
@@ -1474,6 +1491,69 @@ void fill_close_offer_sources_and_destinations(const std::vector<test_event_entr
     tx_destination_entry de_offer = create_close_safex_offer_destination(from, offer_id, safex_account_pkey);
     destinations.push_back(de_offer);
 }
+
+void fill_create_purchase_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+                                                 const cryptonote::account_base &from, uint64_t cash_amount, uint64_t fee,
+                                                 size_t nmix, const safex::safex_purchase &sfx_purchase,
+                                                 const cryptonote::account_public_address seller_address,
+                                                 std::vector<tx_source_entry> &sources,
+                                                 std::vector<tx_destination_entry> &destinations)
+{
+    sources.clear();
+    destinations.clear();
+
+    const cryptonote::account_base &to = from;
+
+    //fill cache sources for fee
+//    if (!fill_tx_sources(txmap, blocks, sources, from, sfx_purchase.price.price*5/100, nmix, cryptonote::tx_out_type::out_network_fee))
+//        throw std::runtime_error("couldn't fill transaction sources");
+    //fill cache sources for fee
+    if (!fill_tx_sources(sources, events, blk_head,  from, 0, nmix, cryptonote::tx_out_type::out_safex_purchase))
+        throw std::runtime_error("couldn't fill transaction sources for create purchase");
+
+
+
+    //update source with close offer data
+    for (auto &ts: sources) {
+        if (ts.command_type == safex::command_t::simple_purchase) {
+            safex::create_purchase_data purchase_data{sfx_purchase};
+            ts.command_safex_data = t_serializable_object_to_blob(purchase_data);
+        }
+    }
+
+    //destinations
+
+    //fee donation, txout_to_script
+
+
+    //sender change for fee
+    uint64_t cache_back = get_inputs_amount(sources) - fee - cash_amount;
+    if (0 < cache_back)
+    {
+        tx_destination_entry de_change = create_tx_destination(from, cache_back);
+        destinations.push_back(de_change);
+    }
+
+    //purchase
+    tx_destination_entry de_purchase = create_safex_purchase_destination(from, sfx_purchase);
+    destinations.push_back(de_purchase);
+
+
+    tx_destination_entry de_donation_fee = AUTO_VAL_INIT(de_donation_fee);
+    de_donation_fee.addr = from.get_keys().m_account_address;
+    de_donation_fee.amount = sfx_purchase.price.price*5/100;
+    de_donation_fee.script_output = true;
+    de_donation_fee.output_type = tx_out_type::out_network_fee;
+    destinations.push_back(de_donation_fee);
+
+    cryptonote::tx_destination_entry item_purchase_fee = AUTO_VAL_INIT(item_purchase_fee);
+    item_purchase_fee.addr = seller_address;
+    item_purchase_fee.amount = sfx_purchase.price.price*95/100;
+    item_purchase_fee.output_type = tx_out_type::out_cash;
+    destinations.push_back(item_purchase_fee);
+}
+
+
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
 {
   blk.nonce = 0;
@@ -1599,13 +1679,13 @@ bool construct_fee_donation_transaction(const std::vector<test_event_entry>& eve
 
 bool construct_create_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
                                           const cryptonote::account_base &from, uint64_t fee,
-                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, const safex::safex_account_keys &sfx_acc_keys)
+                                          size_t nmix, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data, uint64_t unlock_time, const safex::safex_account_keys &sfx_acc_keys)
 {
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_create_account_sources_and_destinations(events, blk_head, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, username, pkey, account_data, sources, destinations);
 
-  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx , unlock_time, sfx_acc_keys);
 }
 
 bool construct_edit_account_transaction(const std::vector<test_event_entry>& events,  cryptonote::transaction &tx, const cryptonote::block& blk_head,
@@ -1647,6 +1727,16 @@ bool construct_close_offer_transaction(const std::vector<test_event_entry>& even
     fill_close_offer_sources_and_destinations(events, blk_head, from, 0, fee, nmix,  offer_id, sources, destinations, sfx_acc_keys.get_public_key());
 
     return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
+}
+
+bool construct_create_purchase_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
+                                           size_t nmix, const safex::safex_purchase &sfx_purchase, const cryptonote::account_public_address seller_address){
+
+    std::vector<tx_source_entry> sources;
+    std::vector<tx_destination_entry> destinations;
+    fill_create_purchase_tx_sources_and_destinations(events, blk_head, from, sfx_purchase.price.cost, fee, nmix, sfx_purchase, seller_address, sources, destinations);
+
+    return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0);
 }
 
 uint64_t get_balance(const cryptonote::account_base& addr, const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx) {

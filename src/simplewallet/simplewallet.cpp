@@ -937,13 +937,10 @@ simple_wallet::simple_wallet()
                              boost::bind(&simple_wallet::show_token_balance, this, _1),
                              tr("balance_token [detail]"),
                              tr("Show the wallet's Safex Token balance of the currently selected account."));
-
   m_cmd_binder.set_handler("balance_staked_token",
                              boost::bind(&simple_wallet::show_staked_token_balance, this, _1),
-                             tr("balance_token [detail]"),
-                             tr("Show the wallet's Safex Token balance of the currently selected account."));
-
-
+                             tr("balance_staked_token [detail]"),
+                             tr("Show the wallet's staked Safex Token balance of the currently selected account."));
   m_cmd_binder.set_handler("incoming_transfers",
                            boost::bind(&simple_wallet::show_incoming_transfers, this, _1),
                            tr("incoming_transfers [available|unavailable] [verbose] [index=<N1>[,<N2>[,...]]]"),
