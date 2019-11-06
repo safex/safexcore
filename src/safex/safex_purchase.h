@@ -26,21 +26,13 @@ namespace safex
   struct safex_purchase
   {
 
-    enum safex_purchase_status
-    {
-        safex_purchase_started,
-        safex_purchase_shipped,
-        safex_purchase_need_feedback,
-        safex_purchase_done,
-    };
-
     public:
-      safex_purchase(): quantity{}, price{}, shipping{}, offer_id{0}, version{0},status{safex_purchase_status::safex_purchase_started}{
+      safex_purchase(): quantity{}, price{}, shipping{}, offer_id{0}{
 
       }
 
-      safex_purchase(const uint64_t _quantity, const safex_price& _price, crypto::hash &_id, bool _shipping, uint64_t _version, safex_purchase_status _status = safex_purchase_started):quantity{_quantity},price{_price},
-                                                                                            offer_id{_id},shipping{_shipping},version{_version},status{_status}
+      safex_purchase(const uint64_t _quantity, const uint64_t _price, crypto::hash &_id, bool _shipping):quantity{_quantity},price{_price},
+                                                                                            offer_id{_id},shipping{_shipping}
       {
       }
 
@@ -50,8 +42,6 @@ namespace safex
         KV_SERIALIZE(quantity)
         KV_SERIALIZE(price)
         KV_SERIALIZE(shipping)
-        KV_SERIALIZE(version)
-        KV_SERIALIZE(status)
       END_KV_SERIALIZE_MAP()
 
       BEGIN_SERIALIZE_OBJECT()
@@ -59,8 +49,6 @@ namespace safex
         FIELD(quantity)
         FIELD(price)
         FIELD(shipping)
-        FIELD(version)
-        FIELD(status)
       END_SERIALIZE()
 
       template<class t_archive>
@@ -70,16 +58,12 @@ namespace safex
         a & quantity;
         a & price;
         a & shipping;
-        a & version;
-        a & status;
       }
 
       crypto::hash offer_id;
       uint64_t quantity;
-      safex_price price;
+      uint64_t price;
       bool shipping;
-      uint64_t version;
-      safex_purchase_status status;
   private:
 
 

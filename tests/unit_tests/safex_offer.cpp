@@ -65,14 +65,6 @@ namespace
   class SafexOfferTest : public testing::Test
   {
     protected:
-      safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint8_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
-
-          safex::safex_price m_safex_price1{price,price,5};
-
-          return safex::safex_offer(title, quantity, m_safex_price1,
-                               desc, true, keys.get_keys(), curr_account.username);
-      }
-
       SafexOfferTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
       {
         m_test_sizes = std::vector<size_t>(NUMBER_OF_BLOCKS, 0);
@@ -107,9 +99,9 @@ namespace
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
 
-        m_safex_offer[0] = create_demo_safex_offer("Apple",100,10,"This is an apple", m_safex_account1_keys, m_safex_account1);
-        m_safex_offer[1] = create_demo_safex_offer("Barbie",500,30,"This is a Barbie",m_safex_account2_keys, m_safex_account2);
-        m_safex_offer[2] = create_demo_safex_offer("Car",1000,1,"This is a car",m_safex_account1_keys, m_safex_account1);
+        m_safex_offer[0] = safex::safex_offer("Apple",10,100,"This is an apple",  m_safex_account1.username);
+        m_safex_offer[1] = safex::safex_offer("Barbie",30,500,"This is a Barbie", m_safex_account2.username);
+        m_safex_offer[2] = safex::safex_offer("Car",1,1000,"This is a car", m_safex_account1.username);
 
         std::string new_str_desc{"Now without worms!!"};
         std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};
@@ -314,10 +306,10 @@ namespace
             ASSERT_TRUE(result);
             ASSERT_EQ(username.compare(safex_offer.seller), 0);
 
-            safex::safex_price price;
+            uint64_t price;
             result = this->m_db->get_offer_price(safex_offer.offer_id, price);
             ASSERT_TRUE(result);
-            ASSERT_EQ(memcmp((void *)&price, (void *)&safex_offer.price, sizeof(price)), 0);
+            ASSERT_EQ(price, safex_offer.price);
 
             uint64_t quantity;
             result = this->m_db->get_offer_quantity(safex_offer.offer_id, quantity);
@@ -348,10 +340,10 @@ namespace
         ASSERT_TRUE(result);
         ASSERT_EQ(username.compare(this->m_edited_safex_offer.seller), 0);
 
-        safex::safex_price price;
+        uint64_t price;
         result = this->m_db->get_offer_price(this->m_edited_safex_offer.offer_id, price);
         ASSERT_TRUE(result);
-        ASSERT_EQ(memcmp((void *)&price, (void *)&this->m_edited_safex_offer.price, sizeof(price)), 0);
+        ASSERT_EQ(price, this->m_edited_safex_offer.price);
 
         uint64_t quantity;
         result = this->m_db->get_offer_quantity(this->m_edited_safex_offer.offer_id, quantity);

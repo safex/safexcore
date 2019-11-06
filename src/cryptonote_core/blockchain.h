@@ -1005,7 +1005,7 @@ namespace cryptonote
 
     bool get_safex_offer_seller(const crypto::hash &offerID, std::string &seller) const;
     bool get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const;
-    bool get_safex_offer_price(const crypto::hash &offerID, safex::safex_price &price) const;
+    bool get_safex_offer_price(const crypto::hash &offerID, uint64_t &price) const;
     bool get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const;
     bool get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const;
 

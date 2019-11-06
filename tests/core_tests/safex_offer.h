@@ -56,8 +56,6 @@ public:
 
   bool generate(std::vector<test_event_entry> &events);
   bool verify_safex_offer(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
-  safex::safex_offer create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account);
-
 
   safex::safex_account_key_handler m_safex_account1_keys;
   safex::safex_account_key_handler m_safex_account2_keys;
@@ -95,7 +93,7 @@ public:
   static std::string expected_alice_safex_offer_title;
   static crypto::hash expected_alice_safex_offer_id;
   static crypto::hash expected_bob_safex_offer_id;
-  static safex::safex_price expected_alice_safex_offer_price;
+  static uint64_t expected_alice_safex_offer_price;
   static uint64_t  expected_alice_safex_offer_quantity;
   static bool expected_alice_safex_offer_active_status;
   static std::vector<uint8_t> expected_alice_safex_offer_description;

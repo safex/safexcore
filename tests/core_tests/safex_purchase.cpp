@@ -63,20 +63,8 @@ uint64_t  gen_safex_purchase_001::expected_network_fee;
 uint64_t  gen_safex_purchase_001::expected_alice_balance;
 uint64_t  gen_safex_purchase_001::expected_bob_balance;
 
-
-safex::safex_offer gen_safex_purchase_001::create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
-
-    safex::safex_price m_safex_price1{price,price,5};
-
-    return safex::safex_offer(title, quantity, m_safex_price1,
-                              desc, true, keys.get_keys(), curr_account.username);
-}
-
-
 gen_safex_purchase_001::gen_safex_purchase_001()
 {
-
-
 
   m_safex_account1_keys.generate();
   m_safex_account2_keys.generate();
@@ -105,13 +93,13 @@ gen_safex_purchase_001::gen_safex_purchase_001()
   std::string data4 = "Тхис ис соме Едвардс дата фор тест";
   safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
 
-  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",MK_COINS(10),100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
-                                                m_safex_account1_keys, safex_account_alice);
-  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",MK_COINS(10),1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
-                                                m_safex_account2_keys, safex_account_bob);
+  safex_offer_alice = safex::safex_offer("Black Sabbath T-shirt",100,MK_COINS(10),"Quality 100% cotton t-shirt with the heaviest band in the universe",
+                                               safex_account_alice.username);
+  safex_offer_bob = safex::safex_offer("Metallica T-shirt",1000,MK_COINS(10),"Quality 100% cotton t-shirt with the loudest band in the universe",
+                                                safex_account_bob.username);
 
 
-  safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false, 1};
+  safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false};
 
 
     if (!expected_data_fields_intialized)
@@ -125,15 +113,15 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
     expected_alice_balance += MK_COINS(30);
-    expected_alice_balance -=safex_alice_purchase_from_bob.price.cost;
+    expected_alice_balance -=safex_alice_purchase_from_bob.price;
     expected_alice_balance -= TESTS_DEFAULT_FEE;
 
     expected_bob_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance += MK_TOKENS(20000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance -= 4*TESTS_DEFAULT_FEE;
-    expected_bob_balance +=safex_alice_purchase_from_bob.price.cost*95/100;
+    expected_bob_balance +=safex_alice_purchase_from_bob.price*95/100;
 
-    expected_network_fee += safex_alice_purchase_from_bob.price.cost*5/100;
+    expected_network_fee += safex_alice_purchase_from_bob.price*5/100;
 
   }
 
@@ -226,7 +214,7 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
     bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
     CHECK_TEST_CONDITION(re);
 
-    int64_t network_fee_collected = c.get_collected_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
+    uint64_t network_fee_collected = c.get_collected_network_fee(0, gen_safex_purchase_001::expected_blockchain_height);
     CHECK_EQ(network_fee_collected, expected_network_fee);
 
 

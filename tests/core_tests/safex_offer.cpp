@@ -72,19 +72,9 @@ std::string gen_safex_offer_001::expected_alice_safex_offer_seller;
 std::string gen_safex_offer_001::expected_alice_safex_offer_title;
 std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_description;
 std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_new_description;
-safex::safex_price gen_safex_offer_001::expected_alice_safex_offer_price;
+uint64_t gen_safex_offer_001::expected_alice_safex_offer_price;
 uint64_t  gen_safex_offer_001::expected_alice_safex_offer_quantity;
 bool gen_safex_offer_001::expected_alice_safex_offer_active_status;
-
-
-safex::safex_offer gen_safex_offer_001::create_demo_safex_offer(std::string title, uint64_t price, uint64_t quantity, std::string desc,safex::safex_account_key_handler keys, safex::safex_account curr_account) {
-
-    safex::safex_price m_safex_price1{price,price,5};
-
-    return safex::safex_offer(title, quantity, m_safex_price1,
-                              desc, true, keys.get_keys(), curr_account.username);
-}
-
 
 gen_safex_offer_001::gen_safex_offer_001()
 {
@@ -118,10 +108,11 @@ gen_safex_offer_001::gen_safex_offer_001()
   std::string data4 = "Тхис ис соме Едвардс дата фор тест";
   safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
 
-  safex_offer_alice = create_demo_safex_offer("Black Sabbath T-shirt",1999,100,"Quality 100% cotton t-shirt with the heaviest band in the universe",
-                                                m_safex_account1_keys, safex_account_alice);
-  safex_offer_bob = create_demo_safex_offer("Metallica T-shirt",3999,1000,"Quality 100% cotton t-shirt with the loudest band in the universe",
-                                                m_safex_account2_keys, safex_account_bob);
+  safex_offer_alice = safex::safex_offer("Black Sabbath T-shirt",100,1999,"Quality 100% cotton t-shirt with the heaviest band in the universe",
+                                                 safex_account_alice.username);
+
+  safex_offer_bob = safex::safex_offer("Metallica T-shirt",1000,3999,"Quality 100% cotton t-shirt with the loudest band in the universe",
+                                                  safex_account_bob.username);
 
   if (!expected_data_fields_intialized)
   {
@@ -270,9 +261,9 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
   CHECK_TEST_CONDITION(expected_alice_safex_offer_seller.compare(offer_seller) == 0);
 
-  safex::safex_price offer_price;
+    uint64_t offer_price;
   c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer_id,offer_price);
-  CHECK_EQ(memcmp((void *)&offer_price, (void *)&expected_alice_safex_offer_price, sizeof(offer_price)), 0);
+  CHECK_EQ(expected_alice_safex_offer_price, offer_price);
 
   uint64_t offer_quantity;
   c.get_blockchain_storage().get_safex_offer_quantity(expected_alice_safex_offer_id,offer_quantity);

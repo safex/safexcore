@@ -304,7 +304,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}
     virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const { return true;}
     virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true;}
-    virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const { return true; }
+    virtual bool get_offer_price(const crypto::hash offer_id, uint64_t &price) const { return true; }
     virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const { return true; }
     virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; }
 

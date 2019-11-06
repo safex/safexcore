@@ -1524,7 +1524,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
           throw1(DB_ERROR("Error executing safex purchase command"));
       }
 
-      safex::safex_purchase sfx_purchase{result->quantity, result->price, result->offer_id, result->shipping, result->version, safex::safex_purchase::safex_purchase_started};
+      safex::safex_purchase sfx_purchase{result->quantity, result->price, result->offer_id, result->shipping};
       create_safex_purchase(sfx_purchase);
 
   }
@@ -4850,7 +4850,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         return true;
     };
 
-    bool BlockchainLMDB::get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const{
+    bool BlockchainLMDB::get_offer_price(const crypto::hash offer_id, uint64_t &price) const{
 
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();

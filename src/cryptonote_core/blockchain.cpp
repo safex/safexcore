@@ -5678,7 +5678,7 @@ bool Blockchain::get_safex_offer(const crypto::hash &offerID, safex::safex_offer
     }
 }
 
-bool Blockchain::get_safex_offer_price(const crypto::hash &offerID, safex::safex_price &price) const
+bool Blockchain::get_safex_offer_price(const crypto::hash &offerID, uint64_t &price) const
 {
     try {
         bool result = m_db->get_offer_price(offerID, price);

@@ -1757,7 +1757,7 @@ namespace cryptonote
        *
        * @return true if offer exists, false otherwise
        */
-      virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const = 0;
+      virtual bool get_offer_price(const crypto::hash offer_id, uint64_t &price) const = 0;
 
 
       /**

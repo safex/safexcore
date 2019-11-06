@@ -777,7 +777,7 @@ namespace tools
       a & m_safex_accounts;
       a & m_safex_accounts_keys;
 
-
+      a & m_safex_offers;
 
     }
 
