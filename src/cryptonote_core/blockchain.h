@@ -1002,6 +1002,13 @@ namespace cryptonote
 
     bool get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const;
     bool get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
+
+    bool get_safex_offer_seller(const crypto::hash &offerID, std::string &seller) const;
+    bool get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const;
+    bool get_safex_offer_price(const crypto::hash &offerID, safex::safex_price &price) const;
+    bool get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const;
+    bool get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const;
+
   private:
 
     struct outputs_generic_visitor

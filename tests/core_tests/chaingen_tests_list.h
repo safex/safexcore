@@ -46,6 +46,8 @@
 #include "token_stake.h"
 #include "network_fee.h"
 #include "safex_account.h"
+#include "safex_offer.h"
+#include "safex_purchase.h"
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/

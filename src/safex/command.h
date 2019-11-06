@@ -19,6 +19,8 @@
 #include "safex_core.h"
 
 #include "misc_log_ex.h"
+#include "safex_offer.h"
+#include "safex_purchase.h"
 
 #define CHECK_COMMAND_TYPE(TYPE_TO_CHECK,EXPECTED_TYPE) SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((TYPE_TO_CHECK == EXPECTED_TYPE), "Could not create command, wrong command type", TYPE_TO_CHECK);
 
@@ -40,7 +42,8 @@ namespace safex
     error_account_data_too_big = 10,
     error_account_already_exists = 11,
     error_invalid_account_name = 12,
-    error_account_non_existant = 13
+    error_account_non_existant = 13,
+    error_offer_non_existant = 14
   };
 
   struct execution_result
@@ -79,8 +82,27 @@ namespace safex
 
   struct simple_purchase_result : public execution_result
   {
-    uint64_t cash_amount = 0; //cash amount that seller gets
-    uint64_t network_fee = 0; //network fee for purchase
+
+      simple_purchase_result(){}
+
+      simple_purchase_result(const crypto::hash &_offer_id, uint64_t _quantity, safex::safex_price _price, bool _shipping, uint64_t _version) :
+                                                                                                offer_id(_offer_id),quantity{_quantity},
+                                                                                                price{_price},shipping{_shipping},
+                                                                                                version{_version}{}
+
+      crypto::hash offer_id{}; //unique id of the offer
+      uint64_t quantity{};
+      safex_price price;
+      bool shipping{};
+      uint64_t version{};
+
+      BEGIN_SERIALIZE_OBJECT()
+          FIELD(offer_id)
+          FIELD(quantity)
+          FIELD(price)
+          FIELD(shipping)
+          FIELD(version)
+      END_SERIALIZE()
   };
 
   struct distribute_fee_result : public execution_result
@@ -108,7 +130,78 @@ namespace safex
     std::vector<uint8_t> account_data{};
   };
 
+struct create_offer_result : public execution_result
+{
 
+    create_offer_result(){}
+
+    create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, safex_price _price, uint64_t _quantity,
+            bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active},output_id{0} {
+
+    }
+
+    crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    uint64_t quantity{};
+    safex_price price;
+    bool active{};
+    uint64_t output_id{};
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELD(offer_id)
+        FIELD(seller)
+        FIELD(price)
+        FIELD(quantity)
+        FIELD(active)
+        FIELD(output_id)
+    END_SERIALIZE()
+
+};
+
+struct edit_offer_result : public execution_result
+{
+
+    edit_offer_result(){}
+
+    edit_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, safex_price _price, uint64_t _quantity,
+                        bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active},output_id{0} {
+
+    }
+
+    crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    uint64_t quantity{};
+    safex_price price;
+    bool active{};
+    uint64_t output_id{};
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELD(offer_id)
+        FIELD(seller)
+        FIELD(price)
+        FIELD(quantity)
+        FIELD(active)
+        FIELD(output_id)
+    END_SERIALIZE()
+
+};
+
+struct close_offer_result : public execution_result
+{
+
+    close_offer_result(){}
+
+    close_offer_result(crypto::hash _offer_id): offer_id{_offer_id} {
+
+    }
+
+    crypto::hash offer_id{};
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELD(offer_id)
+    END_SERIALIZE()
+
+};
 
 
   struct command_data
@@ -172,7 +265,105 @@ namespace safex
     END_SERIALIZE()
   };
 
+    struct create_offer_data : public command_data
+    {
+        crypto::hash offer_id{};
+        std::vector<uint8_t> seller{};
+        std::vector<uint8_t> title{};
+        uint64_t quantity;
+        safex_price price;
+        std::vector<uint8_t> description{};
+        bool active{false};
 
+        create_offer_data() {}
+        create_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},title{offer.title.begin(),offer.title.end()}
+        {
+        }
+        create_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const safex_price &_price, const std::vector<uint8_t> &_offer_data,const bool &_active):
+                                    offer_id{_offer_id},seller{_seller},title{_title},quantity{_quantity},price{_price},description{_offer_data},active{_active}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            FIELD(seller)
+            FIELD(title)
+            FIELD(price)
+            FIELD(quantity)
+            FIELD(active)
+            FIELD(description)
+        END_SERIALIZE()
+    };
+
+    struct edit_offer_data : public command_data
+    {
+        crypto::hash offer_id{};
+        std::vector<uint8_t> seller{};
+        std::vector<uint8_t> title{};
+        uint64_t quantity;
+        safex_price price;
+        std::vector<uint8_t> description{};
+        bool active{false};
+
+        edit_offer_data() {}
+        edit_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id},title{offer.title.begin(),offer.title.end()}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active}
+        {
+        }
+        edit_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const safex_price &_price, const std::vector<uint8_t> &_offer_data,const bool &_active):
+                offer_id{_offer_id},seller{_seller},title{_title},quantity{_quantity},price{_price},description{_offer_data},active{_active}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            FIELD(seller)
+            FIELD(title)
+            FIELD(price)
+            FIELD(quantity)
+            FIELD(active)
+            FIELD(description)
+        END_SERIALIZE()
+    };
+
+    struct close_offer_data : public command_data
+    {
+        crypto::hash offer_id{};
+        crypto::public_key safex_account_pkey{};
+        std::vector<uint8_t> seller{};
+        close_offer_data() {}
+        close_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id},seller{offer.seller.begin(),offer.seller.end()}
+        {
+        }
+        close_offer_data(const crypto::hash &_offer_id, const crypto::public_key& _safex_account_pkey, const std::string &_seller = {}):
+                            offer_id{_offer_id},safex_account_pkey{_safex_account_pkey},seller{_seller.begin(),_seller.end()}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            FIELD(seller)
+            FIELD(safex_account_pkey)
+        END_SERIALIZE()
+    };
+
+    struct create_purchase_data : public command_data
+    {
+        crypto::hash offer_id{}; //unique id of the offer
+        uint64_t quantity{};
+        safex_price price;
+        bool shipping{};
+        uint64_t version{};
+
+        create_purchase_data() {}
+        create_purchase_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id},quantity{purchase.quantity},price{purchase.price},
+                                                                     version{purchase.version},shipping{purchase.shipping}
+        {
+        }
+        create_purchase_data(const crypto::hash &_offer_id, const uint64_t &_quantity, const safex_price &_price):
+                offer_id{_offer_id},quantity{_quantity},price{_price}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            FIELD(quantity)
+            FIELD(price)
+            FIELD(shipping)
+            FIELD(version)
+        END_SERIALIZE()
+    };
 
   /**
   * @brief script command representation
@@ -384,12 +575,13 @@ namespace safex
        * @param _version Safex command protocol version
        * @param _simple_purchase_price Simple purschase cash amount
       * */
-      simple_purchase(const uint32_t _version, const uint64_t _simple_purchase_price) : command(_version, command_t::simple_purchase),
-                                                                                        simple_purchase_price(_simple_purchase_price) {}
+      simple_purchase(const uint32_t _version, const safex::create_purchase_data &sfx_purchase) : command(_version, command_t::simple_purchase),
+                                                                                                  offer_id(sfx_purchase.offer_id),quantity{sfx_purchase.quantity},
+                                                                                                  price{sfx_purchase.price},shipping{sfx_purchase.shipping},
+                                                                                                  version{sfx_purchase.version}{}
 
-      simple_purchase() : command(0, command_t::simple_purchase), simple_purchase_price(0) {}
+      simple_purchase() : command(0, command_t::simple_purchase) {}
 
-      uint64_t get_simple_purhcase_price() const { return simple_purchase_price; }
 
       virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
       virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -397,12 +589,20 @@ namespace safex
       BEGIN_SERIALIZE_OBJECT()
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::simple_purchase);
-        VARINT_FIELD(simple_purchase_price)
+        FIELD(offer_id)
+        FIELD(quantity)
+        FIELD(price)
+        FIELD(shipping)
+        FIELD(version)
       END_SERIALIZE()
 
     private:
 
-      uint64_t simple_purchase_price;
+      crypto::hash offer_id{}; //unique id of the offer
+      uint64_t quantity{};
+      safex_price price;
+      bool shipping{};
+      uint64_t version{};
   };
 
 
@@ -508,6 +708,141 @@ namespace safex
       std::vector<uint8_t> new_account_data{};
   };
 
+class create_offer : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _offerid //ID of the offer
+     * @param _offer_data //offer data
+    * */
+    create_offer(const uint32_t _version, const safex::create_offer_data &offer) :
+            command(_version, command_t::create_offer), offer_id(offer.offer_id), description{offer.description},
+            seller{offer.seller},title{offer.title},price{offer.price},quantity{offer.quantity},active{offer.active}{
+    }
+
+    create_offer() : command(0, command_t::create_offer), offer_id{}, description{} {}
+
+    crypto::hash get_offerid() const { return offer_id; }
+    std::vector<uint8_t> get_seller() const { return seller; }
+    std::vector<uint8_t> get_title() const { return title; }
+    safex::safex_price get_price() const { return price; }
+    uint64_t get_quantity() const { return quantity; }
+    bool get_active() const { return active; }
+    std::vector<uint8_t> get_description() const { return description; }
+
+    virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_offer);
+        FIELD(offer_id)
+        FIELD(seller)
+        FIELD(title)
+        FIELD(price)
+        FIELD(quantity)
+        FIELD(active)
+        FIELD(description)
+    END_SERIALIZE()
+
+private:
+    crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    std::vector<uint8_t> title{};
+    uint64_t quantity{};
+    safex_price price;
+    std::vector<uint8_t> description{};
+    bool active{};
+};
+
+class edit_offer : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _offerid //ID of the offer
+     * @param _offer_data //offer data
+    * */
+    edit_offer(const uint32_t _version, const safex::edit_offer_data &offer) :
+            command(_version, command_t::edit_offer), offer_id(offer.offer_id), title{offer.title}, description{offer.description},
+            seller{offer.seller},price{offer.price},quantity{offer.quantity},active{offer.active}{
+    }
+
+    edit_offer() : command(0, command_t::edit_offer), offer_id{}, description{} {}
+
+    crypto::hash get_offerid() const { return offer_id; }
+    std::vector<uint8_t> get_seller() const { return seller; }
+    safex::safex_price get_price() const { return price; }
+    uint64_t get_quantity() const { return quantity; }
+    bool get_active() const { return active; }
+    std::vector<uint8_t> get_title() const { return title; };
+    std::vector<uint8_t> get_description() const { return description; }
+
+    virtual edit_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::edit_offer);
+        FIELD(offer_id)
+        FIELD(seller)
+        FIELD(title)
+        FIELD(price)
+        FIELD(quantity)
+        FIELD(active)
+        FIELD(description)
+    END_SERIALIZE()
+
+private:
+    crypto::hash offer_id{};
+    std::vector<uint8_t> seller{};
+    std::vector<uint8_t> title{};
+    uint64_t quantity{};
+    safex_price price;
+    std::vector<uint8_t> description{};
+    bool active{};
+};
+
+class close_offer : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _offerid //ID of the offer
+    * */
+    close_offer(const uint32_t _version, const safex::close_offer_data &offer) :
+            command(_version, command_t::close_offer), offer_id(offer.offer_id), safex_account_pkey(offer.safex_account_pkey), seller{offer.seller}{
+    }
+
+    close_offer() : command(0, command_t::close_offer), offer_id{},safex_account_pkey{}{}
+
+    crypto::hash get_offerid() const { return offer_id; }
+    crypto::public_key get_safex_account_pkey() const { return safex_account_pkey; }
+    std::vector<uint8_t> get_seller() const { return seller; }
+
+    virtual close_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::close_offer);
+        FIELD(offer_id)
+        FIELD(safex_account_pkey)
+        FIELD(seller)
+    END_SERIALIZE()
+
+private:
+    crypto::hash offer_id{};
+    crypto::public_key safex_account_pkey{};
+    std::vector<uint8_t> seller{};
+};
 
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
   /* Validation is like execution, but without effects on the database */
@@ -562,7 +897,15 @@ namespace safex
           case safex::command_t::edit_account:
             return std::unique_ptr<command>(parse_safex_object<edit_account>(buffer));
             break;
-
+          case safex::command_t::create_offer:
+            return std::unique_ptr<command>(parse_safex_object<create_offer>(buffer));
+            break;
+          case safex::command_t::edit_offer:
+             return std::unique_ptr<command>(parse_safex_object<edit_offer>(buffer));
+             break;
+          case safex::command_t::close_offer:
+              return std::unique_ptr<command>(parse_safex_object<close_offer>(buffer));
+              break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
             break;

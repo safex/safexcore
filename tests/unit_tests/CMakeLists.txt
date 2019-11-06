@@ -75,6 +75,8 @@ set(unit_tests_sources
   safex_test_common.cpp
   safex_blockchain_fee.cpp
   safex_account.cpp
+  safex_offer.cpp
+  simple_purchase.cpp
   )
 
 

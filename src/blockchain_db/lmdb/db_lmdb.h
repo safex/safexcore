@@ -37,6 +37,8 @@
 
 #include <lmdb.h>
 #include <safex/safex_account.h>
+#include <safex/safex_offer.h>
+#include <safex/safex_purchase.h>
 
 #define ENABLE_AUTO_RESIZE
 
@@ -71,6 +73,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_network_fee_sum;
   MDB_cursor *m_txc_token_lock_expiry;
   MDB_cursor *m_txc_safex_account;
+  MDB_cursor *m_txc_safex_offer;
 
 
 } mdb_txn_cursors;
@@ -95,6 +98,8 @@ typedef struct mdb_txn_cursors
 #define m_cur_network_fee_sum	m_cursors->m_txc_network_fee_sum
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 #define m_cur_safex_account	m_cursors->m_txc_safex_account
+#define m_cur_safex_offer	m_cursors->m_txc_safex_offer
+
 
 typedef struct mdb_rflags
 {
@@ -119,6 +124,7 @@ typedef struct mdb_rflags
   bool m_rf_network_fee_sum;
   bool m_rf_token_lock_expiry;
   bool m_rf_safex_account;
+  bool m_rf_safex_offer;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -307,6 +313,11 @@ public:
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
+  virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const;
+  virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const;
+  virtual bool get_offer_price(const crypto::hash offer_id, safex::safex_price &price) const;
+  virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const;
+  virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const;
 
 
 
@@ -477,6 +488,48 @@ private:
   */
   void remove_safex_account(const safex::account_username &username);
 
+    /**
+     * Add new offer to database
+     *
+     * @param offer_id safex offer id
+     * @param blob offer data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+    void add_safex_offer(const crypto::hash &offer_id, const blobdata &blob);
+
+
+    /**
+     * Edit offer in database
+     *
+     * @param offer_id safex offer id
+     * @param blob offer data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+    void edit_safex_offer(const crypto::hash &offer_id, const blobdata &blob);
+
+    /**
+     * Close offer in database
+     *
+     * @param offer_id safex offer id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+    void close_safex_offer(const crypto::hash &offer_id);
+    /**
+    * Create purchase in database
+    *
+    * @param result safex purchase data
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void create_safex_purchase(const safex::safex_purchase& result);
+
 protected:
 
   uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
@@ -517,9 +570,11 @@ private:
   MDB_dbi m_network_fee_sum;
   MDB_dbi m_token_lock_expiry;
   MDB_dbi m_safex_account;
+  MDB_dbi m_safex_offer;
 
 
-  mutable uint64_t m_cum_size;	// used in batch size estimation
+
+    mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;
   std::string m_folder;
   mdb_txn_safe* m_write_txn; // may point to either a short-lived txn or a batch txn

@@ -67,6 +67,9 @@ namespace safex
       simple_purchase = 0x06,
       create_account = 0x0A, /* Create Safex account */
       edit_account = 0x0B, /* Edit Safex account */
+      create_offer = 0x10,
+      edit_offer = 0x11,
+      close_offer = 0x12,
       invalid_command
   };
 
