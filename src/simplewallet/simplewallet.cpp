@@ -1260,7 +1260,7 @@ simple_wallet::simple_wallet()
                              boost::bind(&simple_wallet::safex_offer, this, _1),
                              tr("safex_offer\n"
                                 "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_price> <offer_quantity> <offer_description>\n"
-                                "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <offer_description>\n"
+                                "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>\n"
                                 "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>"),
                              tr("If no arguments are specified, the wallet shows all the existing safex offers for current account.\n"
                                 "If the \"create\" argument is specified, the wallet creates a new safex offer and create a transaction\n"

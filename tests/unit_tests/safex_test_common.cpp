@@ -1214,7 +1214,7 @@ bool construct_create_offer_transaction(map_hash2tx_t &txmap, std::vector<crypto
 {
     std::vector<tx_source_entry> sources;
     std::vector<tx_destination_entry> destinations;
-    fill_create_offer_tx_sources_and_destinations(txmap, blocks, from, SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE, fee, nmix, pkey, sfx_offer, sources, destinations);
+    fill_create_offer_tx_sources_and_destinations(txmap, blocks, from, 0, fee, nmix, pkey, sfx_offer, sources, destinations);
 
     return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }

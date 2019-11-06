@@ -9008,19 +9008,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         else if (dsts[0].output_type == tx_out_type::out_safex_offer) {
             safex::create_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_account);
         }
         else if (dsts[0].output_type == tx_out_type::out_safex_offer_update) {
             safex::edit_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
         else if (dsts[0].output_type == tx_out_type::out_safex_offer_close) {
             safex::close_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
       }
@@ -9053,19 +9053,19 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         else if (dsts[0].output_type == tx_out_type::out_safex_offer) {
             safex::create_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_account);
         }
         else if (dsts[0].output_type == tx_out_type::out_safex_offer_update) {
             safex::edit_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
         else if (dsts[0].output_type == tx_out_type::out_safex_offer_close) {
             safex::close_offer_data offer;
             cryptonote::parse_and_validate_from_blob(dsts[0].output_data, offer);
-            //find account output
+            //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
 

@@ -313,9 +313,6 @@ namespace cryptonote
             std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
             std::string description = offerdata_ostr.str();
 
-            safex::safex_account_keys keys;
-            bool res = m_wallet->get_safex_account_keys(my_safex_account.username,keys);
-
             safex::safex_offer sfx_offer{offer_title, quantity, price, description, my_safex_account.username};
 
             cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
@@ -335,9 +332,6 @@ namespace cryptonote
             std::ostringstream offerdata_ostr;
             std::copy(local_args.begin() + 6, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
             std::string description = offerdata_ostr.str();
-
-            safex::safex_account_keys keys;
-            bool res = m_wallet->get_safex_account_keys(my_safex_account.username,keys);
 
             safex::safex_offer sfx_offer{offer_title, quantity, price, std::vector<uint8_t>{description.begin(),description.end()},
                                           offer_id_hash, my_safex_account.username};
@@ -942,10 +936,9 @@ namespace cryptonote
     bool simple_wallet::safex_offer(const std::vector<std::string> &args){
         //   Usage:
         //   safex_offer
-        //   safex_offer new    <offer_name> <offer_data> <offer_price> <offer_quantity>
-        //   safex_offer create <offer_name>
-        //   safex_offer edit   <offer_name> <offer_data> <offer_price> <offer_quantity>
-        //   safex_offer close  <offer_name>
+        //   safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_price> <offer_quantity> <offer_description>
+        //   safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>
+        //   safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>
 
         if (args.empty())
         {
@@ -976,9 +969,10 @@ namespace cryptonote
         {
             success_msg_writer() << tr("usage:\n"
                                        "  safex_offer\n"
-                                       "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_name> <offer_name> <offer_quantity> <offer_price> <offer_description>\n"
-                                       "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <offer_data> <offer_price> <offer_quantity>\n"
-                                       "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id>");
+                                       "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_price> <offer_quantity> <offer_description>\n"
+                                       "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>\n"
+                                       "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>");
+
         }
         return true;
   }
