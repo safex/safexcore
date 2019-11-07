@@ -5792,7 +5792,8 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
 
     for(size_t idx: selected_transfers)
     {
-      if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account) //no fake outputs count for accounts
+      if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account ||
+            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer) //no fake outputs count for accounts and offers
         continue;
 
       cash_token_selected_transfers.push_back(idx);
@@ -6261,7 +6262,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       //skip cash outputs if getting token outputs or other way round
       if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
           || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash)
-          || (out_type == tx_out_type::out_safex_account && m_transfers[idx].m_output_type != out_type))
+          || ((out_type == tx_out_type::out_safex_account || out_type == tx_out_type::out_safex_offer) && m_transfers[idx].m_output_type != out_type))
         continue;
 
       std::vector<get_outs_entry> v;
@@ -6537,7 +6538,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     THROW_WALLET_EXCEPTION_IF(subaddr_account != m_transfers[*i].m_subaddr_index.major, error::wallet_internal_error, "the tx uses funds from multiple accounts");
 
   if (outs.empty()) {
-
+    //TODO: Grki check this out_types
     if ((command_type == safex::command_t::token_stake || command_type == safex::command_t::create_account))
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_token); // may throw
     else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
@@ -6549,9 +6550,9 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     else if (command_type == safex::command_t::create_offer)
         get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
     else if (command_type == safex::command_t::edit_offer)
-        get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
+        get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_offer); // may throw
     else if (command_type == safex::command_t::close_offer)
-        get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
+        get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_offer); // may throw
   }
 
 
@@ -6603,7 +6604,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token : tx_out_type::out_cash;
 
     //paste keys (fake and real)
-    const size_t fake_outputs_count_revised = src.referenced_output_type == tx_out_type::out_safex_account ? 0 : fake_outputs_count;
+    const size_t fake_outputs_count_revised = (src.referenced_output_type == tx_out_type::out_safex_account || src.referenced_output_type == tx_out_type::out_safex_offer) ? 0 : fake_outputs_count;
     for (size_t n = 0; n < fake_outputs_count_revised + 1; ++n)
     {
       tx_output_entry oe = AUTO_VAL_INIT(oe);
