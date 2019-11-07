@@ -327,7 +327,15 @@ namespace cryptonote
             std::string offer_title = local_args[2];
             uint64_t price= stoi(local_args[3]);
             uint64_t quantity = stoi(local_args[4]);
-            bool active = stoi(local_args[5]);
+            bool active;
+            try {
+                active = stoi(local_args[5]);
+
+            }
+            catch(std::invalid_argument& e){
+                fail_msg_writer() << tr("active status not provided (1 - active, 0 - inactive)");
+                return true;
+            }
 
             std::ostringstream offerdata_ostr;
             std::copy(local_args.begin() + 6, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));

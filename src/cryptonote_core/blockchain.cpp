@@ -3660,6 +3660,23 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
             get_safex_account_public_key(cmd->get_username(), account_pkey);
             check_safex_account_signature(tx_prefix_hash,account_pkey,tx.signatures[sig_index][0],results[sig_index]);
         }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_offer)) {
+            std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_offer)) {
+            std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::close_offer)) {
+            std::unique_ptr<safex::close_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::close_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{cmd->get_safex_account_pkey()};
+            check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
         else {
           check_ring_signature(tx_prefix_hash, k_image, pubkeys[sig_index], tx.signatures[sig_index], results[sig_index]);
         }
