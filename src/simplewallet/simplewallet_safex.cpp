@@ -306,8 +306,8 @@ namespace cryptonote
         if (command_type == CommandType::TransferCreateOffer) {
 
             std::string offer_title = local_args[1];
-            uint64_t quantity = stoi(local_args[2]);
-            uint64_t price= stoi(local_args[3]);
+            uint64_t price= stoi(local_args[2]);
+            uint64_t quantity = stoi(local_args[3]);
 
             std::ostringstream offerdata_ostr;
             std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
@@ -325,8 +325,8 @@ namespace cryptonote
             epee::string_tools::hex_to_pod(local_args[1], offer_id_hash);
 
             std::string offer_title = local_args[2];
-            uint64_t quantity = stoi(local_args[3]);
-            uint64_t price= stoi(local_args[4]);
+            uint64_t price= stoi(local_args[3]);
+            uint64_t quantity = stoi(local_args[4]);
             bool active = stoi(local_args[5]);
 
             std::ostringstream offerdata_ostr;
