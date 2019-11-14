@@ -31,6 +31,11 @@
 
 #include "include_base_utils.h"
 #include "string_tools.h"
+
+#ifdef SAFEX_PROTOBUF_RPC
+#include "cryptonote_core/protobuf/cryptonote_to_protobuf.h"
+#endif
+
 using namespace epee;
 
 #include "core_rpc_server.h"
@@ -835,6 +840,80 @@ namespace cryptonote
     m_core.get_protocol()->relay_transactions(r, fake_context);
     //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+   bool core_rpc_server::on_send_proto_raw_tx(const COMMAND_RPC_PROTO_SEND_RAW_TX::request& req, COMMAND_RPC_PROTO_SEND_RAW_TX::response& res)
+  {
+    bool ok = false;
+    #ifdef SAFEX_PROTOBUF_RPC
+
+      CHECK_CORE_READY();
+      cryptonote::transaction tx = safex::from_string::transaction(req.proto_content);
+      auto txid = get_transaction_hash(tx);
+      res.txid = epee::string_tools::pod_to_hex(txid);
+
+      auto temp =  epee::string_tools::buff_to_hex_nodelimer(tx_to_blob(tx));
+
+      std::string tx_blob;
+      if(!string_tools::parse_hexstr_to_binbuff(temp, tx_blob))
+      {
+        LOG_PRINT_L0("[on_send_raw_tx]: Failed to parse tx from hexbuff: " << temp);
+        res.status = "Failed";
+        return true;
+      }
+
+      cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
+      tx_verification_context tvc = AUTO_VAL_INIT(tvc);
+      if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verifivation_failed)
+      {
+        res.status = "Failed";
+        res.reason = "";
+        if ((res.low_mixin = tvc.m_low_mixin))
+          add_reason(res.reason, "ring size too small");
+        if ((res.double_spend = tvc.m_double_spend))
+          add_reason(res.reason, "double spend");
+        if ((res.invalid_input = tvc.m_invalid_input))
+          add_reason(res.reason, "invalid input");
+        if ((res.invalid_output = tvc.m_invalid_output))
+          add_reason(res.reason, "invalid output");
+        if ((res.too_big = tvc.m_too_big))
+          add_reason(res.reason, "too big");
+        if ((res.overspend = tvc.m_overspend))
+          add_reason(res.reason, "overspend");
+        if ((res.fee_too_low = tvc.m_fee_too_low))
+          add_reason(res.reason, "fee too low");
+        if ((res.not_rct = tvc.m_not_rct))
+          add_reason(res.reason, "tx is not ringct");
+        const std::string punctuation = res.reason.empty() ? "" : ": ";
+        if (tvc.m_verifivation_failed)
+        {
+          LOG_PRINT_L0("[on_send_raw_tx]: tx verification failed" << punctuation << res.reason);
+        }
+        else
+        {
+          LOG_PRINT_L0("[on_send_raw_tx]: Failed to process tx" << punctuation << res.reason);
+        }
+        return true;
+      }
+
+      if(!tvc.m_should_be_relayed)
+      {
+        LOG_PRINT_L0("[on_send_raw_tx]: tx accepted, but not relayed");
+        res.reason = "Not relayed";
+        res.not_relayed = true;
+        res.status = CORE_RPC_STATUS_OK;
+        return true;
+      }
+
+      NOTIFY_NEW_TRANSACTIONS::request r;
+      r.txs.push_back(tx_blob);
+      m_core.get_protocol()->relay_transactions(r, fake_context);
+      //TODO: make sure that tx has reached other nodes here, probably wait to receive reflections from other nodes
+      res.status = CORE_RPC_STATUS_OK;
+
+    #endif
+
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -1764,10 +1843,20 @@ namespace cryptonote
     if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_OUTPUT_HISTOGRAM>(invoke_http_mode::JON_RPC, "get_output_histogram", req, res, r))
       return r;
 
+    cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
+    
+
+    if(req.out_type != cryptonote::tx_out_type::out_invalid) {
+      output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
+    }
+    else {
+      output_type = req.out_type;
+    }
+
     std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> histogram;
     try
     {
-      histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, req.out_type);
+      histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, output_type);
     }
     catch (const std::exception &e)
     {
@@ -1784,6 +1873,38 @@ namespace cryptonote
     }
 
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_output_histogram_protobuf(const COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::response& res) 
+  {
+    #ifdef SAFEX_PROTOBUF_RPC
+      PERF_TIMER(on_get_output_histogram_protobuf);
+      
+      cryptonote::tx_out_type output_type = static_cast<cryptonote::tx_out_type>(req.out_type);
+      
+      safex::output_histograms_protobuf protobuf_histograms;
+      std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> histogram;
+      try
+      {
+        histogram = m_core.get_blockchain_storage().get_output_histogram(req.amounts, req.unlocked, req.recent_cutoff, output_type);
+      }
+      catch (const std::exception &e)
+      {
+        protobuf_histograms.set_status("Failed to get output histogram");
+        res.protobuf_content = protobuf_histograms.string();
+        return true;
+      }
+
+      for (const auto &i: histogram)
+      {
+        if (std::get<0>(i.second) >= req.min_count && (std::get<0>(i.second) <= req.max_count || req.max_count == 0))
+          protobuf_histograms.add_histogram(i.first, output_type, std::get<2>(i.second),
+                                            std::get<0>(i.second), std::get<1>(i.second));
+      }
+
+      res.protobuf_content = protobuf_histograms.string();
+    #endif //SAFEX_PROTOBUF_RPC
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2284,6 +2405,236 @@ namespace cryptonote
   }
   //------------------------------------------------------------------------------------------------------------------------------
 
+  bool core_rpc_server::on_get_transactions_protobuf(const COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::request& req,
+                                                            COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF::response& res)
+  {
+#ifdef SAFEX_PROTOBUF_RPC
+    PERF_TIMER(on_get_transactions_protobuf);
+
+    std::vector<crypto::hash> vh;
+    for(const auto& tx_hex_str: req.txs_hashes)
+    {
+      blobdata b;
+      if(!string_tools::parse_hexstr_to_binbuff(tx_hex_str, b))
+      {
+        res.status = "Failed to parse hex representation of transaction hash";
+        return true;
+      }
+      if(b.size() != sizeof(crypto::hash))
+      {
+        res.status = "Failed, size of data mismatch";
+        return true;
+      }
+      vh.push_back(*reinterpret_cast<const crypto::hash*>(b.data()));
+    }
+    std::list<crypto::hash> missed_txs;
+    std::list<transaction> txs;
+    bool r = m_core.get_transactions(vh, txs, missed_txs);
+    if(!r)
+    {
+      res.status = "Failed";
+      return true;
+    }
+    LOG_PRINT_L2("Found " << txs.size() << "/" << vh.size() << " transactions on the blockchain");
+
+    // try the pool for any missing txes
+    size_t found_in_pool = 0;
+    std::unordered_set<crypto::hash> pool_tx_hashes;
+    std::unordered_map<crypto::hash, bool> double_spend_seen;
+    if (!missed_txs.empty())
+    {
+      std::vector<tx_info> pool_tx_info;
+      std::vector<spent_key_image_info> pool_key_image_info;
+      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info);
+      if(r)
+      {
+        // sort to match original request
+        std::list<transaction> sorted_txs;
+        std::vector<tx_info>::const_iterator i;
+        for (const crypto::hash &h: vh)
+        {
+          if (std::find(missed_txs.begin(), missed_txs.end(), h) == missed_txs.end())
+          {
+            if (txs.empty())
+            {
+              res.status = "Failed: internal error - txs is empty";
+              return true;
+            }
+            // core returns the ones it finds in the right order
+            if (get_transaction_hash(txs.front()) != h)
+            {
+              res.status = "Failed: tx hash mismatch";
+              return true;
+            }
+            sorted_txs.push_back(std::move(txs.front()));
+            txs.pop_front();
+          }
+          else if ((i = std::find_if(pool_tx_info.begin(), pool_tx_info.end(), [h](const tx_info &txi) { return epee::string_tools::pod_to_hex(h) == txi.id_hash; })) != pool_tx_info.end())
+          {
+            cryptonote::transaction tx;
+            if (!cryptonote::parse_and_validate_tx_from_blob(i->tx_blob, tx))
+            {
+              res.status = "Failed to parse and validate tx from blob";
+              return true;
+            }
+            sorted_txs.push_back(tx);
+            missed_txs.remove(h);
+            pool_tx_hashes.insert(h);
+            const std::string hash_string = epee::string_tools::pod_to_hex(h);
+            for (const auto &ti: pool_tx_info)
+            {
+              if (ti.id_hash == hash_string)
+              {
+                double_spend_seen.insert(std::make_pair(h, ti.double_spend_seen));
+                break;
+              }
+            }
+            ++found_in_pool;
+          }
+        }
+        txs = sorted_txs;
+      }
+      LOG_PRINT_L2("Found " << found_in_pool << "/" << vh.size() << " transactions in the pool");
+    }
+
+    std::list<std::string>::const_iterator txhi = req.txs_hashes.begin();
+    std::vector<crypto::hash>::const_iterator vhi = vh.begin();
+
+    safex::transactions_protobuf txs_proto;
+    for(auto& tx: txs)
+    {
+      safex::Transaction* proto_tx = txs_proto.add_transaction(tx);
+      crypto::hash tx_hash = *vhi++;
+
+      proto_tx->set_tx_hash(*txhi++);
+      proto_tx->set_in_pool(pool_tx_hashes.find(tx_hash) != pool_tx_hashes.end());
+
+      if (proto_tx->in_pool())
+      {
+        proto_tx->set_block_height(std::numeric_limits<uint64_t>::max());
+        proto_tx->set_block_timestamp(std::numeric_limits<uint64_t>::max());
+
+        if (double_spend_seen.find(tx_hash) != double_spend_seen.end())
+        {
+          proto_tx->set_double_spend_seen(double_spend_seen[tx_hash]);
+        }
+        else
+        {
+          MERROR("Failed to determine double spend status for " << tx_hash);
+          proto_tx->set_double_spend_seen(false);
+        }
+      }
+      else
+      {
+        proto_tx->set_block_height(m_core.get_blockchain_storage().get_db().get_tx_block_height(tx_hash));
+        proto_tx->set_block_timestamp(m_core.get_blockchain_storage().get_db().get_block_timestamp(proto_tx->block_height()));
+        proto_tx->set_double_spend_seen(false);
+      }
+
+      // output indices too if not in pool
+      if (pool_tx_hashes.find(tx_hash) == pool_tx_hashes.end())
+      {
+        std::vector<uint64_t> output_indices;
+        bool r = m_core.get_tx_outputs_gindexs(tx_hash, output_indices);
+        for(uint64_t index : output_indices) {
+          proto_tx->add_output_indices(index);
+        }
+        if (!r)
+        {
+          res.status = "Failed";
+          return false;
+        }
+      }
+    }
+
+    for(const auto& miss_tx: missed_txs)
+    {
+      txs_proto.add_missed_tx(string_tools::pod_to_hex(miss_tx));
+    }
+
+    res.protobuf_content = txs_proto.string();
+
+#endif
+    return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_blocks_protobuf(const COMMAND_RPC_GET_BLOCKS_PROTOBUF::request& req, COMMAND_RPC_GET_BLOCKS_PROTOBUF::response& res) {
+
+    #ifdef SAFEX_PROTOBUF_RPC
+
+    PERF_TIMER(on_get_block_headers_range);
+
+    std::string err_message = "";
+    safex::blocks_protobuf blocks;
+
+    const uint64_t bc_height = m_core.get_current_blockchain_height();
+    if (req.start_height >= bc_height || req.end_height >= bc_height || req.start_height > req.end_height)
+    {
+      err_message = "Invalid start/end heights.";
+      return false;
+    }
+    for (uint64_t h = req.start_height; h <= req.end_height; ++h)
+    {
+      crypto::hash block_hash = m_core.get_block_id_by_height(h);
+      block blk;
+      bool have_block = m_core.get_block_by_hash(block_hash, blk);
+      if (!have_block)
+      {
+        err_message = "Internal error: can't get block by height. Height = " + boost::lexical_cast<std::string>(h) + ". Hash = " + epee::string_tools::pod_to_hex(block_hash) + '.';
+        return false;
+      }
+
+      if (blk.miner_tx.vin.size() != 1 || blk.miner_tx.vin.front().type() != typeid(txin_gen))
+      {
+        err_message = "Internal error: coinbase transaction in the block has the wrong type";
+        return false;
+      }
+
+      uint64_t block_height = boost::get<txin_gen>(blk.miner_tx.vin.front()).height;
+      if (block_height != h)
+      {
+        err_message = "Internal error: coinbase transaction in the block has the wrong height";
+        return false;
+      }
+
+      // Generate response properly
+      blocks.add_block(blk, block_hash);
+
+    }
+
+    blocks.add_error(err_message);
+    res.protobuf_content = blocks.string();
+    #endif
+    return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_outputs_protobuf(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUTS_PROTOBUF::response& res) 
+  {
+    PERF_TIMER(on_get_outs_protobuf);
+    #ifdef SAFEX_PROTOBUF_RPC
+      res.status = "Failed";
+
+      safex::outputs_protobuf proto_outs;
+      if (m_restricted)
+      {
+        if (req.outputs.size() > MAX_RESTRICTED_GLOBAL_FAKE_OUTS_COUNT)
+        {
+          res.status = "Too many outs requested";
+          return true;
+        }
+      }
+
+      if(!m_core.get_outs_proto(req, proto_outs))
+      {
+        return true;
+      }
+
+      res.protobuf_content = proto_outs.string();
+      res.status = CORE_RPC_STATUS_OK;
+    #endif
+    return true;
+  }
+  
 
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"
