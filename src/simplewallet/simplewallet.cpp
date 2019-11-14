@@ -5062,7 +5062,7 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, crypt
     << tr("\nMin block height: ") << min_height
     << tr("\nMax block height: ") << max_height
     << tr("\nMin") << tr(string_prefix) << tr(" amount found: ") << print_money(found_min_amount)
-    << tr("\nMin") << tr(string_prefix) << tr(" amount found: ") << print_money(found_max_amount)
+    << tr("\nMax") << tr(string_prefix) << tr(" amount found: ") << print_money(found_max_amount)
     << tr("\nTotal count: ") << count;
   const size_t histogram_height = 10;
   const size_t histogram_width  = 50;
