@@ -201,6 +201,18 @@ namespace cryptonote
     crypto::hash get_block_id_by_height(uint64_t height) const;
 
     /**
+     * @brief gets a block's hash given a height
+     *
+     * Used only by prepare_handle_incoming_blocks. Will look in the list of incoming blocks
+     * if the height is contained there.
+     *
+     * @param height the height of the block
+     *
+     * @return the hash of the block at the requested height, or a zeroed hash if there is no such block
+     */
+    crypto::hash get_pending_block_id_by_height(uint64_t height) const;
+
+    /**
      * @brief gets the block with a given hash
      *
      * @param h the hash to look for
@@ -1056,6 +1068,11 @@ namespace cryptonote
     bool m_offline;
 
     std::atomic<bool> m_cancel;
+
+    // for prepare_handle_incoming_blocks
+    uint64_t m_prepare_height;
+    uint64_t m_prepare_nblocks;
+    std::vector<std::vector<block>> *m_prepare_blocks;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input

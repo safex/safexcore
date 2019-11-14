@@ -978,6 +978,17 @@ namespace cryptonote
       res.threads_count = lMiner.get_threads_count();
       const account_public_address& lMiningAdr = lMiner.get_mining_address();
       res.address = get_account_address_as_str(m_nettype, false, lMiningAdr);
+      const uint8_t major_version = m_core.get_blockchain_storage().get_current_hard_fork_version();
+      const unsigned variant = major_version >= 7 ? major_version - 6 : 0;
+      switch (variant)
+      {
+        case 0: res.pow_algorithm = "Cryptonight"; break;
+        case 1: res.pow_algorithm = "CNv1 (Cryptonight variant 1)"; break;
+        case 2: case 3: res.pow_algorithm = "CNv2 (Cryptonight variant 2)"; break;
+        case 4: case 5: res.pow_algorithm = "CNv4 (Cryptonight variant 4)"; break;
+        case 6: res.pow_algorithm = "RandomX"; break;
+        default: res.pow_algorithm = "I'm not sure actually"; break;
+      }
     }
 
     res.status = CORE_RPC_STATUS_OK;
@@ -1214,6 +1225,18 @@ namespace cryptonote
       error_resp.message = "Internal error: failed to create block template";
       LOG_ERROR("Failed to create block template");
       return false;
+    }
+    if (b.major_version >= RX_BLOCK_VERSION)
+    {
+      uint64_t seed_height, next_height;
+      crypto::hash seed_hash;
+      crypto::rx_seedheights(res.height, &seed_height, &next_height);
+      seed_hash = m_core.get_block_id_by_height(seed_height);
+      res.seed_hash = string_tools::pod_to_hex(seed_hash);
+      if (next_height != seed_height) {
+        seed_hash = m_core.get_block_id_by_height(next_height);
+        res.next_seed_hash = string_tools::pod_to_hex(seed_hash);
+      }
     }
     blobdata block_blob = t_serializable_object_to_blob(b);
     crypto::public_key tx_pub_key = cryptonote::get_tx_pub_key_from_extra(b.miner_tx);

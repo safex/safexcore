@@ -461,6 +461,58 @@ bool t_rpc_command_executor::show_status() {
   return true;
 }
 
+bool t_rpc_command_executor::mining_status()
+{
+  cryptonote::COMMAND_RPC_MINING_STATUS::request mreq;
+  cryptonote::COMMAND_RPC_MINING_STATUS::response mres;
+  epee::json_rpc::error error_resp;
+  bool has_mining_info = true;
+
+  std::string fail_message = "Problem fetching info";
+
+  bool mining_busy = false;
+  if (m_is_rpc)
+  {
+    // mining info is only available non unrestricted RPC mode
+    has_mining_info = m_rpc_client->rpc_request(mreq, mres, "/mining_status", fail_message.c_str());
+  }
+  else
+  {
+    if (!m_rpc_server->on_mining_status(mreq, mres))
+    {
+      tools::fail_msg_writer() << fail_message.c_str();
+      return true;
+    }
+
+    if (mres.status == CORE_RPC_STATUS_BUSY)
+      mining_busy = true;
+    else if (mres.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, mres.status);
+      return true;
+    }
+  }
+
+  if (!has_mining_info)
+  {
+    tools::fail_msg_writer() << "Mining info unavailable";
+    return true;
+  }
+
+  if (mining_busy || !mres.active)
+    tools::msg_writer() << "Not currently mining";
+  else
+    tools::msg_writer() << "Mining at " << get_mining_speed(mres.speed) << " with " << mres.threads_count << " threads";
+
+  if (mres.active || mres.is_background_mining_enabled)
+  {
+    tools::msg_writer() << "PoW algorithm: " << mres.pow_algorithm;
+    tools::msg_writer() << "Mining address: " << mres.address;
+  }
+
+  return true;
+}
+
 bool t_rpc_command_executor::print_connections() {
   cryptonote::COMMAND_RPC_GET_CONNECTIONS::request req = AUTO_VAL_INIT(req);
   cryptonote::COMMAND_RPC_GET_CONNECTIONS::response res = AUTO_VAL_INIT(res);
