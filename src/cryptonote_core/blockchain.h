@@ -835,6 +835,8 @@ namespace cryptonote
      */
     bool get_hard_fork_voting_info(uint8_t version, uint32_t &window, uint32_t &votes, uint32_t &threshold, uint64_t &earliest_height, uint8_t &voting) const;
 
+    difficulty_type get_hard_fork_difficulty( std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
+
     /**
      * @brief get difficulty target based on chain and hardfork version
      *
