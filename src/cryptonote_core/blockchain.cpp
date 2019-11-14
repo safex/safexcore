@@ -1595,7 +1595,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     else
     {
         //todo ATANA implement tx version 2 checks
-        LOG_ERROR("Transacdtion version 2 not yet supported");
+        LOG_ERROR("Transaction version 2 not yet supported");
     }
   }
   if (txs_size != real_txs_size)

@@ -1399,10 +1399,10 @@ namespace cryptonote
     CHECK_AND_ASSERT_MES(r, false, "failed to parse coinbase tx from hard coded blob");
     bl.major_version = CURRENT_BLOCK_MAJOR_VERSION;
     bl.minor_version = CURRENT_BLOCK_MINOR_VERSION;
+    bl.invalidate_hashes();
     bl.timestamp = 0;
     bl.nonce = nonce;
     miner::find_nonce_for_given_block(NULL, bl, 1, 0);
-    bl.invalidate_hashes();
     return true;
   }
   //---------------------------------------------------------------
@@ -1414,13 +1414,6 @@ namespace cryptonote
 
   bool get_block_longhash(const Blockchain *pbc, const block& b, crypto::hash& res, const uint64_t height, const int miners)
   {
-    // block 202612 bug workaround
-    if (height == 202612)
-    {
-      static const std::string longhash_202612 = "84f64766475d51837ac9efbef1926486e58563c95a19fef4aec3254f03000000";
-      epee::string_tools::hex_to_pod(longhash_202612, res);
-      return true;
-    }
     blobdata bd = get_block_hashing_blob(b);
     if (b.major_version >= RX_BLOCK_VERSION)
     {
@@ -1431,16 +1424,19 @@ namespace cryptonote
         seed_height = rx_seedheight(height);
         hash = pbc->get_pending_block_id_by_height(seed_height);
         main_height = pbc->get_current_blockchain_height();
-      } else
+      }
+      else
       {
         memset(&hash, 0, sizeof(hash));  // only happens when generating genesis block
         seed_height = 0;
         main_height = 0;
       }
       rx_slow_hash(main_height, seed_height, hash.data, bd.data(), bd.size(), res.data, miners, 0);
-    } else {
-      const int pow_variant = b.major_version >= 7 ? b.major_version - 6 : 0;
-      crypto::cn_slow_hash(bd.data(), bd.size(), res.data, pow_variant, height);
+    }
+    else
+    {
+      const int pow_variant = b.major_version < HF_VERSION_DIFFICULTY_V2 ? b.major_version: HF_VERSION_DIFFICULTY_V2;
+      crypto::cn_slow_hash(bd.data(), bd.size(), res, pow_variant);
     }
     return true;
   }
