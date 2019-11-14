@@ -1187,7 +1187,7 @@ void mul(const uint8_t *ca, const uint8_t *cb, uint8_t *cres) {
 
   // Aa * Bb = ab + aB_ + Ab_ + AB__
   t.ltmp[0] = a * b;
-  t.ltmp[1] = a * B;-
+  t.ltmp[1] = a * B;
   t.ltmp[2] = A * b;
   t.ltmp[3] = A * B;
 

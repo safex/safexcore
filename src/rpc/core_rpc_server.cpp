@@ -979,14 +979,13 @@ namespace cryptonote
       const account_public_address& lMiningAdr = lMiner.get_mining_address();
       res.address = get_account_address_as_str(m_nettype, false, lMiningAdr);
       const uint8_t major_version = m_core.get_blockchain_storage().get_current_hard_fork_version();
-      const unsigned variant = major_version >= 7 ? major_version - 6 : 0;
+      const unsigned variant = (major_version < RX_BLOCK_VERSION ? major_version : RX_BLOCK_VERSION) - 1;
       switch (variant)
       {
         case 0: res.pow_algorithm = "Cryptonight"; break;
         case 1: res.pow_algorithm = "CNv1 (Cryptonight variant 1)"; break;
-        case 2: case 3: res.pow_algorithm = "CNv2 (Cryptonight variant 2)"; break;
-        case 4: case 5: res.pow_algorithm = "CNv4 (Cryptonight variant 4)"; break;
-        case 6: res.pow_algorithm = "RandomX"; break;
+        case 2: res.pow_algorithm = "CNv2 (Cryptonight variant 2)"; break;
+        case 3: res.pow_algorithm = "RandomX"; break;
         default: res.pow_algorithm = "I'm not sure actually"; break;
       }
     }
