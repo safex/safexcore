@@ -692,7 +692,7 @@ namespace cryptonote
     success_msg_writer() << boost::format("%30s %20s") % tr("Output amount") % tr("Available interest");
     for(auto& pair : interest_per_output)
     {
-      success_msg_writer() << boost::format("%30s %20s") % pair.first % print_money(pair.second);
+      success_msg_writer() << boost::format("%30s %20s") % print_money(pair.first) % print_money(pair.second);
     }
     return true;
   }
