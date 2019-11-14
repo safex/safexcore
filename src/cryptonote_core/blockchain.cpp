@@ -101,7 +101,8 @@ static const struct {
   //version 2 starts from block 61660, around 2018-11-26. Fork time finalized on 2018-11-06
   { 2, 61660, 0, 1541503503 },
   //version 3 starts from block 92200, fork time finalized on 2019-01-04
-  { 3, 92200, 0, 1546602383 }
+  { 3, 92200, 0, 1546602383 },
+  { 4, config::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 61659;
 
@@ -114,7 +115,8 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
   { 2, 33407, 0, 1541066055},
-  { 3, 78500, 0, 1546512073}
+  { 3, 78500, 0, 1546512073}, //184650
+  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
@@ -127,7 +129,8 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1560283500 },
   { 2, 100, 0, 1561283500},
-  { 3, 200, 0, 1562283500}
+  { 3, 200, 0, 1562283500},
+  { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 
 //------------------------------------------------------------------
@@ -860,16 +863,49 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   }
   size_t target = get_difficulty_target();
 
-  if (m_hardfork->get_current_version() < HF_VERSION_DIFFICULTY_V2)
-  {
-    return next_difficulty(timestamps, difficulties, target);
-  }
-  else
-  {
-    return next_difficulty_v2(timestamps, difficulties, target);
-  }
+  return get_hard_fork_difficulty(timestamps, difficulties, target);
 
 }
+
+difficulty_type Blockchain::get_hard_fork_difficulty( std::vector<std::uint64_t>& timestamps,
+                        std::vector<difficulty_type>& difficulties, size_t& target){
+
+    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
+    auto height = m_db->height();
+
+    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
+    {
+        return next_difficulty(timestamps, difficulties, target);
+    }
+    else
+    {
+        uint64_t start_height = 0;
+        uint64_t random_x_diff = 0;
+        switch (m_nettype)
+        {
+            case STAGENET:
+                start_height = stagenet_hard_forks[3].height;
+                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case TESTNET:
+                start_height = testnet_hard_forks[3].height;
+                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case MAINNET:
+                start_height = mainnet_hard_forks[3].height;
+                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
+                break;
+            default:
+                break;
+        }
+
+        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
+            return random_x_diff;
+        else
+            return next_difficulty_v2(timestamps, difficulties, target);
+    }
+}
+
 //------------------------------------------------------------------
 // This function removes blocks from the blockchain until it gets to the
 // position where the blockchain switch started and then re-adds the blocks
