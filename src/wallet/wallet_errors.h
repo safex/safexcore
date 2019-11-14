@@ -494,7 +494,7 @@ namespace tools
     struct not_enough_cash : public transfer_error
     {
       explicit not_enough_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
-        : transfer_error(std::move(loc), "not enough money")
+        : transfer_error(std::move(loc), "not enough cash")
         , m_available(available)
         , m_tx_amount(tx_amount)
       {
@@ -966,7 +966,7 @@ namespace tools
     struct safex_unsuported_command_error : public transfer_error
     {
       explicit safex_unsuported_command_error(std::string&& loc)
-              : transfer_error(std::move(loc), "unsuported safex command")
+              : transfer_error(std::move(loc), "unsupported safex command")
       {
       }
     };
@@ -982,7 +982,7 @@ namespace tools
     struct safex_unknown_account : public transfer_error
     {
       explicit safex_unknown_account(std::string&& loc)
-              : transfer_error(std::move(loc), "account does not exists")
+              : transfer_error(std::move(loc), "account does not exist")
       {
       }
     };
