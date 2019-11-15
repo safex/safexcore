@@ -1017,7 +1017,12 @@ namespace cryptonote
       bool too_big;
       bool overspend;
       bool fee_too_low;
-      bool not_rct;
+      bool non_supported_version;
+      bool safex_verification_failed;
+      bool safex_invalid_command;
+      bool safex_invalid_command_params;
+      bool safex_invalid_input;
+      bool safex_command_execution_failed;
       bool untrusted;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -1031,7 +1036,12 @@ namespace cryptonote
         KV_SERIALIZE(too_big)
         KV_SERIALIZE(overspend)
         KV_SERIALIZE(fee_too_low)
-        KV_SERIALIZE(not_rct)
+        KV_SERIALIZE(non_supported_version)
+        KV_SERIALIZE(safex_verification_failed)
+        KV_SERIALIZE(safex_invalid_command)
+        KV_SERIALIZE(safex_invalid_command_params)
+        KV_SERIALIZE(safex_invalid_input)
+        KV_SERIALIZE(safex_command_execution_failed)
         KV_SERIALIZE(untrusted)
       END_KV_SERIALIZE_MAP()
     };
@@ -1188,6 +1198,7 @@ namespace cryptonote
       uint64_t speed;
       uint32_t threads_count;
       std::string address;
+      std::string pow_algorithm;
       bool is_background_mining_enabled;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -1196,6 +1207,7 @@ namespace cryptonote
         KV_SERIALIZE(speed)
         KV_SERIALIZE(threads_count)
         KV_SERIALIZE(address)
+        KV_SERIALIZE(pow_algorithm)
         KV_SERIALIZE(is_background_mining_enabled)
       END_KV_SERIALIZE_MAP()
     };
@@ -1272,6 +1284,8 @@ namespace cryptonote
       uint64_t reserved_offset;
       uint64_t expected_reward;
       std::string prev_hash;
+      std::string seed_hash;
+      std::string next_seed_hash;
       blobdata blocktemplate_blob;
       blobdata blockhashing_blob;
       std::string status;
@@ -1287,6 +1301,8 @@ namespace cryptonote
         KV_SERIALIZE(blockhashing_blob)
         KV_SERIALIZE(status)
         KV_SERIALIZE(untrusted)
+        KV_SERIALIZE(seed_hash)
+        KV_SERIALIZE(next_seed_hash)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -2553,9 +2569,7 @@ namespace cryptonote
         KV_SERIALIZE_OPT(do_not_relay, false)
       END_KV_SERIALIZE_MAP()
     };
-
-
-    struct response
+        struct response
     {
       std::string txid;
       std::string status;
@@ -2588,4 +2602,129 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
   };
+
+  struct COMMAND_RPC_TOKEN_STAKED
+  {
+    struct request
+    {
+      uint64_t interval;
+      uint64_t end;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> pairs;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(pairs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_NETWORK_FEE
+  {
+    struct request
+    {
+      uint64_t interval;
+      uint64_t end;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> pairs;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(pairs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_SAFEX_ACCOUNT_INFO
+  {
+    struct request
+    {
+      std::string username;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(username)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string pkey;
+      std::string account_data;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(pkey)
+        KV_SERIALIZE(account_data)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_GET_INTEREST_MAP
+  {
+    struct request
+    {
+      uint64_t begin_interval;
+      uint64_t end_interval;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(begin_interval)
+        KV_SERIALIZE(end_interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t cash_per_token;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(cash_per_token)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> interest_per_interval;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interest_per_interval)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }

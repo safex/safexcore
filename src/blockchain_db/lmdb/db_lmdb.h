@@ -36,6 +36,7 @@
 #include <boost/thread/tss.hpp>
 
 #include <lmdb.h>
+#include <safex/safex_account.h>
 
 #define ENABLE_AUTO_RESIZE
 
@@ -62,6 +63,16 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_txpool_blob;
 
   MDB_cursor *m_txc_hf_versions;
+
+  MDB_cursor *m_txc_output_advanced;
+  MDB_cursor *m_txc_output_advanced_type;
+  MDB_cursor *m_txc_token_locked_sum;
+  MDB_cursor *m_txc_token_locked_sum_total;
+  MDB_cursor *m_txc_network_fee_sum;
+  MDB_cursor *m_txc_token_lock_expiry;
+  MDB_cursor *m_txc_safex_account;
+
+
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -77,6 +88,13 @@ typedef struct mdb_txn_cursors
 #define m_cur_txpool_meta	m_cursors->m_txc_txpool_meta
 #define m_cur_txpool_blob	m_cursors->m_txc_txpool_blob
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
+#define m_cur_output_advanced	m_cursors->m_txc_output_advanced
+#define m_cur_output_advanced_type	m_cursors->m_txc_output_advanced_type
+#define m_cur_token_staked_sum	m_cursors->m_txc_token_locked_sum
+#define m_cur_token_staked_sum_total	m_cursors->m_txc_token_locked_sum_total
+#define m_cur_network_fee_sum	m_cursors->m_txc_network_fee_sum
+#define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
+#define m_cur_safex_account	m_cursors->m_txc_safex_account
 
 typedef struct mdb_rflags
 {
@@ -94,6 +112,13 @@ typedef struct mdb_rflags
   bool m_rf_txpool_meta;
   bool m_rf_txpool_blob;
   bool m_rf_hf_versions;
+  bool m_rf_output_advanced;
+  bool m_rf_output_advanced_type;
+  bool m_rf_token_staked_sum;
+  bool m_rf_token_staked_sum_total;
+  bool m_rf_network_fee_sum;
+  bool m_rf_token_lock_expiry;
+  bool m_rf_safex_account;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -162,7 +187,7 @@ struct mdb_txn_safe
 class BlockchainLMDB : public BlockchainDB
 {
 public:
-  BlockchainLMDB(bool batch_transactions=false);
+  BlockchainLMDB(bool batch_transactions=false, cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
   ~BlockchainLMDB();
 
   virtual void open(const std::string& filename, const int mdb_flags=0);
@@ -233,17 +258,26 @@ public:
   virtual uint64_t get_tx_block_height(const crypto::hash& h) const;
 
   virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const;
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const;
 
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type);
-  virtual output_data_t get_output_key(const uint64_t& global_index) const;
-  virtual void get_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false);
+  virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
+                                     std::vector<output_data_t> &outputs, const tx_out_type output_type,
+                                     bool allow_partial = false);
 
-  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const;
+  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
+                                         std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
+                                         bool allow_partial = false);
+
+  virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id);
+
+  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
       std::vector<tx_out_index> &tx_out_indices) const;
 
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const;
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const;
+
 
   virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_id) const;
 
@@ -264,6 +298,17 @@ public:
   virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const;
   virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const;
   virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const;
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const cryptonote::txout_to_script& txout)> f, const tx_out_type output_type) const;
+
+  virtual uint64_t get_current_staked_token_sum() const override;
+  virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval) const override;
+  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override;
+  virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override;
+  virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
+  virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
+  virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
+
+
 
   virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
@@ -340,6 +385,13 @@ private:
 
   virtual void remove_spent_key(const crypto::key_image& k_image);
 
+  /**
+   * Process command input for db related changes
+   *
+   * @param txin advanced input with command
+   */
+  virtual void process_command_input(const cryptonote::txin_to_script &txin);
+
   uint64_t num_outputs() const;
 
   // Hard fork
@@ -376,12 +428,60 @@ private:
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);
 
-  // migrate from DB version 0 to 1
-  void migrate_0_1();
-
   void cleanup_batch();
 
   virtual bool is_valid_transaction_output_type(const txout_target_v &txout);
+
+  uint64_t add_token_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
+
+  uint64_t add_cash_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t num_outputs);
+
+  uint64_t add_advanced_output(const tx_out& tx_output, const uint64_t unlock_time, const uint64_t output_id, const tx_out_type out_type);
+
+  void process_advanced_output(const tx_out& tx_output, const uint64_t output_id, const uint8_t output_type);
+
+  void process_advanced_input(const cryptonote::txin_to_script &txin);
+
+
+  uint64_t update_current_staked_token_sum(const uint64_t delta, int sign);
+  uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override;
+
+  /**
+     * Add new account to database
+     *
+     * @param username safex account username
+     * @param pkey safex account public key
+     * @param data account desitription data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+  void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+
+  /**
+   * Edit account data
+   *
+   * @param username safex account username
+   * @param new_data account desitription data
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+   */
+  void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data);
+
+  /**
+   * Remove account from database
+   *
+   * @param username safex account username
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_safex_account(const safex::account_username &username);
+
+protected:
+
+  uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
+
+
 
 private:
   MDB_env* m_env;
@@ -409,6 +509,16 @@ private:
 
   MDB_dbi m_properties;
 
+  //Safex related
+  MDB_dbi m_output_advanced;
+  MDB_dbi m_output_advanced_type;
+  MDB_dbi m_token_staked_sum;
+  MDB_dbi m_token_staked_sum_total;
+  MDB_dbi m_network_fee_sum;
+  MDB_dbi m_token_lock_expiry;
+  MDB_dbi m_safex_account;
+
+
   mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;
   std::string m_folder;
@@ -421,6 +531,7 @@ private:
 
   mdb_txn_cursors m_wcursors;
   mutable boost::thread_specific_ptr<mdb_threadinfo> m_tinfo;
+
 
 #if defined(__arm__)
   // force a value so it can compile with 32-bit ARM

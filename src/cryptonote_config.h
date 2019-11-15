@@ -42,7 +42,6 @@
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
-#define CURRENT_TRANSACTION_VERSION                     1 //do not use ringct
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -106,6 +105,7 @@
 
 #define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000  //by default, blocks ids count in synchronizing
 #define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              100     //by default, blocks count in blocks downloading
+#define BLOCKS_SYNCHRONIZING_MAX_COUNT                  2048   //must be a power of 2, greater than 128, equal to SEEDHASH_EPOCH_BLOCKS
 
 #define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    (86400*3) //seconds, three days
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
@@ -155,10 +155,25 @@
 #define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 #define HF_VERSION_DIFFICULTY_V2                3
-#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     1
+#define HF_VERSION_MIN_SUPPORTED_TX_VERSION     1
+#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     2
 #define HF_VERSION_VALID_DECOMPOSED_MINER_TX    3
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
+#define HF_VERSION_MINER_TX_MAX_OUTS            11
+#define HF_VERSION_CHANGE_MINER_DUST_HANDLING   4
 
+
+
+//Safex related constants
+#define SAFEX_COMMAND_PROTOCOL_VERSION          1
+#define SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT         10000 * SAFEX_TOKEN
+#define SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD  500000
+#define SAFEX_DEFAULT_INTERVAL_PERIOD           1000 //blocks
+#define SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD SAFEX_DEFAULT_INTERVAL_PERIOD*10 //blocks
+#define SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE    ((uint64_t)5)
+#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
+#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD  ((uint64_t)15) //15 blocks for tests, TBD
+#define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
 
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
@@ -178,7 +193,6 @@ namespace config
   uint64_t const DEFAULT_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const DEFAULT_TOKEN_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const BASE_REWARD_CLAMP_THRESHOLD = ((uint64_t)1000000); // pow(10, 6)
-  uint64_t const BASE_REWARD_DECOMPOSITION_OFFSET = 0; //((uint64_t)1000000); // pow(10, 6) force decomposition of reward amount into multiple outputs
   std::string const P2P_REMOTE_DEBUG_TRUSTED_PUB_KEY = "0000000000000000000000000000000000000000000000000000000000000000";
 
   uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;
@@ -193,6 +207,9 @@ namespace config
                                             } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100028ff33b5dc7640ad6333405a875f9a92cd69e99fc15d208ea2eb990203d1348dc8301011d22a19d7aa99b11c1143fd40e200760de6caa90eab16bd12d0188d6db8537611103c23aed713351b8b88e15bb213983aa03f26aca95da4e77384654153d50a55fc78dcc65a751789b60e816e3710d448b05f56777e66aff4c6228472e6a41e122dc9ab470e5997573adea910e70c4c3a04e3957e33c099848f0fd2d12dc6b84eca3";
     uint32_t const GENESIS_NONCE = 10000;
+    //TODO: Set to other values when activating new hard fork
+    uint64_t const HARDFORK_V5_INIT_DIFF = 100;
+    uint64_t const HARDFORK_V5_START_HEIGHT = 241847;
 
   namespace testnet
   {
@@ -208,6 +225,8 @@ namespace config
       } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002d4372ec2272690ccd59880807d1fa00f7bd2fa67f7abb350cafbdc24a4ba372c8301011a1ca7d7e74037e4d000a0fc2cc61389ac7d8b0a6b600c62e77374477c4c414d1103a83b4a507df5b0dc5af701078828a1372d77761339a28a7ebb1ff450622f7456d1083f35430eba3353a9e42514480a0cbccbda5ee6abb2d856f8a9aae056a92a6ece1020496a36a4b68341e3b401653139683f8dc27d76ff9eb9c26c2528c26a";
     uint32_t const GENESIS_NONCE = 10003;
+    uint64_t const HARDFORK_V5_INIT_DIFF = 6000;
+    uint64_t const HARDFORK_V5_START_HEIGHT = 30600;
   }
 
   namespace stagenet
@@ -224,6 +243,9 @@ namespace config
       } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002cd3249adde7fce93280c3a87db72648b7e47eeb08a5e6ff8e926f86e4aa9ffa283010126cb71e5ddd6461fea5d5b00644c5fb9711a2951e1345ba95c648b00ca08e23d1103ab3e85348739c5348f5dd7a61de6e1d30c0a81389ba9ce533da1e65df03f6a71f2df17d26217fb61bd2e8bc65197bf535904d9f5d75e531712f7fd3e255c5ad5308d1ee2cc4166b8effafd2f75d9c8483bb264ed7539cbc2921c580b40b1218b";
     uint32_t const GENESIS_NONCE = 10002;
+    //TODO: Set to other values when activating new hard fork
+    uint64_t const HARDFORK_V5_INIT_DIFF = 100;
+    uint64_t const HARDFORK_V5_START_HEIGHT = 241847;
   }
 }
 

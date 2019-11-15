@@ -37,15 +37,16 @@ set(core_tests_sources
   chaingen001.cpp
   chaingen_main.cpp
   token_transactions.cpp
+  token_stake.cpp
+  safex_account.cpp
   double_spend.cpp
   integer_overflow.cpp
-  multisig.cpp
   ring_signature_1.cpp
   transaction_tests.cpp
   tx_validation.cpp
   v2_tests.cpp
-  rct.cpp
-  chain_migration.cpp)
+  chain_migration.cpp
+  network_fee.cpp)
 
 set(core_tests_headers
   block_reward.h
@@ -57,14 +58,15 @@ set(core_tests_headers
   double_spend.h
   double_spend.inl
   integer_overflow.h
-  multisig.h
   ring_signature_1.h
   transaction_tests.h
   tx_validation.h
   v2_tests.h
-  rct.h
   chain_migration.h
-  token_transactions.h)
+  token_transactions.h
+  token_stake.h
+  safex_account.h
+  network_fee.h)
 
 add_executable(core_tests
   ${core_tests_sources}

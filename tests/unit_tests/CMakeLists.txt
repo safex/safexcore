@@ -55,7 +55,6 @@ set(unit_tests_sources
   memwipe.cpp
   mnemonics.cpp
   mul_div.cpp
-  multisig.cpp
   parse_amount.cpp
   serialization.cpp
   sha256.cpp
@@ -70,11 +69,18 @@ set(unit_tests_sources
   varint.cpp
   ringct.cpp
   output_selection.cpp
-  vercmp.cpp)
+  vercmp.cpp
+  safex_commands.cpp
+  safex_blockchain_db.cpp
+  safex_test_common.cpp
+  safex_blockchain_fee.cpp
+  safex_account.cpp
+  )
 
 
 set(unit_tests_headers
-  unit_tests_utils.h)
+  unit_tests_utils.h
+  safex_test_common.h)
 
 add_executable(unit_tests
   ${unit_tests_sources}
@@ -85,6 +91,7 @@ target_link_libraries(unit_tests
     cryptonote_protocol
     cryptonote_core
     blockchain_db
+    safex_core
     rpc
     wallet
     p2p

@@ -93,7 +93,7 @@ static bool find_nonce_for_given_block(block &bl, const difficulty_type &diffic,
   for (; bl.nonce != std::numeric_limits<uint32_t>::max(); bl.nonce++)
   {
     crypto::hash h;
-    get_block_longhash(bl, h, height);
+    get_block_longhash(NULL, bl, h, height, 0);
 
     if (check_hash(h, diffic))
     {
@@ -147,7 +147,6 @@ protected:
           src.push_output(0, boost::get<txout_to_key>(m_blocks[i - 1].miner_tx.vout[0].target).key, src.amount);
           src.real_out_tx_key = cryptonote::get_tx_pub_key_from_extra(m_blocks[i - 1].miner_tx);
           src.real_output = 0;
-          src.rct = false;
           src.real_output_in_tx_index = 0;
         }
         //fill outputs entry

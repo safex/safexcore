@@ -94,8 +94,6 @@ namespace cryptonote
         bool recover, bool two_random, const std::string &old_language);
     bool new_wallet(const boost::program_options::variables_map& vm, const cryptonote::account_public_address& address,
         const boost::optional<crypto::secret_key>& spendkey, const crypto::secret_key& viewkey);
-    bool new_wallet(const boost::program_options::variables_map& vm,
-        const std::string &multisig_keys, const std::string &old_language);
     bool new_wallet(const boost::program_options::variables_map& vm, const std::string& device_name);
     bool open_wallet(const boost::program_options::variables_map& vm);
     bool close_wallet();
@@ -208,15 +206,6 @@ namespace cryptonote
     bool change_password(const std::vector<std::string>& args);
     bool payment_id(const std::vector<std::string> &args);
     bool print_fee_info(const std::vector<std::string> &args);
-    bool prepare_multisig(const std::vector<std::string>& args);
-    bool make_multisig(const std::vector<std::string>& args);
-    bool finalize_multisig(const std::vector<std::string> &args);
-    bool export_multisig(const std::vector<std::string>& args);
-    bool import_multisig(const std::vector<std::string>& args);
-    bool accept_loaded_tx(const tools::wallet::multisig_tx_set &txs);
-    bool sign_multisig(const std::vector<std::string>& args);
-    bool submit_multisig(const std::vector<std::string>& args);
-    bool export_raw_multisig(const std::vector<std::string>& args);
     bool print_ring(const std::vector<std::string>& args);
     bool set_ring(const std::vector<std::string>& args);
     bool save_known_rings(const std::vector<std::string>& args);
@@ -327,7 +316,6 @@ namespace cryptonote
     std::string m_generate_from_view_key;
     std::string m_generate_from_spend_key;
     std::string m_generate_from_keys;
-    std::string m_generate_from_multisig_keys;
     std::string m_generate_from_json;
     std::string m_mnemonic_language;
     std::string m_import_path;
@@ -337,7 +325,6 @@ namespace cryptonote
 
     crypto::secret_key m_recovery_key;  // recovery key (used as random for wallet gen)
     bool m_restore_deterministic_wallet;  // recover flag
-    bool m_restore_multisig_wallet;  // recover flag
     bool m_non_deterministic;  // old 2-random generation
     bool m_trusted_daemon;
     bool m_allow_mismatched_daemon_version;

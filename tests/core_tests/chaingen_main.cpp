@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
+#if 1
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -128,7 +129,8 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_block_miner_tx_has_out_to_alice);
     GENERATE_AND_PLAY(gen_block_has_invalid_tx);
     GENERATE_AND_PLAY(gen_block_is_too_big);
-    GENERATE_AND_PLAY(gen_block_invalid_binary_format); // Takes up to 3 hours, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 500, up to 30 minutes, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10
+    //GENERATE_AND_PLAY(gen_block_invalid_binary_format); // Takes up to 3 hours, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 500, up to 30 minutes, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10
+
 
     // Transaction verification tests
     GENERATE_AND_PLAY(gen_tx_big_version);
@@ -145,7 +147,9 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_tx_key_image_not_derive_from_tx_key);
     GENERATE_AND_PLAY(gen_tx_key_image_is_invalid);
     GENERATE_AND_PLAY(gen_tx_check_input_unlock_time);
+
     GENERATE_AND_PLAY(gen_tx_txout_to_key_has_invalid_key);
+
     GENERATE_AND_PLAY(gen_tx_output_with_zero_amount);
     GENERATE_AND_PLAY(gen_tx_output_is_not_txout_to_key);
     GENERATE_AND_PLAY(gen_tx_signatures_are_invalid);
@@ -163,70 +167,44 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<false>);
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<true>);
 
-    //todo rewrite overflow tests as requirements are changed with
+    //todo ATANA rewrite overflow tests as requirements are changed with
     // fixed total money supply which is lower than max unit64_t
     //GENERATE_AND_PLAY(gen_uint_overflow_1);
     //GENERATE_AND_PLAY(gen_uint_overflow_2);
 
     GENERATE_AND_PLAY(gen_block_reward);
-
     GENERATE_AND_PLAY(gen_v2_tx_mixable_0_mixin);
     GENERATE_AND_PLAY(gen_v2_tx_mixable_low_mixin);
+    GENERATE_AND_PLAY(gen_v2_tx_dust);
+
+    //todo ATANA check those tests if they are viable or remove them
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_only);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
-    GENERATE_AND_PLAY(gen_v2_tx_dust);
 
-#if (CURRENT_TRANSACTION_VERSION == 2)
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_pre_rct);
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_rct);
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_mixed);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_spend_with_zero_commit);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_zero_vin_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_non_zero_vin_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_non_zero_vout_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_duplicate_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_duplicate_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_remove_vin);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_remove_vin);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_add_vout);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_add_vout);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_increase_vin_and_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_altered_extra);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_altered_extra);
-
-
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_22_1_2);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_22_1_2_many_inputs);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_22_2_1);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_33_1_23);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_33_3_21);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_23_1_2);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_23_1_3);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_23_2_1);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_23_2_3);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_45_1_234);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_45_4_135_many_inputs);
-    GENERATE_AND_PLAY(gen_multisig_tx_valid_89_3_1245789);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_23_1__no_threshold);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_45_5_23_no_threshold);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_22_1__no_threshold);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_33_1__no_threshold);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_33_1_2_no_threshold);
-    GENERATE_AND_PLAY(gen_multisig_tx_invalid_33_1_3_no_threshold);
 #endif
+
+#if 1
+    /* safex advanced functionality related tests */
+    GENERATE_AND_PLAY(gen_token_lock_001);
+    GENERATE_AND_PLAY(gen_network_fee_001);
+
+    /* safex tx validation */
+    GENERATE_AND_PLAY(gen_tx_not_enough_tokens_to_lock);
+
+    /* accounts */
+    GENERATE_AND_PLAY(gen_safex_account_001);
+
+    //todo atana test unlock and interest invalid transacitons
+
+#else
+
+    GENERATE_AND_PLAY(gen_safex_account_001);
+
+#endif
+
+
+
 
     el::Level level = (failed_tests.empty() ? el::Level::Info : el::Level::Error);
     MLOG(level, "\nREPORT:");

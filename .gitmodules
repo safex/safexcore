@@ -9,3 +9,6 @@
 [submodule "external/protobuf"]
 	path = external/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "external/randomx"]
+	path = external/randomx
+	url = https://github.com/tevador/RandomX

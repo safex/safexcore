@@ -41,10 +41,11 @@
 #include "ring_signature_1.h"
 #include "tx_validation.h"
 #include "v2_tests.h"
-#include "rct.h"
-#include "multisig.h"
 #include "chain_migration.h"
 #include "token_transactions.h"
+#include "token_stake.h"
+#include "network_fee.h"
+#include "safex_account.h"
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
