@@ -927,8 +927,16 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
       error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key");
 
 
+  const crypto::public_key &temp_out_key = *boost::apply_visitor(destination_public_key_visitor(), tx.vout[i].target);
+  LOG_PRINT_L0("Adding output with key and index: " << epee::string_tools::pod_to_hex(temp_out_key) << ", " << i);
+  
+  // Preventing adding same output twice in transaction.
+  if (std::find(outs.begin(), outs.end(), i) != outs.end()) {
+    return;
+  }
+
   outs.push_back(i);
-  if (tx_scan_info.token_transfer && tx_scan_info.output_type == tx_out_type::out_token)
+  if (tx_scan_info.token_transfer && tx_scan_info.output_type == tx_out_type::out_token
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
     tx_scan_info.token_amount = tx_scan_info.token_transfered;
@@ -955,7 +963,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   // (that is, the prunable stuff may or may not be included)
   if (!miner_tx && !pool)
     process_unconfirmed(txid, tx, height);
-  std::vector<size_t> outs;
+  
   std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_money_got_in_outs;  // per receiving subaddress index
   std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_tokens_got_in_outs;  // per receiving subaddress index
   crypto::public_key tx_pub_key = null_pkey;
@@ -974,6 +982,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
   uint64_t total_token_received_1 = 0;
   while (!tx.vout.empty())
   {
+    std::vector<size_t> outs;
     // if tx.vout is not empty, we loop through all tx pubkeys
 
     tx_extra_pub_key pub_key_field;
@@ -1052,6 +1061,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             }
 
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+            LOG_PRINT_L0("SAFEX_LOG: scan_output call at: " << __LINE__ );
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
         }
@@ -1080,6 +1090,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             continue;
           }
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
         }
       }
@@ -1101,12 +1112,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               continue;
           }
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
+          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           hwdev_lock.unlock();
         }
       }
     }
-
+    LOG_PRINT_L0("outs size: " << outs.size() << ", num_vouts_received: " << num_vouts_received);
     if(!outs.empty() && num_vouts_received > 0)
     {
 
@@ -1182,11 +1194,23 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
+          LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
-        else if (m_transfers[kit->second].m_spent || m_transfers[kit->second].amount() >= tx.vout[o].amount || m_transfers[kit->second].token_amount() >= tx.vout[o].token_amount)
+        // @note What are default values for token_amount() ?
+        else if ( m_transfers[kit->second].m_spent || 
+                  (!m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].amount() >= tx_scan_info[o].amount)) || 
+                  (m_transfers[kit->second].m_token_transfer && (m_transfers[kit->second].token_amount() >= tx_scan_info[o].token_amount)))
         {
+          LOG_PRINT_L0("============================= DEBUG ===========================================");
+          LOG_PRINT_L0("m_transfers[kit->second].amount() = " << m_transfers[kit->second].amount() );
+          LOG_PRINT_L0("tx.vout[o].amount = " << tx.vout[o].amount);
+          LOG_PRINT_L0("m_transfers[kit->second].token_amount() = " << m_transfers[kit->second].token_amount());
+          LOG_PRINT_L0("tx.vout[o].token_amount = " << tx.vout[o].token_amount);
+          LOG_PRINT_L0("At output: " << o);
+          LOG_PRINT_L0("===============================================================================");
+
           if (m_transfers[kit->second].m_token_transfer) {
             LOG_ERROR("Public key " << epee::string_tools::pod_to_hex(kit->first)
             << " from received " << print_money(tx.vout[o].token_amount) << " token output already exists with "
@@ -1292,7 +1316,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
-
+            LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
           }
@@ -1407,11 +1431,15 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     }
   }
 
+  uint64_t sub_change = 0;
   // remove change sent to the spending subaddress account from the list of received funds
   for (auto i = tx_money_got_in_outs.begin(); i != tx_money_got_in_outs.end();)
   {
-    if (subaddr_account && i->first.major == *subaddr_account)
+    if (subaddr_account && i->first.major == *subaddr_account) 
+    {
+      sub_change += i->second;
       i = tx_money_got_in_outs.erase(i);
+    }
     else
       ++i;
   }
@@ -1467,12 +1495,21 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
       LOG_PRINT_L2("Found unencrypted payment ID: " << payment_id);
     }
 
-    uint64_t total_received_2 = 0;
+    uint64_t total_received_2 = sub_change;
     uint64_t total_token_received_2 = 0;
     for (const auto& i : tx_money_got_in_outs)
       total_received_2 += i.second;
     for (const auto& i : tx_tokens_got_in_outs)
       total_token_received_2 += i.second;
+    
+    // @todo remove this logs!
+    LOG_PRINT_L0("============================= DEBUG ===========================================");    
+    LOG_PRINT_L0("total_received_1 = " << total_received_1);
+    LOG_PRINT_L0("total_received_2 = " << total_received_2);
+    LOG_PRINT_L0("total_token_received_1 = " << total_token_received_1);
+    LOG_PRINT_L0("total_token_received_2 = " << total_token_received_2);
+    LOG_PRINT_L0("===============================================================================");
+
     if ((total_received_1 != total_received_2) || (total_token_received_1 != total_token_received_2))
     {
       const el::Level level = el::Level::Warning;
