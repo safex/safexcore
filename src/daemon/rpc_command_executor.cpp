@@ -461,6 +461,58 @@ bool t_rpc_command_executor::show_status() {
   return true;
 }
 
+bool t_rpc_command_executor::mining_status()
+{
+  cryptonote::COMMAND_RPC_MINING_STATUS::request mreq;
+  cryptonote::COMMAND_RPC_MINING_STATUS::response mres;
+  epee::json_rpc::error error_resp;
+  bool has_mining_info = true;
+
+  std::string fail_message = "Problem fetching info";
+
+  bool mining_busy = false;
+  if (m_is_rpc)
+  {
+    // mining info is only available non unrestricted RPC mode
+    has_mining_info = m_rpc_client->rpc_request(mreq, mres, "/mining_status", fail_message.c_str());
+  }
+  else
+  {
+    if (!m_rpc_server->on_mining_status(mreq, mres))
+    {
+      tools::fail_msg_writer() << fail_message.c_str();
+      return true;
+    }
+
+    if (mres.status == CORE_RPC_STATUS_BUSY)
+      mining_busy = true;
+    else if (mres.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, mres.status);
+      return true;
+    }
+  }
+
+  if (!has_mining_info)
+  {
+    tools::fail_msg_writer() << "Mining info unavailable";
+    return true;
+  }
+
+  if (mining_busy || !mres.active)
+    tools::msg_writer() << "Not currently mining";
+  else
+    tools::msg_writer() << "Mining at " << get_mining_speed(mres.speed) << " with " << mres.threads_count << " threads";
+
+  if (mres.active || mres.is_background_mining_enabled)
+  {
+    tools::msg_writer() << "PoW algorithm: " << mres.pow_algorithm;
+    tools::msg_writer() << "Mining address: " << mres.address;
+  }
+
+  return true;
+}
+
 bool t_rpc_command_executor::print_connections() {
   cryptonote::COMMAND_RPC_GET_CONNECTIONS::request req = AUTO_VAL_INIT(req);
   cryptonote::COMMAND_RPC_GET_CONNECTIONS::response res = AUTO_VAL_INIT(res);
@@ -1951,5 +2003,118 @@ bool t_rpc_command_executor::sync_info()
 
     return true;
 }
+
+
+bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::response res = AUTO_VAL_INIT(res);
+
+  req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_staked_tokens", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_locked_tokens(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  if (start == 0)
+    tools::success_msg_writer() << "Sum  of currently staked tokens: " << res.pairs[0].amount/SAFEX_TOKEN<<".00";
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of staked tokens: " << item.amount/SAFEX_TOKEN<<".00";
+    }
+  }
+
+  return false;
+}
+  
+bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_NETWORK_FEE::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_NETWORK_FEE::response res = AUTO_VAL_INIT(res);
+
+   req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_network_fee", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_network_fee(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  if (start == 0)
+    tools::success_msg_writer() << "Current network fee amount: " << cryptonote::print_money(res.pairs[0].amount);
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of network fee: "
+                                  << cryptonote::print_money(item.amount);
+    }
+  }
+
+  return false;
+}
+
+
+  bool t_rpc_command_executor::safex_account_info(const std::string& safex_username)
+  {
+    cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::request req = AUTO_VAL_INIT(req);
+    cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::response res = AUTO_VAL_INIT(res);
+
+    req.username = safex_username;
+
+    std::string fail_msg;
+
+    if (m_is_rpc)
+    {
+      if (!m_rpc_client->rpc_request(req, res, "/get_safex_account_info", fail_msg.c_str()))
+      {
+        tools::fail_msg_writer() << "Failed!";
+        return true;
+      }
+    }
+    else
+    {
+      if (!m_rpc_server->on_get_safex_account_info(req, res))
+      {
+        tools::fail_msg_writer() << "Failed to get account info!";
+        return false;
+      }
+    }
+
+
+    tools::success_msg_writer() << "Account: " << safex_username;
+    tools::success_msg_writer() << "Account public key: " << res.pkey;
+    tools::success_msg_writer() << "Account data: " << res.account_data;
+
+    return true;
+  }
 
 }// namespace daemonize

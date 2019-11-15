@@ -50,6 +50,8 @@
 #include "warnings.h"
 #include "crypto/hash.h"
 
+#include "safex/safex_account.h"
+
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
 
@@ -749,7 +751,57 @@ namespace cryptonote
       * @return number of migrated tokens in the range of blocks
       */
      uint64_t get_migrated_tokens(const uint64_t start_offset, const size_t count);
+
+     /**
+      * @brief get the delta of staked and unstaked tokens in block range
+      *
+      * @return if >0, number of newly staked tokens, if <0, number of unstaked tokens in total for range of blocks
+      */
+     int64_t get_staked_tokens(const uint64_t start_offset, const size_t count);
+
+    uint64_t get_current_interval() const;
+
+     /**
+     * @brief get last known token locked sum
+     *
+     * @return amount of locked tokens
+     */
+     uint64_t get_staked_tokens() const;
+
+     /**
+     * @brief get last known token locked sum
+     * @param interval 
+     * 
+     * @return amount of locked tokens
+     */
+     uint64_t get_locked_tokens_for_interval(const uint64_t& interval) const;
+
+     /**
+     * @brief get the delta of network fee in block range
+     *
+     * @return if >0, number of newly collected netowork fee, if <0, amount of distributed network fee to tokenholders
+     */
+     uint64_t get_collected_network_fee(const uint64_t start_offset, const size_t count) const;
+
+
+     /**
+      * @brief get the delta of network fee in block range
+      *
+      * @return if >0, number of newly collected netowork fee, if <0, amount of distributed network fee to tokenholders
+      */
+     uint64_t get_distributed_network_fee(const uint64_t start_offset, const size_t count) const;
      
+     uint64_t get_network_fee_for_interval(const uint64_t& interval) const;
+
+     //-----------------------------------------------------------------------------------------------
+       /**
+      * @brief get safex account info
+      *
+      * @return structure with account info
+      */
+     bool get_safex_account_info(const std::string& username, safex::safex_account& account) const;
+
+
      /**
       * @brief get the network type we're on
       *
@@ -784,6 +836,7 @@ namespace cryptonote
       * @return whether the core is running offline
       */
      bool offline() const { return m_offline; }
+     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
 
    private:
 

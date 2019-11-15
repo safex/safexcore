@@ -73,9 +73,9 @@ namespace tools
     //         get_tx_pool_error
     //       transfer_error *
     //         get_random_outs_general_error
-    //         not_enough_unlocked_money
+    //         not_enough_unlocked_cash
     //         not_enough_unlocked_tokens
-    //         not_enough_money
+    //         not_enough_cash
     //         not_enough_tokens
     //         tx_not_possible
     //         not_enough_outs_to_mix
@@ -195,19 +195,20 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
-    struct multisig_export_needed : public wallet_runtime_error
+    struct not_supported : public wallet_internal_error
     {
-      explicit multisig_export_needed(std::string&& loc)
-        : wallet_runtime_error(std::move(loc), "This signature was made with stale data: export fresh multisig data, which other participants must then use")
+      explicit not_supported(std::string&& loc)
+              : wallet_internal_error(std::move(loc), "wallet operation not supported")
       {
       }
     };
     //----------------------------------------------------------------------------------------------------
-    struct multisig_import_needed : public wallet_runtime_error
+    struct command_not_supported : public wallet_internal_error
     {
-      explicit multisig_import_needed(std::string&& loc)
-        : wallet_runtime_error(std::move(loc), "Not enough multisig data was found to sign: import multisig data from more other participants")
+      explicit command_not_supported(std::string&& loc)
+              : wallet_internal_error(std::move(loc), "wallet operation not supported")
       {
+
       }
     };
     //----------------------------------------------------------------------------------------------------
@@ -412,10 +413,10 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     typedef failed_rpc_request<transfer_error, get_random_outs_error_message_index> get_random_outs_error;
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_unlocked_money : public transfer_error
+    struct not_enough_unlocked_cash : public transfer_error
     {
-      explicit not_enough_unlocked_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
-        : transfer_error(std::move(loc), "not enough unlocked money")
+      explicit not_enough_unlocked_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+        : transfer_error(std::move(loc), "not enough unlocked cash")
         , m_available(available)
         , m_tx_amount(tx_amount)
       {
@@ -464,9 +465,35 @@ namespace tools
       uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_money : public transfer_error
+    struct not_enough_unlocked_staked_tokens : public transfer_error
     {
-      explicit not_enough_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+        explicit not_enough_unlocked_staked_tokens(std::string&& loc, uint64_t token_available, uint64_t tx_token_amount)
+                : transfer_error(std::move(loc), "not enough unlocked staked tokens")
+                , m_staked_token_available(token_available)
+                , m_tx_token_amount(tx_token_amount)
+        {
+        }
+
+        uint64_t token_available() const { return m_staked_token_available; }
+        uint64_t tx_token_amount() const { return m_tx_token_amount; }
+
+        std::string to_string() const
+        {
+          std::ostringstream ss;
+          ss << transfer_error::to_string() <<
+             ", unlocked staked token available = " << cryptonote::print_money(m_staked_token_available) <<
+             ", tx token amount = " << cryptonote::print_money(m_tx_token_amount);
+          return ss.str();
+        }
+
+      private:
+        uint64_t m_staked_token_available;
+        uint64_t m_tx_token_amount;
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct not_enough_cash : public transfer_error
+    {
+      explicit not_enough_cash(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
         : transfer_error(std::move(loc), "not enough money")
         , m_available(available)
         , m_tx_amount(tx_amount)
@@ -514,6 +541,32 @@ namespace tools
     private:
       uint64_t m_token_available;
       uint64_t m_tx_token_amount;
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct not_enough_staked_tokens : public transfer_error
+    {
+        explicit not_enough_staked_tokens(std::string&& loc, uint64_t token_available, uint64_t tx_token_amount)
+                : transfer_error(std::move(loc), "not enough staked tokens")
+                , m_staked_token_available(token_available)
+                , m_tx_token_amount(tx_token_amount)
+        {
+        }
+
+        uint64_t staked_token_available() const { return m_staked_token_available; }
+        uint64_t tx_token_amount() const { return m_tx_token_amount; }
+
+        std::string to_string() const
+        {
+          std::ostringstream ss;
+          ss << transfer_error::to_string() <<
+             ", staked token available = " << cryptonote::print_money(m_staked_token_available) <<
+             ", tx token amount = " << cryptonote::print_money(m_tx_token_amount);
+          return ss.str();
+        }
+
+      private:
+        uint64_t m_staked_token_available;
+        uint64_t m_tx_token_amount;
     };
     //----------------------------------------------------------------------------------------------------
     struct not_whole_token_amount : public transfer_error
@@ -778,6 +831,14 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
+    struct no_matching_available_outputs : public transfer_error
+    {
+      explicit no_matching_available_outputs(std::string&& loc)
+              : transfer_error(std::move(loc), "there are no matching available outputs")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
     struct wallet_rpc_error : public wallet_logic_error
     {
       const std::string& request() const { return m_request; }
@@ -876,7 +937,55 @@ namespace tools
       {
       }
     };
+
     //----------------------------------------------------------------------------------------------------
+    struct insufficient_token_lock_amount : public transfer_error
+    {
+      explicit insufficient_token_lock_amount(std::string&& loc)
+              : transfer_error(std::move(loc), "minumum token amount to lock is"+std::to_string(safex::get_minimum_token_stake_amount()/SAFEX_TOKEN))
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct create_account_fee_error : public transfer_error
+    {
+      explicit create_account_fee_error(std::string&& loc)
+              : transfer_error(std::move(loc), "invalid token create account lock fee")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_invalid_output_error : public transfer_error
+    {
+      explicit safex_invalid_output_error(std::string&& loc)
+              : transfer_error(std::move(loc), "invalid output type")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_unsuported_command_error : public transfer_error
+    {
+      explicit safex_unsuported_command_error(std::string&& loc)
+              : transfer_error(std::move(loc), "unsuported safex command")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_missing_outputs_error : public transfer_error
+    {
+      explicit safex_missing_outputs_error(std::string&& loc)
+              : transfer_error(std::move(loc), "missing advanced output")
+      {
+      }
+    };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_unknown_account : public transfer_error
+    {
+      explicit safex_unknown_account(std::string&& loc)
+              : transfer_error(std::move(loc), "account does not exists")
+      {
+      }
+    };
 
 #if !defined(_MSC_VER)
 

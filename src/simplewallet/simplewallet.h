@@ -58,6 +58,23 @@
  */
 namespace cryptonote
 {
+  enum TransferType {
+    TransferOriginal,
+    TransferNew,
+    TransferLocked,
+    TransferMigration,
+    TransferToken
+  };
+
+  enum CommandType {
+    TransferStakeToken,
+    TransferUnstakeToken,
+    TransferDonation,
+    TransferDemoPurchase,
+    TransferCreateAccount,
+    TransferEditAccount
+  };
+
   /*!
    * \brief Manages wallet operations. This is the most abstracted wallet class.
    */
@@ -94,8 +111,6 @@ namespace cryptonote
         bool recover, bool two_random, const std::string &old_language);
     bool new_wallet(const boost::program_options::variables_map& vm, const cryptonote::account_public_address& address,
         const boost::optional<crypto::secret_key>& spendkey, const crypto::secret_key& viewkey);
-    bool new_wallet(const boost::program_options::variables_map& vm,
-        const std::string &multisig_keys, const std::string &old_language);
     bool new_wallet(const boost::program_options::variables_map& vm, const std::string& device_name);
     bool open_wallet(const boost::program_options::variables_map& vm);
     bool close_wallet();
@@ -142,6 +157,11 @@ namespace cryptonote
     bool set_daemon(const std::vector<std::string> &args);
     bool save_bc(const std::vector<std::string> &args);
     bool refresh(const std::vector<std::string> &args);
+
+
+    bool show_staked_token_balance_unlocked(bool detailed = false);
+    bool show_staked_token_balance(const std::vector<std::string> &args = std::vector<std::string>());
+
     bool show_balance_unlocked(bool detailed = false);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_cash_balance(const std::vector<std::string> &args = std::vector<std::string>());
@@ -187,7 +207,7 @@ namespace cryptonote
     bool get_reserve_proof(const std::vector<std::string> &args);
     bool check_reserve_proof(const std::vector<std::string> &args);
     bool show_transfers(const std::vector<std::string> &args);
-    bool unspent_outputs(const std::vector<std::string> &args, bool token_outputs);
+    bool unspent_outputs(const std::vector<std::string> &args, cryptonote::tx_out_type out_type);
     bool rescan_blockchain(const std::vector<std::string> &args);
     bool refresh_main(uint64_t start_height, bool reset = false, bool is_init = false);
     bool set_tx_note(const std::vector<std::string> &args);
@@ -207,7 +227,6 @@ namespace cryptonote
     bool change_password(const std::vector<std::string>& args);
     bool payment_id(const std::vector<std::string> &args);
     bool print_fee_info(const std::vector<std::string> &args);
-    bool accept_loaded_tx(const tools::wallet::multisig_tx_set &txs);
     bool print_ring(const std::vector<std::string>& args);
     bool set_ring(const std::vector<std::string>& args);
     bool save_known_rings(const std::vector<std::string>& args);
@@ -225,6 +244,26 @@ namespace cryptonote
     bool print_ring_members(const std::vector<tools::wallet::pending_tx>& ptx_vector, std::ostream& ostr);
     std::string get_prompt() const;
     bool print_seed(bool encrypted);
+
+    /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
+
+    bool get_my_interest(const std::vector<std::string>& args);
+    void print_safex_accounts();
+
+    // ------ Mock up for demo
+    bool list_demo_offers(const std::vector<std::string>& args);
+
+    // Function responsible for 
+    bool create_command(CommandType command_type, const std::vector<std::string> &args);
+
+    bool stake_token(const std::vector<std::string> &args);
+    bool unstake_token(const std::vector<std::string> &args);
+    bool donate_safex_fee(const std::vector<std::string>& args);
+    bool staked_token_balance(const std::vector <std::string> &args);
+    bool safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/);
+
+    bool demo_purchase(const std::vector<std::string>& args);
+    /****************************************************************************************************************/
 
     /*!
      * \brief Prints the seed with a nice message
@@ -251,6 +290,7 @@ namespace cryptonote
     virtual void on_new_block(uint64_t height, const cryptonote::block& block);
     virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_tokens_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t token_amount, const cryptonote::subaddress_index& subaddr_index);
+    virtual void on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_unconfirmed_tokens_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t token_amount, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_money_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx, uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index);
@@ -349,5 +389,9 @@ namespace cryptonote
     bool m_auto_refresh_refreshing;
     std::atomic<bool> m_in_manual_refresh;
     uint32_t m_current_subaddress_account;
+
+
+    // ------------------------ Dummy offerids
+    std::map<std::string, std::string> simple_trade_ids;
   };
 }

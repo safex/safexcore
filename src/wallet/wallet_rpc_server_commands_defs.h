@@ -66,6 +66,8 @@ namespace wallet_rpc
       uint64_t unlocked_balance;
       uint64_t token_balance;
       uint64_t unlocked_token_balance;
+      uint64_t staked_tokens;
+      uint64_t unlocked_staked_tokens;
       std::string label;
       uint64_t num_unspent_outputs;
       uint64_t num_unspent_token_outputs;
@@ -77,6 +79,8 @@ namespace wallet_rpc
         KV_SERIALIZE(unlocked_balance)
         KV_SERIALIZE(token_balance)
         KV_SERIALIZE(unlocked_token_balance)
+        KV_SERIALIZE(staked_tokens)
+        KV_SERIALIZE(unlocked_staked_tokens)
         KV_SERIALIZE(label)
         KV_SERIALIZE(num_unspent_outputs)
         KV_SERIALIZE(num_unspent_token_outputs)
@@ -89,6 +93,8 @@ namespace wallet_rpc
       uint64_t unlocked_balance;
       uint64_t token_balance;
       uint64_t unlocked_token_balance;
+      uint64_t staked_tokens;
+      uint64_t unlocked_staked_tokens;
       bool multisig_import_needed;
       std::vector<per_subaddress_info> per_subaddress;
 
@@ -97,6 +103,8 @@ namespace wallet_rpc
         KV_SERIALIZE(unlocked_balance)
         KV_SERIALIZE(token_balance)
         KV_SERIALIZE(unlocked_token_balance)
+        KV_SERIALIZE(staked_tokens)
+        KV_SERIALIZE(unlocked_staked_tokens)
         KV_SERIALIZE(multisig_import_needed)
         KV_SERIALIZE(per_subaddress)
       END_KV_SERIALIZE_MAP()
@@ -2246,6 +2254,299 @@ struct COMMAND_RPC_REFRESH
     END_KV_SERIALIZE_MAP()
   };
   typedef epee::misc_utils::struct_init<response_t> response;
+};
+
+// @todo Work in progress.
+
+struct COMMAND_RPC_STAKE_TOKEN
+{
+  struct request
+  {
+    std::list<transfer_destination> destinations;
+    uint32_t account_index;
+    std::set<uint32_t> subaddr_indices;
+    uint32_t priority;
+    uint64_t mixin;
+    uint64_t ring_size;
+    uint64_t unlock_time;
+    std::string payment_id;
+    bool get_tx_key;
+    bool do_not_relay;
+    bool get_tx_hex;
+    bool get_tx_metadata;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(destinations)
+        KV_SERIALIZE(account_index)
+        KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE(priority)
+        KV_SERIALIZE_OPT(mixin, (uint64_t)0)
+        KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
+        KV_SERIALIZE(unlock_time)
+        KV_SERIALIZE(payment_id)
+        KV_SERIALIZE(get_tx_key)
+        KV_SERIALIZE_OPT(do_not_relay, false)
+        KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    std::string tx_hash;
+    std::string tx_key;
+    std::list<std::string> amount_keys;
+    uint64_t token_amount;
+    uint64_t fee;
+    std::string tx_blob;
+    std::string tx_metadata;
+    std::string multisig_txset;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash)
+        KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(amount_keys)
+        KV_SERIALIZE(token_amount)
+        KV_SERIALIZE(fee)
+        KV_SERIALIZE(tx_blob)
+        KV_SERIALIZE(tx_metadata)
+        KV_SERIALIZE(multisig_txset)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
+struct COMMAND_RPC_UNSTAKE_TOKEN
+{
+  struct request
+  {
+    std::list<transfer_destination> destinations;
+    uint32_t account_index;
+    std::set<uint32_t> subaddr_indices;
+    uint32_t priority;
+    uint64_t mixin;
+    uint64_t ring_size;
+    uint64_t unlock_time;
+    std::string payment_id;
+    bool get_tx_key;
+    bool do_not_relay;
+    bool get_tx_hex;
+    bool get_tx_metadata;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(destinations)
+        KV_SERIALIZE(account_index)
+        KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE(priority)
+        KV_SERIALIZE_OPT(mixin, (uint64_t)0)
+        KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
+        KV_SERIALIZE(unlock_time)
+        KV_SERIALIZE(payment_id)
+        KV_SERIALIZE(get_tx_key)
+        KV_SERIALIZE_OPT(do_not_relay, false)
+        KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    std::string tx_hash;
+    std::string tx_key;
+    std::list<std::string> amount_keys;
+    uint64_t token_amount;
+    uint64_t fee;
+    std::string tx_blob;
+    std::string tx_metadata;
+    std::string multisig_txset;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash)
+        KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(amount_keys)
+        KV_SERIALIZE(token_amount)
+        KV_SERIALIZE(fee)
+        KV_SERIALIZE(tx_blob)
+        KV_SERIALIZE(tx_metadata)
+        KV_SERIALIZE(multisig_txset)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
+struct COMMAND_RPC_DONATE_SAFEX_FEE
+{
+  struct request
+  {
+    std::list<transfer_destination> destinations;
+    uint32_t account_index;
+    std::set<uint32_t> subaddr_indices;
+    uint32_t priority;
+    uint64_t mixin;
+    uint64_t ring_size;
+    uint64_t unlock_time;
+    std::string payment_id;
+    bool get_tx_key;
+    bool do_not_relay;
+    bool get_tx_hex;
+    bool get_tx_metadata;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(destinations)
+        KV_SERIALIZE(account_index)
+        KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE(priority)
+        KV_SERIALIZE_OPT(mixin, (uint64_t)0)
+        KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
+        KV_SERIALIZE(unlock_time)
+        KV_SERIALIZE(payment_id)
+        KV_SERIALIZE(get_tx_key)
+        KV_SERIALIZE_OPT(do_not_relay, false)
+        KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    std::string tx_hash;
+    std::string tx_key;
+    std::list<std::string> amount_keys;
+    uint64_t token_amount;
+    uint64_t fee;
+    std::string tx_blob;
+    std::string tx_metadata;
+    std::string multisig_txset;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash)
+        KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(amount_keys)
+        KV_SERIALIZE(token_amount)
+        KV_SERIALIZE(fee)
+        KV_SERIALIZE(tx_blob)
+        KV_SERIALIZE(tx_metadata)
+        KV_SERIALIZE(multisig_txset)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
+struct COMMAND_RPC_DEMO_PURCHASE 
+{
+  struct request
+  {
+    std::list<transfer_destination> destinations;
+    uint32_t account_index;
+    std::string offer_id;
+    std::set<uint32_t> subaddr_indices;
+    uint32_t priority;
+    uint64_t mixin;
+    uint64_t ring_size;
+    uint64_t unlock_time;
+    std::string payment_id;
+    bool get_tx_key;
+    bool do_not_relay;
+    bool get_tx_hex;
+    bool get_tx_metadata;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(destinations)
+        KV_SERIALIZE(account_index)
+        KV_SERIALIZE(offer_id)
+        KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE(priority)
+        KV_SERIALIZE_OPT(mixin, (uint64_t)0)
+        KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
+        KV_SERIALIZE(unlock_time)
+        KV_SERIALIZE(payment_id)
+        KV_SERIALIZE(get_tx_key)
+        KV_SERIALIZE_OPT(do_not_relay, false)
+        KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    std::string tx_hash;
+    std::string tx_key;
+    std::string purchased_offer_id;
+    std::list<std::string> amount_keys;
+    uint64_t token_amount;
+    uint64_t fee;
+    std::string tx_blob;
+    std::string tx_metadata;
+    std::string multisig_txset;
+
+  BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash)
+        KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(purchased_offer_id)
+        KV_SERIALIZE(amount_keys)
+        KV_SERIALIZE(token_amount)
+        KV_SERIALIZE(fee)
+        KV_SERIALIZE(tx_blob)
+        KV_SERIALIZE(tx_metadata)
+        KV_SERIALIZE(multisig_txset)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
+struct COMMAND_RPC_GET_DEMO_OFFERS 
+{
+  struct request
+  {
+    uint64_t test;
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(test)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct offer {
+    std::string offer_id;
+    std::string offer_title;
+    BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(offer_id)
+        KV_SERIALIZE(offer_title)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    std::vector<offer> offers;
+
+    BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(offers)
+    END_KV_SERIALIZE_MAP()
+  };
+};
+
+struct COMMAND_RPC_GET_AVAILABLE_INTEREST 
+{
+  struct request
+  {
+    BEGIN_KV_SERIALIZE_MAP()
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct per_output {
+    uint64_t amount;
+    uint64_t interest;
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(amount)
+      KV_SERIALIZE(interest)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct response
+  {
+    uint64_t available_interest;
+    std::vector<per_output> interest_per_output;
+
+    BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(available_interest)
+        KV_SERIALIZE(interest_per_output)
+    END_KV_SERIALIZE_MAP()
+  };
 };
 
 }

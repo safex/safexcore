@@ -55,6 +55,7 @@ using namespace epee;
 #include "blockchain_db/blockchain_db.h"
 #include "ringct/rctSigs.h"
 #include "version.h"
+#include "safex/command.h"
 
 #ifdef SAFEX_PROTOBUF_RPC
   #include "protobuf/cryptonote_to_protobuf.h"
@@ -167,7 +168,7 @@ namespace cryptonote
   core::core(i_cryptonote_protocol* pprotocol):
               m_mempool(m_blockchain_storage),
               m_blockchain_storage(m_mempool),
-              m_miner(this),
+              m_miner(this, &m_blockchain_storage),
               m_miner_address(boost::value_initialized<account_public_address>()),
               m_starter_message_showed(false),
               m_target_blockchain_height(0),
@@ -421,7 +422,7 @@ namespace cryptonote
     // folder might not be a directory, etc, etc
     catch (...) { }
 
-    std::unique_ptr<BlockchainDB> db(new_db(db_type));
+    std::unique_ptr<BlockchainDB> db(new_db(db_type, m_nettype));
     if (db == NULL)
     {
       LOG_ERROR("Attempted to use non-existent database type");
@@ -527,6 +528,8 @@ namespace cryptonote
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize blockchain storage");
 
     block_sync_size = command_line::get_arg(vm, arg_block_sync_size);
+    if (block_sync_size > BLOCKS_SYNCHRONIZING_MAX_COUNT)
+      MERROR("Error --block-sync-size cannot be greater than " << BLOCKS_SYNCHRONIZING_MAX_COUNT);
 
     MGINFO("Loading checkpoints");
 
@@ -773,6 +776,17 @@ namespace cryptonote
     return true;
   }
 
+  bool check_advanced_tx_semantic(const transaction& tx)
+  {
+    //todo atana implement for various usecases
+
+    //todo atana implement check for token unlock interest validity
+
+
+    return true;
+  }
+
+
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_semantic(const transaction& tx, bool keeped_by_block) const
   {
@@ -796,14 +810,8 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
+
+
 
     if(!check_money_overflow(tx))
     {
@@ -811,13 +819,13 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
+    if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
     {
       uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+      get_inputs_cash_amount(tx, amount_in);
+      uint64_t amount_out = get_outs_cash_amount(tx);
 
-      if(amount_in <= amount_out)
+      if (amount_in <= amount_out)
       {
         MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
@@ -827,13 +835,17 @@ namespace cryptonote
       get_inputs_token_amount(tx, tokens_in);
       uint64_t tokens_out = get_outs_token_amount(tx);
 
-      if(tokens_in < tokens_out)
+      if (tokens_in < tokens_out)
       {
         MERROR_VER("tx with wrong token amounts: ins " << tokens_in << ", outs " << tokens_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
       }
     }
-    // for version > 1, ringct signatures check verifies amounts match
+    else
+    {
+      MERROR_VER("Unsuported transaction version");
+      return false;
+    }
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -860,35 +872,13 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version >= 2)
+    //check tx version 2 semantics
+    if (!check_advanced_tx_semantic(tx))
     {
-      const rct::rctSig &rv = tx.rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          return false;
-        case rct::RCTTypeSimple:
-        case rct::RCTTypeSimpleBulletproof:
-          if (!rct::verRctSimple(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        case rct::RCTTypeFull:
-        case rct::RCTTypeFullBulletproof:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          return false;
-      }
+      MERROR_VER("Advanced transaction is not valid");
+      return false;
     }
+
 
     return true;
   }
@@ -935,7 +925,7 @@ namespace cryptonote
         [this, &emission_amount, &total_fee_amount](uint64_t, const crypto::hash& hash, const block& b){
       std::list<transaction> txs;
       std::list<crypto::hash> missed_txs;
-      uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
+      uint64_t coinbase_amount = get_outs_cash_amount(b.miner_tx);
       this->get_transactions(b.tx_hashes, txs, missed_txs);      
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
@@ -975,12 +965,122 @@ namespace cryptonote
     return total_migrated_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
+  int64_t core::get_staked_tokens(const uint64_t start_offset, const size_t count)
+  {
+    int64_t total_staked_tokens_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_staked_tokens_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_staked_tokens_amount += get_token_staked_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_staked_tokens_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_staked_tokens() const
+  {
+    return this->m_blockchain_storage.get_current_staked_token_sum();
+  }
+
+  uint64_t core::get_locked_tokens_for_interval(const uint64_t& interval) const
+  {
+    return this->m_blockchain_storage.get_staked_token_sum_for_interval(interval);
+  }
+
+  uint64_t core::get_current_interval() const {
+    return safex::calculate_interval_for_height(this->get_current_blockchain_height(), m_nettype);
+  }
+
+
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_collected_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_collected_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_distributed_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_distributed_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_network_fee_for_interval(const uint64_t& interval) const
+  {
+    return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(interval));
+  }
+
+  //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_account_info(const std::string& username, safex::safex_account& account) const
+  {
+    std::vector<uint8_t> accdata;
+    if (!this->m_blockchain_storage.get_safex_account_data(username, accdata)) {
+      MERROR_VER("Unable to get safex account data for username " << username);
+      return false;
+    }
+    crypto::public_key pkey;
+    if (!this->m_blockchain_storage.get_safex_account_public_key(username, pkey)) {
+      MERROR_VER("Unable to get safex account pkey for username " << username);
+      return false;
+    }
+
+    account = safex::safex_account{username, pkey, accdata};
+    return true;
+  }
+
+
+  //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
   {
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if (cryptonote::is_valid_transaction_input_type(in)) {
+      if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         if(!ki.insert(k_image).second)
           return false;
@@ -1017,7 +1117,30 @@ namespace cryptonote
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
           return false;
-      } else if ((in.type() == typeid(const txin_token_migration))) {
+      } else if (in.type() == typeid(const txin_to_script)) {
+
+        const txin_to_script &txin = boost::get<const txin_to_script>(in);
+        if (txin.command_type == safex::command_t::distribute_network_fee) {
+          // todo atana: check if this is necessary
+          LOG_PRINT_L2("skip key image validation of distributed network fee");
+        } else if (txin.command_type == safex::command_t::edit_account) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
+          safex::edit_account_data account(cmd->get_username(), cmd->get_new_account_data());
+          crypto::hash cmd_hash{};
+          get_object_hash(account, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+        }
+        else {
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          // invalid key_image
+          if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
+            return false;
+        }
+      }
+      else if (in.type() == typeid(const txin_token_migration)) {
         // todo igor: check if this is necessary
       } else {
         CHECK_AND_ASSERT_MES(false, false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() <<
@@ -1058,8 +1181,8 @@ namespace cryptonote
       return true;
     }
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, version);
+    uint8_t hf_version = m_blockchain_storage.get_current_hard_fork_version();
+    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, hf_version);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::relay_txpool_transactions()
@@ -1624,4 +1747,10 @@ namespace cryptonote
   {
     raise(SIGTERM);
   }
+
+  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval) 
+  {
+    return m_blockchain_storage.get_interest_map(begin_interval, end_interval);
+  }
+
 }

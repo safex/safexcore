@@ -752,9 +752,9 @@ std::string get_nix_version_display_string()
     return true;
   }
 
-  bool is_whole_coin_amount(uint64_t amount)
+  bool is_whole_token_amount(uint64_t token_amount)
   {
-    return amount % SAFEX_CASH_COIN == 0;
+    return token_amount % SAFEX_TOKEN == 0;
   }
 
 }

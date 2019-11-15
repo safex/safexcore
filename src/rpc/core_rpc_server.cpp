@@ -799,8 +799,21 @@ namespace cryptonote
         add_reason(res.reason, "overspend");
       if ((res.fee_too_low = tvc.m_fee_too_low))
         add_reason(res.reason, "fee too low");
-      if ((res.not_rct = tvc.m_not_rct))
-        add_reason(res.reason, "tx is not ringct");
+      if ((res.non_supported_version = tvc.m_non_supported_version))
+        add_reason(res.reason, "tx version is not supported");
+      if ((res.safex_verification_failed = tvc.m_safex_verification_failed))
+        add_reason(res.reason, "verification of safex logic has failed");
+      if ((res.safex_invalid_command = tvc.m_safex_invalid_command))
+        add_reason(res.reason, "invalid safex command");
+      if ((res.safex_invalid_command_params = tvc.m_safex_invalid_command_params))
+        add_reason(res.reason, "invalid safex command parameters");
+      if ((res.safex_invalid_input = tvc.m_safex_invalid_input))
+        add_reason(res.reason, "invalid safex script inputs");
+      if ((res.safex_command_execution_failed = tvc.m_safex_command_execution_failed))
+        add_reason(res.reason, "safex command execution failed");
+
+
+
       const std::string punctuation = res.reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {
@@ -978,6 +991,16 @@ namespace cryptonote
       res.threads_count = lMiner.get_threads_count();
       const account_public_address& lMiningAdr = lMiner.get_mining_address();
       res.address = get_account_address_as_str(m_nettype, false, lMiningAdr);
+      const uint8_t major_version = m_core.get_blockchain_storage().get_current_hard_fork_version();
+      const unsigned variant = (major_version < RX_BLOCK_VERSION ? major_version : RX_BLOCK_VERSION) - 1;
+      switch (variant)
+      {
+        case 0: res.pow_algorithm = "Cryptonight"; break;
+        case 1: res.pow_algorithm = "CNv1 (Cryptonight variant 1)"; break;
+        case 2: case 3: res.pow_algorithm = "CNv2 (Cryptonight variant 2)"; break;
+        case 4: res.pow_algorithm = "RandomX"; break;
+        default: res.pow_algorithm = "I'm not sure actually"; break;
+      }
     }
 
     res.status = CORE_RPC_STATUS_OK;
@@ -1214,6 +1237,18 @@ namespace cryptonote
       error_resp.message = "Internal error: failed to create block template";
       LOG_ERROR("Failed to create block template");
       return false;
+    }
+    if (b.major_version >= RX_BLOCK_VERSION)
+    {
+      uint64_t seed_height, next_height;
+      crypto::hash seed_hash;
+      crypto::rx_seedheights(res.height, &seed_height, &next_height);
+      seed_hash = m_core.get_block_id_by_height(seed_height);
+      res.seed_hash = string_tools::pod_to_hex(seed_hash);
+      if (next_height != seed_height) {
+        seed_hash = m_core.get_block_id_by_height(next_height);
+        res.next_seed_hash = string_tools::pod_to_hex(seed_hash);
+      }
     }
     blobdata block_blob = t_serializable_object_to_blob(b);
     crypto::public_key tx_pub_key = cryptonote::get_tx_pub_key_from_extra(b.miner_tx);
@@ -2278,6 +2313,94 @@ namespace cryptonote
     }
 
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
+  {
+    if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_staked_tokens()});
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
+          }
+        }
+        else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res)
+  {
+     if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{m_core.get_current_interval(), m_core.get_network_fee_for_interval(m_core.get_current_interval())});
+      res.status = "OK";
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{req.interval, m_core.get_network_fee_for_interval(req.interval)});
+        res.status = "OK";
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{i, m_core.get_network_fee_for_interval(i)});
+            res.status = "OK";
+          }
+        }
+        else {
+          res.status = "FAILED";
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res) 
+  {
+    if(req.begin_interval > req.end_interval){
+      res.status = "There are no good interval values provided.";
+      return false;
+    }
+    else {
+      std::map<uint64_t, uint64_t> interests = m_core.get_interest_map(req.begin_interval, req.end_interval);
+      
+      for(auto interest : interests)
+      {
+         res.interest_per_interval.push_back({interest.first, interest.second});
+      }
+      res.status = "OK";
+    }
+
+    return true;
+  }
+
+  bool core_rpc_server::on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res)
+  {
+
+    safex::safex_account account;
+    if (!m_core.get_safex_account_info(req.username, account)) {
+      res.status = "Unable to retrieve account data";
+      return false;
+    }
+
+    res.pkey = epee::string_tools::pod_to_hex(account.pkey);
+
+    res.account_data = std::string(std::begin(account.account_data), std::end(account.account_data));
+    res.status = "OK";
+
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
