@@ -112,6 +112,7 @@ if(BUILD_SAFEX_PROTOBUF_RPC)
       common
       cncrypto
       blockchain_db
+      safex_core
       multisig
       ringct
       device
@@ -136,6 +137,7 @@ else()
       common
       cncrypto
       blockchain_db
+      safex_core
       multisig
       ringct
       device
