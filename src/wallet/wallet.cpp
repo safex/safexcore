@@ -135,12 +135,12 @@ void do_prepare_file_names(const std::string& file_path, std::string& keys_file,
   {//provided wallet file name
     keys_file += ".keys";
   }
-    if(string_tools::get_extension(safex_keys_file) == "safex_keys")
+    if(string_tools::get_extension(safex_keys_file) == "safex_account_keys")
     {//provided keys file name
         wallet_file = string_tools::cut_off_extension(wallet_file);
     }else
     {//provided wallet file name
-        safex_keys_file += ".safex_keys";
+        safex_keys_file += ".safex_account_keys";
     }
 }
 
@@ -2750,7 +2750,7 @@ bool wallet::store_keys(const std::string& keys_file_name, const epee::wipeable_
         std::string buf;
         r = ::serialization::dump_binary(safex_keys_file_data, buf);
         r = r && epee::file_io_utils::save_string_to_file(safex_keys_file_name, buf); //and never touch wallet_keys_file again, only read
-        CHECK_AND_ASSERT_MES(r, false, "failed to generate wallet safex keys file " << safex_keys_file_name);
+        CHECK_AND_ASSERT_MES(r, false, "failed to generate wallet safex account keys file " << safex_keys_file_name);
 
         return true;
     }
