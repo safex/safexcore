@@ -203,6 +203,12 @@ bool gen_safex_account_001::verify_safex_account(cryptonote::core &c, size_t ev_
     c.get_blockchain_storage().get_safex_account_public_key(username03, pkey3);
     CHECK_EQ(memcmp((void *)&pkey3, (void *)&expected_daniel_account_key, sizeof(pkey3)), 0);
 
+    std::vector<std::pair<std::string,std::string>> accounts;
+    c.get_safex_accounts(accounts);
+
+    std::cout << "All accounts in blockchain" << std::endl;
+    for(auto account: accounts)
+        std::cout << "Username: " << account.first << std::endl<<"\tDescription: "<<account.second<<endl;
 
   std::vector<uint8_t> accdata01;
   c.get_blockchain_storage().get_safex_account_data(username01, accdata01);

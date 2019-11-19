@@ -1781,6 +1781,14 @@ namespace cryptonote
       virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const = 0;
 
 
+      /**
+       * @brief fetch safex accounts from the blockchain
+       *
+       * The subclass should return safex account usernames and descriptions
+       *
+       * @return Safex accounts currently in the blockchain
+       */
+      virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const = 0;
 
       //
       // Hard fork related storage

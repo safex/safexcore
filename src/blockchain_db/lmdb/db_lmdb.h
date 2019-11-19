@@ -319,6 +319,7 @@ public:
   virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const;
   virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const;
 
+  virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
 
 
   virtual uint64_t add_block( const block& blk

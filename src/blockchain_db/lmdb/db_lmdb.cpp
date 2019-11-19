@@ -4476,7 +4476,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       throw1(DB_ERROR(lmdb_error(std::string("Error checking if account exists for username ").append(username.c_str()) + ": ", result).c_str()));
     }
 
-    MDB_val_copy2<char[32], const std::vector<uint8_t>> acc_info(pkey.data, sizeof(pkey), account_data);
+    safex::create_account_data sfx_account_data{std::string{username.username.begin(),username.username.end()},pkey,account_data};
+    MDB_val_copy<blobdata> acc_info(t_serializable_object_to_blob(sfx_account_data));
     result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, MDB_NOOVERWRITE);
     if (result)
       throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
@@ -4505,7 +4506,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       get_account_key(username, pkey);
 
       MDB_val_set(k2, username_hash);
-      MDB_val_copy2<const char[32], const std::vector<uint8_t>> vupdate(pkey.data, sizeof(pkey), new_data);
+      safex::create_account_data sfx_account_data{std::string{username.username.begin(),username.username.end()},pkey,new_data};
+      MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_account_data));
       auto result2 = mdb_cursor_put(cur_safex_account, &k2, &vupdate, (unsigned int) MDB_CURRENT);
       if (result2 != MDB_SUCCESS)
         throw0(DB_ERROR(lmdb_error("Failed to update account data for username: "+boost::lexical_cast<std::string>(username.c_str()), result2).c_str()));
@@ -4688,14 +4690,59 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
     else if (get_result == MDB_SUCCESS)
     {
-      crypto::public_key *ptr = (crypto::public_key *) v.mv_data;
-      memcpy((void *)&pkey, ptr, sizeof(crypto::public_key));
+      safex::create_account_data sfx_account;
+      const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+      cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
+
+      pkey = sfx_account.pkey;
     }
 
     TXN_POSTFIX_RDONLY();
 
     return true;
   };
+
+    bool BlockchainLMDB::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const{
+
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+
+      MDB_cursor *cur_safex_account;
+      RCURSOR(safex_account);
+      cur_safex_account = m_cur_safex_account;
+
+      crypto::hash username_hash{};
+      uint8_t temp[sizeof(safex::create_account_data)];
+
+      MDB_val_set(k, username_hash);
+      MDB_val_set(v, temp);
+
+      auto result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_FIRST);
+
+      while (result == MDB_SUCCESS)
+      {
+          safex::create_account_data sfx_account;
+          const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+
+          if(!cryptonote::parse_and_validate_from_blob(accblob, sfx_account)){
+              result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_NEXT);
+              continue;
+          }
+
+          std::string str_username{sfx_account.username.begin(),sfx_account.username.end()};
+          std::string str_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+
+          safex_accounts.emplace_back(std::make_pair(str_username,str_data));
+
+          result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_NEXT);
+      }
+
+      TXN_POSTFIX_RDONLY();
+
+      return true;
+  }
 
   bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -4722,8 +4769,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
                   lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()),
                              get_result).c_str()));
       } else if (get_result == MDB_SUCCESS) {
-          uint8_t *ptr = (uint8_t *) v.mv_data + sizeof(crypto::public_key);
-          data = std::vector<uint8_t>(ptr, ptr + v.mv_size - sizeof(crypto::public_key));
+          safex::create_account_data sfx_account;
+          const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+          cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
+
+          data = sfx_account.account_data;
       }
 
       TXN_POSTFIX_RDONLY();

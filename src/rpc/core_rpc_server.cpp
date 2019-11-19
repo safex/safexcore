@@ -154,6 +154,25 @@ namespace cryptonote
 #define CHECK_CORE_READY() do { if(!check_core_ready()){res.status =  CORE_RPC_STATUS_BUSY;return true;} } while(0)
 
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_safex_accounts(const COMMAND_RPC_GET_SAFEX_ACCOUNTS::request& req, COMMAND_RPC_GET_SAFEX_ACCOUNTS::response& res)
+  {
+    PERF_TIMER(on_get_safex_accounts);
+    bool r;
+    if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_ACCOUNTS>(invoke_http_mode::JON, "/get_safex_accounts", req, res, r))
+        return r;
+
+    std::vector<std::pair<std::string, std::string>> accounts;
+    bool result  = m_core.get_safex_accounts(accounts);
+
+    for(auto acc: accounts) {
+        COMMAND_RPC_GET_SAFEX_ACCOUNTS::entry ent{acc.first, acc.second};
+        res.accounts.push_back(ent);
+    }
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+  //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res)
   {
     PERF_TIMER(on_get_height);

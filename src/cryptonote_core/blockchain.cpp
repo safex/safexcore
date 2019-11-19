@@ -5841,5 +5841,10 @@ bool Blockchain::get_safex_offer_active_status(const crypto::hash &offerID, bool
     }
 }
 
+bool Blockchain::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
 
+    return m_db->get_safex_accounts(safex_accounts);
+}
 

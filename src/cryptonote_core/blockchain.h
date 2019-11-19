@@ -1042,6 +1042,7 @@ namespace cryptonote
     bool get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const;
     bool get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const;
 
+    bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
   private:
 
     struct outputs_generic_visitor

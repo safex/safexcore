@@ -801,6 +801,12 @@ namespace cryptonote
       */
      bool get_safex_account_info(const std::string& username, safex::safex_account& account) const;
 
+       /**
+       * @brief gets pair of elements <username, safex_account_description>
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
 
      /**
       * @brief get the network type we're on
