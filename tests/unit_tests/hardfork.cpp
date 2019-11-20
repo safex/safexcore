@@ -121,6 +121,7 @@ public:
   virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const { return true; };
   virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; };
   virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const { return true; };
+  virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const { return true; };
 
 
   virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }

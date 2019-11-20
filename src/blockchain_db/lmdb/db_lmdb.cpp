@@ -1138,9 +1138,40 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       if ((result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, (unsigned int) MDB_CURRENT)))
           throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex offer entry: ", result).c_str()));
     }
-  else if (output_type_c == cryptonote::tx_out_type::out_safex_purchase){
+  else if (output_type_c == cryptonote::tx_out_type::out_safex_purchase) {
       uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
       update_network_fee_sum_for_interval(interval, tx_output.amount);
+  }
+  else if (output_type_c == cryptonote::tx_out_type::out_safex_account)
+  {
+      //Add TX output_id to the safex_account table
+      MDB_cursor *cur_safex_account;
+      CURSOR(safex_account)
+      cur_safex_account = m_cur_safex_account;
+
+      int result;
+      MDB_val val_username_hash;
+      MDB_val val_data;
+      result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username_hash, (MDB_val*)&val_data, MDB_GET_CURRENT);
+      if(result)
+          LOG_PRINT_L0(result);
+
+      safex::create_account_result account;
+      std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
+      parse_and_validate_object_from_blob<safex::create_account_result>(tmp,account);
+
+      if(account.output_id == 0)
+          account.output_id = output_id;
+      else
+          throw0(DB_ERROR(lmdb_error("Failed to add output id as it is already there for safex account entry: ", result).c_str()));
+
+      blobdata blob{};
+      t_serializable_object_to_blob(account,blob);
+      MDB_val_copy<blobdata> account_info(blob);
+
+
+      if ((result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username_hash, &account_info, (unsigned int) MDB_CURRENT)))
+          throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex account entry: ", result).c_str()));
   }
 
 }
@@ -1449,9 +1480,10 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       throw1(DB_ERROR("Error executing add safex account command"));
     }
 
-    //todo create account in database table here
+    blobdata blob{};
+    t_serializable_object_to_blob(*result,blob);
 
-    add_safex_account(safex::account_username{result->username}, result->pkey, result->account_data);
+    add_safex_account(safex::account_username{result->username}, blob);
 
   }
   else if (txin.command_type == safex::command_t::edit_account)
@@ -1465,7 +1497,8 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       throw1(DB_ERROR("Error executing add safex account command"));
     }
 
-    //todo create account in database table here
+    blobdata blob{};
+    t_serializable_object_to_blob(*result,blob);
 
     edit_safex_account(safex::account_username{result->username}, result->account_data);
 
@@ -4457,7 +4490,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     return true;
   };
 
-  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data) {
+  void BlockchainLMDB::add_safex_account(const safex::account_username &username, const blobdata &blob) {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -4476,8 +4509,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       throw1(DB_ERROR(lmdb_error(std::string("Error checking if account exists for username ").append(username.c_str()) + ": ", result).c_str()));
     }
 
-    safex::create_account_data sfx_account_data{std::string{username.username.begin(),username.username.end()},pkey,account_data};
-    MDB_val_copy<blobdata> acc_info(t_serializable_object_to_blob(sfx_account_data));
+    MDB_val_copy<blobdata> acc_info(blob);
     result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username, &acc_info, MDB_NOOVERWRITE);
     if (result)
       throw0(DB_ERROR(lmdb_error("Failed to add account data to db transaction: ", result).c_str()));
@@ -4504,9 +4536,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     {
       crypto::public_key pkey = AUTO_VAL_INIT(pkey);
       get_account_key(username, pkey);
+      uint64_t output_id = AUTO_VAL_INIT(output_id);
+      get_create_account_output_id(username, output_id);
 
       MDB_val_set(k2, username_hash);
-      safex::create_account_data sfx_account_data{std::string{username.username.begin(),username.username.end()},pkey,new_data};
+      safex::create_account_result sfx_account_data{username.username, pkey, new_data, output_id};
       MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_account_data));
       auto result2 = mdb_cursor_put(cur_safex_account, &k2, &vupdate, (unsigned int) MDB_CURRENT);
       if (result2 != MDB_SUCCESS)
@@ -4690,7 +4724,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
     else if (get_result == MDB_SUCCESS)
     {
-      safex::create_account_data sfx_account;
+      safex::create_account_result sfx_account;
       const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
       cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
 
@@ -4701,6 +4735,47 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     return true;
   };
+
+    bool BlockchainLMDB::get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const {
+
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_account;
+        RCURSOR(safex_account);
+        cur_safex_account = m_cur_safex_account;
+
+        crypto::hash username_hash = username.hash();
+
+        uint8_t temp[SAFEX_ACCOUNT_DATA_MAX_SIZE + sizeof(crypto::public_key)];
+
+        MDB_val_set(k, username_hash);
+        MDB_val_set(v, temp);
+        auto get_result = mdb_cursor_get(cur_safex_account, &k, &v, MDB_SET);
+        if (get_result == MDB_NOTFOUND)
+        {
+            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
+            return false;
+        }
+        else if (get_result)
+        {
+            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()), get_result).c_str()));
+        }
+        else if (get_result == MDB_SUCCESS)
+        {
+            safex::create_account_result sfx_account;
+            const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+            cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
+
+            output_id = sfx_account.output_id;
+        }
+
+        TXN_POSTFIX_RDONLY();
+
+        return true;
+    };
 
     bool BlockchainLMDB::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const{
 
@@ -4723,7 +4798,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
       while (result == MDB_SUCCESS)
       {
-          safex::create_account_data sfx_account;
+          safex::create_account_result sfx_account;
           const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
 
           if(!cryptonote::parse_and_validate_from_blob(accblob, sfx_account)){

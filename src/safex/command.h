@@ -109,13 +109,24 @@ namespace safex
 
   struct create_account_result : public execution_result
   {
-    create_account_result(const std::vector<uint8_t> &_username, const crypto::public_key &_pkey, std::vector<uint8_t>& _account_data):
-            username{_username}, pkey{_pkey}, account_data{_account_data} {
+
+    create_account_result(){}
+
+    create_account_result(const std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t>& _account_data, const uint64_t _output_id = 0):
+            username{_username}, pkey{_pkey}, account_data{_account_data}, output_id{_output_id} {
     }
 
     std::vector<uint8_t> username{};
     crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
+    uint64_t output_id{};
+
+      BEGIN_SERIALIZE_OBJECT()
+          FIELD(username)
+          FIELD(pkey)
+          FIELD(account_data)
+          FIELD(output_id)
+      END_SERIALIZE()
   };
 
   struct edit_account_result : public execution_result
@@ -124,7 +135,16 @@ namespace safex
             username{_username}, account_data{_account_data} {
     }
     std::vector<uint8_t> username{};
+    crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
+    uint64_t output_id{};
+
+      BEGIN_SERIALIZE_OBJECT()
+          FIELD(username)
+          FIELD(pkey)
+          FIELD(account_data)
+          FIELD(output_id)
+      END_SERIALIZE()
   };
 
 struct create_offer_result : public execution_result

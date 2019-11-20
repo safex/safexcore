@@ -309,6 +309,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; }
 
     virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const { return true; };
+    virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const { return true; };
+
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty,
             const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash)

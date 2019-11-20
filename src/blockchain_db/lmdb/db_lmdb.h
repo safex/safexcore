@@ -320,6 +320,8 @@ public:
   virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const;
 
   virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
+  virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
+
 
 
   virtual uint64_t add_block( const block& blk
@@ -468,7 +470,7 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
      *
      */
-  void add_safex_account(const safex::account_username &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+  void add_safex_account(const safex::account_username &username, const blobdata &blob);
 
   /**
    * Edit account data
