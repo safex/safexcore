@@ -39,6 +39,7 @@
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
 #include <safex/safex_purchase.h>
+#include <safex/command.h>
 
 #define ENABLE_AUTO_RESIZE
 
@@ -483,7 +484,7 @@ private:
   void edit_safex_account(const safex::account_username &username, const std::vector<uint8_t> &new_data);
 
   /**
-   * Remove account from database
+   * Remove safex account from database
    *
    * @param username safex account username
    *
@@ -541,6 +542,24 @@ private:
     *
     */
     void remove_advanced_output(uint64_t& output_id);
+
+  /**
+   * Remove last safex account update from database
+   *
+   * @param username safex account username
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_safex_account_update(const safex::account_username &username);
+
+  /**
+   * Restore safex account data by getting it from advanced output table
+   *
+   * @param sfx_account safex account that needs to be updated
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void restore_safex_account_data(safex::create_account_result& sfx_account);
 
 protected:
 
