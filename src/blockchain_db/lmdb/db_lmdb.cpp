@@ -4573,6 +4573,11 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       throw1(DB_ERROR(lmdb_error("Error finding account to remove: ", result).c_str()));
     if (!result)
     {
+      uint64_t output_id = 0;
+      get_create_account_output_id(username,output_id);
+      //First we must remove advanced output
+      remove_advanced_output(output_id);
+      //Then we remove safex account from DB
       result = mdb_cursor_del(m_cur_safex_account, 0);
       if (result)
         throw1(DB_ERROR(lmdb_error("Error removing account: ", result).c_str()));
@@ -4610,8 +4615,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         MDB_cursor *cur_safex_offer;
         CURSOR(safex_offer)
         cur_safex_offer = m_cur_safex_offer;
-
-
         int result;
         MDB_val_set(k, offer_id);
         MDB_val v;
@@ -4633,6 +4636,41 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw0(DB_ERROR(lmdb_error("DB error attempting to edit offer: ", result).c_str()));
         }
     }
+
+    void BlockchainLMDB::remove_advanced_output(uint64_t& output_id){
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+
+      CURSOR(output_advanced);
+
+      MDB_val_set(otxk, output_id);
+
+      auto result = mdb_cursor_get(m_cur_output_txs, (MDB_val *)&zerokval, &otxk, MDB_GET_BOTH);
+      if (result == MDB_NOTFOUND)
+      {
+          throw0(DB_ERROR("Unexpected: global output index not found in m_output_txs"));
+      }
+      else if (result)
+      {
+          throw1(DB_ERROR(lmdb_error("Error adding removal of output tx to db transaction", result).c_str()));
+      }
+      // We remove the output_tx from the outputs table
+      result = mdb_cursor_del(m_cur_output_txs, 0);
+      if (result)
+          throw0(DB_ERROR(lmdb_error(std::string("Error deleting output index ").c_str(), result).c_str()));
+
+      result = mdb_cursor_get(m_cur_output_advanced, &otxk, NULL, MDB_SET);
+      if (result != 0 && result != MDB_NOTFOUND)
+          throw1(DB_ERROR(lmdb_error("Error finding advanced output to remove: ", result).c_str()));
+      if (!result)
+      {
+          result = mdb_cursor_del(m_cur_output_advanced, 0);
+          if (result)
+              throw1(DB_ERROR(lmdb_error("Error removing advanced output: ", result).c_str()));
+      }
+  }
+
+
 
     void BlockchainLMDB::close_safex_offer(const crypto::hash &offer_id) {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);

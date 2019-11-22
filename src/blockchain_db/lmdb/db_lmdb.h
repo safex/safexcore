@@ -532,6 +532,15 @@ private:
     *
     */
     void create_safex_purchase(const safex::safex_purchase& result);
+    /**
+    * Remove advanced output from DB
+    *
+    * @param Output id of the advanced output to be deleted
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void remove_advanced_output(uint64_t& output_id);
 
 protected:
 
