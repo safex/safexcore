@@ -29,7 +29,22 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 
-if(BUILD_SAFEX_PROTOBUF_RPC)
+if(BUILD_SAFEX_PROTOBUF_RPC)    
+    FILE(TO_NATIVE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/protobuf/proto PROTOMODEL_PATH)
+    FILE(TO_NATIVE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/protobuf PROTOBINDING_PATH)
+
+    FILE(GLOB DATAMODEL_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/protobuf/proto/*.proto")
+
+    FOREACH(proto ${DATAMODEL_PROTOS})
+      FILE(TO_NATIVE_PATH ${proto} proto_native)
+      EXECUTE_PROCESS(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --proto_path=${PROTOMODEL_PATH} --cpp_out=${PROTOBINDING_PATH} ${proto_native}
+      RESULT_VARIABLE rv)
+      # Optional, but that can show the user if something have gone wrong with the proto generation 
+      IF(${rv})
+           MESSAGE("Generation of data model returned ${rv} for proto ${proto_native}")
+      ENDIF()
+    ENDFOREACH(proto) 
+
     add_definitions(-DSAFEX_PROTOBUF_RPC=1)
     add_definitions(-DPROTOBUF_INLINE_NOT_IN_HEADERS=0)
     set(cryptonote_core_sources
@@ -43,6 +58,7 @@ if(BUILD_SAFEX_PROTOBUF_RPC)
         protobuf/get_outs.pb.cc
         protobuf/cryptonote_to_protobuf.cpp
         )
+
 
         set(cryptonote_core_headers)
 
