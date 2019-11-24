@@ -31,4 +31,7 @@
 
 #include "misc_log_ex.h"
 
+#ifndef uint
+#define uint unsigned long long
+#endif
 

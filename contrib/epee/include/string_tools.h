@@ -29,6 +29,10 @@
 #ifndef _STRING_TOOLS_H_
 #define _STRING_TOOLS_H_
 
+#ifndef uint
+#define uint unsigned long long
+#endif
+
 // Previously pulled in by ASIO, further cleanup still required ...
 #ifdef _WIN32
 # include <winsock2.h>

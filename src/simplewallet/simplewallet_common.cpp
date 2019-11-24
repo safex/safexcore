@@ -4,6 +4,8 @@
 #include <fstream>
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
+#include <boost/locale/encoding.hpp>
+#include <boost/locale/generator.hpp>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
