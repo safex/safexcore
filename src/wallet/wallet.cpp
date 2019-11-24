@@ -1215,7 +1215,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           if (tx_scan_info[i].received)
           {
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
-            LOG_PRINT_L0("SAFEX_LOG: scan_output call at: " << __LINE__ );
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
         }
@@ -1239,7 +1238,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         if (tx_scan_info[i].received)
         {
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
-          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
         }
       }
@@ -1256,13 +1254,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           hwdev_lock.lock();
           hwdev.set_mode(hw::device::NONE);
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
-          LOG_PRINT_L0("SAFEX_LOG: scan_output call at: L" << __LINE__ );
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           hwdev_lock.unlock();
         }
       }
     }
-    LOG_PRINT_L0("outs size: " << outs.size() << ", num_vouts_received: " << num_vouts_received);
     if(!outs.empty() && num_vouts_received > 0)
     {
       //good news - got money! take care about it
@@ -1347,7 +1343,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
-          LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
@@ -1463,7 +1458,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
-            LOG_PRINT_L0("total_received increment by " << amount << ", at output: " << o);
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
           }
