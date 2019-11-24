@@ -1811,7 +1811,7 @@ namespace cryptonote
     cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
     
 
-    if(req.out_type != cryptonote::tx_out_type::out_invalid) {
+    if(req.out_type == cryptonote::tx_out_type::out_invalid) {
       output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
     }
     else {
