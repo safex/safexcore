@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package safex;
+
+message Histogram {
+    uint64 amount = 1;
+    uint64 out_type = 2;
+    uint64 recent_instances = 3;
+    uint64 total_instances = 4;
+    uint64 unlocked_instances = 5;
+}
+
+message Histograms {
+    repeated Histogram histograms = 1;
+    string status = 2;
+}

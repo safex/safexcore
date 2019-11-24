@@ -1849,7 +1849,11 @@ void wallet::parse_block_round(const cryptonote::blobdata &blob, cryptonote::blo
     bl_id = get_block_hash(bl);
 }
 //----------------------------------------------------------------------------------------------------
-void wallet::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::list<cryptonote::block_complete_entry> &blocks, std::vector<cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices> &o_indices)
+void wallet::pull_blocks(uint64_t start_height,
+                         uint64_t &blocks_start_height,
+                         const std::list<crypto::hash> &short_chain_history,
+                         std::list<cryptonote::block_complete_entry> &blocks,
+                         std::vector<cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices> &o_indices)
 {
   cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request req = AUTO_VAL_INIT(req);
   cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response res = AUTO_VAL_INIT(res);

@@ -36,6 +36,7 @@ include(CheckLinkerFlag)
 include(CheckLibraryExists)
 include(CheckFunctionExists)
 
+
 if (IOS)
     INCLUDE(CmakeLists_IOS.txt)
 endif()
@@ -43,6 +44,12 @@ endif()
 cmake_minimum_required(VERSION 2.8.7)
 
 project(safex)
+
+if(BUILD_SAFEX_PROTOBUF_RPC)
+  include(FindProtobuf)
+  find_package(Protobuf)
+endif()
+
 
 function (die msg)
   if (NOT WIN32)
@@ -793,6 +800,7 @@ elseif(Boost_FOUND)
   endif()
 endif()
 
+
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 if(MINGW)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wa,-mbig-obj")
@@ -888,6 +896,9 @@ endif()
 
 # when ON - will install libwallet_merged into "lib"
 option(BUILD_GUI_DEPS "Build GUI dependencies." OFF)
+
+# when ON - will build safexd with protobuf rpc endpoints
+option(BUILD_SAFEX_PROTOBUF_RPC "Build PROTOBUF RPC endpoints." OFF)
 
 # when ON - it will build safex-advanced-wallet-cli
 option(BUILD_ADVANCED_WALLET "Build Advanced CLI Wallet." OFF)

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package safex;
+
+message Out_entry {
+    bytes key = 1;
+    bool unlocked = 2;
+    uint64 height = 3;
+    bytes txid = 4;
+}
+
+message Outs {
+    repeated Out_entry outs = 1;
+    string status = 2;
+}

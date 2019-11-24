@@ -47,6 +47,11 @@ debug-all:
 	mkdir -p build/debug
 	cd build/debug && cmake -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
 
+debug-all-protobuf:
+	mkdir -p build/debug
+	cd build/debug && cmake -D BUILD_SAFEX_PROTOBUF_RPC=ON -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
+
+
 debug-static-all:
 	mkdir -p build/debug
 	cd build/debug && cmake -D BUILD_TESTS=ON -D STATIC=ON -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
@@ -73,6 +78,12 @@ release-static:
 dist-static:
 	mkdir -p build/dist
 	cd build/dist && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
+
+dist-static-protobuf:
+	mkdir -p build/dist-protobuf
+	cd build/dist-protobuf && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
+
+	
 
 coverage:
 	mkdir -p build/debug
@@ -115,6 +126,11 @@ release-static-linux-i686:
 release-static-win64:
 	mkdir -p build/release
 	cd build/release && cmake -G "MSYS Makefiles" -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
+
+release-static-win64-proto:
+	mkdir -p build/release
+	cd build/release && cmake -G "MSYS Makefiles" -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
+
 
 release-static-win32:
 	mkdir -p build/release

@@ -31,9 +31,16 @@
 set(rpc_base_sources
   rpc_args.cpp)
 
-set(rpc_sources
-  core_rpc_server.cpp
-  instanciations)
+if(BUILD_SAFEX_PROTOBUF_RPC)
+    add_definitions(-DSAFEX_PROTOBUF_RPC=1)
+    set(rpc_sources
+      core_rpc_server.cpp
+      instanciations)
+else()
+    set(rpc_sources
+            core_rpc_server.cpp
+            instanciations)
+endif()
 
 set(daemon_messages_sources
   message.cpp
@@ -51,11 +58,17 @@ set(rpc_headers)
 
 set(daemon_rpc_server_headers)
 
-
-set(rpc_daemon_private_headers
-  core_rpc_server.h
-  core_rpc_server_commands_defs.h
-  core_rpc_server_error_codes.h)
+if(BUILD_SAFEX_PROTOBUF_RPC)
+    set(rpc_daemon_private_headers
+      core_rpc_server.h
+      core_rpc_server_commands_defs.h
+      core_rpc_server_error_codes.h)
+else()
+    set(rpc_daemon_private_headers
+            core_rpc_server.h
+            core_rpc_server_commands_defs.h
+            core_rpc_server_error_codes.h)
+endif()
 
 set(daemon_messages_private_headers
   message.h
@@ -107,17 +120,60 @@ target_link_libraries(rpc_base
   PRIVATE
     ${EXTRA_LIBRARIES})
 
-target_link_libraries(rpc
-  PUBLIC
-    rpc_base
-    common
-    cryptonote_core
-    cryptonote_protocol
-    epee
-    ${Boost_REGEX_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-  PRIVATE
-    ${EXTRA_LIBRARIES})
+if(BUILD_SAFEX_PROTOBUF_RPC)
+    target_link_libraries(rpc
+      PUBLIC
+        rpc_base
+        common
+        cryptonote_core
+        cryptonote_protocol
+        epee
+        ${Boost_REGEX_LIBRARY}
+        ${Boost_THREAD_LIBRARY}
+        ${PROTOBUF_LIBRARY}
+      PRIVATE
+        ${EXTRA_LIBRARIES})
+
+    target_link_libraries(daemon_rpc_server
+            LINK_PRIVATE
+            rpc
+            cryptonote_core
+            cryptonote_protocol
+            daemon_messages
+            serialization
+            ${Boost_CHRONO_LIBRARY}
+            ${Boost_REGEX_LIBRARY}
+            ${Boost_SYSTEM_LIBRARY}
+            ${Boost_THREAD_LIBRARY}
+            ${PROTOBUF_LIBRARY}
+            ${ZMQ_LIB}
+            ${EXTRA_LIBRARIES})
+else()
+    target_link_libraries(daemon_rpc_server
+            LINK_PRIVATE
+            rpc
+            cryptonote_core
+            cryptonote_protocol
+            daemon_messages
+            serialization
+            ${Boost_CHRONO_LIBRARY}
+            ${Boost_REGEX_LIBRARY}
+            ${Boost_SYSTEM_LIBRARY}
+            ${Boost_THREAD_LIBRARY}
+            ${ZMQ_LIB}
+            ${EXTRA_LIBRARIES})
+    target_link_libraries(rpc
+            PUBLIC
+            rpc_base
+            common
+            cryptonote_core
+            cryptonote_protocol
+            epee
+            ${Boost_REGEX_LIBRARY}
+            ${Boost_THREAD_LIBRARY}
+            PRIVATE
+            ${EXTRA_LIBRARIES})
+endif()
 
 target_link_libraries(daemon_messages
   LINK_PRIVATE
@@ -126,18 +182,5 @@ target_link_libraries(daemon_messages
     serialization
     ${EXTRA_LIBRARIES})
 
-target_link_libraries(daemon_rpc_server
-  LINK_PRIVATE
-    rpc
-    cryptonote_core
-    cryptonote_protocol
-    daemon_messages
-    serialization
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${ZMQ_LIB}
-    ${EXTRA_LIBRARIES})
 target_include_directories(daemon_rpc_server PUBLIC ${ZMQ_INCLUDE_PATH})
 target_include_directories(obj_daemon_rpc_server PUBLIC ${ZMQ_INCLUDE_PATH})

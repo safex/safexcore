@@ -653,6 +653,62 @@ namespace cryptonote
   };
 
   //-----------------------------------------------
+  struct COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF
+  {
+      struct request
+      {
+          std::list<std::string> txs_hashes;
+          bool prune = false;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(txs_hashes)
+              KV_SERIALIZE_OPT(prune, false)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string protobuf_content;
+          std::list<std::string> missed_tx;   //not found transactions
+          std::string status;
+          bool untrusted;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(protobuf_content)
+              KV_SERIALIZE(missed_tx)
+              KV_SERIALIZE(status)
+              KV_SERIALIZE(untrusted)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
+  //-----------------------------------------------
+
+  struct COMMAND_RPC_GET_BLOCKS_PROTOBUF
+  {
+      struct request
+      {
+          uint64_t start_height;
+          uint64_t end_height;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(start_height)
+              KV_SERIALIZE(end_height)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string protobuf_content;
+
+      BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(protobuf_content)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
+  //-----------------------------------------------
+
+  //-----------------------------------------------
+
   struct COMMAND_RPC_IS_KEY_IMAGE_SPENT
   {
     enum STATUS {
@@ -687,6 +743,37 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  //-----------------------------------------------
+  struct COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF
+  {
+    struct request
+    {
+      std::vector<uint64_t> amounts;
+      uint64_t min_count;
+      uint64_t max_count;
+      bool unlocked;
+      uint64_t recent_cutoff;
+      uint64_t out_type;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(amounts);
+        KV_SERIALIZE(min_count);
+        KV_SERIALIZE(max_count);
+        KV_SERIALIZE(unlocked);
+        KV_SERIALIZE(recent_cutoff);
+        KV_SERIALIZE(out_type)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+          std::string protobuf_content;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(protobuf_content)
+        END_KV_SERIALIZE_MAP()
+    };
+  };
   //-----------------------------------------------
   struct COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES
   {
@@ -2064,6 +2151,7 @@ namespace cryptonote
       uint64_t max_count;
       bool unlocked;
       uint64_t recent_cutoff;
+      uint64_t out_type_as_int;
       tx_out_type out_type;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -2072,6 +2160,7 @@ namespace cryptonote
         KV_SERIALIZE(max_count);
         KV_SERIALIZE(unlocked);
         KV_SERIALIZE(recent_cutoff);
+        KV_SERIALIZE(out_type_as_int)
         KV_SERIALIZE_VAL_POD_AS_BLOB(out_type);
       END_KV_SERIALIZE_MAP()
     };
@@ -2423,4 +2512,80 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_GET_OUTPUTS_PROTOBUF
+  {
+    struct request
+    {
+      std::vector<get_outputs_out> outputs;
+      uint32_t out_type;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE(outputs)
+      KV_SERIALIZE(out_type)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string protobuf_content;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(protobuf_content)
+        KV_SERIALIZE(status)        
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+  //-----------------------------------------------
+
+   struct COMMAND_RPC_PROTO_SEND_RAW_TX
+  {
+    struct request
+    {
+      std::string proto_content;
+      bool do_not_relay;
+
+      request() {}
+      explicit request(const transaction &);
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(proto_content)
+        KV_SERIALIZE_OPT(do_not_relay, false)
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+    struct response
+    {
+      std::string txid;
+      std::string status;
+      std::string reason;
+      bool not_relayed;
+      bool low_mixin;
+      bool double_spend;
+      bool invalid_input;
+      bool invalid_output;
+      bool too_big;
+      bool overspend;
+      bool fee_too_low;
+      bool not_rct;
+      bool untrusted;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(txid)
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(reason)
+        KV_SERIALIZE(not_relayed)
+        KV_SERIALIZE(low_mixin)
+        KV_SERIALIZE(double_spend)
+        KV_SERIALIZE(invalid_input)
+        KV_SERIALIZE(invalid_output)
+        KV_SERIALIZE(too_big)
+        KV_SERIALIZE(overspend)
+        KV_SERIALIZE(fee_too_low)
+        KV_SERIALIZE(not_rct)
+        KV_SERIALIZE(untrusted)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
 }

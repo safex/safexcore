@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package safex;
+
+message BlockHeader {
+    uint64 depth = 1;
+    string hash = 2;
+    uint32 major_version = 3;
+    uint32 minor_version = 4;
+    string prev_hash = 5;
+}
+
+message Block {
+    BlockHeader header = 1;
+    repeated string txs = 2;
+    string miner_tx = 3;
+}
+
+message Blocks {
+    repeated Block block = 1;
+    bool status = 2;
+    bool untrusted = 3;
+    string error = 4;
+}

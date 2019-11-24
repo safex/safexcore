@@ -53,6 +53,10 @@
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
 
+namespace safex {
+  class outputs_protobuf;
+}
+
 namespace cryptonote
 {
    struct test_options {
@@ -563,6 +567,13 @@ namespace cryptonote
       * @note see Blockchain::get_outs
       */
      bool get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMAND_RPC_GET_OUTPUTS_BIN::response& res) const;
+
+     /**
+      * @copydoc Blockchain::get_outs_proto
+      *
+      * @note see Blockchain::get_outs_proto
+      */
+     bool get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request& req, safex::outputs_protobuf& proto) const;
 
      /**
       *
