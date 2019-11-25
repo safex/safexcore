@@ -11,4 +11,4 @@
 	url = https://github.com/protocolbuffers/protobuf.git
 [submodule "external/randomx"]
 	path = external/randomx
-	url = https://github.com/tevador/RandomX
+	url = https://github.com/safex/RandomSFX
