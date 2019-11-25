@@ -195,8 +195,8 @@ namespace config
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100028ff33b5dc7640ad6333405a875f9a92cd69e99fc15d208ea2eb990203d1348dc8301011d22a19d7aa99b11c1143fd40e200760de6caa90eab16bd12d0188d6db8537611103c23aed713351b8b88e15bb213983aa03f26aca95da4e77384654153d50a55fc78dcc65a751789b60e816e3710d448b05f56777e66aff4c6228472e6a41e122dc9ab470e5997573adea910e70c4c3a04e3957e33c099848f0fd2d12dc6b84eca3";
     uint32_t const GENESIS_NONCE = 10000;
     //TODO: Set to other values when activating new hard fork
-    uint64_t const HARDFORK_V4_INIT_DIFF = 100;
-    uint64_t const HARDFORK_V4_START_HEIGHT = 333809;
+    uint64_t const HARDFORK_V4_INIT_DIFF = 330000000;
+    uint64_t const HARDFORK_V4_START_HEIGHT = 330000;
 
   namespace testnet
   {
