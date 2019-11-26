@@ -472,211 +472,6 @@ TEST(Serialization, serializes_transacion_signatures_correctly)
   ASSERT_FALSE(serialization::parse_binary(blob, tx1));
 }
 
-#if (CURRENT_TRANSACTION_VERSION >= 2)
-TEST(Serialization, serializes_ringct_types)
-{
-  string blob;
-  rct::key key0, key1;
-  rct::keyV keyv0, keyv1;
-  rct::keyM keym0, keym1;
-  rct::ctkey ctkey0, ctkey1;
-  rct::ctkeyV ctkeyv0, ctkeyv1;
-  rct::ctkeyM ctkeym0, ctkeym1;
-  rct::ecdhTuple ecdh0, ecdh1;
-  rct::boroSig boro0, boro1;
-  rct::mgSig mg0, mg1;
-  rct::rangeSig rg0, rg1;
-  rct::rctSig s0, s1;
-  cryptonote::transaction tx0, tx1;
-
-  key0 = rct::skGen();
-  ASSERT_TRUE(serialization::dump_binary(key0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, key1));
-  ASSERT_TRUE(key0 == key1);
-
-  keyv0 = rct::skvGen(30);
-  for (size_t n = 0; n < keyv0.size(); ++n)
-    keyv0[n] = rct::skGen();
-  ASSERT_TRUE(serialization::dump_binary(keyv0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, keyv1));
-  ASSERT_TRUE(keyv0.size() == keyv1.size());
-  for (size_t n = 0; n < keyv0.size(); ++n)
-  {
-    ASSERT_TRUE(keyv0[n] == keyv1[n]);
-  }
-
-  keym0 = rct::keyMInit(9, 12);
-  for (size_t n = 0; n < keym0.size(); ++n)
-    for (size_t i = 0; i < keym0[n].size(); ++i)
-      keym0[n][i] = rct::skGen();
-  ASSERT_TRUE(serialization::dump_binary(keym0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, keym1));
-  ASSERT_TRUE(keym0.size() == keym1.size());
-  for (size_t n = 0; n < keym0.size(); ++n)
-  {
-    ASSERT_TRUE(keym0[n].size() == keym1[n].size());
-    for (size_t i = 0; i < keym0[n].size(); ++i)
-    {
-      ASSERT_TRUE(keym0[n][i] == keym1[n][i]);
-    }
-  }
-
-  rct::skpkGen(ctkey0.dest, ctkey0.mask);
-  ASSERT_TRUE(serialization::dump_binary(ctkey0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, ctkey1));
-  ASSERT_TRUE(!memcmp(&ctkey0, &ctkey1, sizeof(ctkey0)));
-
-  ctkeyv0 = std::vector<rct::ctkey>(14);
-  for (size_t n = 0; n < ctkeyv0.size(); ++n)
-    rct::skpkGen(ctkeyv0[n].dest, ctkeyv0[n].mask);
-  ASSERT_TRUE(serialization::dump_binary(ctkeyv0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, ctkeyv1));
-  ASSERT_TRUE(ctkeyv0.size() == ctkeyv1.size());
-  for (size_t n = 0; n < ctkeyv0.size(); ++n)
-  {
-    ASSERT_TRUE(!memcmp(&ctkeyv0[n], &ctkeyv1[n], sizeof(ctkeyv0[n])));
-  }
-
-  ctkeym0 = std::vector<rct::ctkeyV>(9);
-  for (size_t n = 0; n < ctkeym0.size(); ++n)
-  {
-    ctkeym0[n] = std::vector<rct::ctkey>(11);
-    for (size_t i = 0; i < ctkeym0[n].size(); ++i)
-      rct::skpkGen(ctkeym0[n][i].dest, ctkeym0[n][i].mask);
-  }
-  ASSERT_TRUE(serialization::dump_binary(ctkeym0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, ctkeym1));
-  ASSERT_TRUE(ctkeym0.size() == ctkeym1.size());
-  for (size_t n = 0; n < ctkeym0.size(); ++n)
-  {
-    ASSERT_TRUE(ctkeym0[n].size() == ctkeym1[n].size());
-    for (size_t i = 0; i < ctkeym0.size(); ++i)
-    {
-      ASSERT_TRUE(!memcmp(&ctkeym0[n][i], &ctkeym1[n][i], sizeof(ctkeym0[n][i])));
-    }
-  }
-
-  ecdh0.mask = rct::skGen();
-  ecdh0.amount = rct::skGen();
-  ecdh0.senderPk = rct::skGen();
-  ASSERT_TRUE(serialization::dump_binary(ecdh0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, ecdh1));
-  ASSERT_TRUE(!memcmp(&ecdh0.mask, &ecdh1.mask, sizeof(ecdh0.mask)));
-  ASSERT_TRUE(!memcmp(&ecdh0.amount, &ecdh1.amount, sizeof(ecdh0.amount)));
-  // senderPk is not serialized
-
-  for (size_t n = 0; n < 64; ++n)
-  {
-    boro0.s0[n] = rct::skGen();
-    boro0.s1[n] = rct::skGen();
-  }
-  boro0.ee = rct::skGen();
-  ASSERT_TRUE(serialization::dump_binary(boro0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, boro1));
-  ASSERT_TRUE(!memcmp(&boro0, &boro1, sizeof(boro0)));
-
-  // create a full rct signature to use its innards
-  rct::ctkeyV sc, pc;
-  rct::ctkey sctmp, pctmp;
-  tie(sctmp, pctmp) = rct::ctskpkGen(6000);
-  sc.push_back(sctmp);
-  pc.push_back(pctmp);
-  tie(sctmp, pctmp) = rct::ctskpkGen(7000);
-  sc.push_back(sctmp);
-  pc.push_back(pctmp);
-  vector<uint64_t> amounts;
-  rct::keyV amount_keys;
-  //add output 500
-  amounts.push_back(500);
-  amount_keys.push_back(rct::hash_to_scalar(rct::zero()));
-  rct::keyV destinations;
-  rct::key Sk, Pk;
-  rct::skpkGen(Sk, Pk);
-  destinations.push_back(Pk);
-  //add output for 12500
-  amounts.push_back(12500);
-  amount_keys.push_back(rct::hash_to_scalar(rct::zero()));
-  rct::skpkGen(Sk, Pk);
-  destinations.push_back(Pk);
-  //compute rct data with mixin 500
-  s0 = rct::genRct(rct::zero(), sc, pc, destinations, amounts, amount_keys, NULL, NULL, 3, hw::get_device("default"));
-
-  mg0 = s0.p.MGs[0];
-  ASSERT_TRUE(serialization::dump_binary(mg0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, mg1));
-  ASSERT_TRUE(mg0.ss.size() == mg1.ss.size());
-  for (size_t n = 0; n < mg0.ss.size(); ++n)
-  {
-    ASSERT_TRUE(mg0.ss[n] == mg1.ss[n]);
-  }
-  ASSERT_TRUE(mg0.cc == mg1.cc);
-
-  // mixRing and II are not serialized, they are meant to be reconstructed
-  ASSERT_TRUE(mg1.II.empty());
-
-  rg0 = s0.p.rangeSigs.front();
-  ASSERT_TRUE(serialization::dump_binary(rg0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, rg1));
-  ASSERT_TRUE(!memcmp(&rg0, &rg1, sizeof(rg0)));
-
-#if 0
-  ASSERT_TRUE(serialization::dump_binary(s0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, s1));
-  ASSERT_TRUE(s0.type == s1.type);
-  ASSERT_TRUE(s0.p.rangeSigs.size() == s1.p.rangeSigs.size());
-  for (size_t n = 0; n < s0.p.rangeSigs.size(); ++n)
-  {
-    ASSERT_TRUE(!memcmp(&s0.p.rangeSigs[n], &s1.p.rangeSigs[n], sizeof(s0.p.rangeSigs[n])));
-  }
-  ASSERT_TRUE(s0.p.MGs.size() == s1.p.MGs.size());
-  ASSERT_TRUE(s0.p.MGs[0].ss.size() == s1.p.MGs[0].ss.size());
-  for (size_t n = 0; n < s0.p.MGs[0].ss.size(); ++n)
-  {
-    ASSERT_TRUE(s0.p.MGs[0].ss[n] == s1.p.MGs[0].ss[n]);
-  }
-  ASSERT_TRUE(s0.p.MGs[0].cc == s1.p.MGs[0].cc);
-  // mixRing and II are not serialized, they are meant to be reconstructed
-  ASSERT_TRUE(s1.p.MGs[0].II.empty());
-
-  // mixRing and II are not serialized, they are meant to be reconstructed
-  ASSERT_TRUE(s1.mixRing.size() == 0);
-
-  ASSERT_TRUE(s0.ecdhInfo.size() == s1.ecdhInfo.size());
-  for (size_t n = 0; n < s0.ecdhInfo.size(); ++n)
-  {
-    ASSERT_TRUE(!memcmp(&s0.ecdhInfo[n], &s1.ecdhInfo[n], sizeof(s0.ecdhInfo[n])));
-  }
-  ASSERT_TRUE(s0.outPk.size() == s1.outPk.size());
-  for (size_t n = 0; n < s0.outPk.size(); ++n)
-  {
-    // serialization only does the mask
-    ASSERT_TRUE(!memcmp(&s0.outPk[n].mask, &s1.outPk[n].mask, sizeof(s0.outPk[n].mask)));
-  }
-#endif
-
-  tx0.set_null();
-  tx0.version = 2;
-  cryptonote::txin_to_key txin_to_key1{};
-  txin_to_key1.amount = 100;
-  txin_to_key1.key_offsets.resize(4);
-  cryptonote::txin_to_key txin_to_key2{};
-  txin_to_key2.amount = 200;
-  txin_to_key2.key_offsets.resize(4);
-  tx0.vin.push_back(txin_to_key1);
-  tx0.vin.push_back(txin_to_key2);
-  tx0.vout.push_back(cryptonote::tx_out());
-  tx0.vout.push_back(cryptonote::tx_out());
-  tx0.rct_signatures = s0;
-  ASSERT_EQ(tx0.rct_signatures.p.rangeSigs.size(), 2);
-  ASSERT_TRUE(serialization::dump_binary(tx0, blob));
-  ASSERT_TRUE(serialization::parse_binary(blob, tx1));
-  ASSERT_EQ(tx1.rct_signatures.p.rangeSigs.size(), 2);
-  std::string blob2;
-  ASSERT_TRUE(serialization::dump_binary(tx1, blob2));
-  ASSERT_TRUE(blob == blob2);
-}
-#endif
-
 static boost::optional<tools::password_container> password_prompter(const char *prompt, bool verify)
 {
   tools::password_container pwd_container{"test"};
@@ -691,7 +486,7 @@ static void serialize_wallet_test_init_vm(boost::program_options::variables_map 
   boost::program_options::options_description desc_params("Allowed options");
   tools::wallet::init_options(desc_params);
   const int argc = 4;
-  const char* argv[] = {"wallet","--testnet","--shared-ringdb-dir", dir.string().c_str()};
+  const char* argv[] = {"wallet","--testnet","--password","","--shared-ringdb-dir", dir.string().c_str()};
   bool r = command_line::handle_error_helper(desc_params, [&]()
   {
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_params), vm);
@@ -1180,8 +975,7 @@ namespace {
     epee::string_tools::hex_to_pod("4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05", tse.real_out_tx_key);
     tse.real_output_in_tx_index = 1;
     tse.amount = 11066009260865;
-    tse.rct = true;
-    epee::string_tools::hex_to_pod("789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703", tse.mask);
+
     // tcd.change_dts
     tcd.change_dts.amount = 9631208773403;
 
@@ -1375,8 +1169,6 @@ TEST(Serialization, portability_unsigned_tx)
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
   ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
-  ASSERT_TRUE(tse.rct);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // tcd.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
   ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "SFXtzUpLfKDTSBG1KEydRqTmac2vvvpXZU6yx4Yct1dHUSPJ6AJqCj1Umne7mznPpjV7Bz9PgjavTVSbLB1Ngn2BVmzgCdUvvDW");
@@ -1524,8 +1316,6 @@ namespace {
     epee::string_tools::hex_to_pod("4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05", tse.real_out_tx_key);
     tse.real_output_in_tx_index = 1;
     tse.amount = 11066009260865;
-    tse.rct = true;
-    epee::string_tools::hex_to_pod("789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703", tse.mask);
     // ptx.construction_data.change_dts
     tcd.change_dts.amount = 9631208773403;
 
@@ -1691,8 +1481,6 @@ TEST(Serialization, portability_signed_tx)
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
   ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
-  ASSERT_TRUE(tse.rct);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // ptx.construction_data.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
   ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "SFXtzUpLfKDTSBG1KEydRqTmac2vvvpXZU6yx4Yct1dHUSPJ6AJqCj1Umne7mznPpjV7Bz9PgjavTVSbLB1Ngn2BVmzgCdUvvDW");

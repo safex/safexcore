@@ -29,7 +29,7 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 set(simplewallet_sources
-  simplewallet.cpp)
+  simplewallet.cpp simplewallet_safex.cpp simplewallet_common.cpp)
 
 set(simplewallet_headers)
 

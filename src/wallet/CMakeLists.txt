@@ -34,6 +34,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(wallet_sources
   wallet.cpp
+  wallet_safex.cpp
   wallet_args.cpp
   ringdb.cpp
   node_rpc_proxy.cpp)
@@ -70,7 +71,7 @@ target_link_libraries(wallet
     ${EXTRA_LIBRARIES})
 
 set(wallet_rpc_sources
-  wallet_rpc_server.cpp)
+  wallet_rpc_server.cpp wallet_safex_rpc_server.cpp)
 
 set(wallet_rpc_headers)
 

@@ -42,7 +42,6 @@
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
-#define CURRENT_TRANSACTION_VERSION                     1 //do not use ringct
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -156,10 +155,26 @@
 #define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 #define HF_VERSION_DIFFICULTY_V2                3
-#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     1
+#define HF_VERSION_MIN_SUPPORTED_TX_VERSION     1
+#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     2
 #define HF_VERSION_VALID_DECOMPOSED_MINER_TX    3
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
+#define HF_VERSION_MINER_TX_MAX_OUTS            11
+#define HF_VERSION_CHANGE_MINER_DUST_HANDLING   4
 
+
+
+//Safex related constants
+#define SAFEX_COMMAND_PROTOCOL_VERSION          1
+#define SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT         10000 * SAFEX_TOKEN
+#define SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD  500000
+#define SAFEX_DEFAULT_INTERVAL_PERIOD           1000 //blocks
+#define SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD SAFEX_DEFAULT_INTERVAL_PERIOD*10 //blocks
+#define SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE    ((uint64_t)5)
+#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
+#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD  ((uint64_t)15) //15 blocks for tests, TBD
+#define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
+#define SAFEX_OFFER_DATA_MAX_SIZE               2048
 
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
@@ -179,7 +194,6 @@ namespace config
   uint64_t const DEFAULT_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const DEFAULT_TOKEN_DUST_THRESHOLD = ((uint64_t)20000000); // 2 * pow(10, 7)
   uint64_t const BASE_REWARD_CLAMP_THRESHOLD = ((uint64_t)1000000); // pow(10, 6)
-  uint64_t const BASE_REWARD_DECOMPOSITION_OFFSET = 0; //((uint64_t)1000000); // pow(10, 6) force decomposition of reward amount into multiple outputs
   std::string const P2P_REMOTE_DEBUG_TRUSTED_PUB_KEY = "0000000000000000000000000000000000000000000000000000000000000000";
 
   uint8_t const MIGRATION_GENESIS_PUBKEY_INDEX = 0;

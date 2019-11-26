@@ -45,7 +45,7 @@ debug-test:
 
 debug-all:
 	mkdir -p build/debug
-	cd build/debug && cmake -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
+	cd build/debug && cmake -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug -D BUILD_WALLET_RPC=ON ../.. && $(MAKE)
 
 debug-all-protobuf:
 	mkdir -p build/debug
@@ -153,6 +153,8 @@ clean:
         read -r -p "This will destroy the build directory, continue (y/N)?: " CONTINUE; \
 	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
 	rm -rf build
+documentation:
+	doxygen Doxyfile
 
 tags:
 	ctags -R --sort=1 --c++-kinds=+p --fields=+iaS --extra=+q --language-force=C++ src contrib tests/gtest

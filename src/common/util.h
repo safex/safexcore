@@ -213,5 +213,5 @@ namespace tools
 
   bool sha256sum(const uint8_t *data, size_t len, crypto::hash &hash);
   bool sha256sum(const std::string &filename, crypto::hash &hash);
-  bool is_whole_coin_amount(uint64_t amount);
+  bool is_whole_token_amount(uint64_t amount);
 }

@@ -799,8 +799,21 @@ namespace cryptonote
         add_reason(res.reason, "overspend");
       if ((res.fee_too_low = tvc.m_fee_too_low))
         add_reason(res.reason, "fee too low");
-      if ((res.not_rct = tvc.m_not_rct))
-        add_reason(res.reason, "tx is not ringct");
+      if ((res.non_supported_version = tvc.m_non_supported_version))
+        add_reason(res.reason, "tx version is not supported");
+      if ((res.safex_verification_failed = tvc.m_safex_verification_failed))
+        add_reason(res.reason, "verification of safex logic has failed");
+      if ((res.safex_invalid_command = tvc.m_safex_invalid_command))
+        add_reason(res.reason, "invalid safex command");
+      if ((res.safex_invalid_command_params = tvc.m_safex_invalid_command_params))
+        add_reason(res.reason, "invalid safex command parameters");
+      if ((res.safex_invalid_input = tvc.m_safex_invalid_input))
+        add_reason(res.reason, "invalid safex script inputs");
+      if ((res.safex_command_execution_failed = tvc.m_safex_command_execution_failed))
+        add_reason(res.reason, "safex command execution failed");
+
+
+
       const std::string punctuation = res.reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {
@@ -2300,6 +2313,94 @@ namespace cryptonote
     }
 
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
+  {
+    if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_staked_tokens()});
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
+          }
+        }
+        else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res)
+  {
+     if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{m_core.get_current_interval(), m_core.get_network_fee_for_interval(m_core.get_current_interval())});
+      res.status = "OK";
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{req.interval, m_core.get_network_fee_for_interval(req.interval)});
+        res.status = "OK";
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{i, m_core.get_network_fee_for_interval(i)});
+            res.status = "OK";
+          }
+        }
+        else {
+          res.status = "FAILED";
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res) 
+  {
+    if(req.begin_interval > req.end_interval){
+      res.status = "There are no good interval values provided.";
+      return false;
+    }
+    else {
+      std::map<uint64_t, uint64_t> interests = m_core.get_interest_map(req.begin_interval, req.end_interval);
+      
+      for(auto interest : interests)
+      {
+         res.interest_per_interval.push_back({interest.first, interest.second});
+      }
+      res.status = "OK";
+    }
+
+    return true;
+  }
+
+  bool core_rpc_server::on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res)
+  {
+
+    safex::safex_account account;
+    if (!m_core.get_safex_account_info(req.username, account)) {
+      res.status = "Unable to retrieve account data";
+      return false;
+    }
+
+    res.pkey = epee::string_tools::pod_to_hex(account.pkey);
+
+    res.account_data = std::string(std::begin(account.account_data), std::end(account.account_data));
+    res.status = "OK";
+
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

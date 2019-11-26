@@ -164,3 +164,8 @@ struct gen_tx_signatures_are_invalid : public get_tx_validation_base
 {
   bool generate(std::vector<test_event_entry>& events) const;
 };
+
+struct gen_tx_not_enough_tokens_to_lock : public get_tx_validation_base
+{
+  bool generate(std::vector<test_event_entry>& events) const;
+};

@@ -37,6 +37,7 @@ using namespace epee;
 using namespace crypto;
 using namespace cryptonote;
 
+
 namespace
 {
   struct tx_builder
@@ -98,6 +99,46 @@ namespace
         m_tx.vout.push_back(out);
         output_index++;
       }
+    }
+
+    void step3_fill_advanced_outputs(const std::vector<tx_destination_entry>& destinations)
+    {
+      size_t output_index = 0;
+      BOOST_FOREACH(const tx_destination_entry& dst_entr, destinations)
+            {
+              crypto::key_derivation derivation;
+              crypto::public_key out_eph_public_key;
+              crypto::generate_key_derivation(dst_entr.addr.m_view_public_key, m_tx_key.sec, derivation);
+              crypto::derive_public_key(derivation, output_index, dst_entr.addr.m_spend_public_key, out_eph_public_key);
+
+              tx_out out;
+              out.token_amount = dst_entr.token_amount;
+              out.amount = dst_entr.amount;
+
+              if (dst_entr.output_type == tx_out_type::out_staked_token) {
+                txout_to_script ts;
+                ts.keys.push_back(out_eph_public_key);
+                ts.output_type = static_cast<int8_t>(tx_out_type::out_staked_token);
+                out.target = ts;
+
+              } else if (dst_entr.output_type == tx_out_type::out_token) {
+                txout_token_to_key tk;
+                tk.key = out_eph_public_key;
+                out.target = tk;
+              } else {
+                txout_to_key tk;
+                tk.key = out_eph_public_key;
+                out.target = tk;
+              }
+
+
+
+
+
+
+              m_tx.vout.push_back(out);
+              output_index++;
+            }
     }
 
     void step4_calc_hash()
@@ -195,7 +236,7 @@ bool gen_tx_big_version::generate(std::vector<test_event_entry>& events) const
   fill_tx_sources_and_destinations(events, blk_0, miner_account, miner_account, MK_COINS(1), TESTS_DEFAULT_FEE, 0, sources, destinations);
 
   tx_builder builder;
-  builder.step1_init(1 + 1, 0);
+  builder.step1_init(HF_VERSION_MAX_SUPPORTED_TX_VERSION + 1, 0);
   builder.step2_fill_inputs(miner_account.get_keys(), sources);
   builder.step3_fill_outputs(destinations);
   builder.step4_calc_hash();
@@ -784,6 +825,44 @@ bool gen_tx_signatures_are_invalid::generate(std::vector<test_event_entry>& even
   sr_tx = t_serializable_object_to_blob(tx_1);
   sr_tx.insert(sr_tx.end(), sr_tx.end() - sizeof(crypto::signature), sr_tx.end());
   events.push_back(serialized_transaction(sr_tx));
+
+  return true;
+}
+
+
+
+bool gen_tx_not_enough_tokens_to_lock::generate(std::vector<test_event_entry>& events) const
+{
+  const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c", "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182", "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
+
+  uint64_t ts_start = 1530720632;
+
+  GENERATE_ACCOUNT(miner);
+  crypto::public_key miner_public_key = AUTO_VAL_INIT(miner_public_key);
+  crypto::secret_key_to_public_key(miner.get_keys().m_spend_secret_key, miner_public_key);
+  cryptonote::fakechain::set_core_tests_public_key(miner_public_key);
+
+  GENERATE_ACCOUNT(miner2);
+
+  MAKE_GENESIS_BLOCK(events, blk_0, miner, ts_start);
+
+  MAKE_ACCOUNT(events, alice);
+  MAKE_ACCOUNT(events, bob);
+  MAKE_ACCOUNT(events, daniel);
+
+  MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
+  MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
+
+  REWIND_BLOCKS(events, blk_2r, blk_2, miner);
+  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+  MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(20000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+  MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(100), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
+  REWIND_BLOCKS(events, blk_4, blk_3, miner);
+
+  //lock some tokens
+  DO_CALLBACK(events, "mark_invalid_tx");
+  MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(1000), blk_4);
 
   return true;
 }

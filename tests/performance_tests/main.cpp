@@ -141,9 +141,9 @@ int main(int argc, char** argv)
   TEST_PERFORMANCE2(filter, test_check_tx_signature, 10, false);
   TEST_PERFORMANCE2(filter, test_check_tx_signature, 100, false);
 
-  TEST_PERFORMANCE2(filter, test_check_tx_signature, 2, true);
-  TEST_PERFORMANCE2(filter, test_check_tx_signature, 10, true);
-  TEST_PERFORMANCE2(filter, test_check_tx_signature, 100, true);
+  TEST_PERFORMANCE2(filter, test_check_tx_signature, 2, false);
+  TEST_PERFORMANCE2(filter, test_check_tx_signature, 10, false);
+  TEST_PERFORMANCE2(filter, test_check_tx_signature, 100, false);
 
   TEST_PERFORMANCE0(filter, test_is_out_to_acc);
   TEST_PERFORMANCE0(filter, test_is_out_to_acc_precomp);

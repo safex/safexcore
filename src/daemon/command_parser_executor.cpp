@@ -708,4 +708,57 @@ bool t_command_parser_executor::version(const std::vector<std::string>& args)
   return true;
 }
 
+bool t_command_parser_executor::staked_tokens_on_interval(const std::vector<std::string> &args)
+{
+  if (args.size() == 0) {
+    m_executor.token_locked_on_interval(0,0);
+    return true;
+  }
+  
+  if(args.size() == 1) {
+    m_executor.token_locked_on_interval(boost::lexical_cast<uint64_t>(args[0]),0);
+    return true;
+  }
+
+  if(args.size() == 2) {
+    m_executor.token_locked_on_interval(boost::lexical_cast<uint64_t>(args[0]), boost::lexical_cast<uint64_t>(args[1]));
+    return true;
+  }
+
+  return false;
+}
+
+
+bool t_command_parser_executor::network_fee_on_interval(const std::vector<std::string>& args)
+{
+    if (args.size() == 0) {
+    m_executor.network_fee_on_interval(0,0);
+    return true;
+  }
+  
+  if(args.size() == 1) {
+    m_executor.network_fee_on_interval(boost::lexical_cast<uint64_t>(args[0]),0);
+    return true;
+  }
+
+  if(args.size() == 2) {
+    m_executor.network_fee_on_interval(boost::lexical_cast<uint64_t>(args[0]), boost::lexical_cast<uint64_t>(args[1]));
+    return true;
+  }
+
+  return false;
+}
+
+bool t_command_parser_executor::safex_account_info(const std::vector<std::string> &args)
+{
+  if (args.size() != 1) return false;
+
+  if(args.size() == 1) {
+    m_executor.safex_account_info(args[0]);
+    return true;
+  }
+
+  return false;
+}
+
 } // namespace daemonize
