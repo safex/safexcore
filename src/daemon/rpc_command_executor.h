@@ -110,6 +110,8 @@ public:
 
   bool stop_mining();
 
+  bool mining_status();
+
   bool stop_daemon();
 
   bool print_status();

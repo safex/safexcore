@@ -85,7 +85,7 @@ dist-static:
 
 dist-static-proto:
 	mkdir -p build/dist
-	cd build/dist-protobuf && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
+	cd build/dist && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
 
 	
 

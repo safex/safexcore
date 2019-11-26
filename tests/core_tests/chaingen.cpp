@@ -181,7 +181,7 @@ bool test_generator::construct_block(cryptonote::block& blk, uint64_t height, co
 
   // Nonce search...
   blk.nonce = 0;
-  while (!miner::find_nonce_for_given_block(blk, get_test_difficulty(), height))
+  while (!miner::find_nonce_for_given_block(NULL, blk, get_test_difficulty(), height))
     blk.timestamp++;
 
   const uint8_t hf_version = 1; //hardcode hf version for tests
@@ -731,7 +731,7 @@ void fill_token_tx_sources_and_destinations(const std::vector<test_event_entry>&
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
 {
   blk.nonce = 0;
-  while (!miner::find_nonce_for_given_block(blk, diffic, height))
+  while (!miner::find_nonce_for_given_block(NULL, blk, diffic, height))
     blk.timestamp++;
 }
 
