@@ -66,7 +66,7 @@ bool find_nonce_for_given_block(block &bl, const difficulty_type &diffic, uint64
   for (; bl.nonce != std::numeric_limits<uint32_t>::max(); bl.nonce++)
   {
     crypto::hash h;
-    get_block_longhash(bl, h, height);
+    get_block_longhash(NULL, bl, h, height, 0);
 
     if (check_hash(h, diffic))
     {
