@@ -4978,7 +4978,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
                   lmdb_error(std::string("DB error attempting to fetch account public key: ").append(username.c_str()),
                              get_result).c_str()));
       } else if (get_result == MDB_SUCCESS) {
-          safex::create_account_data sfx_account;
+          safex::create_account_result sfx_account;
           const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
           cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
 

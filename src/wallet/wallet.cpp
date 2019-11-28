@@ -1108,24 +1108,29 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     }
     else
     {
+      hwdev_lock.lock();
+      hwdev.set_mode(hw::device::NONE);
       for (size_t i = 0; i < tx.vout.size(); ++i)
       {
         check_acc_out_precomp(tx.vout[i], derivation, additional_derivations, i, tx_scan_info[i]);
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
         if (tx_scan_info[i].received)
         {
-          hwdev_lock.lock();
-          hwdev.set_mode(hw::device::NONE);
+
           if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
-              || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)) {
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
+              || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_close)) {
               outs.push_back(i);
+              num_vouts_received++;
               continue;
           }
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
           scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
-          hwdev_lock.unlock();
         }
       }
+      hwdev_lock.unlock();
     }
     if(!outs.empty() && num_vouts_received > 0)
     {
@@ -8696,6 +8701,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     if (subaddr_indices.empty()) // "index=<N1>[,<N2>,...]" wasn't specified -> use all the indices with non-zero unlocked balance
     {
       for (const auto &i : token_balance_per_subaddr)
+        subaddr_indices.insert(i.first);
+      for (const auto &i : staked_token_balance_per_subaddr)
         subaddr_indices.insert(i.first);
     }
 
