@@ -1371,7 +1371,7 @@ bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::
 //------------------------------------------------------------------
 // This function calculates the difficulty target for the block being added to
 // an alternate chain.
-difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std::list<blocks_ext_by_hash::iterator>& alt_chain, block_extended_info& bei) const
+difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std::list<blocks_ext_by_hash::iterator>& alt_chain, block_extended_info& bei)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   std::vector<uint64_t> timestamps;
@@ -1441,14 +1441,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   size_t target = get_difficulty_target();
 
-  if (m_hardfork->get_current_version() < HF_VERSION_DIFFICULTY_V2)
-  {
-    return next_difficulty(timestamps, cumulative_difficulties, target);
-  }
-  else
-  {
-    return next_difficulty_v2(timestamps, cumulative_difficulties, target);
-  }
+  return get_hard_fork_difficulty(timestamps, cumulative_difficulties, target);
 }
 //------------------------------------------------------------------
 // This function does a sanity check on basic things that all miner
