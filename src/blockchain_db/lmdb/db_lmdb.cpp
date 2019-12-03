@@ -4798,35 +4798,44 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
     }
 
-    void BlockchainLMDB::create_safex_purchase(const safex::safex_purchase& result) {
+    void BlockchainLMDB::create_safex_purchase(const safex::safex_purchase& purchase) {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-//        check_open();
-//        mdb_txn_cursors *m_cursors = &m_wcursors;
-//        MDB_cursor *cur_safex_offer;
-//        CURSOR(safex_offer)
-//        cur_safex_offer = m_cur_safex_offer;
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+        MDB_cursor *cur_safex_offer;
+        CURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
 
-        //TODO: Grki create db for purchase
 
-//        int result;
-//        MDB_val_set(k, offer_id);
-//        MDB_val v;
-//
-//        result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
-//        if (result == MDB_SUCCESS)
-//        {
-//            auto result2 = mdb_cursor_del(cur_safex_offer, (unsigned int) MDB_CURRENT);
-//            if (result2 != MDB_SUCCESS)
-//                throw0(DB_ERROR(lmdb_error("Failed to close offer for offer id: "+boost::lexical_cast<std::string>(offer_id), result2).c_str()));
-//        }
-//        else if (result == MDB_NOTFOUND)
-//        {
-//            throw0(DB_ERROR(lmdb_error("DB error attempting to create purchase: ", result).c_str()));
-//        }
-//        else
-//        {
-//            throw0(DB_ERROR(lmdb_error("DB error attempting to create purchase: ", result).c_str()));
-//        }
+        int result;
+        MDB_val_set(k, purchase.offer_id);
+        MDB_val v;
+
+        result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (result == MDB_SUCCESS)
+        {
+            safex::edit_offer_result sfx_offer;
+            const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+            cryptonote::parse_and_validate_from_blob(accblob, sfx_offer);
+
+            sfx_offer.quantity -= purchase.quantity;
+
+            if(sfx_offer.quantity == 0)
+                sfx_offer.active = false;
+
+            MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_offer));
+            auto result2 = mdb_cursor_put(cur_safex_offer, &k, &vupdate, (unsigned int) MDB_CURRENT);
+            if (result2 != MDB_SUCCESS)
+                throw0(DB_ERROR(lmdb_error("Failed to add purchase for offer id: "+boost::lexical_cast<std::string>(purchase.offer_id), result2).c_str()));
+        }
+        else if (result == MDB_NOTFOUND)
+        {
+            throw0(DB_ERROR(lmdb_error("DB error attempting to create purchase: ", result).c_str()));
+        }
+        else
+        {
+            throw0(DB_ERROR(lmdb_error("DB error attempting to create purchase: ", result).c_str()));
+        }
     }
 
     bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {

@@ -178,10 +178,7 @@ namespace
           }
           else if (i == 12)
           {
-              tx_list.resize(tx_list.size() + 1);
-              cryptonote::transaction &tx = tx_list.back();                                                           \
-              construct_create_purchase_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_purchase,m_users_acc[1].get_keys().m_account_address);
-              m_txmap[get_transaction_hash(tx)] = tx;
+
           }
           else if (i == 14)
           {
@@ -189,7 +186,10 @@ namespace
           }
           else if (i == 16)
           {
-
+              tx_list.resize(tx_list.size() + 1);
+              cryptonote::transaction &tx = tx_list.back();                                                           \
+              construct_create_purchase_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_purchase,m_users_acc[1].get_keys().m_account_address);
+              m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 25)
           {
@@ -330,6 +330,11 @@ namespace
             ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
                                                   this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
         }
+        //Checking the quantity for purchased offer is reduced
+        safex::safex_offer purchased_offer;
+        result = this->m_db->get_offer(this->m_safex_purchase.offer_id,purchased_offer);
+        ASSERT_TRUE(result);
+        ASSERT_EQ(this->m_safex_offer[0].quantity, purchased_offer.quantity);
         //Checking edited offer
         safex::safex_offer saved_offer;
 
@@ -339,7 +344,7 @@ namespace
         }
         //Checking closed offer
         safex::safex_offer closed_offer;
-        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,saved_offer);
+        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,closed_offer);
         ASSERT_FALSE(result);
 
         uint64_t fee_sum = 0;

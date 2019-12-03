@@ -87,6 +87,8 @@ public:
   static uint64_t  expected_network_fee;
   static uint64_t  expected_alice_balance;
   static uint64_t  expected_bob_balance;
+  static uint64_t  expected_bob_offer_quantity;
+  static crypto::hash  expected_purchased_offer_id;
 
 };
 

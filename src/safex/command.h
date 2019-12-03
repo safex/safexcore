@@ -43,7 +43,8 @@ namespace safex
     error_account_already_exists = 11,
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
-    error_offer_non_existant = 14
+    error_offer_non_existant = 14,
+    error_purchase_out_of_stock = 15
   };
 
   struct execution_result

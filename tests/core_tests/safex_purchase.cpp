@@ -63,6 +63,9 @@ uint64_t  gen_safex_purchase_001::expected_network_fee;
 uint64_t  gen_safex_purchase_001::expected_alice_balance;
 uint64_t  gen_safex_purchase_001::expected_bob_balance;
 
+uint64_t  gen_safex_purchase_001::expected_bob_offer_quantity;
+crypto::hash  gen_safex_purchase_001::expected_purchased_offer_id;
+
 gen_safex_purchase_001::gen_safex_purchase_001()
 {
 
@@ -109,6 +112,9 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_alice_balance = 0;
     expected_bob_balance = 0;
     expected_network_fee = 0;
+
+    expected_bob_offer_quantity = safex_offer_bob.quantity-safex_alice_purchase_from_bob.quantity;
+    expected_purchased_offer_id = safex_alice_purchase_from_bob.offer_id;
 
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
@@ -223,6 +229,10 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
 
     uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
     CHECK_EQ(bob_balance, expected_bob_balance);
+
+    uint64_t offer_quantity;
+    c.get_blockchain_storage().get_safex_offer_quantity(expected_purchased_offer_id,offer_quantity);
+    CHECK_EQ(expected_bob_offer_quantity, offer_quantity);
 
     return true;
 }
