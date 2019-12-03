@@ -1786,9 +1786,19 @@ namespace cryptonote
        *
        * The subclass should return safex account usernames and descriptions
        *
-       * @return Safex accounts currently in the blockchain
+       * @return True if no error ocurred
        */
       virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const = 0;
+
+
+      /**
+       * @brief fetch safex offers from the blockchain
+       *
+       * The subclass should return safex offers data
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
 
       //
       // Hard fork related storage

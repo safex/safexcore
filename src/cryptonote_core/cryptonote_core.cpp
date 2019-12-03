@@ -329,8 +329,14 @@ namespace cryptonote
   {
     return m_blockchain_storage.get_safex_accounts(safex_accounts);
   };
+    //-----------------------------------------------------------------------------------------------
 
-  //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
+  {
+      return m_blockchain_storage.get_safex_offers(safex_offers);
+  }
+
+    //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
   {
     top_id = m_blockchain_storage.get_tail_id(height);

@@ -112,6 +112,53 @@ namespace cryptonote
         typedef epee::misc_utils::struct_init<response_t> response;
     };
 
+    struct COMMAND_RPC_GET_SAFEX_OFFERS
+    {
+        struct request_t
+        {
+            BEGIN_KV_SERIALIZE_MAP()
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string title;
+            uint64_t quantity;
+            uint64_t price;
+            std::vector<uint8_t> description;
+            bool active;
+            std::vector<uint8_t> shipping;
+            crypto::hash offer_id;
+            std::string seller;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(title)
+                KV_SERIALIZE(quantity)
+                KV_SERIALIZE(price)
+                KV_SERIALIZE(description)
+                KV_SERIALIZE(active)
+                KV_SERIALIZE(shipping)
+                KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+                KV_SERIALIZE(seller)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> offers;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(offers)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
   struct COMMAND_RPC_GET_BLOCKS_FAST
   {
 

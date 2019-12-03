@@ -31,6 +31,7 @@
 
 #include <vector>
 #include <iostream>
+#include <boost/format.hpp>
 
 #include "include_base_utils.h"
 
@@ -284,6 +285,12 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   bool result = c.get_blockchain_storage().get_safex_offer(expected_bob_safex_offer_id,sfx_offer);
   CHECK_TEST_CONDITION(!result);
 
+  std::vector<safex::safex_offer> offers;
+  result = c.get_safex_offers(offers);
 
-    return true;
+  std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Offer title" %  "Price" % "Quantity" % "Seller" % "Description" % "Offer ID"<<std::endl;
+  for(auto offer: offers)
+    std::cout<< boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+                  std::string(begin(offer.description), end(offer.description)) % offer.offer_id<<std::endl;
+  return true;
 }

@@ -1043,6 +1043,7 @@ namespace cryptonote
     bool get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const;
 
     bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
+    bool get_safex_offers(std::vector<safex::safex_offer> &safex_offers) const;
   private:
 
     struct outputs_generic_visitor

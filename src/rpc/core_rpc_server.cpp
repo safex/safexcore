@@ -171,7 +171,24 @@ namespace cryptonote
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
+    //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_offers(const COMMAND_RPC_GET_SAFEX_OFFERS::request& req, COMMAND_RPC_GET_SAFEX_OFFERS::response& res)
+    {
+        PERF_TIMER(on_get_safex_offers);
+        bool r;
+        if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_OFFERS>(invoke_http_mode::JON, "/get_safex_offers", req, res, r))
+            return r;
 
+        std::vector<safex::safex_offer> offers;
+        bool result  = m_core.get_safex_offers(offers);
+
+        for(auto offer: offers) {
+            COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title,offer.quantity,offer.price,offer.description,offer.active,offer.shipping,offer.offer_id,offer.seller};
+            res.offers.push_back(ent);
+        }
+        res.status = CORE_RPC_STATUS_OK;
+        return true;
+    }
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res)
   {

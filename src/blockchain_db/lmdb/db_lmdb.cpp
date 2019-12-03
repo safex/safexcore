@@ -4962,6 +4962,50 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       return true;
   }
 
+    bool BlockchainLMDB::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const{
+
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_offer;
+        RCURSOR(safex_offer)
+        cur_safex_offer = m_cur_safex_offer;
+
+        crypto::hash offer_id{};
+        uint8_t temp[sizeof(safex::create_offer_result)];
+
+        MDB_val_set(k, offer_id);
+        MDB_val_set(v, temp);
+
+        auto result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_FIRST);
+
+        while (result == MDB_SUCCESS)
+        {
+            safex::create_offer_result sfx_offer_result;
+            safex::safex_offer sfx_offer;
+            const cryptonote::blobdata offerblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+
+            if(!cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer_result)){
+                result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_NEXT);
+                continue;
+            }
+
+            result = get_offer(sfx_offer_result.offer_id,sfx_offer);
+            if(!result)
+                return false;
+
+            safex_offers.emplace_back(sfx_offer);
+
+            result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_NEXT);
+        }
+
+        TXN_POSTFIX_RDONLY();
+
+        return true;
+    }
+
   bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
       check_open();

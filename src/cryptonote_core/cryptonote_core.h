@@ -808,6 +808,13 @@ namespace cryptonote
        */
        bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
 
+       /**
+       * @brief gets pair of elements <username, safex_account_description>
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const;
+
      /**
       * @brief get the network type we're on
       *

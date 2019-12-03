@@ -321,6 +321,7 @@ public:
   virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const;
 
   virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
+  virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
   virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
 
 
