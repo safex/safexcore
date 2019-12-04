@@ -380,7 +380,26 @@ namespace tools
 
   std::vector<safex::safex_offer> wallet::get_safex_offers()
   {
-    return std::vector<safex::safex_offer>(m_safex_offers.begin(), m_safex_offers.end());
+      cryptonote::COMMAND_RPC_GET_SAFEX_OFFERS::request req = AUTO_VAL_INIT(req);
+      cryptonote::COMMAND_RPC_GET_SAFEX_OFFERS::response res = AUTO_VAL_INIT(res);
+
+      std::vector<safex::safex_offer> offers;
+
+      m_daemon_rpc_mutex.lock();
+      bool r = net_utils::invoke_http_json("/get_safex_offers", req, res, m_http_client, rpc_timeout);
+      m_daemon_rpc_mutex.unlock();
+
+      THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_offers");
+      THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex offers");
+
+      for (auto &item : res.offers)
+          offers.emplace_back(item.title,item.quantity,item.price,item.description,item.offer_id,item.seller,item.active);
+
+      return offers;
+  }
+  std::vector<safex::safex_offer> wallet::get_my_safex_offers()
+  {
+        return m_safex_offers;
   }
 
 }

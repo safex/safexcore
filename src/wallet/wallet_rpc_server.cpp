@@ -85,16 +85,7 @@ const char* wallet_rpc_server::tr(const char* str)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-wallet_rpc_server::wallet_rpc_server():m_wallet(NULL), rpc_login_file(), m_stop(false), m_trusted_daemon(false), m_vm(NULL)
-{
-        // ---------------- DEMO Offer ID mock up ------------------------------
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#1", "First order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#2", "Second order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#3", "Third order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#4", "Forth order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#5", "Fifth order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#6", "Sixth order"));
-}
+wallet_rpc_server::wallet_rpc_server():m_wallet(NULL), rpc_login_file(), m_stop(false), m_trusted_daemon(false), m_vm(NULL){}
 //------------------------------------------------------------------------------------------------------------------------------
 wallet_rpc_server::~wallet_rpc_server()
 {

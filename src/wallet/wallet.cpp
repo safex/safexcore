@@ -885,20 +885,20 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
   tx_scan_info.token_transfer = cryptonote::is_token_output(o.target);
   const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), o.target);
   if ((cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account) ||
-      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account_update))
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account_update) ||
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer) ||
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer_update) ||
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer_close))
   {
     boost::optional<cryptonote::subaddress_receive_info> result = AUTO_VAL_INIT(result);
-    for (auto &sfx_acc_keys: m_safex_accounts_keys)
-      if (result = is_safex_output_to_acc_precomp(sfx_acc_keys, m_subaddresses, out_key, i, hwdev))
-      {
-        tx_scan_info.received = result;
-        break;
-      }
-  }
-  else if (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer ||
-            cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer_update ||
-            cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer_close){
-      tx_scan_info.received = subaddress_receive_info{subaddress_index{0,0}, crypto::key_derivation{}};
+    for (auto &sfx_acc_keys: m_safex_accounts_keys) {
+        result = is_safex_output_to_acc_precomp(sfx_acc_keys, m_subaddresses, out_key, i, hwdev);
+        if (result)
+        {
+          tx_scan_info.received = result;
+          break;
+        }
+    }
   }
   else
     tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);

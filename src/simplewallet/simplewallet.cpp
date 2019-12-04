@@ -1228,10 +1228,10 @@ simple_wallet::simple_wallet()
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),
                            tr("Donate <cash_amount> to network, optionally set payment_id, priority, ring_size for input cash or cash output subaddress indice"));
 
-  m_cmd_binder.set_handler("list_demo_offers",
-                           boost::bind(&simple_wallet::list_demo_offers, this, _1),
-                           tr("list_demo_offers"),
-                           tr("List current offers listed for demo purposes."));
+  m_cmd_binder.set_handler("list_offers",
+                           boost::bind(&simple_wallet::list_offers, this, _1),
+                           tr("list_offers"),
+                           tr("List current offers in the Blockchain."));
 
   m_cmd_binder.set_handler("get_my_interest",
                            boost::bind(&simple_wallet::get_my_interest, this, _1),
@@ -1267,14 +1267,6 @@ simple_wallet::simple_wallet()
                                 "If the \"edit\" argument is specified, given offer will be edited with new arguments\n"
                                 "If the \"close\" argument is specified, offer is closed and no longer active"));
 
-
-    // ---------------- DEMO Offer ID mock up ------------------------------
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#1", "First order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#2", "Second order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#3", "Third order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#4", "Forth order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#5", "Fifth order"));
-    simple_trade_ids.insert(std::make_pair<std::string, std::string>("#6", "Sixth order"));
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::set_variable(const std::vector<std::string> &args)

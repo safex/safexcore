@@ -1086,6 +1086,8 @@ namespace tools
     bool close_safex_offer(const crypto::hash &offer_id);
 
     std::vector<safex::safex_offer> get_safex_offers();
+    std::vector<safex::safex_offer> get_my_safex_offers();
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.

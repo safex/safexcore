@@ -252,11 +252,9 @@ namespace cryptonote
 
     bool get_my_interest(const std::vector<std::string>& args);
     void print_safex_accounts();
-    void print_safex_offers();
+    void print_my_safex_offers();
 
-
-      // ------ Mock up for demo
-    bool list_demo_offers(const std::vector<std::string>& args);
+    bool list_offers(const std::vector<std::string>& args);
 
     // Function responsible for 
     bool create_command(CommandType command_type, const std::vector<std::string> &args);

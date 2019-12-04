@@ -786,11 +786,13 @@ namespace cryptonote
     return create_command(CommandType::TransferDemoPurchase, args);
   }
 
-  bool simple_wallet::list_demo_offers(const std::vector<std::string>& args) {
-    success_msg_writer() << boost::format("%10s %40s ") % tr("OfferID") % tr("Title");
-    for(auto offer : simple_trade_ids) {
-      success_msg_writer() << boost::format("%10s %40s ") % tr(offer.first.c_str()) % tr(offer.second.c_str());
-    }
+  bool simple_wallet::list_offers(const std::vector<std::string>& args) {
+
+    success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
+      for (auto &offer: m_wallet->get_safex_offers()) {
+          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+                                  std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
+      }
     return true;
   }
 
@@ -818,10 +820,10 @@ namespace cryptonote
   }
 
 
-  void simple_wallet::print_safex_offers() {
+  void simple_wallet::print_my_safex_offers() {
       success_msg_writer() << tr("Safex offers");
       success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
-      for (auto &offer: m_wallet->get_safex_offers()) {
+      for (auto &offer: m_wallet->get_my_safex_offers()) {
           success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
                                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
@@ -952,7 +954,7 @@ namespace cryptonote
         {
             // print all the existing offers
             LOCK_IDLE_SCOPE();
-            print_safex_offers();
+            print_my_safex_offers();
             return true;
         }
 
@@ -1020,7 +1022,12 @@ namespace cryptonote
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
 
         m_wallet->add_safex_offer(sfx_offer);
-
+        message_writer(console_color_green, false) << "\r" <<
+                                                   tr("Height ") << height << ", " <<
+                                                   tr("txid ") << txid << ", " <<
+                                                   tr("Updated for account, username: ") << sfx_offer.seller <<
+                                                   tr("Offer title: ") << sfx_offer.title << " received, " <<
+                                                   tr("idx ") << subaddr_index;
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_update)){
         safex::edit_offer_data offer;
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));

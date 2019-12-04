@@ -27,13 +27,4 @@ using namespace epee;
 
 
 namespace tools {
-
-    bool wallet_rpc_server::on_get_demo_offers(const wallet_rpc::COMMAND_RPC_GET_DEMO_OFFERS::request& req, wallet_rpc::COMMAND_RPC_GET_DEMO_OFFERS::response& res, epee::json_rpc::error& er)
-    {   
-        for(auto trade_id : simple_trade_ids) {
-            res.offers.push_back({trade_id.first, trade_id.second});
-        }
-
-        return true;
-    }
 }

@@ -32,8 +32,8 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
-              crypto::hash _id, std::string seller_username):title{_title},quantity{_quantity},price{_price},
-                                                             description{_description},offer_id{_id},seller{seller_username},active{true}
+              crypto::hash _id, std::string seller_username, bool _active = true):title{_title},quantity{_quantity},price{_price},
+                                                             description{_description},offer_id{_id},seller{seller_username},active{_active}
       {
       }
 

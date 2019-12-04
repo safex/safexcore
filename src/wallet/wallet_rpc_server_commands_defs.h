@@ -2490,35 +2490,6 @@ struct COMMAND_RPC_DEMO_PURCHASE
   };
 };
 
-struct COMMAND_RPC_GET_DEMO_OFFERS 
-{
-  struct request
-  {
-    uint64_t test;
-    BEGIN_KV_SERIALIZE_MAP()
-      KV_SERIALIZE(test)
-    END_KV_SERIALIZE_MAP()
-  };
-
-  struct offer {
-    std::string offer_id;
-    std::string offer_title;
-    BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(offer_id)
-        KV_SERIALIZE(offer_title)
-    END_KV_SERIALIZE_MAP()
-  };
-
-  struct response
-  {
-    std::vector<offer> offers;
-
-    BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(offers)
-    END_KV_SERIALIZE_MAP()
-  };
-};
-
 struct COMMAND_RPC_GET_AVAILABLE_INTEREST 
 {
   struct request
