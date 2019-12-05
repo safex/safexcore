@@ -1139,8 +1139,8 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
           throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex offer entry: ", result).c_str()));
     }
   else if (output_type_c == cryptonote::tx_out_type::out_safex_purchase) {
-      uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
-      update_network_fee_sum_for_interval(interval, tx_output.amount);
+//      uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
+//      update_network_fee_sum_for_interval(interval, tx_output.amount);
   }
   else if (output_type_c == cryptonote::tx_out_type::out_safex_account || output_type_c == cryptonote::tx_out_type::out_safex_account_update)
   {
@@ -1255,6 +1255,7 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   result = mdb_cursor_put(m_cur_output_txs, (MDB_val *)&zerokval, &vot, MDB_APPENDDUP);
   if (result)
     throw0(DB_ERROR(lmdb_error("Failed to add output tx hash to db transaction: ", result).c_str()));
+
 
 
   const tx_out_type output_type = get_tx_out_type(tx_output.target);
@@ -4995,7 +4996,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             result = get_offer(sfx_offer_result.offer_id,sfx_offer);
             if(!result)
                 return false;
-
+            sfx_offer.quantity = sfx_offer_result.quantity;
+            sfx_offer.price = sfx_offer_result.price;
+            sfx_offer.active = sfx_offer_result.active;
             safex_offers.emplace_back(sfx_offer);
 
             result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_NEXT);

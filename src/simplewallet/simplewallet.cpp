@@ -1218,10 +1218,10 @@ simple_wallet::simple_wallet()
                            tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<payment_id>]"),
                            tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, and subaddress index"));
 
-  m_cmd_binder.set_handler("demo_purchase",
-                           boost::bind(&simple_wallet::demo_purchase, this, _1),
-                           tr("demo_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <cash_amount> [<payment_id>] <offer_id>"),
-                           tr("Demo purchase."));
+  m_cmd_binder.set_handler("safex_purchase",
+                           boost::bind(&simple_wallet::safex_purchase, this, _1),
+                           tr("safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <quantity> [<payment_id>] <offer_id>"),
+                           tr("Safex purchase. 95% of cash sent is given to the seller, 5% is taken as fee"));
 
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),

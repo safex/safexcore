@@ -1192,41 +1192,41 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
 difficulty_type Blockchain::get_hard_fork_difficulty( std::vector<std::uint64_t>& timestamps,
                         std::vector<difficulty_type>& difficulties, size_t& target){
-
-    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
-    auto height = m_db->height();
-
-    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
-    {
-        return next_difficulty(timestamps, difficulties, target);
-    }
-    else
-    {
-        uint64_t start_height = 0;
-        uint64_t random_x_diff = 0;
-        switch (m_nettype)
-        {
-            case STAGENET:
-                start_height = stagenet_hard_forks[3].height;
-                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
-                break;
-            case TESTNET:
-                start_height = testnet_hard_forks[3].height;
-                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
-                break;
-            case MAINNET:
-                start_height = mainnet_hard_forks[3].height;
-                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
-                break;
-            default:
-                break;
-        }
-
-        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
-            return random_x_diff;
-        else
-            return next_difficulty_v2(timestamps, difficulties, target);
-    }
+    return 200;
+//    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
+//    auto height = m_db->height();
+//
+//    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
+//    {
+//        return next_difficulty(timestamps, difficulties, target);
+//    }
+//    else
+//    {
+//        uint64_t start_height = 0;
+//        uint64_t random_x_diff = 0;
+//        switch (m_nettype)
+//        {
+//            case STAGENET:
+//                start_height = stagenet_hard_forks[3].height;
+//                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
+//                break;
+//            case TESTNET:
+//                start_height = testnet_hard_forks[3].height;
+//                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
+//                break;
+//            case MAINNET:
+//                start_height = mainnet_hard_forks[3].height;
+//                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
+//                break;
+//            default:
+//                break;
+//        }
+//
+//        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
+//            return random_x_diff;
+//        else
+//            return next_difficulty_v2(timestamps, difficulties, target);
+//    }
 }
 
 //------------------------------------------------------------------
@@ -3191,7 +3191,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           tvc.m_safex_invalid_input = true;
           return false;
         }
-          total_locked_tokens += vout.token_amount;
       }
         if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token)
         {
@@ -3319,7 +3318,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::simple_purchase)
   {
-      //TODO: Make additional checks
+      //TODO: Make additional checks if fee is sent and if money is sent
       for (const auto &vout: tx.vout)
       {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
@@ -3711,7 +3710,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
         }
-        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
+                                                             boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         }
@@ -3754,7 +3754,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
+        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
+                                                              boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {

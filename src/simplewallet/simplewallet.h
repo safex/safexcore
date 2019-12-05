@@ -70,7 +70,7 @@ namespace cryptonote
     TransferStakeToken,
     TransferUnstakeToken,
     TransferDonation,
-    TransferDemoPurchase,
+    TransferPurchase,
     TransferCreateAccount,
     TransferEditAccount,
     TransferCreateOffer,
@@ -267,7 +267,7 @@ namespace cryptonote
 
     bool safex_offer(const std::vector<std::string> &args);
 
-    bool demo_purchase(const std::vector<std::string>& args);
+    bool safex_purchase(const std::vector<std::string>& args);
     /****************************************************************************************************************/
 
     /*!
@@ -395,8 +395,5 @@ namespace cryptonote
     std::atomic<bool> m_in_manual_refresh;
     uint32_t m_current_subaddress_account;
 
-
-    // ------------------------ Dummy offerids
-    std::map<std::string, std::string> simple_trade_ids;
   };
 }

@@ -6658,8 +6658,15 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     //set command type
     if (command_type == safex::command_t::token_stake && src.referenced_output_type == tx_out_type::out_token)
       src.command_type = safex::command_t::token_stake;
-    else if ((command_type == safex::command_t::simple_purchase || command_type == safex::command_t::donate_network_fee) && src.referenced_output_type == tx_out_type::out_cash)
-      src.command_type = safex::command_t::donate_network_fee;
+    else if (command_type == safex::command_t::simple_purchase && (!command_input_creted))
+    {
+        src.command_type = safex::command_t::simple_purchase;
+        src.referenced_output_type = cryptonote::tx_out_type::out_cash;
+        command_input_creted = true;
+        const cryptonote::tx_destination_entry &dt_purchase = find_matching_advanced_output(tx_out_type::out_safex_purchase);
+        src.amount = dt_purchase.amount;
+        src.command_safex_data = dt_purchase.output_data;
+    }
     else if (command_type == safex::command_t::token_unstake && src.referenced_output_type == tx_out_type::out_staked_token)
     {
       src.command_type = safex::command_t::token_unstake;
@@ -8645,7 +8652,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         }
 
       }
-      else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
+      else if (command_type == safex::command_t::simple_purchase)
       {
           THROW_WALLET_EXCEPTION_IF(0 == dt.amount, error::zero_destination);
           needed_cash += dt.amount;
@@ -8957,7 +8964,18 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         ++original_output_index;
         if (dsts[0].output_type == tx_out_type::out_safex_account) continue; //no need to match any index
       }
+        if (dsts[0].output_type == tx_out_type::out_safex_purchase) {
+            //safex purchase is created from create command referencing cash output, but does not directly references cash locked for its creation (there is separate out cash output)
 
+            LOG_PRINT_L2("Adding advanced output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+                                                  " with blobdata: " << dsts[0].output_data);
+
+            tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, false, dsts[0].output_data);
+
+            pop_index(dsts, 0);
+            ++original_output_index;
+            if (dsts[0].output_type == tx_out_type::out_safex_account) continue; //no need to match any index
+        }
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
       size_t idx;
