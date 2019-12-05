@@ -6664,7 +6664,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
         src.referenced_output_type = cryptonote::tx_out_type::out_cash;
         command_input_creted = true;
         const cryptonote::tx_destination_entry &dt_purchase = find_matching_advanced_output(tx_out_type::out_safex_purchase);
-        src.amount = dt_purchase.amount;
         src.command_safex_data = dt_purchase.output_data;
     }
     else if (command_type == safex::command_t::token_unstake && src.referenced_output_type == tx_out_type::out_staked_token)
@@ -8654,10 +8653,11 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       }
       else if (command_type == safex::command_t::simple_purchase)
       {
-          THROW_WALLET_EXCEPTION_IF(0 == dt.amount, error::zero_destination);
-          needed_cash += dt.amount;
-          LOG_PRINT_L2("transfer: donating " << print_money(dt.amount) << " safex cash to safex token holders, for a total of " << print_money(needed_cash) << " cash");
-          THROW_WALLET_EXCEPTION_IF(needed_tokens < dt.token_amount, error::tx_sum_overflow, dsts, 0, m_nettype);
+          if (dt.script_output == false || dt.output_type == tx_out_type::out_network_fee) {
+              needed_cash += dt.amount;
+          } else {
+              THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_purchase, error::safex_invalid_output_error);
+          }
       }
       else if (command_type == safex::command_t::create_account)
       {
@@ -8711,6 +8711,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         subaddr_indices.insert(i.first);
       for (const auto &i : staked_token_balance_per_subaddr)
         subaddr_indices.insert(i.first);
+      for (const auto &i : cash_balance_per_subaddr)
+            subaddr_indices.insert(i.first);
     }
 
     uint64_t cash_balance_subtotal = 0;
@@ -8917,7 +8919,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
                               || dsts[0].output_type == tx_out_type::out_safex_account_update
                               || dsts[0].output_type == tx_out_type::out_safex_offer
                               || dsts[0].output_type == tx_out_type::out_safex_offer_update
-                              || dsts[0].output_type == tx_out_type::out_safex_offer_close)) || adding_fee)
+                              || dsts[0].output_type == tx_out_type::out_safex_offer_close
+                              || dsts[0].output_type == tx_out_type::out_safex_purchase)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 

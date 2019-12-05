@@ -881,7 +881,7 @@ namespace cryptonote
                 amount_to_donate += txin->amount*5/100;
         }
 
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(amount_to_donate >= dst_entr.amount, "Not enough safex cash to donate", safex::command_t::donate_network_fee);
+       // SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(amount_to_donate >= dst_entr.amount, "Not enough safex cash to donate", safex::command_t::donate_network_fee);
 
         return matched_inputs;
 
@@ -1432,7 +1432,6 @@ namespace cryptonote
       }
       else if (dst_entr.output_type == tx_out_type::out_safex_purchase)
       {
-          out.amount = dst_entr.amount;
           out.token_amount = 0;
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_purchase);

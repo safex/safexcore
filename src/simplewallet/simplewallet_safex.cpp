@@ -463,7 +463,7 @@ namespace cryptonote
 
             safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
             blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
-            de_purchase = tx_destination_entry{quantity_to_purchase*offer_to_purchase->price, info_dest.address, false, tx_out_type::out_safex_purchase, blobdata};
+            de_purchase = tx_destination_entry{0, info_dest.address, false, tx_out_type::out_safex_purchase, blobdata};
 
             dsts.push_back(de_purchase);
 
