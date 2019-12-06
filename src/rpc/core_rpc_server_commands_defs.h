@@ -129,7 +129,7 @@ namespace cryptonote
             std::vector<uint8_t> description;
             bool active;
             std::vector<uint8_t> shipping;
-            crypto::hash offer_id;
+            std::string offer_id;
             std::string seller;
 
         BEGIN_KV_SERIALIZE_MAP()
@@ -139,7 +139,7 @@ namespace cryptonote
                 KV_SERIALIZE(description)
                 KV_SERIALIZE(active)
                 KV_SERIALIZE(shipping)
-                KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+                KV_SERIALIZE(offer_id)
                 KV_SERIALIZE(seller)
             END_KV_SERIALIZE_MAP()
         };
