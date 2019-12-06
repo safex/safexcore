@@ -39,7 +39,7 @@ namespace
 {
   void split_miner_tx_outs(transaction& miner_tx, uint64_t amount_1)
   {
-    uint64_t total_amount = get_outs_money_amount(miner_tx);
+    uint64_t total_amount = get_outs_cash_amount(miner_tx);
     uint64_t amount_2 = total_amount - amount_1;
     txout_target_v target = miner_tx.vout[0].target;
 
@@ -62,7 +62,6 @@ namespace
     se.amount = tx.vout[out_idx].amount;
     se.push_output(0, boost::get<cryptonote::txout_to_key>(tx.vout[out_idx].target).key, se.amount);
     se.real_output = 0;
-    se.rct = false;
     se.real_out_tx_key = get_tx_pub_key_from_extra(tx);
     se.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(tx);
     se.real_output_in_tx_index = out_idx;

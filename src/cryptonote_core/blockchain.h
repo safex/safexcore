@@ -612,6 +612,17 @@ namespace cryptonote
      */
     bool check_tx_inputs(transaction& tx, uint64_t& pmax_used_block_height, crypto::hash& max_used_block_id, tx_verification_context &tvc, bool kept_by_block = false);
 
+
+    /**
+     * @brief check transaction safex related invariants
+     *
+     * @param tx the transaction to validate
+     * @param tvc transaction verification context
+     *
+     * @return returns false if tx does not hold safex related invariants, otherwise true
+     */
+    bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
+
     /**
      * @brief get dynamic per kB fee for a given block size
      *
@@ -950,11 +961,18 @@ namespace cryptonote
      * @param output_type type of output (cash, token...)
      * @param offsets the indices (indexed to the amount) of the outputs
      * @param outputs return-by-reference the outputs collected
-     * @param txs unused, candidate for removal
      */
     void output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets,
-        std::vector<output_data_t> &outputs, std::unordered_map<crypto::hash,
-        cryptonote::transaction> &txs) const;
+        std::vector<output_data_t> &outputs) const;
+
+    /**
+     * @brief get a number of advanced outputs with their ids
+     *
+     * @param output_type - type of output (locked token...)
+     * @param output_ids - output ids of outputs that should be retrieved
+     * @param outputs   return-by-reference the advanced outputs collected
+     */
+    void output_advanced_scan_worker(const tx_out_type output_type, const std::vector<uint64_t> &output_ids, std::vector<output_advanced_data_t> &outputs) const;
 
     /**
      * @brief computes the "short" and "long" hashes for a set of blocks
@@ -998,7 +1016,63 @@ namespace cryptonote
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
+    /**
+     * @brief Returns last known staked token sum
+     *
+     * @return locked token amount
+     */
+    uint64_t get_current_staked_token_sum() const;
+
+    uint64_t get_staked_token_sum_for_interval(const uint64_t &interval) const;
+
+    uint64_t get_network_fee_sum_for_interval(const uint64_t& interval) const;
+    
+    uint64_t calculate_staked_token_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const;
+
+    uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const;
+
+    std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
+
+    bool get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const;
+    bool get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
+
+    bool get_safex_offer_seller(const crypto::hash &offerID, std::string &seller) const;
+    bool get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const;
+    bool get_safex_offer_price(const crypto::hash &offerID, uint64_t &price) const;
+    bool get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const;
+    bool get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const;
+
+    bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
+    bool get_safex_offers(std::vector<safex::safex_offer> &safex_offers) const;
   private:
+
+    struct outputs_generic_visitor
+    {
+        std::vector<rct::ctkey >& m_output_keys;
+        const Blockchain& m_bch;
+        outputs_generic_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
+                m_output_keys(output_keys), m_bch(bch)
+        {
+        }
+
+        bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
+        {
+          //check tx unlock time
+          if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
+          {
+            MCERROR("verify", "One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
+            return false;
+          }
+
+          // The original code includes a check for the output corresponding to this input
+          // to be a txout_to_key. This is removed, as the database does not store this info,
+          // but only txout_to_key outputs are stored in the DB in the first place, done in
+          // Blockchain*::add_output
+
+          m_output_keys.push_back(rct::ctkey({rct::pk2rct(pubkey), commitment}));
+          return true;
+        }
+    };
 
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage
     typedef std::unordered_map<crypto::hash, size_t> blocks_by_id_index;
@@ -1029,6 +1103,7 @@ namespace cryptonote
 
     // metadata containers
     std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, std::vector<output_data_t>>> m_scan_table;
+    std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, std::vector<output_advanced_data_t>>> m_scan_table_adv;
     std::unordered_map<crypto::hash, crypto::hash> m_blocks_longhash_table;
     std::unordered_map<crypto::hash, std::unordered_map<crypto::key_image, bool>> m_check_txin_table;
 
@@ -1113,18 +1188,29 @@ namespace cryptonote
      * @param tx_prefix_hash the transaction prefix hash, for caching organization
      * @param sig the input signature
      * @param output_keys return-by-reference the public keys of the outputs in the input set
-     * @param rct_signatures the ringCT signatures, which are only valid if tx version > 1
      * @param pmax_related_block_height return-by-pointer the height of the most recent block in the input set
      *
      * @return false if any output is not yet unlocked, or is missing, otherwise true
      */
     template <class T>
-    bool check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+    bool check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
-    bool check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+    bool check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
     bool check_tx_input_migration(size_t tx_version, const txin_token_migration& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
 
+    bool check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height);
+
+    /**
+   * @brief validates one safex input
+   *
+   *
+   * @param txin input
+   * @param tvc returned information about tx verification
+   *
+   * @return false if any validation step fails, otherwise true
+   */
+    bool check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc);
 
     /**
      * @brief validate a transaction's inputs and their keys
@@ -1248,11 +1334,11 @@ namespace cryptonote
      * @param base_reward return-by-reference the new block's generated coins
      * @param already_generated_coins the amount of currency generated prior to this block
      * @param partial_block_reward return-by-reference true if miner accepted only partial reward
-     * @param version hard fork version for that transaction
+     * @param hf_version hard fork version for that transaction
      *
      * @return false if anything is found wrong with the miner transaction, otherwise true
      */
-    bool validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t version);
+    bool validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t hf_version);
 
     /**
      * @brief reverts the blockchain to its previous state following a failed switch
@@ -1431,6 +1517,16 @@ namespace cryptonote
                                    const crypto::signature &signature, uint64_t &result);
 
     /**
+     * @brief validates a safex account transaction input signature
+     *
+     * @param tx_prefix_hash the transaction prefix' hash
+     * @param sender_safex_account_key safex account public key
+     * @param sig the signature generated for every command input account initiated
+     * @param result false if the account signature is invalid, otherwise true
+     */
+    void check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key,
+                                                   const crypto::signature &signature, uint64_t &result);
+    /**
      * @brief loads block hashes from compiled-in data set
      *
      * A (possibly empty) set of block hashes can be compiled into the
@@ -1466,5 +1562,19 @@ namespace cryptonote
      *
      */
     uint64_t count_new_migration_tokens(const std::vector<transaction>& txs) const;
+
+      /**
+       * @brief Calculates cash amount that token holder receives when unlocking
+       * tokens that are locked at start_block until the end block
+       *
+       * @param token_amount token amount that is locked
+       * @param start block height, where tokens are locked
+       * @end_block last known end block, where token unlock operation is set
+       *
+       */
+
+
+
+
   };
 }  // namespace cryptonote

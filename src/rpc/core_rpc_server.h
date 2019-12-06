@@ -118,6 +118,12 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/stop_daemon", on_stop_daemon, COMMAND_RPC_STOP_DAEMON, !m_restricted)
       MAP_URI_AUTO_JON2("/get_info", on_get_info, COMMAND_RPC_GET_INFO)
       MAP_URI_AUTO_JON2("/getinfo", on_get_info, COMMAND_RPC_GET_INFO)
+      MAP_URI_AUTO_JON2("/get_staked_tokens", on_get_locked_tokens, COMMAND_RPC_TOKEN_STAKED)
+      MAP_URI_AUTO_JON2("/get_interest_map", on_get_interest_map, COMMAND_RPC_GET_INTEREST_MAP)
+      MAP_URI_AUTO_JON2("/get_network_fee", on_get_network_fee, COMMAND_RPC_NETWORK_FEE)
+      MAP_URI_AUTO_JON2("/get_safex_account_info", on_get_safex_account_info, COMMAND_RPC_SAFEX_ACCOUNT_INFO)
+      MAP_URI_AUTO_JON2("/get_safex_accounts", on_get_safex_accounts, COMMAND_RPC_GET_SAFEX_ACCOUNTS)
+      MAP_URI_AUTO_JON2("/get_safex_offers", on_get_safex_offers, COMMAND_RPC_GET_SAFEX_OFFERS)
       MAP_URI_AUTO_JON2("/get_limit", on_get_limit, COMMAND_RPC_GET_LIMIT)
       MAP_URI_AUTO_JON2_IF("/set_limit", on_set_limit, COMMAND_RPC_SET_LIMIT, !m_restricted)
       MAP_URI_AUTO_JON2_IF("/out_peers", on_out_peers, COMMAND_RPC_OUT_PEERS, !m_restricted)
@@ -162,6 +168,14 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_output_distribution", on_get_output_distribution, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
+
+
+    bool on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res);
+    bool on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res);
+    bool on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res);
+    bool on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res);
+    bool on_get_safex_accounts(const COMMAND_RPC_GET_SAFEX_ACCOUNTS::request& req, COMMAND_RPC_GET_SAFEX_ACCOUNTS::response& res);
+    bool on_get_safex_offers(const COMMAND_RPC_GET_SAFEX_OFFERS::request& req, COMMAND_RPC_GET_SAFEX_OFFERS::response& res);
 
 
     bool on_get_output_histogram_protobuf(const COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::response& res);

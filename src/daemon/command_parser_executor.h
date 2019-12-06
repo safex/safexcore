@@ -146,6 +146,12 @@ public:
   bool sync_info(const std::vector<std::string>& args);
 
   bool version(const std::vector<std::string>& args);
+
+  bool staked_tokens_on_interval(const std::vector<std::string> &args);
+  
+  bool network_fee_on_interval(const std::vector<std::string>& args);
+
+  bool safex_account_info(const std::vector<std::string> &args);
 };
 
 } // namespace daemonize
