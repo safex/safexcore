@@ -1192,41 +1192,41 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
 difficulty_type Blockchain::get_hard_fork_difficulty( std::vector<std::uint64_t>& timestamps,
                         std::vector<difficulty_type>& difficulties, size_t& target){
-    return 200;
-//    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
-//    auto height = m_db->height();
-//
-//    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
-//    {
-//        return next_difficulty(timestamps, difficulties, target);
-//    }
-//    else
-//    {
-//        uint64_t start_height = 0;
-//        uint64_t random_x_diff = 0;
-//        switch (m_nettype)
-//        {
-//            case STAGENET:
-//                start_height = stagenet_hard_forks[3].height;
-//                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            case TESTNET:
-//                start_height = testnet_hard_forks[3].height;
-//                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            case MAINNET:
-//                start_height = mainnet_hard_forks[3].height;
-//                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            default:
-//                break;
-//        }
-//
-//        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
-//            return random_x_diff;
-//        else
-//            return next_difficulty_v2(timestamps, difficulties, target);
-//    }
+
+    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
+    auto height = m_db->height();
+
+    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
+    {
+        return next_difficulty(timestamps, difficulties, target);
+    }
+    else
+    {
+        uint64_t start_height = 0;
+        uint64_t random_x_diff = 0;
+        switch (m_nettype)
+        {
+            case STAGENET:
+                start_height = stagenet_hard_forks[3].height;
+                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case TESTNET:
+                start_height = testnet_hard_forks[3].height;
+                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case MAINNET:
+                start_height = mainnet_hard_forks[3].height;
+                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
+                break;
+            default:
+                break;
+        }
+
+        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 * (uint64_t)1000 )
+            return random_x_diff;
+        else
+            return next_difficulty_v2(timestamps, difficulties, target);
+    }
 }
 
 //------------------------------------------------------------------
@@ -1371,7 +1371,7 @@ bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::
 //------------------------------------------------------------------
 // This function calculates the difficulty target for the block being added to
 // an alternate chain.
-difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std::list<blocks_ext_by_hash::iterator>& alt_chain, block_extended_info& bei) const
+difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std::list<blocks_ext_by_hash::iterator>& alt_chain, block_extended_info& bei)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   std::vector<uint64_t> timestamps;
@@ -1441,14 +1441,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   size_t target = get_difficulty_target();
 
-  if (m_hardfork->get_current_version() < HF_VERSION_DIFFICULTY_V2)
-  {
-    return next_difficulty(timestamps, cumulative_difficulties, target);
-  }
-  else
-  {
-    return next_difficulty_v2(timestamps, cumulative_difficulties, target);
-  }
+  return get_hard_fork_difficulty(timestamps, cumulative_difficulties, target);
 }
 //------------------------------------------------------------------
 // This function does a sanity check on basic things that all miner
