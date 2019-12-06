@@ -392,8 +392,11 @@ namespace tools
       THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_offers");
       THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex offers");
 
-      for (auto &item : res.offers)
-          offers.emplace_back(item.title,item.quantity,item.price,item.description,item.offer_id,item.seller,item.active);
+      for (auto &item : res.offers) {
+          crypto::hash hash;
+          epee::string_tools::hex_to_pod(item.offer_id, hash);
+          offers.emplace_back(item.title, item.quantity, item.price, item.description, hash, item.seller, item.active);
+      }
 
       return offers;
   }
