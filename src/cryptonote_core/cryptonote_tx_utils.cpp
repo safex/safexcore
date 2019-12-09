@@ -881,7 +881,7 @@ namespace cryptonote
                 amount_to_donate += txin->amount*5/100;
         }
 
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(amount_to_donate >= dst_entr.amount, "Not enough safex cash to donate", safex::command_t::donate_network_fee);
+//        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(amount_to_donate >= dst_entr.amount, "Not enough safex cash to donate", safex::command_t::donate_network_fee);
 
         return matched_inputs;
 
@@ -995,7 +995,7 @@ namespace cryptonote
         {
             counter = std::count_if(sources.begin(), sources.end(), [](const tx_source_entry &entry)
             { return entry.command_type == safex::command_t::simple_purchase; });
-            SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter == 1, "Must be one purchase command per transaction", safex::command_t::close_offer);
+            SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(counter == 1, "Must be one purchase command per transaction", safex::command_t::simple_purchase);
 
             std::for_each(inputs.begin(), inputs.end(), [&](const txin_v &txin)
             {
@@ -1432,8 +1432,7 @@ namespace cryptonote
       }
       else if (dst_entr.output_type == tx_out_type::out_safex_purchase)
       {
-          out.amount = dst_entr.amount;
-
+          out.token_amount = 0;
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_purchase);
           txs.keys.push_back(out_eph_public_key);
