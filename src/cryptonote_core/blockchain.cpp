@@ -104,7 +104,9 @@ static const struct {
   { 2, 61660, 0, 1541503503 },
   //version 3 starts from block 92200, fork time finalized on 2019-01-04
   { 3, 92200, 0, 1546602383 },
-  { 4, config::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 4, config::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  //version 5 starts from block 335252, fork time finalized on 2019-12-11
+  { 5, 335252, 0, 1576069200}
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 61659;
 
@@ -118,7 +120,9 @@ static const struct {
   { 1, 1, 0, 1514764801 },
   { 2, 33407, 0, 1541066055},
   { 3, 78500, 0, 1546512073}, //184650
-  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  //TODO: Update when preapring HF5 for testnet
+  { 5, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
@@ -132,7 +136,9 @@ static const struct {
   { 1, 1, 0, 1560283500 },
   { 2, 100, 0, 1561283500},
   { 3, 200, 0, 1562283500},
-  { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  //TODO: Update when preapring HF5 for stagenet
+  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 
 //------------------------------------------------------------------
