@@ -1128,7 +1128,12 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
       parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
 
-      offer.output_id = output_id;
+      if((output_type_c == cryptonote::tx_out_type::out_safex_offer && offer.output_ids.empty()) ||
+         (output_type_c == cryptonote::tx_out_type::out_safex_offer_update && !offer.output_ids.empty()))
+          offer.output_ids.push_back(output_id);
+      else
+          throw0(DB_ERROR(lmdb_error("Failed to add output id as it is already there for safex offer entry: ",
+                                     result).c_str()));
 
       blobdata blob{};
       t_serializable_object_to_blob(offer,blob);
@@ -4916,6 +4921,45 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         return true;
     };
 
+    bool BlockchainLMDB::get_create_offer_output_id(const crypto::hash offer_id, uint64_t& output_id) const {
+
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+
+        TXN_PREFIX_RDONLY();
+
+        MDB_cursor *cur_safex_offer;
+        RCURSOR(safex_offer);
+        cur_safex_offer = m_cur_safex_offer;
+
+
+        uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE];
+
+        MDB_val_set(k, offer_id);
+        MDB_val_set(v, temp);
+        auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        if (get_result == MDB_NOTFOUND)
+        {
+            return false;
+        }
+        else if (get_result)
+        {
+            throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
+        }
+        else if (get_result == MDB_SUCCESS)
+        {
+            safex::create_offer_result offer_result;
+            std::string tmp{(char*)v.mv_data, v.mv_size};
+            parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer_result);
+
+            output_id = offer_result.output_ids.back();
+        }
+
+        TXN_POSTFIX_RDONLY();
+
+        return true;
+    };
+
     bool BlockchainLMDB::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const{
 
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -5062,7 +5106,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
         if (get_result == MDB_NOTFOUND)
         {
-            //throw0(DB_ERROR(lmdb_error(std::string("DB error account not found: ").append(username.c_str()), get_result).c_str()));
             return false;
         }
         else if (get_result)
@@ -5075,7 +5118,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             std::string tmp{(char*)v.mv_data, v.mv_size};
             parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer_result);
 
-            outputID = offer_result.output_id;
+            outputID = offer_result.output_ids.back();
         }
 
 
