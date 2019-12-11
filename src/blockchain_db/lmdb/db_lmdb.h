@@ -517,6 +517,24 @@ private:
     void edit_safex_offer(const crypto::hash &offer_id, bool active, uint64_t price, uint64_t quantity);
 
     /**
+     * Remove safex offer from database
+     *
+     * @param offer_id safex offer id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_offer(const crypto::hash &offer_id);
+
+    /**
+     * Remove safex offer update from database
+     *
+     * @param offer_id safex offer id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_offer_update(const crypto::hash &offer_id);
+
+    /**
      * Close offer in database
      *
      * @param offer_id safex offer id
@@ -561,6 +579,15 @@ private:
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
   void restore_safex_account_data(safex::create_account_result& sfx_account);
+
+    /**
+     * Restore safex offer data by getting it from advanced output table
+     *
+     * @param sfx_offer safex offer that needs to be updated
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void restore_safex_offer_data(safex::create_offer_result& sfx_offer);
 
 protected:
 

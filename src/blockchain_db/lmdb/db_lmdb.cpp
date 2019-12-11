@@ -1368,23 +1368,28 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       safex::create_account_data account_output_data;
       parse_and_validate_object_from_blob(blobdata1, account_output_data);
       remove_safex_account(account_output_data.username);
-    }
-    else if (output_type == tx_out_type::out_safex_offer) {
-        const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
-        const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
-        safex::create_offer_data offer_output_data;
-        parse_and_validate_object_from_blob(blobdata1, offer_output_data);
-        close_safex_offer(offer_output_data.offer_id);
-    }
-    else if(output_type == tx_out_type::out_safex_offer_update || output_type == tx_out_type::out_safex_offer_close
-            || output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_staked_token){
-
     } else if (output_type == tx_out_type::out_safex_account_update) {
         const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
         safex::edit_account_data account_output_data;
         parse_and_validate_object_from_blob(blobdata1, account_output_data);
         remove_safex_account_update(account_output_data.username);
+    } else if (output_type == tx_out_type::out_safex_offer) {
+        const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+        const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
+        safex::create_offer_data offer_output_data;
+        parse_and_validate_object_from_blob(blobdata1, offer_output_data);
+        remove_safex_offer(offer_output_data.offer_id);
+    } else if(output_type == tx_out_type::out_safex_offer_update) {
+        const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+        const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
+        safex::edit_offer_data offer_output_data;
+        parse_and_validate_object_from_blob(blobdata1, offer_output_data);
+        remove_safex_offer_update(offer_output_data.offer_id);
+    }
+    else if(output_type == tx_out_type::out_safex_offer_close || output_type == tx_out_type::out_network_fee
+            || output_type == tx_out_type::out_staked_token){
+
     }
     else {
       throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
@@ -4692,6 +4697,121 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         {
             throw0(DB_ERROR(lmdb_error("DB error attempting to edit offer: ", result).c_str()));
         }
+    }
+
+    void BlockchainLMDB::remove_safex_offer(const crypto::hash& offer_id)
+    {
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+
+        CURSOR(safex_offer);
+
+        MDB_val_set(k, offer_id);
+
+        auto result = mdb_cursor_get(m_cur_safex_offer, &k, NULL, MDB_SET);
+        if (result != 0 && result != MDB_NOTFOUND)
+            throw1(DB_ERROR(lmdb_error("Error finding offer to remove: ", result).c_str()));
+        if (!result)
+        {
+            uint64_t output_id = 0;
+            get_create_offer_output_id(offer_id,output_id);
+            //First we must remove advanced output
+            remove_advanced_output(output_id);
+            //Then we remove safex offer from DB
+            result = mdb_cursor_del(m_cur_safex_offer, 0);
+            if (result)
+                throw1(DB_ERROR(lmdb_error("Error removing offer: ", result).c_str()));
+        }
+    }
+
+    void BlockchainLMDB::remove_safex_offer_update(const crypto::hash& offer_id)
+    {
+        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+
+        CURSOR(safex_offer);
+
+        MDB_val_set(k, offer_id);
+        MDB_val v;
+        auto result = mdb_cursor_get(m_cur_safex_offer, &k, &v, MDB_SET);
+        if (result != 0 && result != MDB_NOTFOUND)
+            throw1(DB_ERROR(lmdb_error("Error finding offer to remove: ", result).c_str()));
+        if (!result)
+        {
+            safex::create_offer_result sfx_offer;
+            const cryptonote::blobdata offerblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+            cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);
+
+            uint64_t output_id = sfx_offer.output_ids.back();
+            //First we must remove advanced output
+            remove_advanced_output(output_id);
+
+            //Update safex offer data to previous version
+            sfx_offer.output_ids.pop_back();
+
+
+            restore_safex_offer_data(sfx_offer);
+
+
+            //Then we update safex offer to DB
+            MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_offer));
+            auto result2 = mdb_cursor_put(m_cur_safex_offer, &k, &vupdate, (unsigned int) MDB_CURRENT);
+            if (result)
+                throw1(DB_ERROR(lmdb_error("Error removing offer: ", result).c_str()));
+        }
+    }
+
+    void BlockchainLMDB::restore_safex_offer_data(safex::create_offer_result& sfx_offer){
+        check_open();
+        mdb_txn_cursors *m_cursors = &m_wcursors;
+
+        MDB_cursor *cur_output_advanced;
+        CURSOR(output_advanced);
+        cur_output_advanced = m_cur_output_advanced;
+
+        uint64_t output_id = sfx_offer.output_ids.back();
+
+        MDB_val_set(key, output_id);
+
+        blobdata blob;
+        MDB_val_set(value_blob, blob);
+
+        output_advanced_data_t current = AUTO_VAL_INIT(current);
+
+        auto get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
+
+        if (get_result == MDB_SUCCESS)
+        {
+            if(sfx_offer.output_ids.size()==1) {
+                current = parse_output_advanced_data_from_mdb(value_blob);
+                safex::create_offer_data restored_sfx_offer;
+                parse_and_validate_object_from_blob<safex::create_offer_data>(current.data, restored_sfx_offer);
+                sfx_offer.quantity = restored_sfx_offer.quantity;
+                sfx_offer.price = restored_sfx_offer.price;
+                sfx_offer.active = restored_sfx_offer.active;
+                sfx_offer.seller = restored_sfx_offer.seller;
+            }
+            else {
+                current = parse_output_advanced_data_from_mdb(value_blob);
+                safex::edit_offer_data restored_sfx_offer;
+                parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data, restored_sfx_offer);
+                sfx_offer.quantity = restored_sfx_offer.quantity;
+                sfx_offer.price = restored_sfx_offer.price;
+                sfx_offer.active = restored_sfx_offer.active;
+                sfx_offer.seller = restored_sfx_offer.seller;
+            }
+
+
+        }
+        else if (get_result == MDB_NOTFOUND)
+        {
+            throw0(DB_ERROR(lmdb_error("Attemting to get account data from advanced output with current id " + std::to_string(output_id) + " but not found: ", get_result).c_str()));
+        }
+        else
+            throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
+
     }
 
   void BlockchainLMDB::remove_safex_account_update(const safex::account_username &username)
