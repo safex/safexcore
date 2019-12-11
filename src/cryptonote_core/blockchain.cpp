@@ -118,7 +118,7 @@ static const struct {
   { 1, 1, 0, 1514764801 },
   { 2, 33407, 0, 1541066055},
   { 3, 78500, 0, 1546512073}, //184650
-  { 4, 242243, 0, 1565962165}
+  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
@@ -1193,42 +1193,40 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 difficulty_type Blockchain::get_hard_fork_difficulty( std::vector<std::uint64_t>& timestamps,
                         std::vector<difficulty_type>& difficulties, size_t& target){
 
-    return 500;
+    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
+    auto height = m_db->height();
 
-//    uint8_t curr_hardfork_version = m_hardfork->get_current_version();
-//    auto height = m_db->height();
-//
-//    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
-//    {
-//        return next_difficulty(timestamps, difficulties, target);
-//    }
-//    else
-//    {
-//        uint64_t start_height = 0;
-//        uint64_t random_x_diff = 0;
-//        switch (m_nettype)
-//        {
-//            case STAGENET:
-//                start_height = stagenet_hard_forks[3].height;
-//                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            case TESTNET:
-//                start_height = testnet_hard_forks[3].height;
-//                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            case MAINNET:
-//                start_height = mainnet_hard_forks[3].height;
-//                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
-//                break;
-//            default:
-//                break;
-//        }
-//
-//        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
-//            return random_x_diff;
-//        else
-//            return next_difficulty_v2(timestamps, difficulties, target);
-//    }
+    if (curr_hardfork_version < HF_VERSION_DIFFICULTY_V2)
+    {
+        return next_difficulty(timestamps, difficulties, target);
+    }
+    else
+    {
+        uint64_t start_height = 0;
+        uint64_t random_x_diff = 0;
+        switch (m_nettype)
+        {
+            case STAGENET:
+                start_height = stagenet_hard_forks[3].height;
+                random_x_diff = config::stagenet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case TESTNET:
+                start_height = testnet_hard_forks[3].height;
+                random_x_diff = config::testnet::HARDFORK_V4_INIT_DIFF;
+                break;
+            case MAINNET:
+                start_height = mainnet_hard_forks[3].height;
+                random_x_diff = config::HARDFORK_V4_INIT_DIFF;
+                break;
+            default:
+                break;
+        }
+
+        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
+            return random_x_diff;
+        else
+            return next_difficulty_v2(timestamps, difficulties, target);
+    }
 }
 
 //------------------------------------------------------------------
