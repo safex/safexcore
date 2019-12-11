@@ -572,6 +572,15 @@ private:
   void remove_safex_account_update(const safex::account_username &username);
 
   /**
+   * Remove last staked tokens from database
+   *
+   * @param token_amount amount of tokens sent
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_staked_token(const uint64_t token_amount);
+
+  /**
    * Restore safex account data by getting it from advanced output table
    *
    * @param sfx_account safex account that needs to be updated

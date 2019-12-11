@@ -1386,16 +1386,41 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         safex::edit_offer_data offer_output_data;
         parse_and_validate_object_from_blob(blobdata1, offer_output_data);
         remove_safex_offer_update(offer_output_data.offer_id);
+    } else if(output_type == tx_out_type::out_staked_token){
+        remove_staked_token(tx.vout[i].token_amount);
     }
-    else if(output_type == tx_out_type::out_safex_offer_close || output_type == tx_out_type::out_network_fee
-            || output_type == tx_out_type::out_staked_token){
-
+    else if(output_type == tx_out_type::out_safex_offer_close || output_type == tx_out_type::out_network_fee){
     }
     else {
       throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
     }
 
   }
+}
+
+void BlockchainLMDB::remove_staked_token(const uint64_t token_amount){
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    update_current_staked_token_sum(token_amount, -1);
+
+    MDB_cursor *cur_token_lock_expiry;
+    CURSOR(token_lock_expiry);
+    cur_token_lock_expiry = m_cur_token_lock_expiry;
+
+    MDB_val data;
+    MDB_val block_number;
+    auto result = mdb_cursor_get(cur_token_lock_expiry, &block_number, &data, MDB_LAST);
+    if (result != MDB_SUCCESS && result != MDB_NOTFOUND)
+        throw0(DB_ERROR(lmdb_error("Failed to get data for staked token output expiry: ", result).c_str()));
+
+    uint64_t outputID;
+    memcpy(&outputID, data.mv_data,sizeof(uint64_t));
+    remove_advanced_output(outputID);
+
+    if ((result = mdb_cursor_del(cur_token_lock_expiry, 0)))
+        throw0(DB_ERROR(lmdb_error("Failed to add staked token output expiry entry: ", result).c_str()));
 }
 
 void BlockchainLMDB::remove_output(const uint64_t amount, const uint64_t& out_index, tx_out_type output_type)
