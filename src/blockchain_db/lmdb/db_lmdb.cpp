@@ -1111,6 +1111,58 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
     uint64_t interval = safex::calculate_interval_for_height(m_height, m_nettype);
     update_network_fee_sum_for_interval(interval, tx_output.amount);
   }
+  else if (output_type_c == cryptonote::tx_out_type::out_safex_account || output_type_c == cryptonote::tx_out_type::out_safex_account_update)
+  {
+      //Add TX output_id to the safex_account table
+      MDB_cursor *cur_safex_account;
+      CURSOR(safex_account)
+      cur_safex_account = m_cur_safex_account;
+
+      std::vector<uint8_t> username;
+
+      if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account){
+          const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
+          safex::create_account_data account;
+          const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+          username = account.username;
+      }
+
+      if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account_update){
+          const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
+          safex::edit_account_data account;
+          const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+          username = account.username;
+      }
+      safex::account_username acc_username{username};
+      crypto::hash usename_hash = acc_username.hash();
+      MDB_val_set(val_username_hash, usename_hash);
+      MDB_val val_data;
+      auto result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username_hash, (MDB_val*)&val_data, MDB_SET);
+      if(result)
+          LOG_PRINT_L0(result);
+
+      safex::create_account_result account;
+      std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
+      parse_and_validate_object_from_blob<safex::create_account_result>(tmp,account);
+
+      if((output_type_c == cryptonote::tx_out_type::out_safex_account && account.output_ids.empty()) ||
+         (output_type_c == cryptonote::tx_out_type::out_safex_account_update && !account.output_ids.empty()))
+          account.output_ids.push_back(output_id);
+      else
+          throw0(DB_ERROR(lmdb_error("Failed to add output id as it is already there for safex account entry: ",
+                                     result).c_str()));
+
+
+      blobdata blob{};
+      t_serializable_object_to_blob(account,blob);
+      MDB_val_copy<blobdata> account_info(blob);
+
+      result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username_hash, &account_info, (unsigned int) MDB_CURRENT);
+      if (result != MDB_SUCCESS)
+          throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex account entry: ", result).c_str()));
+  }
   else if (output_type_c == cryptonote::tx_out_type::out_safex_offer || output_type_c == cryptonote::tx_out_type::out_safex_offer_update){
       //Add TX output_id to the safex_offer table
       MDB_cursor *cur_safex_offer;
@@ -1161,39 +1213,6 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       if (result != MDB_SUCCESS)
           throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex offer entry: ", result).c_str()));
     }
-  else if (output_type_c == cryptonote::tx_out_type::out_safex_account || output_type_c == cryptonote::tx_out_type::out_safex_account_update)
-  {
-      //Add TX output_id to the safex_account table
-      MDB_cursor *cur_safex_account;
-      CURSOR(safex_account)
-      cur_safex_account = m_cur_safex_account;
-
-      MDB_val val_username_hash;
-      MDB_val val_data;
-      auto result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username_hash, (MDB_val*)&val_data, MDB_GET_CURRENT);
-      if(result)
-          LOG_PRINT_L0(result);
-
-      safex::create_account_result account;
-      std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
-      parse_and_validate_object_from_blob<safex::create_account_result>(tmp,account);
-
-      if((output_type_c == cryptonote::tx_out_type::out_safex_account && account.output_ids.empty()) ||
-         (output_type_c == cryptonote::tx_out_type::out_safex_account_update && !account.output_ids.empty()))
-              account.output_ids.push_back(output_id);
-      else
-              throw0(DB_ERROR(lmdb_error("Failed to add output id as it is already there for safex account entry: ",
-                                         result).c_str()));
-
-
-      blobdata blob{};
-      t_serializable_object_to_blob(account,blob);
-      MDB_val_copy<blobdata> account_info(blob);
-
-
-      if ((result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username_hash, &account_info, (unsigned int) MDB_CURRENT)))
-          throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex account entry: ", result).c_str()));
-  }
 }
 
 
