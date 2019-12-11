@@ -1117,10 +1117,27 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       CURSOR(safex_offer)
       cur_safex_offer = m_cur_safex_offer;
 
-      int result;
-      MDB_val val_offer_id;
+      crypto::hash offer_id;
+
+      if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_offer){
+          const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
+          safex::create_offer_data offer;
+          const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+          cryptonote::parse_and_validate_from_blob(offerblob, offer);
+          offer_id = offer.offer_id;
+      }
+
+      if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_offer_update){
+          const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
+          safex::edit_offer_data offer;
+          const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+          cryptonote::parse_and_validate_from_blob(offerblob, offer);
+          offer_id = offer.offer_id;
+      }
+
+      MDB_val_set(val_offer_id, offer_id);
       MDB_val val_data;
-      result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&val_offer_id, (MDB_val*)&val_data, MDB_GET_CURRENT);
+      auto result = mdb_cursor_get(cur_safex_offer, (MDB_val *)&val_offer_id, (MDB_val*)&val_data, MDB_SET);
       if(result)
           LOG_PRINT_L0(result);
 
@@ -1139,8 +1156,9 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       t_serializable_object_to_blob(offer,blob);
       MDB_val_copy<blobdata> offer_info(blob);
 
+      result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, (unsigned int) MDB_CURRENT);
 
-      if ((result = mdb_cursor_put(cur_safex_offer, (MDB_val *)&val_offer_id, &offer_info, (unsigned int) MDB_CURRENT)))
+      if (result != MDB_SUCCESS)
           throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex offer entry: ", result).c_str()));
     }
   else if (output_type_c == cryptonote::tx_out_type::out_safex_account || output_type_c == cryptonote::tx_out_type::out_safex_account_update)
@@ -1150,10 +1168,9 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       CURSOR(safex_account)
       cur_safex_account = m_cur_safex_account;
 
-      int result;
       MDB_val val_username_hash;
       MDB_val val_data;
-      result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username_hash, (MDB_val*)&val_data, MDB_GET_CURRENT);
+      auto result = mdb_cursor_get(cur_safex_account, (MDB_val *)&val_username_hash, (MDB_val*)&val_data, MDB_GET_CURRENT);
       if(result)
           LOG_PRINT_L0(result);
 
@@ -1177,7 +1194,6 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       if ((result = mdb_cursor_put(cur_safex_account, (MDB_val *)&val_username_hash, &account_info, (unsigned int) MDB_CURRENT)))
           throw0(DB_ERROR(lmdb_error("Failed to add output id to refer safex account entry: ", result).c_str()));
   }
-
 }
 
 
@@ -1541,7 +1557,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       }
       blobdata blob{};
       t_serializable_object_to_blob(*result,blob);
-      edit_safex_offer(result->offer_id, blob);
+      edit_safex_offer(result->offer_id, result->active, result->price, result->quantity);
 
   }
   else if (txin.command_type == safex::command_t::close_offer)
@@ -4620,22 +4636,32 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw0(DB_ERROR(lmdb_error("Failed to add offer data to db transaction: ", result).c_str()));
   }
 
-    void BlockchainLMDB::edit_safex_offer(const crypto::hash &offer_id, const blobdata &blob) {
+    void BlockchainLMDB::edit_safex_offer(const crypto::hash &offer_id, bool active, uint64_t price, uint64_t quantity) {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();
         mdb_txn_cursors *m_cursors = &m_wcursors;
+
         MDB_cursor *cur_safex_offer;
         CURSOR(safex_offer)
         cur_safex_offer = m_cur_safex_offer;
-        int result;
+
         MDB_val_set(k, offer_id);
         MDB_val v;
 
-        result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+        auto result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
         if (result == MDB_SUCCESS)
         {
-            MDB_val_copy<blobdata> offer_info(blob);
-            auto result2 = mdb_cursor_put(cur_safex_offer, &k, &offer_info, (unsigned int) MDB_CURRENT);
+            MDB_val_set(k2, offer_id);
+            safex::create_offer_result sfx_offer;
+            const cryptonote::blobdata offerblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+            cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);
+
+            sfx_offer.active = active;
+            sfx_offer.price = price;
+            sfx_offer.quantity = quantity;
+
+            MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_offer));
+            auto result2 = mdb_cursor_put(cur_safex_offer, &k2, &vupdate, (unsigned int) MDB_CURRENT);
             if (result2 != MDB_SUCCESS)
                 throw0(DB_ERROR(lmdb_error("Failed to update offer data for offer id: "+boost::lexical_cast<std::string>(offer_id), result2).c_str()));
         }
@@ -4921,7 +4947,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         return true;
     };
 
-    bool BlockchainLMDB::get_create_offer_output_id(const crypto::hash offer_id, uint64_t& output_id) const {
+    bool BlockchainLMDB::get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const {
 
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();

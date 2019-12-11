@@ -183,7 +183,7 @@ struct edit_offer_result : public execution_result
     edit_offer_result(){}
 
     edit_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, uint64_t _price, uint64_t _quantity,
-                        bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active},output_id{0} {
+                        bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active} {
 
     }
 
