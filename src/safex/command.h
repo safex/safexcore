@@ -44,7 +44,8 @@ namespace safex
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
     error_offer_non_existant = 14,
-    error_purchase_out_of_stock = 15
+    error_purchase_out_of_stock = 15,
+    error_purchase_not_enough_funds = 16
   };
 
   struct execution_result
@@ -155,8 +156,8 @@ struct create_offer_result : public execution_result
     create_offer_result(){}
 
     create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, uint64_t _price, uint64_t _quantity,
-            bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active},output_id{0} {
-
+            bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active} {
+        output_ids.clear();
     }
 
     crypto::hash offer_id{};
@@ -164,7 +165,7 @@ struct create_offer_result : public execution_result
     uint64_t quantity{};
     uint64_t price;
     bool active{};
-    uint64_t output_id{};
+    std::vector<uint64_t> output_ids{};
 
     BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
@@ -172,7 +173,7 @@ struct create_offer_result : public execution_result
         FIELD(price)
         FIELD(quantity)
         FIELD(active)
-        FIELD(output_id)
+        FIELD(output_ids)
     END_SERIALIZE()
 
 };
@@ -183,7 +184,7 @@ struct edit_offer_result : public execution_result
     edit_offer_result(){}
 
     edit_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, uint64_t _price, uint64_t _quantity,
-                        bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active},output_id{0} {
+                        bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active} {
 
     }
 

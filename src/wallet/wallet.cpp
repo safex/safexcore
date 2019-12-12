@@ -8651,8 +8651,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         }
 
       }
-      else if (command_type == safex::command_t::simple_purchase)
-      {
+      else if (command_type == safex::command_t::simple_purchase) {
           if (dt.script_output == false || dt.output_type == tx_out_type::out_network_fee) {
               needed_cash += dt.amount;
           } else {
@@ -8712,7 +8711,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       for (const auto &i : staked_token_balance_per_subaddr)
         subaddr_indices.insert(i.first);
       for (const auto &i : cash_balance_per_subaddr)
-            subaddr_indices.insert(i.first);
+        subaddr_indices.insert(i.first);
     }
 
     uint64_t cash_balance_subtotal = 0;
@@ -8967,18 +8966,18 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         ++original_output_index;
         if (dsts[0].output_type == tx_out_type::out_safex_account) continue; //no need to match any index
       }
-        if (dsts[0].output_type == tx_out_type::out_safex_purchase) {
-            //safex purchase is created from create command referencing cash output, but does not directly references cash locked for its creation (there is separate out cash output)
+      if (dsts[0].output_type == tx_out_type::out_safex_purchase) {
+        //safex purchase is created from create command referencing cash output, but does not directly references cash used for its creation (there is separate cash out output)
 
-            LOG_PRINT_L2("Adding advanced output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
+        LOG_PRINT_L2("Adding advanced output" << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
                                                   " with blobdata: " << dsts[0].output_data);
 
-            tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, false, dsts[0].output_data);
+        tx.add(dsts[0].addr, dsts[0].is_subaddress, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, original_output_index, false, dsts[0].output_data);
 
-            pop_index(dsts, 0);
-            ++original_output_index;
-            if (dsts[0].output_type == tx_out_type::out_safex_account) continue; //no need to match any index
-        }
+        pop_index(dsts, 0);
+        ++original_output_index;
+        if (dsts[0].output_type == tx_out_type::out_safex_purchase) continue; //no need to match any index
+      }
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
       size_t idx;

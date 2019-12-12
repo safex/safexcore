@@ -208,7 +208,6 @@ namespace config
                                             } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100028ff33b5dc7640ad6333405a875f9a92cd69e99fc15d208ea2eb990203d1348dc8301011d22a19d7aa99b11c1143fd40e200760de6caa90eab16bd12d0188d6db8537611103c23aed713351b8b88e15bb213983aa03f26aca95da4e77384654153d50a55fc78dcc65a751789b60e816e3710d448b05f56777e66aff4c6228472e6a41e122dc9ab470e5997573adea910e70c4c3a04e3957e33c099848f0fd2d12dc6b84eca3";
     uint32_t const GENESIS_NONCE = 10000;
-    //TODO: Set to other values when activating new hard fork
     uint64_t const HARDFORK_V4_INIT_DIFF = 330000000;
     uint64_t const HARDFORK_V4_START_HEIGHT = 330000;
 
@@ -244,7 +243,6 @@ namespace config
       } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002cd3249adde7fce93280c3a87db72648b7e47eeb08a5e6ff8e926f86e4aa9ffa283010126cb71e5ddd6461fea5d5b00644c5fb9711a2951e1345ba95c648b00ca08e23d1103ab3e85348739c5348f5dd7a61de6e1d30c0a81389ba9ce533da1e65df03f6a71f2df17d26217fb61bd2e8bc65197bf535904d9f5d75e531712f7fd3e255c5ad5308d1ee2cc4166b8effafd2f75d9c8483bb264ed7539cbc2921c580b40b1218b";
     uint32_t const GENESIS_NONCE = 10002;
-    //TODO: Set to other values when activating new hard fork
     uint64_t const HARDFORK_V4_INIT_DIFF = 1000;
     uint64_t const HARDFORK_V4_START_HEIGHT = 102444;
   }

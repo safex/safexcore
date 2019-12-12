@@ -323,7 +323,7 @@ public:
   virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
   virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
-
+  virtual bool get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const;
 
 
   virtual uint64_t add_block( const block& blk
@@ -514,7 +514,25 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
      *
      */
-    void edit_safex_offer(const crypto::hash &offer_id, const blobdata &blob);
+    void edit_safex_offer(const crypto::hash &offer_id, bool active, uint64_t price, uint64_t quantity);
+
+    /**
+     * Remove safex offer from database
+     *
+     * @param offer_id safex offer id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_offer(const crypto::hash &offer_id);
+
+    /**
+     * Remove safex offer update from database
+     *
+     * @param offer_id safex offer id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_offer_update(const crypto::hash &offer_id);
 
     /**
      * Close offer in database
@@ -544,6 +562,15 @@ private:
     */
     void remove_advanced_output(uint64_t& output_id);
 
+    /**
+    * Remove last added advanced output from DB
+    *
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void remove_last_advanced_output();
+
   /**
    * Remove last safex account update from database
    *
@@ -554,6 +581,25 @@ private:
   void remove_safex_account_update(const safex::account_username &username);
 
   /**
+   * Remove last staked tokens from database
+   *
+   * @param token_amount amount of tokens sent
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_staked_token(const uint64_t token_amount);
+
+  /**
+   * Remove safex purchase advanced output and update offer quantity from database
+   *
+   * @param offer_id ID of purchased offer to update
+   * @param quantity Quantity of product purchased
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity);
+
+  /**
    * Restore safex account data by getting it from advanced output table
    *
    * @param sfx_account safex account that needs to be updated
@@ -561,6 +607,15 @@ private:
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
   void restore_safex_account_data(safex::create_account_result& sfx_account);
+
+    /**
+     * Restore safex offer data by getting it from advanced output table
+     *
+     * @param sfx_offer safex offer that needs to be updated
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void restore_safex_offer_data(safex::create_offer_result& sfx_offer);
 
 protected:
 

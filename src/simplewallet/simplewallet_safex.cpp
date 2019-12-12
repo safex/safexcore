@@ -105,23 +105,26 @@ namespace cryptonote
     LOCK_IDLE_SCOPE();
 
     std::vector<std::string> local_args = args_;
+
     crypto::hash purchase_offer_id{};
     std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
     std::vector<safex::safex_offer>::iterator offer_to_purchase;
     uint64_t quantity_to_purchase;
     if(command_type == CommandType::TransferPurchase) {
-        if(!epee::string_tools::hex_to_pod(local_args.back(), purchase_offer_id)){
+      if(!epee::string_tools::hex_to_pod(local_args.back(), purchase_offer_id)){
             fail_msg_writer() << tr("Bad offer ID given!!!");
             return true;
-        }
-        offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
-                                                                        return offer.offer_id == purchase_offer_id;});
-        if (offer_to_purchase!=offers.end())
-          local_args.pop_back();
-        else {
-          fail_msg_writer() << tr("There is no offer with given id!!");
-          return true;
-        }
+      }
+
+      offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
+            return offer.offer_id == purchase_offer_id;});
+
+      if(offer_to_purchase!=offers.end())
+        local_args.pop_back();
+      else {
+        fail_msg_writer() << tr("There is no offer with given id!!");
+        return true;
+      }
     }
 
     std::set<uint32_t> subaddr_indices;
@@ -446,49 +449,47 @@ namespace cryptonote
           // Allow to collect outputs for regular SFX transaction.
         else if (command_type == CommandType::TransferPurchase)
         {
-          quantity_to_purchase = stoi(local_args[i + 1]);
-          de.amount = quantity_to_purchase*offer_to_purchase->price * 95  / 100;
-          de.output_type = tx_out_type::out_cash;
-          safex_network_fee += quantity_to_purchase*offer_to_purchase->price * 5  / 100;
+            quantity_to_purchase = stoi(local_args[i + 1]);
+            de.amount = quantity_to_purchase*offer_to_purchase->price * 95  / 100;
+            de.output_type = tx_out_type::out_cash;
+            safex_network_fee += quantity_to_purchase*offer_to_purchase->price * 5  / 100;
 
             cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
             std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
 
             cryptonote::address_parse_info info_dest = AUTO_VAL_INIT(info_dest);
-            if (!cryptonote::get_account_address_from_str(info_dest, m_wallet->nettype(), destination_addr))
-            {
+            if (!cryptonote::get_account_address_from_str(info_dest, m_wallet->nettype(), destination_addr)){
                 fail_msg_writer() << tr("failed to parse address");
                 return true;
             }
-
             safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
             blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
             de_purchase = tx_destination_entry{0, info_dest.address, false, tx_out_type::out_safex_purchase, blobdata};
-
             dsts.push_back(de_purchase);
-
-
         }
 
         dsts.push_back(de);
       }
     }
 
-    // If its demo purchase, make special destination_entry for network fee and safex purchase.
-    if(command_type == CommandType::TransferPurchase){
-        cryptonote::tx_destination_entry de_net_fee = AUTO_VAL_INIT(de_net_fee);
-        std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
-        cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
-        {
-            fail_msg_writer() << tr("failed to parse address");
-            return true;
-        }
-        de_net_fee.addr = info.address;
-        de_net_fee.is_subaddress = info.is_subaddress;
-        de_net_fee.amount = safex_network_fee;
-        de_net_fee.script_output = true;
-        de_net_fee.output_type = tx_out_type::out_network_fee;
+    // If its demo purchase, make special destination_entry for network fee.
+    if(command_type == CommandType::TransferPurchase) {
+      cryptonote::tx_destination_entry de_net_fee = AUTO_VAL_INIT(de_net_fee);
+      std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+
+      cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+      {
+        fail_msg_writer() << tr("failed to parse address");
+        return true;
+      }
+
+      de_net_fee.addr = info.address;
+      de_net_fee.is_subaddress = info.is_subaddress;
+      de_net_fee.amount = safex_network_fee;
+      de_net_fee.script_output = true;
+      de_net_fee.output_type = tx_out_type::out_network_fee;
+
 
         dsts.push_back(de_net_fee);
     }
@@ -727,9 +728,6 @@ namespace cryptonote
       fail_msg_writer() << tr("unknown error");
     }
 
-//    if(command_type == CommandType::TransferPurchase) {
-//      success_msg_writer() << boost::format(tr("You successfully paid offer with id %s.  ")) % offer_id;
-//    }
 
     if(command_type == CommandType::TransferDonation) {
       success_msg_writer() << boost::format(tr("You successfully donated network!!! "));
