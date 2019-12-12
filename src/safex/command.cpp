@@ -176,8 +176,6 @@ namespace safex
     if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
 
-    if(sfx_offer.price*cmd->quantity > txin.amount)
-        return execution_status ::error_purchase_not_enough_funds;
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());

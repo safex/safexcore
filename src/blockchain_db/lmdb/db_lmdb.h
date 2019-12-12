@@ -562,6 +562,15 @@ private:
     */
     void remove_advanced_output(uint64_t& output_id);
 
+    /**
+    * Remove last added advanced output from DB
+    *
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void remove_last_advanced_output();
+
   /**
    * Remove last safex account update from database
    *
@@ -579,6 +588,16 @@ private:
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
   void remove_staked_token(const uint64_t token_amount);
+
+  /**
+   * Remove safex purchase advanced output and update offer quantity from database
+   *
+   * @param offer_id ID of purchased offer to update
+   * @param quantity Quantity of product purchased
+   *
+   * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+  */
+  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity);
 
   /**
    * Restore safex account data by getting it from advanced output table
