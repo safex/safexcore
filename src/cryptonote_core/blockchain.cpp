@@ -3312,6 +3312,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   else if (command_type == safex::command_t::simple_purchase)
   {
       //TODO: Make additional checks if fee is sent and if money is sent
+      uint64_t network_fee = 0;
+      uint64_t product_payment = 0;
+      uint64_t total_payment = 0;
       for (const auto &vout: tx.vout)
       {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
@@ -3320,7 +3323,38 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               safex::create_purchase_data purchase;
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              total_payment = purchase.price;
           }
+          else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+          {
+              network_fee += vout.amount;
+          }
+          else if (vout.target.type() == typeid(txout_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_cash)
+          {
+              product_payment += vout.amount;
+          }
+      }
+
+      //check network fee payment
+      if (total_payment*5/100 > network_fee)
+      {
+          MERROR("Not enough cash given for network fee");
+          tvc.m_safex_invalid_input = true;
+          return false;
+      }
+      //check purchase cash payment
+      if (total_payment*95/100 > product_payment)
+      {
+          MERROR("Not enough cash given for product payment");
+          tvc.m_safex_invalid_input = true;
+          return false;
+      }
+      //check purchase total payment
+      if (total_payment > product_payment + network_fee)
+      {
+          MERROR("Not enough cash given for network fee and product payment ");
+          tvc.m_safex_invalid_input = true;
+          return false;
       }
   }
   else

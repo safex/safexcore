@@ -164,18 +164,20 @@ namespace safex
 
   execution_status simple_purchase::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    //TODO: GRKI Add additional checks
     std::unique_ptr<safex::simple_purchase> cmd = safex::safex_command_serializer::parse_safex_command<safex::simple_purchase>(txin.script);
 
     execution_status result = execution_status::ok;
 
-    uint64_t offer_quantity{};
-    if (!blokchainDB.get_offer_quantity(cmd->offer_id,offer_quantity)) {
+    safex::safex_offer sfx_offer{};
+    if (!blokchainDB.get_offer(cmd->offer_id,sfx_offer)) {
         return execution_status::error_offer_non_existant;
     }
 
-    if(offer_quantity < cmd->quantity)
+    if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
+
+    if(sfx_offer.price*cmd->quantity > txin.amount)
+        return execution_status ::error_purchase_not_enough_funds;
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());
