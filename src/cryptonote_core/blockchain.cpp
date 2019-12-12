@@ -1222,7 +1222,7 @@ difficulty_type Blockchain::get_hard_fork_difficulty( std::vector<std::uint64_t>
                 break;
         }
 
-        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 )
+        if(height >= start_height && height <= start_height + DIFFICULTY_BLOCKS_COUNT_V2 * (uint64_t)1000 )
             return random_x_diff;
         else
             return next_difficulty_v2(timestamps, difficulties, target);
@@ -3782,7 +3782,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
+                                                              boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {

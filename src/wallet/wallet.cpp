@@ -8978,7 +8978,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         ++original_output_index;
         if (dsts[0].output_type == tx_out_type::out_safex_purchase) continue; //no need to match any index
       }
-
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
       size_t idx;

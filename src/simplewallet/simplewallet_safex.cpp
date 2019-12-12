@@ -198,7 +198,8 @@ namespace cryptonote
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
     bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) &&
-                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&(command_type != CommandType::TransferCloseOffer);
+                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&
+                                        (command_type != CommandType::TransferCloseOffer);
     bool expect_even = (min_args % 2 == 1);
     if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
@@ -368,6 +369,7 @@ namespace cryptonote
     else
     {
 
+
       for (size_t i = 0; i < local_args.size(); i += 2)
       {
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
@@ -488,7 +490,8 @@ namespace cryptonote
       de_net_fee.script_output = true;
       de_net_fee.output_type = tx_out_type::out_network_fee;
 
-      dsts.push_back(de_net_fee);
+
+        dsts.push_back(de_net_fee);
     }
 
     try
@@ -725,6 +728,7 @@ namespace cryptonote
       fail_msg_writer() << tr("unknown error");
     }
 
+
     if(command_type == CommandType::TransferDonation) {
       success_msg_writer() << boost::format(tr("You successfully donated network!!! "));
     }
@@ -794,6 +798,7 @@ namespace cryptonote
   }
 
   bool simple_wallet::safex_purchase(const std::vector<std::string>& args) {
+
       if (args.empty())
       {
           success_msg_writer() << tr("usage:\n"
@@ -841,7 +846,7 @@ namespace cryptonote
       success_msg_writer() << tr("Safex offers");
       success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
       for (auto &offer: m_wallet->get_my_safex_offers()) {
-          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % print_money(offer.price) % offer.quantity % offer.seller %
                                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
   }

@@ -1293,6 +1293,7 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
     throw0(DB_ERROR(lmdb_error("Failed to add output tx hash to db transaction: ", result).c_str()));
 
 
+
   const tx_out_type output_type = get_tx_out_type(tx_output.target);
   if (output_type == tx_out_type::out_cash)
   {
