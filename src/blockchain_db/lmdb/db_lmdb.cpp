@@ -1397,8 +1397,6 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
     } else if(output_type == tx_out_type::out_network_fee){
         remove_last_advanced_output();
     }
-    else if(output_type == tx_out_type::out_safex_offer_close){
-    }
     else {
       throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
     }
@@ -1615,19 +1613,6 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       blobdata blob{};
       t_serializable_object_to_blob(*result,blob);
       edit_safex_offer(result->offer_id, result->active, result->price, result->quantity);
-
-  }
-  else if (txin.command_type == safex::command_t::close_offer)
-  {
-
-      std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
-      std::unique_ptr<safex::close_offer_result> result(dynamic_cast<safex::close_offer_result*>(cmd->execute(*this, txin)));
-      if (result->status != safex::execution_status::ok)
-      {
-          LOG_ERROR("Execution of close saffex offer command failed, status:" << static_cast<int>(result->status));
-          throw1(DB_ERROR("Error executing close safex offer command"));
-      }
-      close_safex_offer(result->offer_id);
 
   }
   else if (txin.command_type == safex::command_t::simple_purchase)
@@ -5035,37 +5020,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             result = mdb_cursor_del(m_cur_output_advanced, 0);
             if (result)
                 throw1(DB_ERROR(lmdb_error("Error removing advanced output: ", result).c_str()));
-        }
-    }
-
-
-    void BlockchainLMDB::close_safex_offer(const crypto::hash &offer_id) {
-        LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-        check_open();
-        mdb_txn_cursors *m_cursors = &m_wcursors;
-        MDB_cursor *cur_safex_offer;
-        CURSOR(safex_offer)
-        cur_safex_offer = m_cur_safex_offer;
-
-
-        int result;
-        MDB_val_set(k, offer_id);
-        MDB_val v;
-
-        result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
-        if (result == MDB_SUCCESS)
-        {
-            auto result2 = mdb_cursor_del(cur_safex_offer, (unsigned int) MDB_CURRENT);
-            if (result2 != MDB_SUCCESS)
-                throw0(DB_ERROR(lmdb_error("Failed to close offer for offer id: "+boost::lexical_cast<std::string>(offer_id), result2).c_str()));
-        }
-        else if (result == MDB_NOTFOUND)
-        {
-            throw0(DB_ERROR(lmdb_error("DB error attempting to close offer, does not exists: ", result).c_str()));
-        }
-        else
-        {
-            throw0(DB_ERROR(lmdb_error("DB error attempting to close offer: ", result).c_str()));
         }
     }
 

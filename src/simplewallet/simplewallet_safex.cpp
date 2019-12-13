@@ -69,13 +69,6 @@ namespace cryptonote
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
     }
 
-    tx_destination_entry close_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer, const crypto::public_key &pkey)
-    {
-        safex::close_offer_data offer_output_data{sfx_offer.offer_id,pkey,sfx_offer.seller};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_close, blobdata};
-    }
-
 
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
@@ -94,7 +87,6 @@ namespace cryptonote
       case CommandType::TransferEditAccount:
       case CommandType::TransferCreateOffer:
       case CommandType::TransferEditOffer:
-      case CommandType::TransferCloseOffer:
         //do nothing
         break;
       default:
@@ -198,7 +190,7 @@ namespace cryptonote
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
     bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) &&
-                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&(command_type != CommandType::TransferCloseOffer);
+                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer);
     bool expect_even = (min_args % 2 == 1);
     if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
@@ -288,7 +280,7 @@ namespace cryptonote
 
       }
     }
-    else if(command_type == CommandType::TransferCreateOffer || command_type == CommandType::TransferEditOffer || command_type == CommandType::TransferCloseOffer){
+    else if(command_type == CommandType::TransferCreateOffer || command_type == CommandType::TransferEditOffer){
         //use my own current subaddress as destination
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
@@ -348,20 +340,6 @@ namespace cryptonote
 
             cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer_update);
-
-        }
-        else if (command_type == CommandType::TransferCloseOffer) {
-
-            safex::safex_offer sfx_offer{};
-
-            crypto::hash offer_id_close{};
-            epee::string_tools::hex_to_pod(local_args[1], offer_id_close);
-
-            sfx_offer.offer_id = offer_id_close;
-            sfx_offer.seller = sfx_username;
-
-            cryptonote::tx_destination_entry de_offer_close = close_safex_offer_destination(info.address, sfx_offer,my_safex_account.pkey);
-            dsts.push_back(de_offer_close);
 
         }
     }
@@ -532,10 +510,6 @@ namespace cryptonote
 
         case CommandType::TransferEditOffer:
           command = safex::command_t::edit_offer;
-          break;
-
-        case CommandType::TransferCloseOffer:
-          command = safex::command_t::close_offer;
           break;
 
         default:
@@ -965,8 +939,6 @@ namespace cryptonote
         //   safex_offer
         //   safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_price> <offer_quantity> <offer_description>
         //   safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>
-        //   safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>
-
         if (args.empty())
         {
             // print all the existing offers
@@ -983,11 +955,6 @@ namespace cryptonote
             // create a new safex offer transaction
             return create_command(CommandType::TransferCreateOffer, local_args);
         }
-        else if (command == "close")
-        {
-            return create_command(CommandType::TransferCloseOffer, local_args);
-
-        }
         else if (command == "edit")
         {
             return create_command(CommandType::TransferEditOffer, local_args);
@@ -997,8 +964,7 @@ namespace cryptonote
             success_msg_writer() << tr("usage:\n"
                                        "  safex_offer\n"
                                        "  safex_offer create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_name> <offer_price> <offer_quantity> <offer_description>\n"
-                                       "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>\n"
-                                       "  safex_offer close [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id>");
+                                       "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>");
 
         }
         return true;
@@ -1054,13 +1020,6 @@ namespace cryptonote
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
-
-    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_close)){
-        safex::close_offer_data offer;
-        const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
-        cryptonote::parse_and_validate_from_blob(offblob, offer);
-
-        m_wallet->close_safex_offer(offer.offer_id);
 
     }
 

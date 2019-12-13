@@ -191,14 +191,6 @@ namespace
               construct_edit_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_edited_safex_offer, m_safex_account1_keys.get_keys());
               m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 25)
-          {
-              tx_list.resize(tx_list.size() + 1);
-              cryptonote::transaction &tx = tx_list.back();                                                           \
-              construct_close_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_offer[0].offer_id, m_safex_account1_keys.get_keys());
-              m_txmap[get_transaction_hash(tx)] = tx;
-          }
-
 
           construct_block(blk, i, prev_hash, m_miner_acc, 0, m_test_sizes[i], tx_list);
 
@@ -359,10 +351,6 @@ namespace
             ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
                                                   this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
         }
-        //Checking closed offer
-        safex::safex_offer closed_offer;
-        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,saved_offer);
-        ASSERT_FALSE(result);
 
 
     ASSERT_NO_THROW(this->m_db->close());

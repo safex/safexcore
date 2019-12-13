@@ -227,7 +227,6 @@ namespace cryptonote
     out_safex_account_update = 16, //safex account output update
     out_safex_offer = 20,
     out_safex_offer_update = 21,
-    out_safex_offer_close = 22,
     out_safex_purchase = 30,
     out_invalid = 100
   };

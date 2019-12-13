@@ -349,31 +349,6 @@ namespace safex
         return result;
     };
 
-    close_offer_result* close_offer::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
-    {
-        execution_status result = validate(blokchainDB, txin);
-        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate close offer command", this->get_command_type());
-
-        close_offer_result *cr = new close_offer_result{this->offer_id};
-        cr->valid = true;
-        cr->status = execution_status::ok;
-
-        return cr;
-    };
-
-    execution_status close_offer::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
-    {
-
-        execution_status result = execution_status::ok;
-        std::unique_ptr<safex::close_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::close_offer>(txin.script);
-
-        safex::safex_offer sfx_dummy{};
-        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
-            result = execution_status::error_offer_non_existant;
-        }
-        return result;
-    };
-
 
   bool validate_safex_command(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {

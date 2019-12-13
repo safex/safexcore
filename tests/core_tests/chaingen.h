@@ -266,9 +266,6 @@ bool construct_create_offer_transaction(const std::vector<test_event_entry>& eve
 bool construct_edit_offer_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
                                         size_t nmix, const crypto::public_key &pkey, const safex::safex_offer& sfx_offer, const safex::safex_account_keys &sfx_acc_keys);
 
-bool construct_close_offer_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
-                                      size_t nmix, const crypto::public_key &pkey, const crypto::hash &offer_id, const safex::safex_account_keys &sfx_acc_keys);
-
 bool construct_create_purchase_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
                                        size_t nmix, const safex::safex_purchase &sfx_purchase, const cryptonote::account_public_address seller_address);
 
@@ -867,20 +864,6 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER, ACC_KEYS, HEAD) \
     std::list<cryptonote::transaction> SET_NAME; \
     MAKE_EDIT_SAFEX_OFFER_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER, ACC_KEYS, HEAD);
-
-#define MAKE_CLOSE_SAFEX_OFFER_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM,  PKEY, SFX_OFFER_ID, ACC_KEYS, NMIX, HEAD) \
-  {                                                                                      \
-    cryptonote::transaction t;                                                           \
-    construct_close_offer_transaction(VEC_EVENTS, t, HEAD, FROM, TESTS_DEFAULT_FEE, NMIX, PKEY, SFX_OFFER_ID, ACC_KEYS); \
-    SET_NAME.push_back(t);                                                               \
-    VEC_EVENTS.push_back(t);                                                             \
-  }
-
-#define MAKE_CLOSE_SAFEX_OFFER_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER_ID, ACC_KEYS, HEAD) MAKE_CLOSE_SAFEX_OFFER_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER_ID, ACC_KEYS, 0, HEAD)
-
-#define MAKE_TX_CLOSE_SAFEX_OFFER_LIST_START(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER_ID, ACC_KEYS, HEAD) \
-    std::list<cryptonote::transaction> SET_NAME; \
-    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_OFFER_ID, ACC_KEYS, HEAD);
 
 #define MAKE_CREATE_SAFEX_PURCHASE_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, SFX_PURCHASE, SELLER_ADDR, NMIX, HEAD) \
   {                                                                                      \

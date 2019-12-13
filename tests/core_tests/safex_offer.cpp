@@ -202,7 +202,6 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     safex_offer_alice.description = expected_alice_safex_offer_new_description;
 
     MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
-    MAKE_CLOSE_SAFEX_OFFER_TX_LIST(events, txlist_6, bob, safex_account_bob.pkey, safex_offer_bob.offer_id, m_safex_account2_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
@@ -282,11 +281,9 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
   CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
 
-  bool result = c.get_blockchain_storage().get_safex_offer(expected_bob_safex_offer_id,sfx_offer);
-  CHECK_TEST_CONDITION(!result);
-
   std::vector<safex::safex_offer> offers;
-  result = c.get_safex_offers(offers);
+  bool result = c.get_safex_offers(offers);
+  CHECK_TEST_CONDITION(result);
 
   std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Offer title" %  "Price" % "Quantity" % "Seller" % "Description" % "Offer ID"<<std::endl;
   for(auto offer: offers)

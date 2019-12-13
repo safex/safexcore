@@ -535,15 +535,6 @@ private:
     void remove_safex_offer_update(const crypto::hash &offer_id);
 
     /**
-     * Close offer in database
-     *
-     * @param offer_id safex offer id
-     *
-     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
-     *
-     */
-    void close_safex_offer(const crypto::hash &offer_id);
-    /**
     * Create purchase in database
     *
     * @param result safex purchase data
