@@ -69,6 +69,21 @@ namespace
 
     sources.push_back(se);
   }
+
+    void append_tx_source_token_entry(std::vector<cryptonote::tx_source_entry>& sources, const transaction& tx, size_t out_idx)
+    {
+        cryptonote::tx_source_entry se;
+        se.token_amount = tx.vout[out_idx].token_amount;
+        se.token_transaction = true;
+        se.push_output(0, boost::get<cryptonote::txout_token_to_key>(tx.vout[out_idx].target).key, se.token_amount);
+        se.real_output = 0;
+        se.rct = false;
+        se.real_out_tx_key = get_tx_pub_key_from_extra(tx);
+        se.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(tx);
+        se.real_output_in_tx_index = out_idx;
+
+        sources.push_back(se);
+    }
 }
 
 //======================================================================================================================
@@ -76,7 +91,7 @@ namespace
 gen_uint_overflow_base::gen_uint_overflow_base()
   : m_last_valid_block_event_idx(static_cast<size_t>(-1))
 {
-  REGISTER_CALLBACK_METHOD(gen_uint_overflow_1, mark_last_valid_block);
+  REGISTER_CALLBACK_METHOD(gen_uint_cash_overflow_1, mark_last_valid_block);
 }
 
 bool gen_uint_overflow_base::check_tx_verification_context(const cryptonote::tx_verification_context& tvc, bool tx_added, size_t event_idx, const cryptonote::transaction& /*tx*/)
@@ -97,7 +112,7 @@ bool gen_uint_overflow_base::mark_last_valid_block(cryptonote::core& c, size_t e
 
 //======================================================================================================================
 
-bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
+bool gen_uint_cash_overflow_1::generate(std::vector<test_event_entry>& events) const
 {
   uint64_t ts_start = 1338224400;
 
@@ -109,7 +124,7 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx output overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_0, blk_0);
-  split_miner_tx_outs(miner_tx_0, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_0, MAX_MONEY_SUPPLY);
   block blk_1;
   if (!generator.construct_block_manually(blk_1, blk_0, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_0))
     return false;
@@ -117,23 +132,23 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx outputs overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_1, blk_1);
-  split_miner_tx_outs(miner_tx_1, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_1, MAX_MONEY_SUPPLY);
   block blk_2;
   if (!generator.construct_block_manually(blk_2, blk_1, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_1))
     return false;
   events.push_back(blk_2);
 
   REWIND_BLOCKS(events, blk_2r, blk_2, miner_account);
-  MAKE_TX_LIST_START(events, txs_0, miner_account, bob_account, MONEY_SUPPLY, blk_2);
-  MAKE_TX_LIST(events, txs_0, miner_account, bob_account, MONEY_SUPPLY, blk_2);
+  MAKE_TX_LIST_START(events, txs_0, miner_account, bob_account, MAX_MONEY_SUPPLY, blk_2);
+  MAKE_TX_LIST(events, txs_0, miner_account, bob_account, MAX_MONEY_SUPPLY, blk_2);
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner_account, txs_0);
   REWIND_BLOCKS(events, blk_3r, blk_3, miner_account);
 
   // Problem 2. total_fee overflow, block_reward overflow
   std::list<cryptonote::transaction> txs_1;
   // Create txs with huge fee
-  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MONEY_SUPPLY - MK_COINS(1)));
-  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MONEY_SUPPLY - MK_COINS(1)));
+  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MAX_MONEY_SUPPLY - MK_COINS(1)));
+  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MAX_MONEY_SUPPLY - MK_COINS(1)));
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, miner_account, txs_1);
 
   return true;
@@ -141,7 +156,7 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
 //======================================================================================================================
 
-bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
+bool gen_uint_cash_overflow_2::generate(std::vector<test_event_entry>& events) const
 {
   uint64_t ts_start = 1338224400;
 
@@ -169,10 +184,10 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
 
   std::vector<cryptonote::tx_destination_entry> destinations;
   const account_public_address& bob_addr = bob_account.get_keys().m_account_address;
-  destinations.push_back(tx_destination_entry(MONEY_SUPPLY, bob_addr, false));
-  destinations.push_back(tx_destination_entry(MONEY_SUPPLY - 1, bob_addr, false));
+  destinations.push_back(tx_destination_entry(MAX_MONEY_SUPPLY, bob_addr, false));
+  destinations.push_back(tx_destination_entry(MAX_MONEY_SUPPLY - 1, bob_addr, false));
   // sources.front().amount = destinations[0].amount + destinations[2].amount + destinations[3].amount + TESTS_DEFAULT_FEE
-  destinations.push_back(tx_destination_entry(sources.front().amount - MONEY_SUPPLY - MONEY_SUPPLY + 1 - TESTS_DEFAULT_FEE, bob_addr, false));
+  destinations.push_back(tx_destination_entry(sources.front().amount - MAX_MONEY_SUPPLY - MAX_MONEY_SUPPLY + 1 - TESTS_DEFAULT_FEE, bob_addr, false));
 
   cryptonote::transaction tx_1;
   if (!construct_tx(miner_account.get_keys(), sources, destinations, boost::none, std::vector<uint8_t>(), tx_1, 0))
@@ -187,7 +202,7 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
   for (size_t i = 0; i < tx_1.vout.size(); ++i)
   {
     auto& tx_1_out = tx_1.vout[i];
-    if (tx_1_out.amount < MONEY_SUPPLY - 1)
+    if (tx_1_out.amount < MAX_MONEY_SUPPLY - 1)
       continue;
 
     append_tx_source_entry(sources, tx_1, i);
@@ -196,7 +211,7 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
   destinations.clear();
   cryptonote::tx_destination_entry de;
   de.addr = alice_account.get_keys().m_account_address;
-  de.amount = MONEY_SUPPLY - TESTS_DEFAULT_FEE;
+  de.amount = MAX_MONEY_SUPPLY  - TESTS_DEFAULT_FEE;
   destinations.push_back(de);
   destinations.push_back(de);
 
@@ -208,4 +223,105 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
   MAKE_NEXT_BLOCK_TX1(events, blk_2, blk_1r, miner_account, tx_2);
 
   return true;
+}
+
+bool gen_uint_token_overflow_1::generate(std::vector<test_event_entry>& events) const
+{
+    uint64_t ts_start = 1338224400;
+
+
+    GENERATE_ACCOUNT(miner_account);
+    crypto::public_key miner_public_key = AUTO_VAL_INIT(miner_public_key);
+    crypto::secret_key_to_public_key(miner_account.get_keys().m_spend_secret_key, miner_public_key);
+    cryptonote::fakechain::set_core_tests_public_key(miner_public_key);
+
+    MAKE_GENESIS_BLOCK(events, blk_0, miner_account, ts_start);
+    MAKE_ACCOUNT(events, bob_account);
+    MAKE_ACCOUNT(events, alice_account);
+
+    MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner_account);
+    MAKE_NEXT_BLOCK(events, blk_1_side, blk_0, miner_account);
+    MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner_account);
+
+    REWIND_BLOCKS(events, blk_2r, blk_2, miner_account);
+
+    REWIND_BLOCKS(events, blk_3, blk_2r, miner_account);
+    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner_account, alice_account, MK_TOKENS(10000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+   // MAKE_MIGRATION_TX_LIST(events, txlist_0, miner_account, bob_account, MK_TOKENS(10000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_3r, blk_3, miner_account, txlist_0);
+    REWIND_BLOCKS(events, blk_4, blk_3r, miner_account);
+    //MAKE_TOKEN_TX_LIST_START(events, txlist_1, alice_account, bob_account, MK_TOKENS(20), blk_3r);
+    MAKE_NEXT_BLOCK(events, blk_4r, blk_4, miner_account);
+    REWIND_BLOCKS(events, blk_5, blk_4r, miner_account);
+    DO_CALLBACK(events, "mark_last_valid_block");
+
+    // Problem 1. Regular tx outputs overflow
+    std::vector<cryptonote::tx_source_entry> sources;
+    for (size_t i = 0; i < txlist_0.begin()->vout.size(); ++i)
+    {
+        if ( MK_TOKENS(20) < txlist_0.front().vout[i].token_amount)
+        {
+            append_tx_source_token_entry(sources, txlist_0.front(), i);
+        }
+        if ( txlist_0.front().vout[i].amount == 232830643000)
+        {
+            append_tx_source_entry(sources, txlist_0.front(), i);
+        }
+    }
+    if (sources.empty())
+    {
+        return false;
+    }
+
+    std::vector<cryptonote::tx_destination_entry> destinations;
+    const account_public_address& bob_addr = alice_account.get_keys().m_account_address;
+
+
+    std::vector<uint64_t> rest{8,9,90,900,9000,400,4000,4000000,70000,600000};
+    for(int is=0;is<18;is++){
+        cryptonote::tx_destination_entry de2 = AUTO_VAL_INIT(de2);
+        de2.addr = bob_addr;
+        de2.is_subaddress = false;
+        de2.token_amount = 100000000*SAFEX_TOKEN;
+        de2.token_transaction = true;
+        destinations.push_back(de2);
+    }
+    for(int is=0;is<40;is++){
+        cryptonote::tx_destination_entry de2 = AUTO_VAL_INIT(de2);
+        de2.addr = bob_addr;
+        de2.is_subaddress = false;
+        de2.token_amount = 1000000*SAFEX_TOKEN;
+        de2.token_transaction = true;
+        destinations.push_back(de2);
+    }
+    for(auto it: rest){
+        cryptonote::tx_destination_entry de2 = AUTO_VAL_INIT(de2);
+        de2.addr = bob_addr;
+        de2.is_subaddress = false;
+        de2.token_amount = it*SAFEX_TOKEN;
+        de2.token_transaction = true;
+        destinations.push_back(de2);
+    }
+
+    cryptonote::transaction tx_1;
+    if (!construct_tx(alice_account.get_keys(), sources, destinations, alice_account.get_keys().m_account_address, std::vector<uint8_t>(), tx_1, 0))
+        return false;
+    events.push_back(tx_1);
+
+    MAKE_NEXT_BLOCK_TX1(events, blk_5r, blk_5, miner_account, tx_1);
+    REWIND_BLOCKS(events, blk_6, blk_5r, miner_account);
+
+    return true;
+}
+
+crypto::hash gen_uint_token_overflow_1::get_hash_from_string(const std::string hashstr) const{
+    //parse bitcoin transaction hash
+    cryptonote::blobdata expected_bitcoin_hash_data;
+    if (!epee::string_tools::parse_hexstr_to_binbuff(std::string(hashstr), expected_bitcoin_hash_data) || expected_bitcoin_hash_data.size() != sizeof(crypto::hash))
+    {
+        std::cerr << "failed to parse bitcoin transaction hash" << std::endl;
+        return boost::value_initialized<crypto::hash>();
+    }
+    const crypto::hash bitcoin_transaction_hash = *reinterpret_cast<const crypto::hash*>(expected_bitcoin_hash_data.data());
+    return bitcoin_transaction_hash;
 }

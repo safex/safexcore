@@ -690,12 +690,18 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool check_outs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t cash_amount = 0;
+    uint64_t token_amount = 0;
+
     for(const auto& o: tx.vout)
     {
-      if(money > o.amount + money)
+      if(cash_amount > o.amount + cash_amount)
         return false;
-      money += o.amount;
+      cash_amount += o.amount;
+
+      if(token_amount > o.token_amount + token_amount)
+        return false;
+      token_amount += o.token_amount;
     }
     return true;
   }
