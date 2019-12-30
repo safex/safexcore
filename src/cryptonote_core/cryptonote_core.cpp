@@ -809,8 +809,15 @@ namespace cryptonote
 
     if(!check_money_overflow(tx))
     {
-      MERROR_VER("tx has money overflow, rejected for tx id= " << get_transaction_hash(tx));
-      return false;
+      crypto::hash problematic_tx;
+      std::string problematic_tx_hash = "1153c9354147a1b4f6199501be6b338f5407c1ecd26e87c537437c166f22f268";
+      if (!epee::string_tools::hex_to_pod(problematic_tx_hash, problematic_tx))
+          return false;
+
+      if(tx.hash != problematic_tx) {
+          MERROR_VER("tx has money overflow, rejected for tx id= " << get_transaction_hash(tx));
+          return false;
+      }
     }
 
     if (tx.version == 1)
