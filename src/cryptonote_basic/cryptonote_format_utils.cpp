@@ -682,6 +682,8 @@ namespace cryptonote
           || (in.type() == typeid(const txin_token_to_key))) {
         if(tokens > amount + tokens)
           return false;
+        if(amount >= 100000000*SAFEX_TOKEN)
+            return false;
         tokens += amount;
       }
     }
@@ -700,6 +702,8 @@ namespace cryptonote
       cash_amount += o.amount;
 
       if(token_amount > o.token_amount + token_amount)
+        return false;
+      if(o.token_amount >= 100000000*SAFEX_TOKEN)
         return false;
       token_amount += o.token_amount;
     }
