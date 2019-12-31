@@ -3139,8 +3139,10 @@ void BlockchainLMDB::get_output_tx_and_index_from_global(const std::vector<uint6
 
 bool BlockchainLMDB::getpwned(output_data_t& data) const{
 
-      if(height() < 348836)
-          return false;
+    const uint64_t height_t = height() - 1;
+    const uint8_t version = get_hard_fork_version(height_t);
+    if(version < HF_VERSION_STOP_COUNTERFEIT_TOKENS)
+        return false;
 
       std::vector<std::string> problems{
               "194cb649cdb2bc6169a2f69da1de2eb85842ed1fbb5fc12c8f712f9e51dcaba2",

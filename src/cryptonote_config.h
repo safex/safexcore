@@ -165,6 +165,7 @@
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
 #define HF_VERSION_MINER_TX_MAX_OUTS            11
 #define HF_VERSION_CHANGE_MINER_DUST_HANDLING   5
+#define HF_VERSION_STOP_COUNTERFEIT_TOKENS      6
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
