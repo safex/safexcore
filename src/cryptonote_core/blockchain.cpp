@@ -106,7 +106,7 @@ static const struct {
   //version 5 starts from block 335252, fork time finalized on 2019-12-11
   { 5, 335252, 0, 1576069200},
   //version 6 starts from block TBD, fork time finalized on TBD
-  { 6, 350000, 0, 1579069200}
+  { 6, 354100, 0, 1578327338}
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 61659;
 
