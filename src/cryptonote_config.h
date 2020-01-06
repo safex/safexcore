@@ -60,6 +60,7 @@
 
 // MONEY_SUPPLY - number coins to be generated
 #define MONEY_SUPPLY                                    ((uint64_t)(1000000000) * SAFEX_CASH_COIN) // 1 billion Safex Cash supply in 20 years
+#define MAX_MONEY_SUPPLY                                ((uint64_t)(-1)) // uint64_t maximum money supply
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)3) //after 1 billion, emit constant small block reward
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
@@ -73,6 +74,8 @@
 #define AIRDROP_TOKEN_TO_CASH_REWARD_RATE               (0.00232830643) //migration token to cash rate
 
 #define TOKEN_TOTAL_SUPPLY                              ((uint64_t)2147483647) //Token total supply, without decimals
+#define MAX_TOKEN_SUPPLY                                ((uint64_t)(-1)) // uint64_t maximum token supply
+
 
 #define FEE_PER_KB                                      ((uint64_t)100000000) // 1 * pow(10,8)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)100000000) // 1 * pow(10,8)
@@ -162,6 +165,7 @@
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
 #define HF_VERSION_MINER_TX_MAX_OUTS            11
 #define HF_VERSION_CHANGE_MINER_DUST_HANDLING   5
+#define HF_VERSION_STOP_COUNTERFEIT_TOKENS      6
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
