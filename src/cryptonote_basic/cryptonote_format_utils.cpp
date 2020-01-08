@@ -741,6 +741,8 @@ namespace cryptonote
 
       if(total_tokens > token_amount + total_tokens)
         return false;
+      if(token_amount >= 100000000*SAFEX_TOKEN)
+        return false;
 
       total_cash += cash_amount;
       total_tokens += token_amount;
@@ -760,6 +762,8 @@ namespace cryptonote
       total_cash += o.amount;
 
       if(total_tokens > o.token_amount + total_tokens)
+        return false;
+      if(o.token_amount >= 100000000*SAFEX_TOKEN)
         return false;
       total_tokens += o.token_amount;
     }

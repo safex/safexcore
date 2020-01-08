@@ -251,6 +251,8 @@ public:
 
   virtual uint64_t height() const;
 
+  virtual bool getpwned(output_data_t& dat) const;
+
   virtual bool tx_exists(const crypto::hash& h) const;
   virtual bool tx_exists(const crypto::hash& h, uint64_t& tx_index) const;
 
