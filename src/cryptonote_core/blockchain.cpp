@@ -4038,7 +4038,8 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
   CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
     return true;
 }
-
+//TODO: GRKI Add this where needed
+//
 //    std::vector<rct::ctkey >& m_output_keys;
 //    const Blockchain& m_bch;
 //    outputs_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
