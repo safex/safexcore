@@ -1107,6 +1107,7 @@ namespace cryptonote
       uint64_t height_without_bootstrap;
       bool was_bootstrap_ever_used;
       uint64_t migrated_tokens;
+      uint64_t issued_tokens;
       uint64_t issued_coins;
 
 
@@ -1139,6 +1140,7 @@ namespace cryptonote
         KV_SERIALIZE(height_without_bootstrap)
         KV_SERIALIZE(was_bootstrap_ever_used)
         KV_SERIALIZE(migrated_tokens)
+        KV_SERIALIZE(issued_tokens)
         KV_SERIALIZE(issued_coins)
       END_KV_SERIALIZE_MAP()
     };

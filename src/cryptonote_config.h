@@ -32,6 +32,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <boost/uuid/uuid.hpp>
 
 #define CRYPTONOTE_DNS_TIMEOUT_MS                       20000
