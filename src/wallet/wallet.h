@@ -1214,6 +1214,8 @@ namespace tools
     std::string m_ring_database;
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
+
+      bool problematic_output(crypto::public_key key);
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 0)

@@ -1669,6 +1669,8 @@ namespace cryptonote
     res.difficulty = m_core.get_blockchain_storage().get_difficulty_for_next_block();
     const auto height = m_core.get_blockchain_storage().get_current_blockchain_height();
     res.migrated_tokens = m_core.get_blockchain_storage().get_db().get_block_already_migrated_tokens(height - 1);
+    //Adding hacked tokens to total supply
+    res.issued_tokens = res.migrated_tokens + 244684407;
     res.issued_coins = m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height - 1);
     res.target = DIFFICULTY_TARGET;
     res.tx_count = m_core.get_blockchain_storage().get_total_transactions() - res.height; //without coinbase

@@ -6696,6 +6696,24 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
           LOG_PRINT_L1("Selecting real output: " << td.m_global_output_index << " for " << print_money(value_amount));
         }
 
+
+        if(out_type == cryptonote::tx_out_type::out_token){
+            std::vector<uint64_t> problem_values = {8,9,90,900,9000,400,4000,4000000,70000,600000,1000000, 100000000};
+            auto it = std::find(problem_values.begin(),problem_values.end(),value_amount/SAFEX_TOKEN);
+            if(it!=problem_values.end()) {
+                for (uint64_t i = 0; i < num_outs; i++) {
+                    if (seen_indices.count(i))
+                        continue;
+                    seen_indices.emplace(i);
+
+                    req.outputs.push_back({value_amount, i});
+                    ++num_found;
+                }
+                base_requested_outputs_count = num_outs;
+                requested_outputs_count = num_outs;
+            }
+        }
+
         // while we still need more mixins
         while (num_found < requested_outputs_count)
         {
@@ -6882,6 +6900,9 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       {
         size_t i = base + order[o];
         LOG_PRINT_L2("Index " << i << "/" << requested_outputs_count << ": idx " << req.outputs[i].index << " (real " << td.m_global_output_index << "), unlocked " << daemon_resp.outs[i].unlocked << ", key " << daemon_resp.outs[i].key);
+
+        if(problematic_output(daemon_resp.outs[i].key))
+            continue;
         tx_add_fake_output(outs, req.outputs[i].index, daemon_resp.outs[i].key, daemon_resp.outs[i].mask, td.m_global_output_index, daemon_resp.outs[i].unlocked);
       }
       if (outs.back().size() < fake_outputs_count + 1)
@@ -12340,6 +12361,21 @@ crypto::public_key wallet::get_migration_verification_public_key() const
   THROW_WALLET_EXCEPTION_IF(!cryptonote::get_migration_verification_public_key(nettype(), public_key),
                             tools::error::invalid_nettype);
   return public_key;
+}
+
+bool wallet::problematic_output(crypto::public_key key) {
+
+    for(const auto& it: config::PROBLEMATIC_TOKEN_OUTPUTS) {
+        crypto::public_key problematic_key;
+
+        epee::string_tools::hex_to_pod(it, problematic_key);
+
+        if(problematic_key==key){
+            return true;
+        }
+
+    }
+    return false;
 }
 
 }
