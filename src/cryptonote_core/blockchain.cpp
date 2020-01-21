@@ -3303,10 +3303,34 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::simple_purchase)
   {
-      //TODO: Make additional checks if fee is sent and if money is sent
       uint64_t network_fee = 0;
       uint64_t product_payment = 0;
       uint64_t total_payment = 0;
+      crypto::secret_key secret_seller_view_key;
+      crypto::public_key public_seller_spend_key;
+      safex::safex_offer offer_to_purchase;
+
+      for (const auto &vout: tx.vout) {
+          if (vout.target.type() == typeid(txout_to_script) &&
+              get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase) {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              total_payment = purchase.price;
+              get_safex_offer(purchase.offer_id, offer_to_purchase);
+
+              std::string desc_secret_key{offer_to_purchase.description.begin(), offer_to_purchase.description.begin()+64};
+              epee::string_tools::hex_to_pod(desc_secret_key, secret_seller_view_key);
+
+              std::string desc_public_key{offer_to_purchase.description.begin()+65, offer_to_purchase.description.end()};
+              epee::string_tools::hex_to_pod(desc_public_key, public_seller_spend_key);
+
+          }
+      }
+
+      std::vector<crypto::public_key> seller_outs= is_safex_purchase_right_address(secret_seller_view_key, public_seller_spend_key, tx);
+
       for (const auto &vout: tx.vout)
       {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
@@ -3316,6 +3340,10 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
               total_payment = purchase.price;
+              get_safex_offer(purchase.offer_id,offer_to_purchase);
+
+              std::string desc_secret_key{offer_to_purchase.description.begin(),offer_to_purchase.description.end()};
+              epee::string_tools::hex_to_pod(desc_secret_key, secret_seller_view_key);
           }
           else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
           {
@@ -3323,7 +3351,10 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           }
           else if (vout.target.type() == typeid(txout_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_cash)
           {
-              product_payment += vout.amount;
+              const crypto::public_key &out = *boost::apply_visitor(destination_public_key_visitor(), vout.target);
+              auto it = std::find(seller_outs.begin(),seller_outs.end(),out);
+              if(it!=seller_outs.end())
+                product_payment += vout.amount;
           }
       }
 
@@ -6018,4 +6049,88 @@ bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers
     LOG_PRINT_L3("Blockchain::" << __func__);
 
     return m_db->get_safex_offers(safex_offers);
+}
+
+std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
+
+    hw::device &hwdev = hw::get_device("default");
+
+    boost::unique_lock<hw::device> hwdev_lock (hwdev);
+    hw::reset_mode rst(hwdev);
+    hwdev_lock.unlock();
+
+
+    std::vector<crypto::public_key> seller_outputs{};
+
+    std::vector<tx_extra_field> tx_extra_fields;
+    if(!parse_tx_extra(tx.extra, tx_extra_fields))
+    {
+        return seller_outputs;
+    }
+    size_t pk_index = 0;
+    tx_extra_pub_key pub_key_field;
+    if(!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++))
+    {
+        if (pk_index > 1)
+            return seller_outputs;
+       return seller_outputs;
+    }
+
+    crypto::public_key tx_pub_key = pub_key_field.pub_key;
+    crypto::key_derivation derivation;
+    hwdev_lock.lock();
+    hwdev.set_mode(hw::device::TRANSACTION_PARSE);
+    if (!hwdev.generate_key_derivation(tx_pub_key, seller_secret_view_key, derivation))
+    {
+        MWARNING("Failed to generate key derivation from tx pubkey, skipping");
+        static_assert(sizeof(derivation) == sizeof(rct::key), "Mismatched sizes of key_derivation and rct::key");
+        memcpy(&derivation, rct::identity().bytes, sizeof(derivation));
+    }
+
+    // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
+    std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
+    std::vector<crypto::key_derivation> additional_derivations;
+    for (size_t i = 0; i < additional_tx_pub_keys.size(); ++i)
+    {
+        additional_derivations.push_back({});
+        if (!hwdev.generate_key_derivation(additional_tx_pub_keys[i], seller_secret_view_key, additional_derivations.back()))
+        {
+            MWARNING("Failed to generate key derivation from tx pubkey, skipping");
+            additional_derivations.pop_back();
+        }
+    }
+    hwdev_lock.unlock();
+
+
+
+    for (size_t i = 0; i < tx.vout.size(); ++i)
+    {
+
+        auto o = tx.vout[i];
+        boost::optional<cryptonote::subaddress_receive_info> received;
+
+        hwdev_lock.lock();
+        hwdev.set_mode(hw::device::TRANSACTION_PARSE);
+        if (!cryptonote::is_valid_transaction_output_type(o.target))
+        {
+            hwdev_lock.unlock();
+            continue;
+        }
+
+        const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), o.target);
+
+        std::unordered_map<crypto::public_key, cryptonote::subaddress_index> m_subaddresses;
+        cryptonote::subaddress_index sub_index{};
+        m_subaddresses[public_seller_spend_key] = sub_index;
+
+        received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);
+
+        if(received)
+        {
+            seller_outputs.push_back(out_key);
+        }
+        hwdev_lock.unlock();
+    }
+
+    return seller_outputs;
 }

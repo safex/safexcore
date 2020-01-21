@@ -182,6 +182,22 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_9, blk_8, miner, txlist_4);
     REWIND_BLOCKS(events, blk_10, blk_9, miner);
 
+    safex_offer_bob.description.clear();
+
+    std::string desc_key = string_tools::pod_to_hex(bob.get_keys().m_view_secret_key);
+    safex_offer_bob.description = {desc_key.begin(),desc_key.end()};
+    safex_offer_bob.description.push_back('|');
+    std::string pub_desc_key = string_tools::pod_to_hex(bob.get_keys().m_account_address.m_spend_public_key);
+    std::copy(pub_desc_key.begin(), pub_desc_key.end(), std::back_inserter(safex_offer_bob.description));
+
+    safex_offer_alice.description.clear();
+    desc_key = string_tools::pod_to_hex(alice.get_keys().m_view_secret_key);
+    safex_offer_alice.description = {desc_key.begin(),desc_key.end()};
+    safex_offer_alice.description.push_back('|');
+    pub_desc_key = string_tools::pod_to_hex(alice.get_keys().m_account_address.m_spend_public_key);
+    std::copy(pub_desc_key.begin(), pub_desc_key.end(), std::back_inserter(safex_offer_alice.description));
+
+
     //create test offer
     MAKE_TX_CREATE_SAFEX_OFFER_LIST_START(events, txlist_5, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_10);
     MAKE_CREATE_SAFEX_OFFER_TX_LIST(events, txlist_5, bob, safex_account_bob.pkey, safex_offer_bob, m_safex_account2_keys.get_keys(), blk_10);

@@ -1574,7 +1574,16 @@ namespace cryptonote
        */
 
 
+      /**
+            * @brief Checks if the amount needed for purchase
+            * is sent to seller
+            *
+            * @param seller_secret_view_key secret view key of seller
+            * @param tx transaction for checking
+            * @param out transaction_output that we are checking
+            *
+            */
 
-
+      std::vector<crypto::public_key> is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx);
   };
 }  // namespace cryptonote
