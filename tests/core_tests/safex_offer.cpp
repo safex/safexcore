@@ -109,11 +109,13 @@ gen_safex_offer_001::gen_safex_offer_001()
   std::string data4 = "Тхис ис соме Едвардс дата фор тест";
   safex_account_edward.account_data = std::vector<uint8_t>(data4.begin(), data4.end());
 
-  safex_offer_alice = safex::safex_offer("Black Sabbath T-shirt",100,1999,"Quality 100% cotton t-shirt with the heaviest band in the universe",
-                                                 safex_account_alice.username);
+    alice.generate();
+    bob.generate();
 
-  safex_offer_bob = safex::safex_offer("Metallica T-shirt",1000,3999,"Quality 100% cotton t-shirt with the loudest band in the universe",
-                                                  safex_account_bob.username);
+    safex_offer_alice = safex::safex_offer("Black Sabbath T-shirt",100,MK_COINS(10),"Quality 100% cotton t-shirt with the heaviest band in the universe",
+                                           safex_account_alice.username,alice.get_keys().m_view_secret_key,alice.get_keys().m_account_address);
+    safex_offer_bob = safex::safex_offer("Metallica T-shirt",1000,MK_COINS(10),"Quality 100% cotton t-shirt with the loudest band in the universe",
+                                         safex_account_bob.username,bob.get_keys().m_view_secret_key,bob.get_keys().m_account_address);
 
   if (!expected_data_fields_intialized)
   {

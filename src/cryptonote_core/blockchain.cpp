@@ -3320,11 +3320,11 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               total_payment = purchase.price;
               get_safex_offer(purchase.offer_id, offer_to_purchase);
 
-              std::string desc_secret_key{offer_to_purchase.description.begin(), offer_to_purchase.description.begin()+64};
-              epee::string_tools::hex_to_pod(desc_secret_key, secret_seller_view_key);
+              secret_seller_view_key = offer_to_purchase.seller_private_view_key;
+              cryptonote::account_public_address seller_address = offer_to_purchase.seller_address;
 
-              std::string desc_public_key{offer_to_purchase.description.begin()+65, offer_to_purchase.description.end()};
-              epee::string_tools::hex_to_pod(desc_public_key, public_seller_spend_key);
+              public_seller_spend_key = seller_address.m_spend_public_key;
+              std::string seller_key_str = epee::string_tools::pod_to_hex(public_seller_spend_key);
 
           }
       }
@@ -6052,6 +6052,11 @@ bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers
 }
 
 std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
+
+    crypto::public_key pkey;
+    if (!crypto::secret_key_to_public_key(seller_secret_view_key, pkey)) {
+        return {};
+    }
 
     hw::device &hwdev = hw::get_device("default");
 

@@ -101,8 +101,8 @@ namespace
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
 
-        m_safex_offer[0] =  safex::safex_offer("Apple", 10, 10*SAFEX_CASH_COIN,"This is an apple",  m_safex_account1.username);
-        m_safex_offer[1] =  safex::safex_offer("Barbie", 30, 50*SAFEX_CASH_COIN,"This is a Barbie", m_safex_account2.username);
+        m_safex_offer[0] =  safex::safex_offer("Apple", 10, 10*SAFEX_CASH_COIN,"This is an apple",  m_safex_account1.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
+        m_safex_offer[1] =  safex::safex_offer("Barbie", 30, 50*SAFEX_CASH_COIN,"This is a Barbie", m_safex_account2.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
 
         m_safex_purchase = safex::safex_purchase{1, m_safex_offer[0].price, m_safex_offer[0].offer_id, true};
 

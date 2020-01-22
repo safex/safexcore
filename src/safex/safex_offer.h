@@ -32,15 +32,15 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
-              crypto::hash _id, std::string seller_username, bool _active = true):title{_title},quantity{_quantity},price{_price},
-                                                             description{_description},offer_id{_id},seller{seller_username},active{_active}
+                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}):title{_title},quantity{_quantity},price{_price},
+                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address}
       {
       }
 
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::string& _description,
-               std::string seller_username):
-              title{_title}, quantity{_quantity}, price{_price}, active{true}, shipping{}, seller{seller_username} {
+               std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}):
+              title{_title}, quantity{_quantity}, price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           offer_id = create_offer_id(seller_username);
@@ -56,6 +56,8 @@ namespace safex
         KV_SERIALIZE(shipping)
         KV_SERIALIZE(offer_id)
         KV_SERIALIZE(seller)
+        KV_SERIALIZE(seller_private_view_key)
+        KV_SERIALIZE(seller_address)
       END_KV_SERIALIZE_MAP()
 
       BEGIN_SERIALIZE_OBJECT()
@@ -67,6 +69,8 @@ namespace safex
         FIELD(shipping)
         FIELD(offer_id)
         FIELD(seller)
+        FIELD(seller_private_view_key)
+        FIELD(seller_address)
       END_SERIALIZE()
 
       template<class t_archive>
@@ -80,6 +84,8 @@ namespace safex
         a & shipping;
         a & offer_id;
         a & seller;
+        a & seller_private_view_key;
+        a & seller_address;
       }
 
 
@@ -91,6 +97,8 @@ namespace safex
       std::vector<uint8_t> shipping;
       crypto::hash offer_id; //unique id of the offer
       std::string seller; // username of the seller
+      crypto::secret_key seller_private_view_key;
+      cryptonote::account_public_address seller_address;
 
   private:
       crypto::hash create_offer_id(std::string& username);

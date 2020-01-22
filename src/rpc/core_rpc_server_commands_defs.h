@@ -131,6 +131,7 @@ namespace cryptonote
             std::vector<uint8_t> shipping;
             std::string offer_id;
             std::string seller;
+            cryptonote::account_public_address seller_address;
 
         BEGIN_KV_SERIALIZE_MAP()
                 KV_SERIALIZE(title)
@@ -141,6 +142,7 @@ namespace cryptonote
                 KV_SERIALIZE(shipping)
                 KV_SERIALIZE(offer_id)
                 KV_SERIALIZE(seller)
+                KV_SERIALIZE(seller_address)
             END_KV_SERIALIZE_MAP()
         };
 

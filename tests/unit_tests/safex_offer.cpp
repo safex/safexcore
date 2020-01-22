@@ -99,9 +99,9 @@ namespace
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
 
-        m_safex_offer[0] = safex::safex_offer("Apple",10,100,"This is an apple",  m_safex_account1.username);
-        m_safex_offer[1] = safex::safex_offer("Barbie",30,500,"This is a Barbie", m_safex_account2.username);
-        m_safex_offer[2] = safex::safex_offer("Car",1,1000,"This is a car", m_safex_account1.username);
+        m_safex_offer[0] = safex::safex_offer("Apple",10,100,"This is an apple",  m_safex_account1.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
+        m_safex_offer[1] = safex::safex_offer("Barbie",30,500,"This is a Barbie", m_safex_account2.username,m_users_acc[1].get_keys().m_view_secret_key,m_users_acc[1].get_keys().m_account_address);
+        m_safex_offer[2] = safex::safex_offer("Car",1,1000,"This is a car", m_safex_account1.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
 
         std::string new_str_desc{"Now without worms!!"};
         std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};

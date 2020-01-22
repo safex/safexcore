@@ -70,6 +70,8 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
+  cryptonote::account_base alice;
+  cryptonote::account_base bob;
 
   static const std::string data2_alternative;
   static const std::string data2_alternative_2;

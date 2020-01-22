@@ -98,26 +98,7 @@ namespace cryptonote
 
     std::vector<std::string> local_args = args_;
 
-    crypto::hash purchase_offer_id{};
-    std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
-    std::vector<safex::safex_offer>::iterator offer_to_purchase;
-    uint64_t quantity_to_purchase;
-    if(command_type == CommandType::TransferPurchase) {
-      if(!epee::string_tools::hex_to_pod(local_args.back(), purchase_offer_id)){
-            fail_msg_writer() << tr("Bad offer ID given!!!");
-            return true;
-      }
 
-      offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
-            return offer.offer_id == purchase_offer_id;});
-
-      if(offer_to_purchase!=offers.end())
-        local_args.pop_back();
-      else {
-        fail_msg_writer() << tr("There is no offer with given id!!");
-        return true;
-      }
-    }
 
     std::set<uint32_t> subaddr_indices;
     if (!local_args.empty() && local_args[0].substr(0, 6) == "index=")
@@ -306,7 +287,7 @@ namespace cryptonote
             std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
             std::string description = offerdata_ostr.str();
 
-            safex::safex_offer sfx_offer{offer_title, quantity, price, description, my_safex_account.username};
+            safex::safex_offer sfx_offer{offer_title, quantity, price, description, my_safex_account.username,m_wallet->get_account().get_keys().m_view_secret_key,m_wallet->get_account().get_keys().m_account_address};
 
             cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer);
@@ -335,13 +316,63 @@ namespace cryptonote
             std::string description = offerdata_ostr.str();
 
             safex::safex_offer sfx_offer{offer_title, quantity, price, std::vector<uint8_t>{description.begin(),description.end()},
-                                          offer_id_hash, my_safex_account.username};
-            sfx_offer.active = active;
+                                          offer_id_hash, my_safex_account.username, active, m_wallet->get_account().get_keys().m_account_address, m_wallet->get_account().get_keys().m_view_secret_key};
 
             cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer_update);
 
         }
+    }
+    else if (command_type == CommandType::TransferPurchase)
+    {
+        crypto::hash purchase_offer_id{};
+        std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
+        std::vector<safex::safex_offer>::iterator offer_to_purchase;
+        uint64_t quantity_to_purchase;
+
+        if (!epee::string_tools::get_xtype_from_string(quantity_to_purchase, local_args.back())){
+            fail_msg_writer() << tr("Bad quantity to purchase given!!!");
+            return true;
+        }
+        local_args.pop_back();
+        if(!epee::string_tools::hex_to_pod(local_args.back(), purchase_offer_id)){
+            fail_msg_writer() << tr("Bad offer ID given!!!");
+            return true;
+        }
+
+        offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
+            return offer.offer_id == purchase_offer_id;});
+
+        if(offer_to_purchase!=offers.end())
+            local_args.pop_back();
+        else {
+            fail_msg_writer() << tr("There is no offer with given id!!");
+            return true;
+        }
+
+        cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
+
+        de.amount = quantity_to_purchase*offer_to_purchase->price * 95  / 100;
+        de.output_type = tx_out_type::out_cash;
+        safex_network_fee += quantity_to_purchase*offer_to_purchase->price * 5  / 100;
+
+        cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+        cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
+        std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+        {
+            fail_msg_writer() << tr("failed to parse address");
+            return true;
+        }
+
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+        de_purchase = tx_destination_entry{0, info.address, false, tx_out_type::out_safex_purchase, blobdata};
+        dsts.push_back(de_purchase);
+
+        de.addr = offer_to_purchase->seller_address;
+
+        dsts.push_back(de);
     }
     else
     {
@@ -423,26 +454,6 @@ namespace cryptonote
           de.output_type = tx_out_type::out_network_fee;
         }
           // Allow to collect outputs for regular SFX transaction.
-        else if (command_type == CommandType::TransferPurchase)
-        {
-            quantity_to_purchase = stoi(local_args[i + 1]);
-            de.amount = quantity_to_purchase*offer_to_purchase->price * 95  / 100;
-            de.output_type = tx_out_type::out_cash;
-            safex_network_fee += quantity_to_purchase*offer_to_purchase->price * 5  / 100;
-
-            cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
-            std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
-
-            cryptonote::address_parse_info info_dest = AUTO_VAL_INIT(info_dest);
-            if (!cryptonote::get_account_address_from_str(info_dest, m_wallet->nettype(), destination_addr)){
-                fail_msg_writer() << tr("failed to parse address");
-                return true;
-            }
-            safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
-            blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
-            de_purchase = tx_destination_entry{0, info_dest.address, false, tx_out_type::out_safex_purchase, blobdata};
-            dsts.push_back(de_purchase);
-        }
 
         dsts.push_back(de);
       }
@@ -771,7 +782,7 @@ namespace cryptonote
       if (args.empty())
       {
           success_msg_writer() << tr("usage:\n"
-                                     "  safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <address> <quantity> [<payment_id>] <offer_id>\n");
+                                     "  safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <quantity>\n");
           return true;
       }
     return create_command(CommandType::TransferPurchase, args);

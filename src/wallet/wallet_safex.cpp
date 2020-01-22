@@ -381,7 +381,7 @@ namespace tools
       for (auto &item : res.offers) {
           crypto::hash hash;
           epee::string_tools::hex_to_pod(item.offer_id, hash);
-          offers.emplace_back(item.title, item.quantity, item.price, item.description, hash, item.seller, item.active);
+          offers.emplace_back(item.title, item.quantity, item.price, item.description, hash, item.seller, item.active,item.seller_address);
       }
 
       return offers;

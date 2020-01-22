@@ -276,13 +276,15 @@ struct edit_offer_result : public execution_result
         uint64_t price;
         std::vector<uint8_t> description{};
         bool active{false};
+        crypto::secret_key seller_private_view_key;
+        cryptonote::account_public_address seller_address;
 
         create_offer_data() {}
-        create_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},title{offer.title.begin(),offer.title.end()}
+        create_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},title{offer.title.begin(),offer.title.end()},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key}
         {
         }
-        create_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const uint64_t &_price, const std::vector<uint8_t> &_offer_data,const bool &_active):
-                                    offer_id{_offer_id},seller{_seller},title{_title},quantity{_quantity},price{_price},description{_offer_data},active{_active}{}
+        create_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const uint64_t &_price, const std::vector<uint8_t> &_offer_data,const bool &_active, const cryptonote::account_public_address& _seller_address, const crypto::secret_key& _seller_private_view_key):
+                                    offer_id{_offer_id},seller{_seller},title{_title},quantity{_quantity},price{_price},description{_offer_data},active{_active},seller_address{_seller_address},seller_private_view_key{_seller_private_view_key}{}
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
@@ -292,6 +294,8 @@ struct edit_offer_result : public execution_result
             FIELD(quantity)
             FIELD(active)
             FIELD(description)
+            FIELD(seller_private_view_key)
+            FIELD(seller_address)
         END_SERIALIZE()
     };
 
@@ -698,7 +702,7 @@ public:
     * */
     create_offer(const uint32_t _version, const safex::create_offer_data &offer) :
             command(_version, command_t::create_offer), offer_id(offer.offer_id), description{offer.description},
-            seller{offer.seller},title{offer.title},price{offer.price},quantity{offer.quantity},active{offer.active}{
+            seller{offer.seller},title{offer.title},price{offer.price},quantity{offer.quantity},active{offer.active},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key}{
     }
 
     create_offer() : command(0, command_t::create_offer), offer_id{}, description{} {}
@@ -710,6 +714,8 @@ public:
     uint64_t get_quantity() const { return quantity; }
     bool get_active() const { return active; }
     std::vector<uint8_t> get_description() const { return description; }
+    cryptonote::account_public_address get_seller_address() const { return seller_address; }
+    crypto::secret_key get_seller_private_view_key() const { return seller_private_view_key; }
 
     virtual create_offer_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -724,6 +730,8 @@ public:
         FIELD(quantity)
         FIELD(active)
         FIELD(description)
+        FIELD(seller_private_view_key)
+        FIELD(seller_address)
     END_SERIALIZE()
 
 private:
@@ -734,6 +742,8 @@ private:
     uint64_t price;
     std::vector<uint8_t> description{};
     bool active{};
+    crypto::secret_key seller_private_view_key;
+    cryptonote::account_public_address seller_address;
 };
 
 class edit_offer : public command

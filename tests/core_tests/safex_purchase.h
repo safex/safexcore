@@ -68,6 +68,9 @@ public:
   safex::safex_account safex_account_daniel;
   safex::safex_account safex_account_edward;
 
+  cryptonote::account_base alice;
+  cryptonote::account_base bob;
+
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
