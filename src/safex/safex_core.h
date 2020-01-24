@@ -69,6 +69,7 @@ namespace safex
       edit_account = 0x0B, /* Edit Safex account */
       create_offer = 0x10,
       edit_offer = 0x11,
+      create_feedback = 0x12,
       invalid_command
   };
 

@@ -1800,6 +1800,15 @@ namespace cryptonote
        */
       virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
 
+      /**
+       * @brief fetch safex offer's stars from the blockchain
+       *
+       * The subclass should return safex offer stars received
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const = 0;
+
       //
       // Hard fork related storage
       //

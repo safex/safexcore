@@ -21,6 +21,7 @@
 #include "misc_log_ex.h"
 #include "safex_offer.h"
 #include "safex_purchase.h"
+#include "safex_feedback.h"
 
 #define CHECK_COMMAND_TYPE(TYPE_TO_CHECK,EXPECTED_TYPE) SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((TYPE_TO_CHECK == EXPECTED_TYPE), "Could not create command, wrong command type", TYPE_TO_CHECK);
 
@@ -206,6 +207,27 @@ struct edit_offer_result : public execution_result
 
 };
 
+struct create_feedback_result : public execution_result
+{
+
+    create_feedback_result(){}
+
+    create_feedback_result(crypto::hash _offer_id, std::vector<uint8_t> _comment, uint64_t _stars_given): offer_id{_offer_id},comment{_comment},stars_given{_stars_given} {
+
+    }
+
+    crypto::hash offer_id{}; //unique id of the offer
+    uint64_t stars_given;
+    std::vector<uint8_t> comment{};
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELD(offer_id)
+        FIELD(stars_given)
+        FIELD(comment)
+    END_SERIALIZE()
+
+};
+
   struct command_data
   {
 
@@ -347,6 +369,25 @@ struct edit_offer_result : public execution_result
             FIELD(quantity)
             FIELD(price)
             FIELD(shipping)
+        END_SERIALIZE()
+    };
+
+    struct create_feedback_data : public command_data
+    {
+        crypto::hash offer_id{}; //unique id of the offer
+        uint64_t stars_given;
+        std::vector<uint8_t> comment{};
+
+        create_feedback_data() {}
+        create_feedback_data(const safex::safex_feedback& feedback): offer_id{feedback.offer_id},stars_given{feedback.stars_given},comment{feedback.comment.begin(),feedback.comment.end()}{
+        }
+        create_feedback_data(const crypto::hash &_offer_id, const uint64_t &_stars_given, const std::vector<uint8_t> _comment):
+                offer_id{_offer_id},stars_given{_stars_given},comment{_comment}{}
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+            FIELD(stars_given)
+            FIELD(comment)
         END_SERIALIZE()
     };
 
@@ -796,6 +837,42 @@ private:
     bool active{};
 };
 
+class create_feedback : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _offerid //ID of the offer
+    * */
+    create_feedback(const uint32_t _version, const safex::create_feedback_data &feedback) :
+            command(_version, command_t::create_feedback), offer_id(feedback.offer_id), comment{feedback.comment}, stars_given{feedback.stars_given}{
+    }
+
+    create_feedback() : command(0, command_t::create_feedback), offer_id{}, stars_given{}, comment{} {}
+
+    crypto::hash get_offerid() const { return offer_id; }
+    std::vector<uint8_t> get_comment() const { return comment; }
+    uint64_t get_stars_given() const { return stars_given; }
+
+    virtual create_feedback_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+        FIELDS(*static_cast<command *>(this))
+        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_feedback);
+        FIELD(offer_id)
+        FIELD(stars_given)
+        FIELD(comment)
+    END_SERIALIZE()
+
+private:
+    crypto::hash offer_id{}; //unique id of the offer
+    uint64_t stars_given;
+    std::vector<uint8_t> comment{};
+};
+
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
   /* Validation is like execution, but without effects on the database */
   bool validate_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin);
@@ -854,6 +931,9 @@ private:
             break;
           case safex::command_t::edit_offer:
              return std::unique_ptr<command>(parse_safex_object<edit_offer>(buffer));
+             break;
+      case safex::command_t::create_feedback:
+              return std::unique_ptr<command>(parse_safex_object<create_feedback>(buffer));
              break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);

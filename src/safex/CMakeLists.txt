@@ -36,6 +36,8 @@ set(safex_core_sources
         safex_account.cpp
         safex_offer.cpp
         safex_purchase.cpp
+        safex_feedback_token.cpp
+        safex_feedback.cpp
         )
 
 set(safex_core_headers
@@ -43,7 +45,9 @@ set(safex_core_headers
         fee_distribution.h
         safex_account.h
         safex_offer.h
-        safex_purchase.h)
+        safex_purchase.h
+        safex_feedback_token.h
+        safex_feedback.h)
 
 set(safex_core_private_headers)
 

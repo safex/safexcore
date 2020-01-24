@@ -1630,6 +1630,21 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       create_safex_purchase(sfx_purchase);
 
   }
+  else if (txin.command_type == safex::command_t::create_feedback)
+  {
+
+      std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+      std::unique_ptr<safex::create_feedback_result> result(dynamic_cast<safex::create_feedback_result*>(cmd->execute(*this, txin)));
+      if (result->status != safex::execution_status::ok)
+      {
+          LOG_ERROR("Execution of safex purchase command failed, status:" << static_cast<int>(result->status));
+          throw1(DB_ERROR("Error executing safex purchase command"));
+      }
+
+//      safex::safex_purchase sfx_purchase{result->quantity, result->price, result->offer_id, result->shipping};
+//      create_safex_purchase(sfx_purchase);
+
+  }
   else {
     throw1(DB_ERROR("Unknown safex command type"));
   }
@@ -5404,7 +5419,13 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         return true;
     }
 
-  bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
+  bool BlockchainLMDB::get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const{
+        stars_received = 4;
+        return true;
+    }
+
+
+    bool BlockchainLMDB::get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const {
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
       check_open();
 

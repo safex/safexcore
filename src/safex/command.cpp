@@ -349,6 +349,42 @@ namespace safex
         return result;
     };
 
+    create_feedback_result* create_feedback::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
+    {
+        execution_status result = validate(blokchainDB, txin);
+        SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate create feedback command", this->get_command_type());
+
+        create_feedback_result *cr = new create_feedback_result{this->offer_id,this->comment,this->stars_given};
+        cr->valid = true;
+        cr->status = execution_status::ok;
+
+        return cr;
+    };
+
+    execution_status create_feedback::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
+    {
+
+        execution_status result = execution_status::ok;
+//        std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
+//
+//        for (auto ch: cmd->get_seller()) {
+//            if (!std::isalnum(ch) && ch!='_') {
+//                result = execution_status::error_invalid_account_name;
+//            }
+//        }
+//
+//        std::vector<uint8_t>  dummy{};
+//        if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
+//            result = execution_status::error_account_non_existant;
+//        }
+//
+//        safex::safex_offer sfx_dummy{};
+//        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
+//            result = execution_status::error_offer_non_existant;
+//        }
+        return result;
+    };
+
 
   bool validate_safex_command(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {

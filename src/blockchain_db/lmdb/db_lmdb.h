@@ -326,9 +326,11 @@ public:
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
   virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
   virtual bool get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const;
+  virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
 
 
-  virtual uint64_t add_block( const block& blk
+
+    virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
                             , const difficulty_type& cumulative_difficulty
                             , const uint64_t& coins_generated
