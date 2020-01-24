@@ -1,0 +1,24 @@
+name: Mac Test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: submodules-init
+      uses: snickerbockers/submodules-init@v4
+    - name: update brew
+      run:  brew tap jmuncaster/homebrew-header-only
+    - name: install packages
+      run:  brew install autogen autoconf automake binutils coreutils cmake boost ldns expat xz doxygen hidapi graphviz libpgm libunwind-headers unbound zmq czmq jmuncaster/header-only/cppzmq zeromq libsodium miniupnpc openssl pkg-config protobuf readline
+    - name: install protobuf
+      run: |
+        cd external
+        sudo chmod +x install_protobuf_dep_macos.sh
+        sudo ./install_protobuf_dep_macos.sh
+    - name: test
+      run: make release-test

@@ -1,0 +1,27 @@
+name: Windows Build
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: numworks/setup-msys2@v1
+      with:
+        msystem: MINGW64
+        path-type: inherit
+    - uses: actions/checkout@v1
+    - name: submodules-init
+      uses: snickerbockers/submodules-init@v4
+    - name: update system
+      run:  msys2do pacman -Syuu --noconfirm
+    - name: update system again
+      run:  msys2do pacman -Syuu --noconfirm
+    - name: update packages
+      run:  msys2do pacman -S git base-devel mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-protobuf mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium --noconfirm
+    - name: install protobuf
+      run:  cd external; msys2do ./install_protobuf_dep_mingw.sh --noconfirm
+    - name: build
+      run: msys2do make release-static-win64-proto-github
