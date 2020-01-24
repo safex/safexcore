@@ -69,7 +69,7 @@ release-test:
 
 release-test-win64-github:
 	mkdir -p build/release
-	cd build/release && cmake -G "MSYS Makefiles" -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release  -D BUILD_64=ON -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE) && $(MAKE) test
+	cd build/release && cmake -G "MSYS Makefiles" -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -D ARCH="x86-64"  -D BUILD_64=ON -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE) && $(MAKE) test
 
 release-all:
 	mkdir -p build/release
