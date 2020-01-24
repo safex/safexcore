@@ -1,7 +1,9 @@
 name: Ubuntu 18.04 Test
 
-on: [push]
-
+on:
+  push:
+    branches:
+      - master
 jobs:
   build:
 
