@@ -5495,6 +5495,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             std::string tmp{(char*)v.mv_data, v.mv_size};
             parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer_result);
 
+            offer.quantity = offer_result.quantity;
+
             outputID = offer_result.output_ids.back();
         }
 
@@ -5521,7 +5523,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
             offer.description = offer_result.description;
             offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
-            offer.quantity = offer_result.quantity;
             offer.price = offer_result.price;
             offer.offer_id = offer_result.offer_id;
             offer.active = offer_result.active;

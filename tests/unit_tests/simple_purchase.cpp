@@ -339,7 +339,7 @@ namespace
         safex::safex_offer purchased_offer;
         result = this->m_db->get_offer(this->m_safex_purchase.offer_id,purchased_offer);
         ASSERT_TRUE(result);
-        ASSERT_EQ(this->m_safex_offer[0].quantity, purchased_offer.quantity);
+        ASSERT_EQ(this->m_safex_offer[0].quantity-this->m_safex_purchase.quantity, purchased_offer.quantity);
         //Checking edited offer
         safex::safex_offer saved_offer;
 
