@@ -39,6 +39,7 @@
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
 #include <safex/safex_purchase.h>
+#include <safex/safex_feedback.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"

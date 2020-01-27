@@ -945,7 +945,7 @@ void fill_create_purchase_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     tx_destination_entry de_purchase = create_safex_purchase_destination(seller_address, sfx_purchase);
     destinations.push_back(de_purchase);
 
-    //purchase
+    //feedback_token
     tx_destination_entry de_feedback_token = create_safex_feedback_token_destination(from.get_keys().m_account_address);
     destinations.push_back(de_feedback_token);
 
@@ -1002,8 +1002,8 @@ void fill_create_feedback_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     }
 
     //feedback
-    tx_destination_entry de_feedback_token = create_safex_feedback_destination(from.get_keys().m_account_address);
-    destinations.push_back(de_feedback_token);
+    tx_destination_entry de_feedback = create_safex_feedback_destination(from.get_keys().m_account_address);
+    destinations.push_back(de_feedback);
 }
 
 void fill_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vector<block> &blocks, const cryptonote::account_base &from, const cryptonote::account_base &to,

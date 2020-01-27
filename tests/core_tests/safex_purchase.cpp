@@ -66,6 +66,8 @@ uint64_t  gen_safex_purchase_001::expected_bob_balance;
 uint64_t  gen_safex_purchase_001::expected_bob_offer_quantity;
 crypto::hash  gen_safex_purchase_001::expected_purchased_offer_id;
 
+uint64_t gen_safex_purchase_001::expected_alice_feedback_star_rating;
+
 gen_safex_purchase_001::gen_safex_purchase_001()
 {
 
@@ -107,6 +109,8 @@ gen_safex_purchase_001::gen_safex_purchase_001()
 
   safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false};
 
+  safex_alice_feedback = safex::safex_feedback{4,"Perfect for my concert next week.",safex_offer_bob.offer_id};
+
 
     if (!expected_data_fields_intialized)
   {
@@ -131,6 +135,9 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_bob_balance +=safex_alice_purchase_from_bob.price*95/100;
 
     expected_network_fee += safex_alice_purchase_from_bob.price*5/100;
+
+    expected_alice_feedback_star_rating = safex_alice_feedback.stars_given;
+    expected_alice_balance -= TESTS_DEFAULT_FEE;
 
   }
 
@@ -196,6 +203,11 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
     REWIND_BLOCKS(events, blk_14, blk_13, miner);
 
+    //create feedbackl
+    MAKE_TX_CREATE_SAFEX_FEEDBACK_LIST_START(events, txlist_7, alice, safex_alice_feedback,  blk_14);
+    MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14, miner, txlist_7);
+    REWIND_BLOCKS(events, blk_16, blk_15, miner);
+
     DO_CALLBACK(events, "verify_safex_purchase");
 
     return true;
@@ -236,6 +248,10 @@ bool gen_safex_purchase_001::verify_safex_purchase(cryptonote::core &c, size_t e
     uint64_t offer_quantity;
     c.get_blockchain_storage().get_safex_offer_quantity(expected_purchased_offer_id,offer_quantity);
     CHECK_EQ(expected_bob_offer_quantity, offer_quantity);
+
+    uint64_t offer_rating;
+    c.get_blockchain_storage().get_safex_offer_rating(expected_purchased_offer_id,offer_rating);
+    CHECK_EQ(expected_alice_feedback_star_rating, offer_rating);
 
     return true;
 }
