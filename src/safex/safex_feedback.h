@@ -63,6 +63,41 @@ namespace safex
 
 
   };
+
+    struct safex_feedback_db_data
+    {
+
+    public:
+        safex_feedback_db_data(): comment{}, stars_given{}{
+        }
+
+        safex_feedback_db_data(const uint64_t _stars_given, const std::string _comment):stars_given{_stars_given},comment{_comment.begin(),_comment.end()}
+        {
+        }
+
+
+    BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(stars_given)
+            KV_SERIALIZE(comment)
+        END_KV_SERIALIZE_MAP()
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(stars_given)
+            FIELD(comment)
+        END_SERIALIZE()
+
+        template<class t_archive>
+        inline void serialize(t_archive &a, const unsigned int /*ver*/)
+        {
+            a & stars_given;
+            a & comment;
+        }
+        uint64_t stars_given;
+        std::vector<uint8_t> comment{};
+    private:
+
+
+    };
 }
 
 

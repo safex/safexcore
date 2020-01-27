@@ -75,7 +75,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_token_lock_expiry;
   MDB_cursor *m_txc_safex_account;
   MDB_cursor *m_txc_safex_offer;
-
+  MDB_cursor *m_txc_safex_feedback;
 
 } mdb_txn_cursors;
 
@@ -100,7 +100,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 #define m_cur_safex_account	m_cursors->m_txc_safex_account
 #define m_cur_safex_offer	m_cursors->m_txc_safex_offer
-
+#define m_cur_safex_feedback	m_cursors->m_txc_safex_feedback
 
 typedef struct mdb_rflags
 {
@@ -126,6 +126,7 @@ typedef struct mdb_rflags
   bool m_rf_token_lock_expiry;
   bool m_rf_safex_account;
   bool m_rf_safex_offer;
+  bool m_rf_safex_feedback;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -541,12 +542,22 @@ private:
     /**
     * Create purchase in database
     *
-    * @param result safex purchase data
+    * @param purchase safex purchase data
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void create_safex_purchase(const safex::safex_purchase& result);
+    void create_safex_purchase(const safex::safex_purchase& purchase);
+
+    /**
+    * Create feedback in database
+    *
+    * @param feedback safex feedback data
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void create_safex_feedback(const safex::safex_feedback& feedback);
     /**
     * Remove advanced output from DB
     *
@@ -653,10 +664,10 @@ private:
   MDB_dbi m_token_lock_expiry;
   MDB_dbi m_safex_account;
   MDB_dbi m_safex_offer;
+  MDB_dbi m_safex_feedback;
 
 
-
-    mutable uint64_t m_cum_size;	// used in batch size estimation
+  mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;
   std::string m_folder;
   mdb_txn_safe* m_write_txn; // may point to either a short-lived txn or a batch txn

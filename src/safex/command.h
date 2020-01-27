@@ -932,8 +932,8 @@ private:
           case safex::command_t::edit_offer:
              return std::unique_ptr<command>(parse_safex_object<edit_offer>(buffer));
              break;
-      case safex::command_t::create_feedback:
-              return std::unique_ptr<command>(parse_safex_object<create_feedback>(buffer));
+          case safex::command_t::create_feedback:
+             return std::unique_ptr<command>(parse_safex_object<create_feedback>(buffer));
              break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);

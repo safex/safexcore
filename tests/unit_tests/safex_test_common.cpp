@@ -986,7 +986,7 @@ void fill_create_feedback_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     //update source with create purchase data
     for (auto &ts: sources) {
         if (ts.command_type == safex::command_t::create_feedback) {
-            safex::create_feedback_data feedback_data{};
+            safex::create_feedback_data feedback_data{sfx_feedback};
             ts.command_safex_data = t_serializable_object_to_blob(feedback_data);
         }
     }

@@ -349,7 +349,7 @@ namespace
         }
 
         uint64_t stars_given;
-        result = this->m_db->get_offer_stars_given(saved_offer.offer_id, stars_given);
+        result = this->m_db->get_offer_stars_given(this->m_safex_purchase.offer_id, stars_given);
         ASSERT_TRUE(result);
         ASSERT_EQ(this->m_safex_feedback.stars_given, stars_given);
 
