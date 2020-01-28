@@ -1086,6 +1086,7 @@ namespace tools
 
     std::vector<safex::safex_offer> get_safex_offers();
     std::vector<safex::safex_offer> get_my_safex_offers();
+    safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
 
   private:
     /*!

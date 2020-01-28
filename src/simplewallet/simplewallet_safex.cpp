@@ -69,6 +69,26 @@ namespace cryptonote
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
     }
 
+    tx_destination_entry create_safex_purchase_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
+    {
+        safex::create_purchase_data safex_purchase_output_data{sfx_purchase};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+        return tx_destination_entry{0, to, false, tx_out_type::out_safex_purchase, blobdata};
+    }
+
+    tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::create_feedback_token_data &safex_feedback_token_output_data)
+    {
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_token_output_data);
+        return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token,blobdata};
+    }
+
+    tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback)
+    {
+        safex::create_feedback_data safex_feedback_output_data{sfx_feedback};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_output_data);
+        return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
+    }
+
 
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
@@ -364,11 +384,18 @@ namespace cryptonote
             fail_msg_writer() << tr("failed to parse address");
             return true;
         }
-
+        //Purchase
         safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
-        de_purchase = tx_destination_entry{0, info.address, false, tx_out_type::out_safex_purchase, blobdata};
+        de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
         dsts.push_back(de_purchase);
+
+        //Feedback token
+        safex::create_feedback_token_data safex_feedback_token_output_data;
+        safex_feedback_token_output_data.offer_id = purchase_offer_id;
+        cryptonote::tx_destination_entry de_feedback_token = AUTO_VAL_INIT(de_feedback_token);
+        de_feedback_token = create_safex_feedback_token_destination(info.address, safex_feedback_token_output_data);
+        dsts.push_back(de_feedback_token);
 
         de.addr = offer_to_purchase->seller_address;
 
@@ -1031,6 +1058,48 @@ namespace cryptonote
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
+
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
+        safex::create_purchase_data purchase_data;
+        const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+        cryptonote::parse_and_validate_from_blob(offblob, purchase_data);
+
+        safex::safex_offer my_offer = m_wallet->get_my_safex_offer(purchase_data.offer_id);
+
+        message_writer(console_color_blue, false) << "\r" <<
+                                                  tr("Height ") << height << ", " <<
+                                                  tr("txid ") << txid << ", " <<
+                                                  tr("Updated for account, username: ") << my_offer.seller <<
+                                                  tr("Purchased offer: ") << my_offer.title << " received, " <<
+                                                  tr("Quantity purchased: ") << purchase_data.quantity <<
+                                                  tr("idx ") << subaddr_index;
+        //TODO: Update safex offer is bought
+        //m_wallet->update_safex_offer(purchase_data);
+
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
+        safex::create_feedback_token_data feedback_token;
+        const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+        cryptonote::parse_and_validate_from_blob(offblob, feedback_token);
+        message_writer(console_color_blue, false) << "\r" <<
+                                          tr("Height ") << height << ", " <<
+                                          tr("txid ") << txid << ", " <<
+                                          tr("Feedback token received for offer: ") << feedback_token.offer_id << " received, " <<
+                                          tr("idx ") << subaddr_index;
+        //TODO: Adc feedback token
+//        m_wallet->add_safex_feedback_token(feedback_token);
+
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
+        safex::create_feedback_data feedback;
+        const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+        cryptonote::parse_and_validate_from_blob(offblob, feedback);
+        std::string comment{feedback.comment.begin(),feedback.comment.end()};
+        message_writer(console_color_blue, false) << "\r" <<
+                                                  tr("Height ") << height << ", " <<
+                                                  tr("txid ") << txid << ", " <<
+                                                  tr("Feedback sent received for offer: ") << feedback.offer_id << " received, " <<
+                                                  tr("Stars given: ") << feedback.stars_given <<
+                                                  tr("Comment given: ") << comment <<
+                                                  tr("idx ") << subaddr_index;
 
     }
 

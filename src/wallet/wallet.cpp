@@ -1058,9 +1058,12 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           if (tx_scan_info[i].received)
           {
             if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update))){
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)){
               outs.push_back(i);
               num_vouts_received++;
               continue;
@@ -1092,7 +1095,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
-              || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)) {
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)){
             outs.push_back(i);
             num_vouts_received++;
             continue;
@@ -1117,7 +1123,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
-              || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)) {
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)){
               outs.push_back(i);
               num_vouts_received++;
               continue;
@@ -1155,8 +1164,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             || (kit != m_pub_keys.end() && (cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account_update
                                                        || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_account
                                                        || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_offer
-                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_offer_update))
-           )
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_offer_update
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_purchase
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_feedback_token
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_feedback)))
         {
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
           uint64_t token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
@@ -1199,7 +1210,10 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else if ((output_type == tx_out_type::out_safex_account) ||
                       (output_type == tx_out_type::out_safex_account_update) ||
                       (output_type == tx_out_type::out_safex_offer) ||
-                      (output_type == tx_out_type::out_safex_offer_update)) {
+                      (output_type == tx_out_type::out_safex_offer_update)||
+                      (output_type == tx_out_type::out_safex_purchase)||
+                      (output_type == tx_out_type::out_safex_feedback_token)||
+                      (output_type == tx_out_type::out_safex_feedback)) {
                 const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                 m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
               }
@@ -1314,7 +1328,11 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
               else if ((td.m_output_type == tx_out_type::out_safex_account) ||
                        (td.m_output_type == tx_out_type::out_safex_account_update) ||
-                      (td.m_output_type == tx_out_type::out_safex_offer)) {
+                      (td.m_output_type == tx_out_type::out_safex_offer) ||
+                      (td.m_output_type == tx_out_type::out_safex_offer_update) ||
+                      (td.m_output_type == tx_out_type::out_safex_purchase) ||
+                      (td.m_output_type == tx_out_type::out_safex_feedback_token) ||
+                      (td.m_output_type == tx_out_type::out_safex_feedback)) {
                 const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                 m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
               }
@@ -8635,7 +8653,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
       }
       else if (command_type == safex::command_t::simple_purchase) {
-          if (dt.script_output == false || dt.output_type == tx_out_type::out_network_fee) {
+          if (dt.script_output == false || dt.output_type == tx_out_type::out_network_fee || dt.output_type == tx_out_type::out_safex_feedback_token) {
               needed_cash += dt.amount;
           } else {
               THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_purchase, error::safex_invalid_output_error);

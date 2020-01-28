@@ -372,6 +372,21 @@ struct create_feedback_result : public execution_result
         END_SERIALIZE()
     };
 
+    struct create_feedback_token_data : public command_data
+    {
+        crypto::hash offer_id{}; //unique id of the offer
+
+
+        create_feedback_token_data() {}
+        create_feedback_token_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id}
+        {
+        }
+
+        BEGIN_SERIALIZE_OBJECT()
+            FIELD(offer_id)
+        END_SERIALIZE()
+    };
+
     struct create_feedback_data : public command_data
     {
         crypto::hash offer_id{}; //unique id of the offer

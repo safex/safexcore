@@ -137,14 +137,18 @@ tx_destination_entry create_safex_purchase_destination(const cryptonote::account
     return tx_destination_entry{0, to, false, tx_out_type::out_safex_purchase, blobdata};
 }
 
-tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to)
+tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
 {
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token};
+    safex::create_feedback_token_data safex_feedback_token_output_data{sfx_purchase};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_token_output_data);
+    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token,blobdata};
 }
 
-tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to)
+tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback)
 {
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback};
+    safex::create_feedback_data safex_feedback_output_data{sfx_feedback};
+    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_output_data);
+    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
 }
 
 bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<uint64_t, std::vector<size_t> > &outs_mine, const std::vector<cryptonote::block> &blockchain,
@@ -946,7 +950,7 @@ void fill_create_purchase_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     destinations.push_back(de_purchase);
 
     //feedback_token
-    tx_destination_entry de_feedback_token = create_safex_feedback_token_destination(from.get_keys().m_account_address);
+    tx_destination_entry de_feedback_token = create_safex_feedback_token_destination(from.get_keys().m_account_address, sfx_purchase);
     destinations.push_back(de_feedback_token);
 
 
@@ -1002,7 +1006,7 @@ void fill_create_feedback_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     }
 
     //feedback
-    tx_destination_entry de_feedback = create_safex_feedback_destination(from.get_keys().m_account_address);
+    tx_destination_entry de_feedback = create_safex_feedback_destination(from.get_keys().m_account_address,sfx_feedback);
     destinations.push_back(de_feedback);
 }
 

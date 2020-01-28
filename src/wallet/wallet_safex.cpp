@@ -391,5 +391,13 @@ namespace tools
         return m_safex_offers;
   }
 
+  safex::safex_offer wallet::get_my_safex_offer(crypto::hash& offer_id)
+  {
+        for(auto it: m_safex_offers)
+            if(it.offer_id == offer_id)
+                return it;
+        return safex::safex_offer{};
+  }
+
 }
 
