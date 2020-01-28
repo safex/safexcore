@@ -4418,6 +4418,38 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
 
     return candidates[idx];
   }
+
+    size_t wallet::pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const crypto::hash& offer_id,  const cryptonote::tx_out_type out_type) const
+    {
+        std::vector<size_t> candidates;
+        for (size_t n = 0; n < transfers.size(); ++n)
+        {
+            const transfer_details &candidate = transfers[n];
+            if (candidate.get_out_type() != out_type) continue;
+            candidates.push_back(n);
+        }
+
+
+        THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_account);
+
+        int idx = -1;
+        for (size_t n = 0; n < candidates.size(); ++n)
+        {
+            const transfer_details &td = transfers[candidates[n]];
+            if (out_type == tx_out_type::out_safex_feedback_token && td.get_out_type() == tx_out_type::out_safex_feedback_token)
+            {
+                const txout_to_script &current = boost::get<const cryptonote::txout_to_script&>(td.m_tx.vout[td.m_internal_output_index].target);
+                const cryptonote::blobdata blobdata1(begin(current.data), end(current.data));
+                safex::create_feedback_token_data feedback_token_output_data;
+                parse_and_validate_object_from_blob(blobdata1, feedback_token_output_data);
+                if (offer_id == feedback_token_output_data.offer_id) idx = (int)n;
+            }
+        }
+
+        THROW_WALLET_EXCEPTION_IF(idx == -1, error::safex_unknown_account);
+
+        return candidates[idx];
+    }
 //----------------------------------------------------------------------------------------------------
 size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
 {
@@ -4433,6 +4465,12 @@ size_t wallet::pop_ideal_value(std::vector<size_t> &unused_indices, const std::v
   {
     const std::string acc_username_str(acc_username.begin(), acc_username.end());
     return pop_advanced_output_from(m_transfers, selected_transfers,  acc_username_str, out_type);
+  }
+
+  size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const  safex::create_feedback_data &sfx_feedback, const cryptonote::tx_out_type out_type) const
+  {
+      const crypto::hash offer_id = sfx_feedback.offer_id;
+      return pop_advanced_output_from(m_transfers, selected_transfers,  offer_id, out_type);
   }
 //----------------------------------------------------------------------------------------------------
 // Select random input sources for transaction.
@@ -5827,7 +5865,8 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     for(size_t idx: selected_transfers)
     {
       if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account ||
-            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer) //no fake outputs count for accounts and offers
+            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer ||
+            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_feedback_token) //no fake outputs count for accounts and offers
         continue;
 
       cash_token_selected_transfers.push_back(idx);
@@ -6585,6 +6624,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
         get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
     else if (command_type == safex::command_t::edit_offer)
         get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_offer); // may throw
+    else if (command_type == safex::command_t::create_feedback)
+        get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_feedback_token); // may throw
   }
 
 
@@ -6598,7 +6639,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     for (auto out: cash_fee_outs)
       outs.push_back(out);
   }
-  else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
+  else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase || command_type == safex::command_t::create_feedback)
   {
     //do nothing
   }
@@ -6635,7 +6676,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       src.referenced_output_type = (src.token_amount > 0) ? tx_out_type::out_token : tx_out_type::out_cash;
 
     //paste keys (fake and real)
-    const size_t fake_outputs_count_revised = (src.referenced_output_type == tx_out_type::out_safex_account || src.referenced_output_type == tx_out_type::out_safex_offer) ? 0 : fake_outputs_count;
+    const size_t fake_outputs_count_revised = (src.referenced_output_type == tx_out_type::out_safex_account || src.referenced_output_type == tx_out_type::out_safex_offer
+                                                || src.referenced_output_type == tx_out_type::out_safex_feedback_token) ? 0 : fake_outputs_count;
     for (size_t n = 0; n < fake_outputs_count_revised + 1; ++n)
     {
       tx_output_entry oe = AUTO_VAL_INIT(oe);
@@ -6730,6 +6772,12 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
         src.command_type = safex::command_t::edit_offer;
         bool res = get_safex_account_keys(sfx_acc.username, my_safex_keys);
         THROW_WALLET_EXCEPTION_IF(!res, error::wallet_internal_error, "safex account keys missing");
+    }
+    else if (command_type == safex::command_t::create_feedback && m_transfers[idx].m_output_type == tx_out_type::out_safex_feedback_token)
+    {
+        const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_feedback);
+        src.command_safex_data = dt_account.output_data;
+        src.command_type = safex::command_t::create_feedback;
     }
 
     detail::print_source_entry(src);
@@ -8915,7 +8963,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
                               || dsts[0].output_type == tx_out_type::out_safex_account_update
                               || dsts[0].output_type == tx_out_type::out_safex_offer
                               || dsts[0].output_type == tx_out_type::out_safex_offer_update
-                              || dsts[0].output_type == tx_out_type::out_safex_purchase)) || adding_fee)
+                              || dsts[0].output_type == tx_out_type::out_safex_purchase
+                              || dsts[0].output_type == tx_out_type::out_safex_feedback)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 
@@ -8928,7 +8977,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       LOG_PRINT_L2("adding_fee " << adding_fee);
 
       const bool advanced_output_reference = (dsts[0].output_type == tx_out_type::out_safex_account_update || dsts[0].output_type == tx_out_type::out_safex_offer
-                                                    || dsts[0].output_type == tx_out_type::out_safex_offer_update);
+                                                    || dsts[0].output_type == tx_out_type::out_safex_offer_update || dsts[0].output_type == tx_out_type::out_safex_feedback);
 
 
       // if we need to spend cash and don't have any left, we fail
@@ -9059,6 +9108,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
             //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
+        else if (dsts[0].output_type == tx_out_type::out_safex_feedback) {
+            safex::create_feedback_data feedback;
+            cryptonote::parse_and_validate_from_blob(dsts[0].output_data, feedback);
+            //find feedback_token output
+            idx = pop_advanced_output(tx.selected_transfers, feedback, tx_out_type::out_safex_feedback_token);
+        }
       }
       else if (adding_fee)
       {
@@ -9098,7 +9153,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
             //find offer output
             idx = pop_advanced_output(tx.selected_transfers, offer.seller, tx_out_type::out_safex_offer);
         }
-
+        else if (dsts[0].output_type == tx_out_type::out_safex_feedback) {
+            safex::create_feedback_data feedback;
+            cryptonote::parse_and_validate_from_blob(dsts[0].output_data, feedback);
+            //find feedback_token output
+            idx = pop_advanced_output(tx.selected_transfers, feedback, tx_out_type::out_safex_feedback_token);
+        }
       }
 
 

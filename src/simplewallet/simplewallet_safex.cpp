@@ -107,6 +107,7 @@ namespace cryptonote
       case CommandType::TransferEditAccount:
       case CommandType::TransferCreateOffer:
       case CommandType::TransferEditOffer:
+      case CommandType::TransferFeedback:
         //do nothing
         break;
       default:
@@ -176,6 +177,9 @@ namespace cryptonote
         min_args = 1;
       break;
 
+      case CommandType::TransferFeedback:
+        min_args = 3;
+
       default:
         //min_args is 2
         break;
@@ -191,7 +195,8 @@ namespace cryptonote
     std::vector<uint8_t> extra;
     bool payment_id_seen = false;
     bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) &&
-                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer);
+                                        (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&
+                                        (command_type != CommandType::TransferFeedback);
     bool expect_even = (min_args % 2 == 1);
     if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
@@ -401,6 +406,43 @@ namespace cryptonote
 
         dsts.push_back(de);
     }
+    else if (command_type == CommandType::TransferFeedback)
+    {
+        crypto::hash purchase_offer_id{};
+        uint64_t stars_given;
+        std::string comment;
+
+        cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+        std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+        {
+            fail_msg_writer() << tr("failed to parse address");
+            return true;
+        }
+
+        if(!epee::string_tools::hex_to_pod(local_args.front(), purchase_offer_id)){
+            fail_msg_writer() << tr("Bad offer ID given!!!");
+            return true;
+        }
+        local_args.erase(local_args.begin());
+
+        if (!epee::string_tools::get_xtype_from_string(stars_given, local_args.front())){
+            fail_msg_writer() << tr("Bad stars rating format given!!!");
+            return true;
+        }
+
+        std::ostringstream comment_ostr;
+        std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(comment_ostr, " "));
+        comment = comment_ostr.str();
+
+        safex::safex_feedback sfx_feedback{stars_given,comment,purchase_offer_id};
+
+
+        cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
+
+        tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
+        dsts.push_back(de_feedback);
+    }
     else
     {
 
@@ -548,6 +590,10 @@ namespace cryptonote
 
         case CommandType::TransferEditOffer:
           command = safex::command_t::edit_offer;
+          break;
+
+        case CommandType::TransferFeedback:
+          command = safex::command_t::create_feedback;
           break;
 
         default:
@@ -814,6 +860,16 @@ namespace cryptonote
       }
     return create_command(CommandType::TransferPurchase, args);
   }
+
+    bool simple_wallet::safex_feedback(const std::vector<std::string>& args) {
+        if (args.empty())
+        {
+            success_msg_writer() << tr("usage:\n"
+                                       "  safex_feedback [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <star_rating> <comment>>\"),");
+            return true;
+        }
+        return create_command(CommandType::TransferFeedback, args);
+    }
 
   bool simple_wallet::list_offers(const std::vector<std::string>& args) {
 

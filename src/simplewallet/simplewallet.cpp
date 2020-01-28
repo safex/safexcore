@@ -1223,6 +1223,11 @@ simple_wallet::simple_wallet()
                            tr("safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <quantity>\"),"),
                            tr("Safex purchase. 95% of cash sent is given to the seller, 5% is taken as fee"));
 
+  m_cmd_binder.set_handler("safex_feedback",
+                           boost::bind(&simple_wallet::safex_feedback, this, _1),
+                           tr("safex_feedback [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <star_rating> <comment>\"),"),
+                           tr("Give feedback for purchased offer with <offer_id> with <star_rating> and <comment>"));
+
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),

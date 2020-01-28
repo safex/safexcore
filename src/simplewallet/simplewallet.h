@@ -75,7 +75,7 @@ namespace cryptonote
     TransferEditAccount,
     TransferCreateOffer,
     TransferEditOffer,
-    TransferCloseOffer
+    TransferFeedback
   };
 
   /*!
@@ -268,6 +268,8 @@ namespace cryptonote
     bool safex_offer(const std::vector<std::string> &args);
 
     bool safex_purchase(const std::vector<std::string>& args);
+
+    bool safex_feedback(const std::vector<std::string>& args);
     /****************************************************************************************************************/
 
     /*!
