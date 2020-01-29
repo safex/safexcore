@@ -1145,8 +1145,7 @@ namespace cryptonote
                                                   tr("Purchased offer: ") << my_offer.title << " received, " <<
                                                   tr("Quantity purchased: ") << purchase_data.quantity <<
                                                   tr("idx ") << subaddr_index;
-        //TODO: Update safex offer is bought
-        //m_wallet->update_safex_offer(purchase_data);
+        m_wallet->update_safex_offer(purchase_data);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
         safex::create_feedback_token_data feedback_token;

@@ -364,6 +364,20 @@ namespace tools
         return true;
     }
 
+    bool wallet::update_safex_offer(const safex::create_purchase_data& purchase){
+
+      for (auto & m_safex_offer : m_safex_offers)
+      {
+        if (m_safex_offer.offer_id == purchase.offer_id)
+        {
+          m_safex_offer.quantity -= purchase.quantity;
+          return true;
+        }
+      }
+
+      return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_safex_offers()
   {
       cryptonote::COMMAND_RPC_GET_SAFEX_OFFERS::request req = AUTO_VAL_INIT(req);
