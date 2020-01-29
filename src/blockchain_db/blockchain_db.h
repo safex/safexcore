@@ -1802,6 +1802,15 @@ namespace cryptonote
       virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
 
       /**
+      * @brief fetch safex feedbacks for given offer id from the blockchain
+      *
+      * The subclass should return safex feedbacks data
+      *
+      * @return True if no error ocurred
+      */
+      virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const = 0;
+
+      /**
        * @brief fetch safex offer's stars from the blockchain
        *
        * The subclass should return safex offer stars received

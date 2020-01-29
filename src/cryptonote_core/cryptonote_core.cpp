@@ -336,6 +336,12 @@ namespace cryptonote
       return m_blockchain_storage.get_safex_offers(safex_offers);
   }
 
+  bool core::get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const
+  {
+    return m_blockchain_storage.get_safex_feedbacks(safex_feedbacks,offer_id);
+  }
+
+
     //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
   {

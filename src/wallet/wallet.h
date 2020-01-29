@@ -1088,6 +1088,7 @@ namespace tools
     bool update_safex_offer(const safex::safex_offer& offer);
 
     std::vector<safex::safex_offer> get_safex_offers();
+    std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
 

@@ -1238,6 +1238,11 @@ simple_wallet::simple_wallet()
                            tr("list_offers"),
                            tr("List current offers in the Blockchain."));
 
+    m_cmd_binder.set_handler("list_ratings",
+                             boost::bind(&simple_wallet::list_ratings, this, _1),
+                             tr("list_ratings <offer_id>"),
+                             tr("List ratings in the Blockchain for given offer."));
+
   m_cmd_binder.set_handler("get_my_interest",
                            boost::bind(&simple_wallet::get_my_interest, this, _1),
                            tr("get_my_interest"),

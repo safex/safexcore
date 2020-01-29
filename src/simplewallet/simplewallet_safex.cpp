@@ -881,6 +881,22 @@ namespace cryptonote
     return true;
   }
 
+    bool simple_wallet::list_ratings(const std::vector<std::string>& args) {
+
+        crypto::hash offer_id;
+        if(args.empty() || !epee::string_tools::hex_to_pod(args.front(), offer_id)) {
+            fail_msg_writer() << tr("Bad offer ID given!!!");
+            return true;
+        }
+
+        success_msg_writer() << boost::format("%30s %10s") % tr("Offer ID") %tr(args.front().c_str());
+        success_msg_writer() << boost::format("%6s %60s") % tr("Rating") %tr("Comment");
+        for (auto &rating: m_wallet->get_safex_ratings(offer_id)) {
+            success_msg_writer() << boost::format("%6s %60s") % rating.stars_given % rating.comment;
+        }
+        return true;
+    }
+
   bool simple_wallet::get_my_interest(const std::vector<std::string>& args)
   {
     std::vector<std::pair<uint64_t, uint64_t>> interest_per_output;

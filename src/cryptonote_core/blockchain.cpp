@@ -6090,6 +6090,14 @@ bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers
     return m_db->get_safex_offers(safex_offers);
 }
 
+bool Blockchain::get_safex_feedbacks(std::vector<safex::safex_feedback>& safex_feedbacks, const crypto::hash& offer_id) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_feedbacks(safex_feedbacks, offer_id);
+}
+
+
 std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
 
     crypto::public_key pkey;

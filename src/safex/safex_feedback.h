@@ -30,7 +30,7 @@ namespace safex
       safex_feedback(): comment{}, stars_given{}, offer_id{0}{
       }
 
-      safex_feedback(const uint64_t _stars_given, const std::string _comment, crypto::hash &_id):stars_given{_stars_given},comment{_comment},
+      safex_feedback(const uint64_t _stars_given, const std::string _comment, const crypto::hash &_id):stars_given{_stars_given},comment{_comment},
                                                                                             offer_id{_id}
       {
       }
