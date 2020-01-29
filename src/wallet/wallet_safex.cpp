@@ -422,11 +422,35 @@ namespace tools
       }
 
       return feedbacks;
+  }
+
+    bool wallet::add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token){
+
+      m_safex_feedback_tokens.push_back(feedback_token.offer_id);
+
+      return true;
     }
+
+    bool wallet::remove_safex_feedback_token(const crypto::hash& offer_id){
+
+      for(auto it = m_safex_feedback_tokens.begin(); it!=m_safex_feedback_tokens.end();it++)
+        if(*it==offer_id) {
+          m_safex_feedback_tokens.erase(it);
+          return true;
+        }
+
+      return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_my_safex_offers()
   {
         return m_safex_offers;
   }
+
+    std::vector<crypto::hash> wallet::get_my_safex_feedbacks_to_give()
+    {
+      return m_safex_feedback_tokens;
+    }
 
   safex::safex_offer wallet::get_my_safex_offer(crypto::hash& offer_id)
   {

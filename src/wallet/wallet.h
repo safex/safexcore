@@ -780,6 +780,8 @@ namespace tools
 
       a & m_safex_offers;
 
+      a & m_safex_feedback_tokens;
+
     }
 
       static std::string get_default_ringdb_path()
@@ -1087,11 +1089,13 @@ namespace tools
     bool add_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::create_purchase_data& purchase);
-
+    bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
+    bool remove_safex_feedback_token(const crypto::hash& offer_id);
 
     std::vector<safex::safex_offer> get_safex_offers();
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
+    std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
 
   private:
@@ -1269,6 +1273,8 @@ namespace tools
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;
 
     std::vector<safex::safex_offer> m_safex_offers;
+
+    std::vector<crypto::hash> m_safex_feedback_tokens;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 1)

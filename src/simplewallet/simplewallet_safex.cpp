@@ -862,12 +862,13 @@ namespace cryptonote
   }
 
     bool simple_wallet::safex_feedback(const std::vector<std::string>& args) {
-        if (args.empty())
-        {
-            success_msg_writer() << tr("usage:\n"
-                                       "  safex_feedback [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <star_rating> <comment>>\"),");
-            return true;
-        }
+      if (args.empty())
+      {
+        // print all the possible feedbacks to give
+        LOCK_IDLE_SCOPE();
+        print_not_given_feedbacks();
+        return true;
+      }
         return create_command(CommandType::TransferFeedback, args);
     }
 
@@ -879,6 +880,14 @@ namespace cryptonote
                                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
     return true;
+  }
+
+    void simple_wallet::print_not_given_feedbacks(){
+      success_msg_writer() << tr("Safex feedbacks left to give for offers:");
+      success_msg_writer() << boost::format("%30s")  %tr("Offer ID");
+      for (auto &offer_id: m_wallet->get_my_safex_feedbacks_to_give()) {
+        success_msg_writer() << boost::format("%30s ") % offer_id;
+      }
   }
 
     bool simple_wallet::list_ratings(const std::vector<std::string>& args) {
@@ -1156,8 +1165,7 @@ namespace cryptonote
                                           tr("txid ") << txid << ", " <<
                                           tr("Feedback token received for offer: ") << feedback_token.offer_id << " received, " <<
                                           tr("idx ") << subaddr_index;
-        //TODO: Adc feedback token
-//        m_wallet->add_safex_feedback_token(feedback_token);
+        m_wallet->add_safex_feedback_token(feedback_token);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
         safex::create_feedback_data feedback;
@@ -1171,6 +1179,7 @@ namespace cryptonote
                                                   tr("Stars given: ") << feedback.stars_given <<
                                                   tr("Comment given: ") << comment <<
                                                   tr("idx ") << subaddr_index;
+        m_wallet->remove_safex_feedback_token(feedback.offer_id);
 
     }
 
