@@ -320,6 +320,11 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
   remove_transaction_data(tx_hash, tx);
 }
 
+void BlockchainDB::revert_transaction(const crypto::hash &tx_hash)
+{
+  remove_transaction(tx_hash);
+}
+
 block BlockchainDB::get_block_from_height(const uint64_t& height) const
 {
   blobdata bd = get_block_blob_from_height(height);

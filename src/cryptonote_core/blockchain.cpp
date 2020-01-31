@@ -4772,8 +4772,15 @@ leave:
     }
     catch (const std::exception& e)
     {
+
+      for(auto tx: txs){
+        cryptonote::transaction tmp;
+        if(m_db->get_tx(tx.hash,tmp))
+          m_db->revert_transaction(tx.hash);
+      }
       //TODO: figure out the best way to deal with this failure
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
     }

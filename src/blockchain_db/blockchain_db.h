@@ -1186,6 +1186,17 @@ namespace cryptonote
       virtual uint64_t height() const = 0;
 
 
+      // helper function to remove transaction from blockchain
+      /**
+       * @brief helper function to remove transaction from the blockchain
+       *
+       * This function encapsulates aspects of removing a transaction.
+       *
+       * @param tx_hash the hash of the transaction to be removed
+       */
+      void revert_transaction(const crypto::hash &tx_hash);
+
+
       /**
        * <!--
        * TODO: Rewrite (if necessary) such that all calls to remove_* are

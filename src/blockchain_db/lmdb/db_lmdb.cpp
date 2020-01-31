@@ -1394,7 +1394,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         safex::create_purchase_data purchase_output_data;
         parse_and_validate_object_from_blob(blobdata1, purchase_output_data);
         remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity);
-    } else if(output_type == tx_out_type::out_network_fee){
+    } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
         remove_last_advanced_output();
     }
     else {
@@ -5195,6 +5195,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             safex::create_offer_result sfx_offer;
             const cryptonote::blobdata accblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
             cryptonote::parse_and_validate_from_blob(accblob, sfx_offer);
+
+            if(sfx_offer.quantity - purchase.quantity > sfx_offer.quantity)
+              throw0(DB_ERROR("DB error attempting to create purchase: Not enough quantity of item"));
 
             sfx_offer.quantity -= purchase.quantity;
 
