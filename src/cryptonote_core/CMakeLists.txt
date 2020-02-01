@@ -29,7 +29,8 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 
-if(BUILD_SAFEX_PROTOBUF_RPC)    
+if(BUILD_SAFEX_PROTOBUF_RPC)
+    
     FILE(TO_NATIVE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/protobuf/proto PROTOMODEL_PATH)
     FILE(TO_NATIVE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/protobuf PROTOBINDING_PATH)
 
