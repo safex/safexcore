@@ -1,9 +1,5 @@
 # Safex Project
-#
 
-#
-
-#
 
 ## Releases
 
