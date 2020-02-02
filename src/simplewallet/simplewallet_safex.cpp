@@ -856,8 +856,12 @@ namespace cryptonote
     local_args.erase(local_args.begin());
     if (command == "new")
     {
-      const std::string &username = local_args[0];
+      if (local_args.size() != 2){
+        fail_msg_writer() << tr("usage: safex_account new <account_username> <account_data>");        
+        return true;
+      }
 
+      const std::string &username = local_args[0];
       std::ostringstream accdata_ostr;
       std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
       const std::string accdata_str = accdata_ostr.str();
