@@ -39,6 +39,7 @@
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
 #include <safex/safex_purchase.h>
+#include <safex/safex_feedback.h>
 #include <safex/command.h>
 
 #define ENABLE_AUTO_RESIZE
@@ -75,7 +76,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_token_lock_expiry;
   MDB_cursor *m_txc_safex_account;
   MDB_cursor *m_txc_safex_offer;
-
+  MDB_cursor *m_txc_safex_feedback;
 
 } mdb_txn_cursors;
 
@@ -100,7 +101,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_token_lock_expiry	m_cursors->m_txc_token_lock_expiry
 #define m_cur_safex_account	m_cursors->m_txc_safex_account
 #define m_cur_safex_offer	m_cursors->m_txc_safex_offer
-
+#define m_cur_safex_feedback	m_cursors->m_txc_safex_feedback
 
 typedef struct mdb_rflags
 {
@@ -126,6 +127,7 @@ typedef struct mdb_rflags
   bool m_rf_token_lock_expiry;
   bool m_rf_safex_account;
   bool m_rf_safex_offer;
+  bool m_rf_safex_feedback;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -326,9 +328,12 @@ public:
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
   virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
   virtual bool get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const;
+  virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
+  virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
 
 
-  virtual uint64_t add_block( const block& blk
+
+    virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
                             , const difficulty_type& cumulative_difficulty
                             , const uint64_t& coins_generated
@@ -539,12 +544,22 @@ private:
     /**
     * Create purchase in database
     *
-    * @param result safex purchase data
+    * @param purchase safex purchase data
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void create_safex_purchase(const safex::safex_purchase& result);
+    void create_safex_purchase(const safex::safex_purchase& purchase);
+
+    /**
+    * Create feedback in database
+    *
+    * @param feedback safex feedback data
+    *
+    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    *
+    */
+    void create_safex_feedback(const safex::safex_feedback& feedback);
     /**
     * Remove advanced output from DB
     *
@@ -651,10 +666,10 @@ private:
   MDB_dbi m_token_lock_expiry;
   MDB_dbi m_safex_account;
   MDB_dbi m_safex_offer;
+  MDB_dbi m_safex_feedback;
 
 
-
-    mutable uint64_t m_cum_size;	// used in batch size estimation
+  mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;
   std::string m_folder;
   mdb_txn_safe* m_write_txn; // may point to either a short-lived txn or a batch txn

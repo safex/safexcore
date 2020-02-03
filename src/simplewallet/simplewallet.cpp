@@ -1223,6 +1223,13 @@ simple_wallet::simple_wallet()
                            tr("safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <quantity>\"),"),
                            tr("Safex purchase. 95% of cash sent is given to the seller, 5% is taken as fee"));
 
+  m_cmd_binder.set_handler("safex_feedback",
+                           boost::bind(&simple_wallet::safex_feedback, this, _1),
+                           tr("safex_feedback \n"
+                              "safex_feedback [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <star_rating> <comment>\n"),
+                           tr("If no arguments are given, show all offers that you can give feedback\n"
+                              "If arguments are given, give feedback for purchased offer with <offer_id> with <star_rating> and <comment>"));
+
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),
@@ -1232,6 +1239,11 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::list_offers, this, _1),
                            tr("list_offers"),
                            tr("List current offers in the Blockchain."));
+
+    m_cmd_binder.set_handler("list_ratings",
+                             boost::bind(&simple_wallet::list_ratings, this, _1),
+                             tr("list_ratings <offer_id>"),
+                             tr("List ratings in the Blockchain for given offer."));
 
   m_cmd_binder.set_handler("get_my_interest",
                            boost::bind(&simple_wallet::get_my_interest, this, _1),

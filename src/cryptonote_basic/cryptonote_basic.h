@@ -228,6 +228,8 @@ namespace cryptonote
     out_safex_offer = 20,
     out_safex_offer_update = 21,
     out_safex_purchase = 30,
+    out_safex_feedback_token = 40,
+    out_safex_feedback = 41,
     out_invalid = 100
   };
 

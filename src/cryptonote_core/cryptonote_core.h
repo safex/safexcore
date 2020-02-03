@@ -809,11 +809,18 @@ namespace cryptonote
        bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
 
        /**
-       * @brief gets pair of elements <username, safex_account_description>
+       * @brief gets all offers inside the Blockchain
        *
        * @return True if we get the elements from Blockchain
        */
        bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const;
+
+       /**
+      * @brief gets feedbacks for given offer_id
+      *
+      * @return True if we get the elements from Blockchain
+      */
+       bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
 
      /**
       * @brief get the network type we're on

@@ -39,6 +39,7 @@
 #include <safex/safex_account.h>
 #include <safex/safex_offer.h>
 #include <safex/safex_purchase.h>
+#include <safex/safex_feedback.h>
 #include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_basic/blobdatatype.h"
@@ -1185,6 +1186,17 @@ namespace cryptonote
       virtual uint64_t height() const = 0;
 
 
+      // helper function to remove transaction from blockchain
+      /**
+       * @brief helper function to remove transaction from the blockchain
+       *
+       * This function encapsulates aspects of removing a transaction.
+       *
+       * @param tx_hash the hash of the transaction to be removed
+       */
+      void revert_transaction(const crypto::hash &tx_hash);
+
+
       /**
        * <!--
        * TODO: Rewrite (if necessary) such that all calls to remove_* are
@@ -1799,6 +1811,24 @@ namespace cryptonote
        * @return True if no error ocurred
        */
       virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
+
+      /**
+      * @brief fetch safex feedbacks for given offer id from the blockchain
+      *
+      * The subclass should return safex feedbacks data
+      *
+      * @return True if no error ocurred
+      */
+      virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const = 0;
+
+      /**
+       * @brief fetch safex offer's stars from the blockchain
+       *
+       * The subclass should return safex offer stars received
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const = 0;
 
       //
       // Hard fork related storage

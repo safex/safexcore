@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include "safex/safex_feedback.h"
 #include "safex/safex_purchase.h"
 #include "chaingen.h"
 #include "block_reward.h"
@@ -76,14 +77,15 @@ public:
 
   safex::safex_purchase safex_alice_purchase_from_bob;
 
+  safex::safex_feedback safex_alice_feedback;
 
   static const std::string data2_alternative;
   static const std::string data2_alternative_2;
   static const std::string data3_alternative;
 
 
-  static const size_t expected_blockchain_total_transactions = 445;
-  static const size_t expected_blockchain_height = 429;
+  static const size_t expected_blockchain_total_transactions = 507;
+  static const size_t expected_blockchain_height = 490;
 
   static bool expected_data_fields_intialized;
 
@@ -92,6 +94,7 @@ public:
   static uint64_t  expected_bob_balance;
   static uint64_t  expected_bob_offer_quantity;
   static crypto::hash  expected_purchased_offer_id;
+  static uint64_t expected_alice_feedback_star_rating;
 
 };
 

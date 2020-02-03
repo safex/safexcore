@@ -40,6 +40,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/deque.hpp>
 #include <atomic>
+#include <safex/command.h>
 
 #include "include_base_utils.h"
 #include "cryptonote_basic/account.h"
@@ -779,6 +780,8 @@ namespace tools
 
       a & m_safex_offers;
 
+      a & m_safex_feedback_tokens;
+
     }
 
       static std::string get_default_ringdb_path()
@@ -937,6 +940,8 @@ namespace tools
     size_t pop_best_value(std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) const;
     size_t pop_ideal_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const;
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const;
+    size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const  safex::create_feedback_data &sfx_feedback, const cryptonote::tx_out_type out_type) const;
+    size_t pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const crypto::hash& offer_id,  const cryptonote::tx_out_type out_type) const;
 
     void set_tx_note(const crypto::hash &txid, const std::string &note);
     std::string get_tx_note(const crypto::hash &txid) const;
@@ -1083,9 +1088,15 @@ namespace tools
 
     bool add_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::safex_offer& offer);
+    bool update_safex_offer(const safex::create_purchase_data& purchase);
+    bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
+    bool remove_safex_feedback_token(const crypto::hash& offer_id);
 
     std::vector<safex::safex_offer> get_safex_offers();
+    std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
+    std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
+    safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
 
   private:
     /*!
@@ -1262,6 +1273,8 @@ namespace tools
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;
 
     std::vector<safex::safex_offer> m_safex_offers;
+
+    std::vector<crypto::hash> m_safex_feedback_tokens;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 1)

@@ -357,6 +357,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
         //TODO: Check and set correct value
         output_type = tx_out_type::out_cash;
         break;
+      case safex::command_t::create_feedback:
+          output_type = tx_out_type::out_safex_feedback_token;
+          break;
     default:
       MERROR_VER("Unknown command type");
       return false;
@@ -373,6 +376,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   {
     case tx_out_type::out_staked_token:
     case tx_out_type::out_safex_account:
+    case tx_out_type::out_safex_feedback_token:
     {
       absolute_offsets = txin.key_offsets;
       break;
@@ -510,7 +514,8 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
 /* Handle advanced outputs that should be spend in the transaction */
   else if ((output_type == tx_out_type::out_staked_token)
            || (output_type == tx_out_type::out_network_fee)
-           || (output_type == tx_out_type::out_safex_account)) {
+           || (output_type == tx_out_type::out_safex_account)
+           || (output_type == tx_out_type::out_safex_feedback_token)) {
 
     std::vector<output_advanced_data_t> outputs;
     bool found = false;
@@ -3380,6 +3385,21 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           return false;
       }
   }
+  else if (command_type == safex::command_t::create_feedback)
+  {
+      //TODO: Make additional checks
+      for (const auto &vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_feedback_data feedback;
+              const cryptonote::blobdata feedbackblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(feedbackblob, feedback);
+              //TODO: check if OfferID exists
+          }
+      }
+  }
   else
   {
     MERROR("Unsupported safex command");
@@ -3532,6 +3552,11 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   else if (txin.command_type == safex::command_t::simple_purchase)
   {
       if (txin.amount == 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::create_feedback)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
           return false;
   }
   else
@@ -3756,7 +3781,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
         }
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                                                             boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
+                boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
+                boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         }
@@ -3793,7 +3819,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase)) {
+                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
+                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
@@ -4745,8 +4772,15 @@ leave:
     }
     catch (const std::exception& e)
     {
+
+      for(auto tx: txs){
+        cryptonote::transaction tmp;
+        if(m_db->get_tx(tx.hash,tmp))
+          m_db->revert_transaction(tx.hash);
+      }
       //TODO: figure out the best way to deal with this failure
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
     }
@@ -6037,6 +6071,18 @@ bool Blockchain::get_safex_offer_active_status(const crypto::hash &offerID, bool
     }
 }
 
+bool Blockchain::get_safex_offer_rating(const crypto::hash &offerID, uint64_t &rating) const
+{
+    try {
+        bool result = m_db->get_offer_stars_given(offerID, rating);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer active status: "+std::string(ex.what()));
+        return false;
+    }
+}
+
 bool Blockchain::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const
 {
     LOG_PRINT_L3("Blockchain::" << __func__);
@@ -6050,6 +6096,14 @@ bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers
 
     return m_db->get_safex_offers(safex_offers);
 }
+
+bool Blockchain::get_safex_feedbacks(std::vector<safex::safex_feedback>& safex_feedbacks, const crypto::hash& offer_id) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_feedbacks(safex_feedbacks, offer_id);
+}
+
 
 std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
 

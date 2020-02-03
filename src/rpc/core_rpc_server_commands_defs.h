@@ -161,6 +161,46 @@ namespace cryptonote
         typedef epee::misc_utils::struct_init<response_t> response;
     };
 
+    struct COMMAND_RPC_GET_SAFEX_RATINGS
+    {
+        struct request_t
+        {
+            crypto::hash offer_id;
+
+          BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            uint64_t star_rating;
+            std::string comment;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(star_rating)
+                KV_SERIALIZE(comment)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            crypto::hash offer_id;
+            std::vector<entry> ratings;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+                KV_SERIALIZE(ratings)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
   struct COMMAND_RPC_GET_BLOCKS_FAST
   {
 
