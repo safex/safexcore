@@ -1220,7 +1220,7 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("safex_purchase",
                            boost::bind(&simple_wallet::safex_purchase, this, _1),
-                           tr("safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <quantity>\"),"),
+                           tr("safex_purchase [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <quantity>"),
                            tr("Safex purchase. 95% of cash sent is given to the seller, 5% is taken as fee"));
 
   m_cmd_binder.set_handler("safex_feedback",
