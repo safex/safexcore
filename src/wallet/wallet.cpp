@@ -5259,7 +5259,7 @@ bool wallet::load_tx(const std::string &signed_filename, std::vector<tools::wall
 //----------------------------------------------------------------------------------------------------
 uint64_t wallet::get_fee_multiplier(uint32_t priority, int fee_algorithm) const
 {
-  static const uint64_t multipliers[3] = {1, 2, 3};
+  static const uint64_t multipliers[4] = {1, 2, 3, 4};
 
   if (fee_algorithm == -1)
     fee_algorithm = get_fee_algorithm();
@@ -5276,7 +5276,7 @@ uint64_t wallet::get_fee_multiplier(uint32_t priority, int fee_algorithm) const
   }
 
   // 1 to 3 are allowed as priorities
-  uint32_t max_priority = 3;
+  uint32_t max_priority = 4;
   if (priority >= 1 && priority <= max_priority)
   {
     switch (fee_algorithm)
