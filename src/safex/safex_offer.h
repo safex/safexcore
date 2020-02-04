@@ -16,6 +16,7 @@
 
 
 #include "safex_core.h"
+#include "safex_price_peg.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "safex_offer"
@@ -32,15 +33,15 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
-                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}):title{_title},quantity{_quantity},price{_price},
-                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address}
+                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}, const crypto::hash& _price_peg_id = {}):title{_title},quantity{_quantity},price{_price},
+                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_id{_price_peg_id}
       {
       }
 
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::string& _description,
-               std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}):
-              title{_title}, quantity{_quantity}, price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address} {
+               std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}, const crypto::hash& _price_peg_id = {}):
+              title{_title}, quantity{_quantity}, price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_id{_price_peg_id} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           offer_id = create_offer_id(seller_username);
@@ -51,6 +52,8 @@ namespace safex
         KV_SERIALIZE(title)
         KV_SERIALIZE(quantity)
         KV_SERIALIZE(price)
+        KV_SERIALIZE(price_peg_id)
+        KV_SERIALIZE(min_sfx_price)
         KV_SERIALIZE(description)
         KV_SERIALIZE(active)
         KV_SERIALIZE(shipping)
@@ -64,6 +67,8 @@ namespace safex
         FIELD(title)
         VARINT_FIELD(quantity)
         FIELD(price)
+        FIELD(price_peg_id)
+        FIELD(min_sfx_price)
         FIELD(description)
         FIELD(active)
         FIELD(shipping)
@@ -79,6 +84,8 @@ namespace safex
         a & title;
         a & quantity;
         a & price;
+        a & price_peg_id;
+        a & min_sfx_price;
         a & description;
         a & active;
         a & shipping;
@@ -92,10 +99,12 @@ namespace safex
       std::string title; //title of the offer
       uint64_t quantity;
       uint64_t price;
+      uint64_t min_sfx_price;
       std::vector<uint8_t> description; //description of offer, JSON or other format TBD.
       bool active; //is offer active
       std::vector<uint8_t> shipping;
       crypto::hash offer_id; //unique id of the offer
+      crypto::hash price_peg_id; //id of the price peg to be used
       std::string seller; // username of the seller
       crypto::secret_key seller_private_view_key;
       cryptonote::account_public_address seller_address;
