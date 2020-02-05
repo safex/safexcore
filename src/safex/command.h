@@ -451,6 +451,11 @@ struct create_price_peg_result : public execution_result
         {
         }
 
+        create_price_peg_data(const  std::vector<uint8_t>& _title, const crypto::hash& _price_peg_id, const std::vector<uint8_t>& _creator, const std::vector<uint8_t>& _description, const std::vector<uint8_t>& _currency, const uint64_t& _rate):
+                          title{_title},price_peg_id{_price_peg_id}, creator{_creator},description{_description},currency{_currency},rate{_rate}
+        {
+        }
+
         BEGIN_SERIALIZE_OBJECT()
           FIELD(title)
           FIELD(price_peg_id)
@@ -1051,6 +1056,9 @@ private:
           case safex::command_t::create_feedback:
              return std::unique_ptr<command>(parse_safex_object<create_feedback>(buffer));
              break;
+          case safex::command_t::create_price_peg:
+            return std::unique_ptr<command>(parse_safex_object<create_price_peg>(buffer));
+            break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);
             break;

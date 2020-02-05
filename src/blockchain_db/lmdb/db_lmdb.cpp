@@ -1592,7 +1592,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::unique_ptr<safex::create_offer_result> result(dynamic_cast<safex::create_offer_result*>(cmd->execute(*this, txin)));
       if (result->status != safex::execution_status::ok)
       {
-          LOG_ERROR("Execution of add saffex offer command failed, status:" << static_cast<int>(result->status));
+          LOG_ERROR("Execution of add safex offer command failed, status:" << static_cast<int>(result->status));
           throw1(DB_ERROR("Error executing add safex offer command"));
       }
       blobdata blob{};
@@ -1607,7 +1607,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::unique_ptr<safex::edit_offer_result> result(dynamic_cast<safex::edit_offer_result*>(cmd->execute(*this, txin)));
       if (result->status != safex::execution_status::ok)
       {
-          LOG_ERROR("Execution of edit saffex offer command failed, status:" << static_cast<int>(result->status));
+          LOG_ERROR("Execution of edit safex offer command failed, status:" << static_cast<int>(result->status));
           throw1(DB_ERROR("Error executing edit safex offer command"));
       }
       blobdata blob{};
@@ -1644,6 +1644,22 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::string comment{result->comment.begin(),result->comment.end()};
       safex::safex_feedback sfx_feedback{result->stars_given, comment, result->offer_id};
       create_safex_feedback(sfx_feedback);
+
+  }
+  else if (txin.command_type == safex::command_t::create_price_peg)
+  {
+
+    std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+    std::unique_ptr<safex::create_price_peg_result> result(dynamic_cast<safex::create_price_peg_result*>(cmd->execute(*this, txin)));
+    if (result->status != safex::execution_status::ok)
+    {
+      LOG_ERROR("Execution of add safex price peg command failed, status:" << static_cast<int>(result->status));
+      throw1(DB_ERROR("Error executing add safex peg command"));
+    }
+    blobdata blob{};
+    t_serializable_object_to_blob(*result,blob);
+    //TODO: GRKI add command to add price peg
+    //add_safex_price_peg(blob);
 
   }
   else {

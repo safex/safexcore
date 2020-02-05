@@ -102,6 +102,8 @@ gen_safex_price_peg_001::gen_safex_price_peg_001()
     alice.generate();
     bob.generate();
 
+  safex_price_peg_alice = safex::safex_price_peg{"Alice price peg",safex_account_alice.username,"USD","USD to SFX price peg",30};
+
   if (!expected_data_fields_intialized)
   {
     expected_alice_account_key = safex_account_alice.pkey;
@@ -114,7 +116,7 @@ gen_safex_price_peg_001::gen_safex_price_peg_001()
 
   }
 
-  REGISTER_CALLBACK("verify_safex_offer", gen_safex_price_peg_001::verify_safex_price_peg);
+  REGISTER_CALLBACK("verify_safex_price_peg", gen_safex_price_peg_001::verify_safex_price_peg);
 }
 
 bool gen_safex_price_peg_001::generate(std::vector<test_event_entry> &events)
@@ -164,14 +166,18 @@ bool gen_safex_price_peg_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_9, blk_8, miner, txlist_4);
     REWIND_BLOCKS(events, blk_10, blk_9, miner);
 
-    DO_CALLBACK(events, "verify_safex_offer");
+  MAKE_TX_CREATE_SAFEX_PRICE_PEG_LIST_START(events, txlist_5, alice, safex_account_alice.pkey, safex_price_peg_alice, m_safex_account1_keys.get_keys(), blk_10);
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_11, blk_10, miner, txlist_5);
+  REWIND_BLOCKS(events, blk_12, blk_11, miner);
+
+    DO_CALLBACK(events, "verify_safex_price_peg");
 
     return true;
 }
 
 bool gen_safex_price_peg_001::verify_safex_price_peg(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-    DEFINE_TESTS_ERROR_CONTEXT("gen_safex_price_peg_001::verify_safex_offer");
+    DEFINE_TESTS_ERROR_CONTEXT("gen_safex_price_peg_001::verify_safex_price_peg");
     std::cout << "current_blockchain_height:" << c.get_current_blockchain_height() << " get_blockchain_total_transactions:" << c.get_blockchain_total_transactions() << std::endl;
 
     CHECK_TEST_CONDITION(c.get_current_blockchain_height() == gen_safex_price_peg_001::expected_blockchain_height);
