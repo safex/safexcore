@@ -816,6 +816,13 @@ namespace cryptonote
        bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const;
 
        /**
+       * @brief gets all price pegs inside the Blockchain for given currency
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency = "") const;
+
+       /**
       * @brief gets feedbacks for given offer_id
       *
       * @return True if we get the elements from Blockchain

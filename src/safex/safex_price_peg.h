@@ -36,6 +36,11 @@ namespace safex
       {
       }
 
+      safex_price_peg(const std::vector<uint8_t> &_title, const std::vector<uint8_t> _creator, const std::vector<uint8_t> _currency, const std::vector<uint8_t> &_description, crypto::hash _price_peg_id, uint64_t _rate):
+              title{_title.begin(),_title.end()},creator{_creator.begin(),_creator.end()}, currency{_currency.begin(),_currency.end()}, description{_description},price_peg_id{_price_peg_id},rate{_rate}
+      {
+      }
+
 
       safex_price_peg(const std::string &_title, std::string _creator, const std::string _currency, const std::string &_description, uint64_t _rate):
               title{_title},creator{_creator}, currency{_currency}, rate{_rate}

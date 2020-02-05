@@ -6158,6 +6158,12 @@ bool Blockchain::get_safex_feedbacks(std::vector<safex::safex_feedback>& safex_f
   return m_db->get_safex_feedbacks(safex_feedbacks, offer_id);
 }
 
+bool Blockchain::get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_price_pegs(safex_price_pegs, currency);
+}
 
 std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
 

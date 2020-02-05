@@ -233,8 +233,8 @@ struct create_price_peg_result : public execution_result
 
     create_price_peg_result(){}
 
-    create_price_peg_result(crypto::hash _price_peg_id, std::vector<uint8_t> _title, std::vector<uint8_t> _creator,std::vector<uint8_t> _currency,uint64_t _rate)
-      :price_peg_id{_price_peg_id},title{_title},creator{_creator},currency{_currency},rate{_rate} {
+    create_price_peg_result(crypto::hash _price_peg_id, std::vector<uint8_t> _title, std::vector<uint8_t> _creator, std::vector<uint8_t> _description, std::vector<uint8_t> _currency,uint64_t _rate)
+      :price_peg_id{_price_peg_id},title{_title},creator{_creator}, description{_description}, currency{_currency},rate{_rate} {
       output_ids.clear();
     }
 

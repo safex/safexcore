@@ -391,7 +391,7 @@ namespace safex
       execution_status result = validate(blokchainDB, txin);
       SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate create price peg command", this->get_command_type());
 
-      create_price_peg_result *cr = new create_price_peg_result{this->price_peg_id,this->title,this->creator,this->currency,this->rate};
+      create_price_peg_result *cr = new create_price_peg_result{this->price_peg_id,this->title,this->creator,this->description,this->currency,this->rate};
       cr->valid = true;
       cr->status = execution_status::ok;
 

@@ -67,6 +67,11 @@ std::vector<uint8_t> gen_safex_price_peg_001::expected_alice_account_data;
 std::vector<uint8_t> gen_safex_price_peg_001::expected_bob_account_data;
 std::vector<uint8_t> gen_safex_price_peg_001::expected_daniel_account_data;
 
+std::string gen_safex_price_peg_001::expected_alice_price_peg_title;
+std::string gen_safex_price_peg_001::expected_alice_price_peg_currency;
+std::vector<uint8_t> gen_safex_price_peg_001::expected_alice_price_peg_description;
+uint64_t    gen_safex_price_peg_001::exptected_alice_price_peg_rate;
+
 gen_safex_price_peg_001::gen_safex_price_peg_001()
 {
 
@@ -113,6 +118,11 @@ gen_safex_price_peg_001::gen_safex_price_peg_001()
     expected_alice_account_data = std::vector<uint8_t>(std::begin(safex_account_alice.account_data), std::end(safex_account_alice.account_data));
     expected_bob_account_data = std::vector<uint8_t>(std::begin(data2_alternative_2), std::end(data2_alternative_2));
     expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
+
+    expected_alice_price_peg_title = safex_price_peg_alice.title;
+    expected_alice_price_peg_currency = safex_price_peg_alice.currency;
+    expected_alice_price_peg_description = safex_price_peg_alice.description;
+    exptected_alice_price_peg_rate = safex_price_peg_alice.rate;
 
   }
 
@@ -221,6 +231,20 @@ bool gen_safex_price_peg_001::verify_safex_price_peg(cryptonote::core &c, size_t
   std::vector<uint8_t> accdata02;
   c.get_blockchain_storage().get_safex_account_data(username02, accdata02);
   CHECK_TEST_CONDITION(std::equal(expected_bob_account_data.begin(), expected_bob_account_data.end(), accdata02.begin()));
+
+  std::string price_peg_title;
+  std::string price_peg_currency;
+  std::vector<uint8_t> price_peg_description;
+  uint64_t price_peg_rate;
+
+  std::vector<safex::safex_price_peg> price_pegs;
+  bool result = c.get_safex_price_pegs(price_pegs);
+  CHECK_TEST_CONDITION(result);
+
+  std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Price peg title" %  "Currency" % "Rate" % "Creator" % "Description" % "Price peg ID"<<std::endl;
+  for(auto price_peg: price_pegs)
+    std::cout<< boost::format("%30s %10s %10s %30s %60s %20s") % price_peg.title % price_peg.currency % price_peg.rate % price_peg.creator %
+                std::string(begin(price_peg.description), end(price_peg.description)) % price_peg.price_peg_id<<std::endl;
 
   return true;
 }

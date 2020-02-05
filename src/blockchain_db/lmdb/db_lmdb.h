@@ -77,6 +77,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_safex_account;
   MDB_cursor *m_txc_safex_offer;
   MDB_cursor *m_txc_safex_feedback;
+  MDB_cursor *m_txc_safex_price_peg;
 
 } mdb_txn_cursors;
 
@@ -102,6 +103,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_safex_account	m_cursors->m_txc_safex_account
 #define m_cur_safex_offer	m_cursors->m_txc_safex_offer
 #define m_cur_safex_feedback	m_cursors->m_txc_safex_feedback
+#define m_cur_safex_price_peg	m_cursors->m_txc_safex_price_peg
 
 typedef struct mdb_rflags
 {
@@ -128,6 +130,7 @@ typedef struct mdb_rflags
   bool m_rf_safex_account;
   bool m_rf_safex_offer;
   bool m_rf_safex_feedback;
+  bool m_rf_safex_price_peg;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -330,7 +333,7 @@ public:
   virtual bool get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const;
   virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
   virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
-
+  virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
 
 
     virtual uint64_t add_block( const block& blk
@@ -552,6 +555,17 @@ private:
     void create_safex_purchase(const safex::safex_purchase& purchase);
 
     /**
+     * Create price peg in database
+     *
+     * @param currency currency in which price peg is giving rate
+     * @param blob safex price peg data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+    void add_safex_price_peg(const crypto::hash& price_peg_id, const blobdata &blob);
+
+    /**
     * Create feedback in database
     *
     * @param feedback safex feedback data
@@ -667,7 +681,7 @@ private:
   MDB_dbi m_safex_account;
   MDB_dbi m_safex_offer;
   MDB_dbi m_safex_feedback;
-
+  MDB_dbi m_safex_price_peg;
 
   mutable uint64_t m_cum_size;	// used in batch size estimation
   mutable unsigned int m_cum_count;

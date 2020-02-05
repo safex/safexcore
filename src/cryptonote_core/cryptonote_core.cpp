@@ -341,6 +341,10 @@ namespace cryptonote
     return m_blockchain_storage.get_safex_feedbacks(safex_feedbacks,offer_id);
   }
 
+  bool core::get_safex_price_pegs(std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const
+  {
+    return m_blockchain_storage.get_safex_price_pegs(safex_price_pegs, currency);
+  }
 
     //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
@@ -963,13 +967,13 @@ namespace cryptonote
       std::list<transaction> txs;
       std::list<crypto::hash> missed_txs;
       uint64_t coinbase_amount = get_outs_cash_amount(b.miner_tx);
-      this->get_transactions(b.tx_hashes, txs, missed_txs);      
+      this->get_transactions(b.tx_hashes, txs, missed_txs);
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
       {
         tx_fee_amount += get_tx_fee(tx);
       }
-      
+
       emission_amount += coinbase_amount - tx_fee_amount;
       total_fee_amount += tx_fee_amount;
       return true;
@@ -1534,7 +1538,7 @@ namespace cryptonote
   bool core::get_pool_transaction(const crypto::hash &id, cryptonote::blobdata& tx) const
   {
     return m_mempool.get_transaction(id, tx);
-  }  
+  }
   //-----------------------------------------------------------------------------------------------
   bool core::pool_has_tx(const crypto::hash &id) const
   {
@@ -1813,7 +1817,7 @@ namespace cryptonote
     raise(SIGTERM);
   }
 
-  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval) 
+  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
   {
     return m_blockchain_storage.get_interest_map(begin_interval, end_interval);
   }

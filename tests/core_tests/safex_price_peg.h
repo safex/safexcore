@@ -90,6 +90,10 @@ public:
   static std::vector<uint8_t> expected_bob_account_data;
   static std::vector<uint8_t> expected_daniel_account_data;
 
+  static std::string expected_alice_price_peg_title;
+  static std::string expected_alice_price_peg_currency;
+  static std::vector<uint8_t> expected_alice_price_peg_description;
+  static uint64_t    exptected_alice_price_peg_rate;
 
 };
 
