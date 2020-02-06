@@ -442,10 +442,22 @@ namespace tools
       return true;
     }
 
+    bool wallet::add_safex_price_peg(const safex::safex_price_peg& price_peg){
+
+        m_safex_price_pegs.push_back(price_peg);
+
+        return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_my_safex_offers()
   {
         return m_safex_offers;
   }
+
+    std::vector<safex::safex_price_peg> wallet::get_my_safex_price_pegs()
+    {
+      return m_safex_price_pegs;
+    }
 
     std::vector<crypto::hash> wallet::get_my_safex_feedbacks_to_give()
     {

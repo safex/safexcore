@@ -1275,8 +1275,16 @@ simple_wallet::simple_wallet()
                                 "  safex_offer edit [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <offer_id> <offer_name> <offer_price> <offer_quantity> <active_status(1,0)> <offer_description>"),
                              tr("If no arguments are specified, the wallet shows all the existing safex offers for current account.\n"
                                 "If the \"create\" argument is specified, the wallet creates a new safex offer and create a transaction\n"
-                                "If the \"edit\" argument is specified, given offer will be edited with new arguments\n"
-                                "If the \"close\" argument is specified, offer is closed and no longer active"));
+                                "If the \"edit\" argument is specified, given offer will be edited with new arguments"));
+
+  m_cmd_binder.set_handler("safex_price_peg",
+                           boost::bind(&simple_wallet::safex_price_peg, this, _1),
+                           tr("safex_price_peg\n"
+                              "  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>\n"
+                              "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>"),
+                           tr("If no arguments are specified, the wallet shows all the existing safex price pegs for current account.\n"
+                              "If the \"create\" argument is specified, the wallet creates a new safex price peg and creates a transaction\n"
+                              "If the \"update\" argument is specified, given price peg will be updated with new arguments"));
 
 }
 //----------------------------------------------------------------------------------------------------

@@ -1091,12 +1091,15 @@ namespace tools
     bool update_safex_offer(const safex::create_purchase_data& purchase);
     bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
     bool remove_safex_feedback_token(const crypto::hash& offer_id);
+    bool add_safex_price_peg(const safex::safex_price_peg& price_peg);
+
 
     std::vector<safex::safex_offer> get_safex_offers();
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
     std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
+    std::vector<safex::safex_price_peg> get_my_safex_price_pegs();
 
   private:
     /*!
@@ -1275,6 +1278,8 @@ namespace tools
     std::vector<safex::safex_offer> m_safex_offers;
 
     std::vector<crypto::hash> m_safex_feedback_tokens;
+
+    std::vector<safex::safex_price_peg> m_safex_price_pegs;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet, 1)
