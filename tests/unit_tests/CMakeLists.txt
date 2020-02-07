@@ -77,6 +77,7 @@ set(unit_tests_sources
   safex_account.cpp
   safex_offer.cpp
   simple_purchase.cpp
+  safex_price_peg.cpp
   )
 
 

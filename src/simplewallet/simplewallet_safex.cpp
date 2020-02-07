@@ -89,6 +89,19 @@ namespace cryptonote
         return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
     }
 
+    tx_destination_entry create_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
+    {
+      safex::create_price_peg_data safex_price_peg_output_data{sfx_price_peg};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg,blobdata};
+    }
+
+    tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
+    {
+      safex::update_price_peg_data safex_price_peg_output_data{sfx_price_peg};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg_update,blobdata};
+    }
 
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
@@ -98,22 +111,6 @@ namespace cryptonote
     if (!try_connect_to_daemon())
       return true;
 
-    switch (command_type) {
-      case CommandType::TransferStakeToken:
-      case CommandType::TransferDonation:
-      case CommandType::TransferUnstakeToken:
-      case CommandType::TransferPurchase:
-      case CommandType::TransferCreateAccount:
-      case CommandType::TransferEditAccount:
-      case CommandType::TransferCreateOffer:
-      case CommandType::TransferEditOffer:
-      case CommandType::TransferFeedback:
-        //do nothing
-        break;
-      default:
-        fail_msg_writer() << tr("command not supported");
-        return true;
-    }
 
     LOCK_IDLE_SCOPE();
 
@@ -196,7 +193,8 @@ namespace cryptonote
     bool payment_id_seen = false;
     bool command_supports_payment_id = (command_type != CommandType::TransferCreateAccount) && (command_type != CommandType::TransferEditAccount) &&
                                         (command_type != CommandType::TransferCreateOffer) && (command_type != CommandType::TransferEditOffer) &&
-                                        (command_type != CommandType::TransferFeedback);
+                                        (command_type != CommandType::TransferFeedback) && (command_type != CommandType::TransferCreatePricePeg) &&
+                                        (command_type != CommandType::TransferUpdatePricePeg);
     bool expect_even = (min_args % 2 == 1);
     if (command_supports_payment_id && ((expect_even ? 0 : 1) == local_args.size() % 2))
     {
@@ -443,6 +441,58 @@ namespace cryptonote
         tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
         dsts.push_back(de_feedback);
     }
+    else if(command_type == CommandType::TransferCreatePricePeg || command_type == CommandType::TransferUpdatePricePeg){
+      //use my own current subaddress as destination
+      cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+      std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+      {
+        fail_msg_writer() << tr("failed to parse address");
+        return true;
+      }
+
+      const std::string &sfx_username = local_args[0];
+      if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
+        fail_msg_writer() << tr("unknown safex account username");
+        return true;
+      };
+
+      if (command_type == CommandType::TransferCreatePricePeg) {
+
+        std::string price_peg_title = local_args[1];
+        std::string price_peg_currency = local_args[2];
+        uint64_t rate = stod(local_args[3])*COIN;
+
+        std::ostringstream pricepeg_ostr;
+        std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
+        std::string description = pricepeg_ostr.str();
+
+        safex::safex_price_peg sfx_price_peg{price_peg_title,sfx_username,price_peg_currency,description,rate};
+
+        cryptonote::tx_destination_entry de_price_peg = create_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg);
+
+      } else if (command_type == CommandType::TransferUpdatePricePeg) {
+
+        crypto::hash price_peg_id_hash;
+        epee::string_tools::hex_to_pod(local_args[1], price_peg_id_hash);
+
+        std::string price_peg_title = local_args[2];
+        std::string price_peg_currency = local_args[3];
+        uint64_t rate = stod(local_args[4])*COIN;
+
+        std::ostringstream pricepeg_ostr;
+        std::copy(local_args.begin() + 5, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
+        std::string description = pricepeg_ostr.str();
+        std::vector<uint8_t> description_arg{description.begin(),description.end()};
+
+        safex::safex_price_peg sfx_price_peg{price_peg_title,sfx_username,price_peg_currency,description_arg,price_peg_id_hash,rate};
+
+        cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg_update);
+
+      }
+    }
     else
     {
 
@@ -594,6 +644,14 @@ namespace cryptonote
 
         case CommandType::TransferFeedback:
           command = safex::command_t::create_feedback;
+          break;
+
+        case CommandType::TransferCreatePricePeg:
+          command = safex::command_t::create_price_peg;
+          break;
+
+        case CommandType::TransferUpdatePricePeg:
+          command = safex::command_t::update_price_peg;
           break;
 
         default:
@@ -939,6 +997,15 @@ namespace cryptonote
       }
   }
 
+  void simple_wallet::print_my_safex_price_pegs() {
+    success_msg_writer() << tr("Safex price pegs");
+    std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Price peg title" %  "Currency" % "Rate" % "Creator" % "Description" % "Price peg ID"<<std::endl;
+    for(auto price_peg: m_wallet->get_my_safex_price_pegs())
+      std::cout<< boost::format("%30s %10s %10s %30s %60s %20s") % price_peg.title % price_peg.currency % price_peg.rate % price_peg.creator %
+                  std::string(begin(price_peg.description), end(price_peg.description)) % price_peg.price_peg_id<<std::endl;
+
+  }
+
 
     bool simple_wallet::safex_account(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
   {
@@ -1089,7 +1156,41 @@ namespace cryptonote
         return true;
   }
 
+    bool simple_wallet::safex_price_peg(const std::vector<std::string> &args){
+      //   Usage:
+      //  safex_price_peg
+      //  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>
+      //  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>
+      if (args.empty())
+      {
+        // print all the existing price pegs
+        LOCK_IDLE_SCOPE();
+        print_my_safex_price_pegs();
+        return true;
+      }
 
+      std::vector<std::string> local_args = args;
+      std::string command = local_args[0];
+      local_args.erase(local_args.begin());
+      if (command == "create")
+      {
+        // create a new safex price peg transaction
+        return create_command(CommandType::TransferCreatePricePeg, local_args);
+      }
+      else if (command == "update")
+      {
+        return create_command(CommandType::TransferUpdatePricePeg, local_args);
+      }
+      else
+      {
+        success_msg_writer() << tr("usage:\n"
+                                   "  safex_price_peg\n"
+                                   "  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>\n"
+                                   "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>");
+
+      }
+      return true;
+    }
     //----------------------------------------------------------------------------------------------------
   void simple_wallet::on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index){
     if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
@@ -1181,10 +1282,51 @@ namespace cryptonote
                                                   tr("idx ") << subaddr_index;
         m_wallet->remove_safex_feedback_token(feedback.offer_id);
 
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
+      safex::create_price_peg_data price_peg;
+      const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+      cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+      std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+      std::string title{price_peg.title.begin(),price_peg.title.end()};
+      std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+      message_writer(console_color_blue, false) << "\r" <<
+                                                tr("Height ") << height << ", " <<
+                                                tr("txid ") << txid << ", " <<
+                                                tr("Price peg creation for account: ") << creator << " received, " <<
+                                                tr("Price peg ID: ") << price_peg.price_peg_id <<
+                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg currency: ") << currency <<
+                                                tr("idx ") << subaddr_index;
+
+      safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
+
+      m_wallet->add_safex_price_peg(sfx_price_peg);
+
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
+      safex::update_price_peg_data price_peg;
+      const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+      cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+      std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+      std::string title{price_peg.title.begin(),price_peg.title.end()};
+      std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+      message_writer(console_color_blue, false) << "\r" <<
+                                                tr("Height ") << height << ", " <<
+                                                tr("txid ") << txid << ", " <<
+                                                tr("Price peg update for account: ") << creator << " received, " <<
+                                                tr("Price peg ID: ") << price_peg.price_peg_id <<
+                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg currency: ") << currency <<
+                                                tr("idx ") << subaddr_index;
+
+      safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
+
+      m_wallet->update_safex_price_peg(sfx_price_peg);
+
     }
 
 
-    if (m_auto_refresh_refreshing)
+
+      if (m_auto_refresh_refreshing)
       m_cmd_binder.print_prompt();
     else
       m_refresh_progress_reporter.update(height, true);

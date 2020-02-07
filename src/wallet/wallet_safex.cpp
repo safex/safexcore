@@ -442,10 +442,36 @@ namespace tools
       return true;
     }
 
+    bool wallet::add_safex_price_peg(const safex::safex_price_peg& price_peg){
+
+        m_safex_price_pegs.push_back(price_peg);
+
+        return true;
+    }
+
+    bool wallet::update_safex_price_peg(const safex::safex_price_peg &price_peg) {
+
+      for (uint32_t i = 0; i < m_safex_price_pegs.size(); i++)
+      {
+        if (m_safex_price_pegs[i].price_peg_id == price_peg.price_peg_id)
+        {
+          m_safex_price_pegs[i]=price_peg;
+          return true;
+        }
+      }
+
+      return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_my_safex_offers()
   {
         return m_safex_offers;
   }
+
+    std::vector<safex::safex_price_peg> wallet::get_my_safex_price_pegs()
+    {
+      return m_safex_price_pegs;
+    }
 
     std::vector<crypto::hash> wallet::get_my_safex_feedbacks_to_give()
     {

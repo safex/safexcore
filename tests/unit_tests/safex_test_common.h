@@ -135,6 +135,12 @@ bool construct_create_purchase_transaction(map_hash2tx_t &txmap,  std::vector<cr
 bool construct_create_feedback_transaction(map_hash2tx_t &txmap,  std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from,
                                            uint64_t fee, size_t nmix, const safex::safex_feedback &sfx_feedback);
 
+bool construct_create_price_peg_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                        size_t nmix, const crypto::public_key &pkey, const safex::safex_price_peg& sfx_price_peg, const safex::safex_account_keys &sfx_acc_keys);
+
+bool construct_update_price_peg_transaction(map_hash2tx_t &txmap, std::vector<cryptonote::block> &blocks, cryptonote::transaction &tx, const cryptonote::account_base &from, uint64_t fee,
+                                            size_t nmix, const crypto::public_key &pkey, const safex::safex_price_peg& sfx_price_peg, const safex::safex_account_keys &sfx_acc_keys);
+
 bool construct_block(cryptonote::block &blk, uint64_t height, const crypto::hash &prev_id, const cryptonote::account_base &miner_acc,
         uint64_t timestamp, size_t &block_size, std::list<cryptonote::transaction> tx_list);
 

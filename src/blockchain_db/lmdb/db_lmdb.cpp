@@ -320,6 +320,7 @@ const char* const LMDB_TOKEN_LOCK_EXPIRY = "token_lock_expiry";
 const char* const LMDB_SAFEX_ACCOUNT = "safex_account";
 const char* const LMDB_SAFEX_OFFER = "safex_offer";
 const char* const LMDB_SAFEX_FEEDBACK = "safex_feedback";
+const char* const LMDB_SAFEX_PRICE_PEG = "safex_price_peg";
 
 const char* const LMDB_PROPERTIES = "properties";
 
@@ -1592,7 +1593,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::unique_ptr<safex::create_offer_result> result(dynamic_cast<safex::create_offer_result*>(cmd->execute(*this, txin)));
       if (result->status != safex::execution_status::ok)
       {
-          LOG_ERROR("Execution of add saffex offer command failed, status:" << static_cast<int>(result->status));
+          LOG_ERROR("Execution of add safex offer command failed, status:" << static_cast<int>(result->status));
           throw1(DB_ERROR("Error executing add safex offer command"));
       }
       blobdata blob{};
@@ -1607,7 +1608,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::unique_ptr<safex::edit_offer_result> result(dynamic_cast<safex::edit_offer_result*>(cmd->execute(*this, txin)));
       if (result->status != safex::execution_status::ok)
       {
-          LOG_ERROR("Execution of edit saffex offer command failed, status:" << static_cast<int>(result->status));
+          LOG_ERROR("Execution of edit safex offer command failed, status:" << static_cast<int>(result->status));
           throw1(DB_ERROR("Error executing edit safex offer command"));
       }
       blobdata blob{};
@@ -1644,6 +1645,34 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
       std::string comment{result->comment.begin(),result->comment.end()};
       safex::safex_feedback sfx_feedback{result->stars_given, comment, result->offer_id};
       create_safex_feedback(sfx_feedback);
+
+  }
+  else if (txin.command_type == safex::command_t::create_price_peg)
+  {
+
+    std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+    std::unique_ptr<safex::create_price_peg_result> result(dynamic_cast<safex::create_price_peg_result*>(cmd->execute(*this, txin)));
+    if (result->status != safex::execution_status::ok)
+    {
+      LOG_ERROR("Execution of add safex price peg command failed, status:" << static_cast<int>(result->status));
+      throw1(DB_ERROR("Error executing add safex peg command"));
+    }
+    blobdata blob{};
+    t_serializable_object_to_blob(*result,blob);
+    add_safex_price_peg(result->price_peg_id, blob);
+
+  }
+  else if (txin.command_type == safex::command_t::update_price_peg)
+  {
+
+    std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
+    std::unique_ptr<safex::update_price_peg_result> result(dynamic_cast<safex::update_price_peg_result*>(cmd->execute(*this, txin)));
+    if (result->status != safex::execution_status::ok)
+    {
+      LOG_ERROR("Execution of update safex price peg command failed, status:" << static_cast<int>(result->status));
+      throw1(DB_ERROR("Error executing update safex peg command"));
+    }
+    update_safex_price_peg(result->price_peg_id, *result);
 
   }
   else {
@@ -1753,7 +1782,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   // set up lmdb environment
   if ((result = mdb_env_create(&m_env)))
     throw0(DB_ERROR(lmdb_error("Failed to create lmdb environment: ", result).c_str()));
-  if ((result = mdb_env_set_maxdbs(m_env, 24)))
+  if ((result = mdb_env_set_maxdbs(m_env, 25)))
     throw0(DB_ERROR(lmdb_error("Failed to set max number of dbs: ", result).c_str()));
 
   int threads = tools::get_max_concurrency();
@@ -1840,8 +1869,8 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_TOKEN_LOCK_EXPIRY, MDB_INTEGERKEY | MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_token_lock_expiry, "Failed to open db handle for m_token_lock_expiry");
   lmdb_db_open(txn, LMDB_SAFEX_ACCOUNT, MDB_CREATE, m_safex_account, "Failed to open db handle for m_safex_account");
   lmdb_db_open(txn, LMDB_SAFEX_OFFER, MDB_CREATE, m_safex_offer, "Failed to open db handle for m_safex_offer");
-  lmdb_db_open(txn, LMDB_SAFEX_FEEDBACK, MDB_CREATE, m_safex_feedback, "Failed to open db handle for m_safex_offer");
-
+  lmdb_db_open(txn, LMDB_SAFEX_FEEDBACK, MDB_CREATE, m_safex_feedback, "Failed to open db handle for m_safex_feedback");
+  lmdb_db_open(txn, LMDB_SAFEX_PRICE_PEG, MDB_CREATE, m_safex_price_peg, "Failed to open db handle for m_safex_price_peg");
 
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
@@ -1861,6 +1890,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   mdb_set_compare(txn, m_safex_account, compare_hash32);
   mdb_set_compare(txn, m_safex_offer, compare_hash32);
   mdb_set_compare(txn, m_safex_feedback, compare_hash32);
+  mdb_set_compare(txn, m_safex_price_peg, compare_hash32);
 
     mdb_set_compare(txn, m_properties, compare_string);
 
@@ -2030,6 +2060,8 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_offer: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_safex_feedback, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_feedback: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_safex_price_peg, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_safex_price_peg: ", result).c_str()));
 
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
@@ -5261,6 +5293,65 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
     }
 
+    void BlockchainLMDB::add_safex_price_peg(const crypto::hash& price_peg_id, const blobdata &blob){
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+      MDB_cursor *cur_safex_price_peg;
+      CURSOR(safex_price_peg)
+      cur_safex_price_peg = m_cur_safex_price_peg;
+
+      int result;
+      MDB_val_set(val_price_peg_id, price_peg_id);
+      result = mdb_cursor_get(cur_safex_price_peg, (MDB_val *)&val_price_peg_id, NULL, MDB_SET);
+      if (result == 0) {
+        throw1(SAFEX_ACCOUNT_EXISTS(std::string("Attempting to add safex price peg that's already in the db (price peg ID ").append(price_peg_id.data).append(")").c_str()));
+      } else if (result != MDB_NOTFOUND) {
+        throw1(DB_ERROR(lmdb_error(std::string("Error checking if price peg exists for price peg ID ").append(price_peg_id.data) + ": ", result).c_str()));
+      }
+
+      MDB_val_copy<blobdata> price_peg_info(blob);
+      result = mdb_cursor_put(cur_safex_price_peg, (MDB_val *)&val_price_peg_id, &price_peg_info, MDB_NOOVERWRITE);
+      if (result)
+        throw0(DB_ERROR(lmdb_error("Failed to add price peg data to db transaction: ", result).c_str()));
+    }
+
+    void BlockchainLMDB::update_safex_price_peg(const crypto::hash& price_peg_id, const safex::update_price_peg_result& sfx_price_peg_update_result){
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+      MDB_cursor *cur_safex_price_peg;
+      CURSOR(safex_price_peg)
+      cur_safex_price_peg = m_cur_safex_price_peg;
+
+      int result;
+      MDB_val_set(val_price_peg_id, price_peg_id);
+      MDB_val v;
+      result = mdb_cursor_get(cur_safex_price_peg, (MDB_val *)&val_price_peg_id, &v, MDB_SET);
+      if (result == MDB_SUCCESS) {
+        MDB_val_set(k2, price_peg_id);
+        safex::create_price_peg_result sfx_price_peg;
+        const cryptonote::blobdata pricepegblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+        cryptonote::parse_and_validate_from_blob(pricepegblob, sfx_price_peg);
+
+        sfx_price_peg.rate = sfx_price_peg_update_result.rate;
+        sfx_price_peg.description = sfx_price_peg_update_result.description;
+        sfx_price_peg.title = sfx_price_peg_update_result.title;
+
+        MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_price_peg));
+        auto result2 = mdb_cursor_put(cur_safex_price_peg, &k2, &vupdate, (unsigned int) MDB_CURRENT);
+        if (result2 != MDB_SUCCESS)
+          throw0(DB_ERROR(lmdb_error("Failed to update price peg data for price peg id: "+boost::lexical_cast<std::string>(price_peg_id), result2).c_str()));      }
+      else if (result == MDB_NOTFOUND)
+      {
+        throw0(DB_ERROR(lmdb_error("DB error attempting to update price peg, does not exists: ", result).c_str()));
+      }
+      else
+      {
+        throw0(DB_ERROR(lmdb_error("DB error attempting to update price peg: ", result).c_str()));
+      }
+    }
+
     bool BlockchainLMDB::get_account_key(const safex::account_username &username, crypto::public_key &pkey) const {
 
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -5832,6 +5923,102 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       return true;    }
 
 
+    bool BlockchainLMDB::get_safex_price_pegs(std::vector<safex::safex_price_peg> &safex_price_pegs,
+                                              const std::string &currency) const {
+
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+
+      MDB_cursor *cur_safex_price_peg;
+      RCURSOR(safex_price_peg)
+      cur_safex_price_peg = m_cur_safex_price_peg;
+
+      crypto::hash price_peg_id{};
+      uint8_t temp[sizeof(safex::create_price_peg_result)];
+
+      MDB_val_set(k, price_peg_id);
+      MDB_val_set(v, temp);
+
+      bool currency_search = (currency != "");
+
+      auto result = mdb_cursor_get(cur_safex_price_peg, &k, &v, MDB_FIRST);
+
+      while (result == MDB_SUCCESS)
+      {
+        safex::create_price_peg_result sfx_price_peg_result;
+        safex::safex_price_peg sfx_price_peg;
+        const cryptonote::blobdata price_peg_blob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+
+        if(!cryptonote::parse_and_validate_from_blob(price_peg_blob, sfx_price_peg_result)){
+          result = mdb_cursor_get(cur_safex_price_peg, &k, &v, MDB_NEXT);
+          continue;
+        }
+
+        if(currency_search){
+          std::string db_currency{sfx_price_peg_result.currency.begin(),sfx_price_peg_result.currency.end()};
+          if(currency == db_currency)
+            safex_price_pegs.emplace_back(sfx_price_peg_result.title,sfx_price_peg_result.creator,sfx_price_peg_result.currency,sfx_price_peg_result.description,sfx_price_peg_result.price_peg_id,sfx_price_peg_result.rate);
+        }
+        else
+          safex_price_pegs.emplace_back(sfx_price_peg_result.title,sfx_price_peg_result.creator,sfx_price_peg_result.currency,sfx_price_peg_result.description,sfx_price_peg_result.price_peg_id,sfx_price_peg_result.rate);
+
+        result = mdb_cursor_get(cur_safex_price_peg, &k, &v, MDB_NEXT);
+      }
+
+      TXN_POSTFIX_RDONLY();
+
+      return true;
+    }
+
+
+    bool BlockchainLMDB::get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const {
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+
+      MDB_cursor *cur_safex_price_peg;
+      RCURSOR(safex_price_peg)
+      cur_safex_price_peg = m_cur_safex_price_peg;
+
+      uint8_t temp[sizeof(safex::create_price_peg_result)];
+
+      MDB_val_set(k, price_peg_id);
+      MDB_val_set(v, temp);
+
+      auto result = mdb_cursor_get(cur_safex_price_peg, &k, &v, MDB_SET);
+
+      if (result == MDB_SUCCESS)
+      {
+        safex::create_price_peg_result sfx_price_peg_result;
+        safex::safex_price_peg sfx_price_peg;
+        const cryptonote::blobdata price_peg_blob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+
+        if(!cryptonote::parse_and_validate_from_blob(price_peg_blob, sfx_price_peg_result)){
+          throw0(DB_ERROR(lmdb_error(std::string("Error parsing price peg from DB with id: ").append(price_peg_id.data), result).c_str()));
+        }
+
+        safex_price_peg = safex::safex_price_peg{sfx_price_peg_result.title,sfx_price_peg_result.creator,sfx_price_peg_result.currency,
+                                                 sfx_price_peg_result.description,sfx_price_peg_result.price_peg_id,sfx_price_peg_result.rate};
+
+
+
+      }
+      else if (result == MDB_NOTFOUND)
+      {
+        return false;
+      }
+      else if (result)
+      {
+        throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch price peg with id: ").append(price_peg_id.data), result).c_str()));
+      }
+
+      TXN_POSTFIX_RDONLY();
+
+      return true;
+    }
 
 
 }  // namespace cryptonote

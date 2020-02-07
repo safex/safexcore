@@ -75,7 +75,9 @@ namespace cryptonote
     TransferEditAccount,
     TransferCreateOffer,
     TransferEditOffer,
-    TransferFeedback
+    TransferFeedback,
+    TransferCreatePricePeg,
+    TransferUpdatePricePeg
   };
 
   /*!
@@ -254,6 +256,7 @@ namespace cryptonote
     void print_safex_accounts();
     void print_my_safex_offers();
     void print_not_given_feedbacks();
+    void print_my_safex_price_pegs();
 
     bool list_offers(const std::vector<std::string>& args);
     bool list_ratings(const std::vector<std::string>& args);
@@ -271,6 +274,8 @@ namespace cryptonote
     bool safex_purchase(const std::vector<std::string>& args);
 
     bool safex_feedback(const std::vector<std::string>& args);
+
+    bool safex_price_peg(const std::vector<std::string> &args);
     /****************************************************************************************************************/
 
     /*!

@@ -181,9 +181,6 @@ int main(int argc, char* argv[])
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
 
-#endif
-
-#if 1
     /* safex advanced functionality related tests */
     GENERATE_AND_PLAY(gen_token_lock_001);
     GENERATE_AND_PLAY(gen_network_fee_001);
@@ -198,11 +195,13 @@ int main(int argc, char* argv[])
 
     GENERATE_AND_PLAY(gen_safex_purchase_001);
 
+    GENERATE_AND_PLAY(gen_safex_price_peg_001);
+
     //todo atana test unlock and interest invalid transacitons
 
 #else
 
-    GENERATE_AND_PLAY(gen_safex_purchase_001);
+    GENERATE_AND_PLAY(gen_safex_price_peg_001);
 
 #endif
 

@@ -341,6 +341,17 @@ namespace cryptonote
     return m_blockchain_storage.get_safex_feedbacks(safex_feedbacks,offer_id);
   }
 
+  bool core::get_safex_price_pegs(std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const
+  {
+    return m_blockchain_storage.get_safex_price_pegs(safex_price_pegs, currency);
+  }
+
+  bool core::get_safex_price_peg( const crypto::hash& price_peg_id, safex::safex_price_peg& sfx_price_peg) const
+  {
+    return m_blockchain_storage.get_safex_price_peg(price_peg_id,sfx_price_peg);
+
+  }
+
 
     //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
@@ -963,13 +974,13 @@ namespace cryptonote
       std::list<transaction> txs;
       std::list<crypto::hash> missed_txs;
       uint64_t coinbase_amount = get_outs_cash_amount(b.miner_tx);
-      this->get_transactions(b.tx_hashes, txs, missed_txs);      
+      this->get_transactions(b.tx_hashes, txs, missed_txs);
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
       {
         tx_fee_amount += get_tx_fee(tx);
       }
-      
+
       emission_amount += coinbase_amount - tx_fee_amount;
       total_fee_amount += tx_fee_amount;
       return true;
@@ -1187,7 +1198,27 @@ namespace cryptonote
           get_object_hash(offer, cmd_hash);
           if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
               return false;
-      }
+      } else if (txin.command_type == safex::command_t::create_price_peg) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
+
+          safex::create_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
+          crypto::hash cmd_hash{};
+          get_object_hash(price_peg, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+        } else if (txin.command_type == safex::command_t::update_price_peg) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+          safex::update_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
+          crypto::hash cmd_hash{};
+          get_object_hash(price_peg, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+        }
         else {
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           // invalid key_image
@@ -1524,7 +1555,7 @@ namespace cryptonote
   bool core::get_pool_transaction(const crypto::hash &id, cryptonote::blobdata& tx) const
   {
     return m_mempool.get_transaction(id, tx);
-  }  
+  }
   //-----------------------------------------------------------------------------------------------
   bool core::pool_has_tx(const crypto::hash &id) const
   {
@@ -1803,7 +1834,7 @@ namespace cryptonote
     raise(SIGTERM);
   }
 
-  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval) 
+  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
   {
     return m_blockchain_storage.get_interest_map(begin_interval, end_interval);
   }

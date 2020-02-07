@@ -41,31 +41,61 @@
 #include "ring_signature_1.h"
 #include "tx_validation.h"
 #include "v2_tests.h"
-#include "chain_migration.h"
-#include "token_transactions.h"
-#include "token_stake.h"
-#include "network_fee.h"
-#include "safex_account.h"
-#include "safex_offer.h"
-#include "safex_purchase.h"
-#include "safex_price_peg.h"
+
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-class gen_simple_chain_001: public test_chain_unit_base 
+class gen_safex_price_peg_001: public test_chain_unit_base
 {
-public: 
-  gen_simple_chain_001();
+public:
+    gen_safex_price_peg_001();
+
+  const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
+                                                "2d825e690c4cb904556285b74a6ce565f16ba9dhard2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
+                                                "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
+
   bool generate(std::vector<test_event_entry> &events);
-  bool verify_callback_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool verify_callback_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool verify_safex_price_peg(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+
+  safex::safex_account_key_handler m_safex_account1_keys;
+  safex::safex_account_key_handler m_safex_account2_keys;
+  safex::safex_account_key_handler m_safex_account3_keys;
+  safex::safex_account_key_handler m_safex_account4_keys;
+
+  safex::safex_account safex_account_alice;
+  safex::safex_account safex_account_bob;
+  safex::safex_account safex_account_daniel;
+  safex::safex_account safex_account_edward;
+
+  safex::safex_price_peg safex_price_peg_alice;
+
+  cryptonote::account_base alice;
+  cryptonote::account_base bob;
+
+  static const std::string data2_alternative;
+  static const std::string data2_alternative_2;
+  static const std::string data3_alternative;
+
+
+  static const size_t expected_blockchain_total_transactions = 443;
+  static const size_t expected_blockchain_height = 429;
+
+  static bool expected_data_fields_intialized;
+  static crypto::public_key expected_alice_account_key;
+  static crypto::public_key expected_bob_account_key;
+  static crypto::public_key expected_daniel_account_key;
+
+
+  static std::vector<uint8_t> expected_alice_account_data;
+  static std::vector<uint8_t> expected_bob_account_data;
+  static std::vector<uint8_t> expected_daniel_account_data;
+
+  static crypto::hash expected_alice_price_peg_id;
+  static std::string expected_alice_price_peg_title;
+  static std::string expected_alice_price_peg_currency;
+  static std::vector<uint8_t> expected_alice_price_peg_description;
+  static std::vector<uint8_t> expected_alice_price_peg_new_description;
+  static uint64_t    exptected_alice_price_peg_rate;
+
 };
 
-class one_block: public test_chain_unit_base
-{
-  cryptonote::account_base alice;
-public:
-  one_block();
-  bool generate(std::vector<test_event_entry> &events);
-  bool verify_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
-};
