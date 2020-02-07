@@ -334,6 +334,7 @@ public:
   virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
   virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
+  virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const;
 
 
     virtual uint64_t add_block( const block& blk
@@ -557,7 +558,7 @@ private:
     /**
      * Create price peg in database
      *
-     * @param currency currency in which price peg is giving rate
+     * @param price_peg_id Unique ID of price peg
      * @param blob safex price peg data
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
@@ -565,6 +566,16 @@ private:
      */
     void add_safex_price_peg(const crypto::hash& price_peg_id, const blobdata &blob);
 
+    /**
+     * Update price peg in database
+     *
+     * @param price_peg_id ID of price peg to be updated
+     * @param sfx_price_peg_update_result safex price peg data
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+     *
+     */
+    void update_safex_price_peg(const crypto::hash& price_peg_id, const safex::update_price_peg_result& sfx_price_peg_update_result);
     /**
     * Create feedback in database
     *

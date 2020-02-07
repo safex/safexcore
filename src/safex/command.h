@@ -258,6 +258,36 @@ struct create_price_peg_result : public execution_result
 
 };
 
+    struct update_price_peg_result : public execution_result
+    {
+
+        update_price_peg_result(){}
+
+        update_price_peg_result(crypto::hash _price_peg_id, std::vector<uint8_t> _title, std::vector<uint8_t> _creator, std::vector<uint8_t> _description, std::vector<uint8_t> _currency,uint64_t _rate)
+                :price_peg_id{_price_peg_id},title{_title},creator{_creator}, description{_description}, currency{_currency},rate{_rate} {
+          output_ids.clear();
+        }
+
+        std::vector<uint8_t> title; //title of the price peg
+        crypto::hash price_peg_id; //unique id of the price peg
+        std::vector<uint8_t> creator; // username of the price peg
+        std::vector<uint8_t> description; //description of price peg
+        std::vector<uint8_t> currency;
+        uint64_t rate;
+        std::vector<uint64_t> output_ids{};
+
+        BEGIN_SERIALIZE_OBJECT()
+          FIELD(title)
+          FIELD(price_peg_id)
+          FIELD(creator)
+          FIELD(description)
+          FIELD(currency)
+          FIELD(rate)
+          FIELD(output_ids)
+        END_SERIALIZE()
+
+    };
+
   struct command_data
   {
 
@@ -453,6 +483,35 @@ struct create_price_peg_result : public execution_result
 
         create_price_peg_data(const  std::vector<uint8_t>& _title, const crypto::hash& _price_peg_id, const std::vector<uint8_t>& _creator, const std::vector<uint8_t>& _description, const std::vector<uint8_t>& _currency, const uint64_t& _rate):
                           title{_title},price_peg_id{_price_peg_id}, creator{_creator},description{_description},currency{_currency},rate{_rate}
+        {
+        }
+
+        BEGIN_SERIALIZE_OBJECT()
+          FIELD(title)
+          FIELD(price_peg_id)
+          FIELD(creator)
+          FIELD(description)
+          FIELD(currency)
+          FIELD(rate)
+        END_SERIALIZE()
+    };
+
+    struct update_price_peg_data : public command_data
+    {
+        std::vector<uint8_t> title; //title of the price peg
+        crypto::hash price_peg_id; //unique id of the price peg
+        std::vector<uint8_t> creator; // username of the price peg
+        std::vector<uint8_t> description; //description of price peg
+        std::vector<uint8_t> currency;
+        uint64_t rate;
+
+        update_price_peg_data() {}
+        update_price_peg_data(const safex::safex_price_peg& price_peg): title{price_peg.title.begin(),price_peg.title.end()}, description{price_peg.description},price_peg_id{price_peg.price_peg_id},creator{price_peg.creator.begin(),price_peg.creator.end()},currency(price_peg.currency.begin(),price_peg.currency.end()),rate{price_peg.rate}
+        {
+        }
+
+        update_price_peg_data(const  std::vector<uint8_t>& _title, const crypto::hash& _price_peg_id, const std::vector<uint8_t>& _creator, const std::vector<uint8_t>& _description, const std::vector<uint8_t>& _currency, const uint64_t& _rate):
+                title{_title},price_peg_id{_price_peg_id}, creator{_creator},description{_description},currency{_currency},rate{_rate}
         {
         }
 
@@ -994,6 +1053,52 @@ private:
     uint64_t rate;
 };
 
+class update_price_peg : public command
+{
+public:
+    friend class safex_command_serializer;
+
+    /**
+     * @param _version Safex command protocol version
+     * @param _price_peg_data //price peg data
+    * */
+    update_price_peg(const uint32_t _version, const safex::update_price_peg_data &price_peg) :
+            command(_version, command_t::update_price_peg), title(price_peg.title), description{price_peg.description},
+            price_peg_id{price_peg.price_peg_id},creator{price_peg.creator},currency{price_peg.currency},rate{price_peg.rate}{
+    }
+
+    update_price_peg() : command(0, command_t::update_price_peg), price_peg_id{}, description{} {}
+
+    crypto::hash get_price_peg_id() const { return price_peg_id; }
+    std::vector<uint8_t> get_creator() const { return creator; }
+    std::vector<uint8_t> get_title() const { return title; }
+    std::vector<uint8_t> get_description() const { return description; }
+    std::vector<uint8_t> get_currency() const { return currency; }
+    uint64_t get_rate() const { return rate; }
+
+    virtual update_price_peg_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+    virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELDS(*static_cast<command *>(this))
+      CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::update_price_peg);
+      FIELD(title)
+      FIELD(price_peg_id)
+      FIELD(creator)
+      FIELD(description)
+      FIELD(currency)
+      FIELD(rate)
+    END_SERIALIZE()
+
+private:
+    std::vector<uint8_t> title; //title of the price peg
+    crypto::hash price_peg_id; //unique id of the price peg
+    std::vector<uint8_t> creator; // username of the price peg
+    std::vector<uint8_t> description; //description of price peg
+    std::vector<uint8_t> currency;
+    uint64_t rate;
+};
+
   bool execute_safex_command(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin);
   /* Validation is like execution, but without effects on the database */
   bool validate_safex_command(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin);
@@ -1058,6 +1163,9 @@ private:
              break;
           case safex::command_t::create_price_peg:
             return std::unique_ptr<command>(parse_safex_object<create_price_peg>(buffer));
+            break;
+          case safex::command_t::update_price_peg:
+            return std::unique_ptr<command>(parse_safex_object<update_price_peg>(buffer));
             break;
           default:
             SAFEX_COMMAND_ASSERT_MES_AND_THROW("Unknown safex command type", safex::command_t::invalid_command);

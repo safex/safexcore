@@ -1823,6 +1823,15 @@ namespace cryptonote
       virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const = 0;
 
       /**
+       * @brief fetch safex price peg from the blockchain
+       *
+       * The subclass should return safex price peg data
+       * @param price_peg_id price peg id
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const = 0;
+      /**
       * @brief fetch safex feedbacks for given offer id from the blockchain
       *
       * The subclass should return safex feedbacks data

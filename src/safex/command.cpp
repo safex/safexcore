@@ -407,6 +407,28 @@ namespace safex
       return result;
     };
 
+    update_price_peg_result* update_price_peg::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
+    {
+
+      execution_status result = validate(blokchainDB, txin);
+      SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate update price peg command", this->get_command_type());
+
+      update_price_peg_result *cr = new update_price_peg_result{this->price_peg_id,this->title,this->creator,this->description,this->currency,this->rate};
+      cr->valid = true;
+      cr->status = execution_status::ok;
+
+      return cr;
+    };
+
+    execution_status update_price_peg::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
+    {
+
+      execution_status result = execution_status::ok;
+      std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+      return result;
+    };
+
   bool validate_safex_command(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
     //parse command and execute it

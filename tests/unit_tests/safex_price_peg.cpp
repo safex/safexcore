@@ -98,7 +98,13 @@ namespace
         const std::string data1_new_str = "Another data tesst for edit";
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
-       m_safex_price_peg = safex::safex_price_peg{"USD price peg",m_safex_account1.username, "USD", "xcalibra USD price peg", 30};
+       m_safex_price_pegs.emplace_back("USD price peg",m_safex_account1.username, "USD", "xcalibra USD price peg", 30);
+       m_safex_price_pegs.emplace_back("RSD price peg",m_safex_account2.username, "RSD", "xcalibra RSD price peg", 100);
+
+       m_edited_safex_price_peg = m_safex_price_pegs[1];
+
+       m_edited_safex_price_peg.rate = 40;
+       m_edited_safex_price_peg.description = {'s','m','o','r','2'};
 
        for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
@@ -153,7 +159,21 @@ namespace
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_peg, m_safex_account1_keys.get_keys());
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_pegs[0], m_safex_account1_keys.get_keys());
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 8)
+          {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_pegs[1], m_safex_account1_keys.get_keys());
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
+          else if (i == 15)
+          {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_update_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_edited_safex_price_peg, m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -193,7 +213,8 @@ namespace
       safex::safex_account m_safex_account1;
       safex::safex_account m_safex_account2;
 
-      safex::safex_price_peg m_safex_price_peg;
+      std::vector<safex::safex_price_peg> m_safex_price_pegs;
+      safex::safex_price_peg m_edited_safex_price_peg;
 
       std::vector<uint8_t> data1_new;
 
@@ -241,78 +262,54 @@ namespace
         this->get_filenames();
         this->init_hard_fork();
 
-//        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
-//            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
-//                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-//        }
-//        //Checking created offers
-//        for (auto safex_offer: this->m_safex_offer) {
-//
-//            safex::safex_offer saved_offer;
-//            result = this->m_db->get_offer(safex_offer.offer_id,saved_offer);
-//            ASSERT_TRUE(result);
-//            ASSERT_TRUE(std::equal(safex_offer.description.begin(), safex_offer.description.end(),
-//                                   saved_offer.description.begin()));
-//            ASSERT_EQ(safex_offer.title,saved_offer.title);
-//
-//            std::string username;
-//            result = this->m_db->get_offer_seller(safex_offer.offer_id, username);
-//            ASSERT_TRUE(result);
-//            ASSERT_EQ(username.compare(safex_offer.seller), 0);
-//
-//            uint64_t price;
-//            result = this->m_db->get_offer_price(safex_offer.offer_id, price);
-//            ASSERT_TRUE(result);
-//            ASSERT_EQ(price, safex_offer.price);
-//
-//            uint64_t quantity;
-//            result = this->m_db->get_offer_quantity(safex_offer.offer_id, quantity);
-//            ASSERT_TRUE(result);
-//            ASSERT_EQ(safex_offer.quantity, quantity);
-//
-//            bool active;
-//            result = this->m_db->get_offer_active_status(safex_offer.offer_id, active);
-//            ASSERT_TRUE(result);
-//            ASSERT_EQ(safex_offer.active, active);
-//
-//        }
-//
-//        for (int i = NUMBER_OF_BLOCKS1; i < NUMBER_OF_BLOCKS2; i++) {
-//            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
-//                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-//        }
-//        //Checking edited offer
-//        safex::safex_offer saved_offer;
-//        result = this->m_db->get_offer(this->m_edited_safex_offer.offer_id,saved_offer);
-//        ASSERT_TRUE(result);
-//        ASSERT_TRUE(std::equal(this->m_edited_safex_offer.description.begin(), this->m_edited_safex_offer.description.end(),
-//                               saved_offer.description.begin()));
-//        ASSERT_EQ(this->m_edited_safex_offer.title,saved_offer.title);
-//
-//        std::string username;
-//        result = this->m_db->get_offer_seller(this->m_edited_safex_offer.offer_id, username);
-//        ASSERT_TRUE(result);
-//        ASSERT_EQ(username.compare(this->m_edited_safex_offer.seller), 0);
-//
-//        uint64_t price;
-//        result = this->m_db->get_offer_price(this->m_edited_safex_offer.offer_id, price);
-//        ASSERT_TRUE(result);
-//        ASSERT_EQ(price, this->m_edited_safex_offer.price);
-//
-//        uint64_t quantity;
-//        result = this->m_db->get_offer_quantity(this->m_edited_safex_offer.offer_id, quantity);
-//        ASSERT_TRUE(result);
-//        ASSERT_EQ(this->m_edited_safex_offer.quantity, quantity);
-//
-//        bool active;
-//        result = this->m_db->get_offer_active_status(this->m_edited_safex_offer.offer_id, active);
-//        ASSERT_TRUE(result);
-//        ASSERT_EQ(this->m_edited_safex_offer.active, active);
-//
-//        for (int i = NUMBER_OF_BLOCKS2; i < NUMBER_OF_BLOCKS3; i++) {
-//            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
-//                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-//        }
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+        //Checking created price pegs
+        for (auto safex_price_peg: this->m_safex_price_pegs) {
+
+            std::vector<safex::safex_price_peg> saved_price_pegs;
+            result = this->m_db->get_safex_price_pegs(saved_price_pegs,safex_price_peg.currency);
+            ASSERT_TRUE(result);
+
+            safex::safex_price_peg saved_price_peg = saved_price_pegs[0];
+
+            ASSERT_TRUE(std::equal(safex_price_peg.description.begin(), safex_price_peg.description.end(),
+                                   saved_price_peg.description.begin()));
+            ASSERT_EQ(safex_price_peg.title,saved_price_peg.title);
+            ASSERT_EQ(safex_price_peg.currency,saved_price_peg.currency);
+            ASSERT_EQ(safex_price_peg.creator,saved_price_peg.creator);
+            ASSERT_EQ(safex_price_peg.rate,saved_price_peg.rate);
+            ASSERT_EQ(safex_price_peg.price_peg_id,saved_price_peg.price_peg_id);
+
+        }
+
+        for (int i = NUMBER_OF_BLOCKS1; i < NUMBER_OF_BLOCKS2; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        //Checking edited price peg
+
+        safex::safex_price_peg saved_price_peg;
+        result = this->m_db->get_safex_price_peg(this->m_edited_safex_price_peg.price_peg_id,saved_price_peg);
+        ASSERT_TRUE(result);
+
+        ASSERT_TRUE(std::equal(this->m_edited_safex_price_peg.description.begin(), this->m_edited_safex_price_peg.description.end(),
+                               saved_price_peg.description.begin()));
+        ASSERT_EQ(this->m_edited_safex_price_peg.title,saved_price_peg.title);
+        ASSERT_EQ(this->m_edited_safex_price_peg.currency,saved_price_peg.currency);
+        ASSERT_EQ(this->m_edited_safex_price_peg.creator,saved_price_peg.creator);
+        ASSERT_EQ(this->m_edited_safex_price_peg.rate,saved_price_peg.rate);
+        ASSERT_EQ(this->m_edited_safex_price_peg.price_peg_id,saved_price_peg.price_peg_id);
+
+
+
+        for (int i = NUMBER_OF_BLOCKS2; i < NUMBER_OF_BLOCKS3; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
 
 
     ASSERT_NO_THROW(this->m_db->close());

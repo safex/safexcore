@@ -71,6 +71,7 @@ namespace safex
       edit_offer = 0x11,
       create_feedback = 0x12,
       create_price_peg = 0x13,
+      update_price_peg = 0x14,
       invalid_command
   };
 
