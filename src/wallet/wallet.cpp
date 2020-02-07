@@ -888,7 +888,8 @@ void wallet::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation
       (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_account_update) ||
       (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer) ||
       (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_offer_update) ||
-      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_price_peg))
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_price_peg) ||
+      (cryptonote::get_tx_out_type(o.target) == tx_out_type::out_safex_price_peg_update))
   {
     boost::optional<cryptonote::subaddress_receive_info> result = AUTO_VAL_INIT(result);
     for (auto &sfx_acc_keys: m_safex_accounts_keys) {
@@ -1065,7 +1066,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)){
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
+                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg_update)){
               outs.push_back(i);
               num_vouts_received++;
               continue;
@@ -1101,7 +1103,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
-                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)){
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg_update)){
             outs.push_back(i);
             num_vouts_received++;
             continue;
@@ -1130,7 +1133,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
-                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)){
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
+                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg_update)){
               outs.push_back(i);
               num_vouts_received++;
               continue;
@@ -1172,7 +1176,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                                                        || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_purchase
                                                        || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_feedback_token
                                                        || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_feedback
-                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_price_peg)))
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_price_peg
+                                                       || cryptonote::get_tx_out_type(tx.vout[o].target) == tx_out_type::out_safex_price_peg_update)))
         {
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
           uint64_t token_amount = tx.vout[o].token_amount ? tx.vout[o].token_amount : tx_scan_info[o].token_amount;
@@ -1219,7 +1224,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                       (output_type == tx_out_type::out_safex_purchase)||
                       (output_type == tx_out_type::out_safex_feedback_token)||
                       (output_type == tx_out_type::out_safex_feedback) ||
-                      (output_type == tx_out_type::out_safex_price_peg)) {
+                      (output_type == tx_out_type::out_safex_price_peg) ||
+                      (output_type == tx_out_type::out_safex_price_peg_update)) {
                 const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                 m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
               }
@@ -1339,7 +1345,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                       (td.m_output_type == tx_out_type::out_safex_purchase) ||
                       (td.m_output_type == tx_out_type::out_safex_feedback_token) ||
                       (td.m_output_type == tx_out_type::out_safex_feedback) ||
-                      (td.m_output_type == tx_out_type::out_safex_price_peg)) {
+                      (td.m_output_type == tx_out_type::out_safex_price_peg) ||
+                      (td.m_output_type == tx_out_type::out_safex_price_peg_update)) {
                 const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                 m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
               }
@@ -4419,6 +4426,15 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
           const std::string current_username = std::string(begin(offer_output_data.seller), end(offer_output_data.seller));
           if (current_username == acc_username) idx = (int)n;
       }
+      else if (out_type == tx_out_type::out_safex_price_peg && td.get_out_type() == tx_out_type::out_safex_price_peg)
+      {
+        const txout_to_script &current = boost::get<const cryptonote::txout_to_script&>(td.m_tx.vout[td.m_internal_output_index].target);
+        const cryptonote::blobdata blobdata1(begin(current.data), end(current.data));
+        safex::create_price_peg_data price_peg_output_data;
+        parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
+        const std::string current_username = std::string(begin(price_peg_output_data.creator), end(price_peg_output_data.creator));
+        if (current_username == acc_username) idx = (int)n;
+      }
     }
 
     THROW_WALLET_EXCEPTION_IF(idx == -1, error::safex_unknown_account);
@@ -5873,6 +5889,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     {
       if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account ||
             m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer ||
+            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_price_peg ||
             m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_feedback_token) //no fake outputs count for accounts and offers
         continue;
 
@@ -6342,7 +6359,8 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       //skip cash outputs if getting token outputs or other way round
       if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
           || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash)
-          || ((out_type == tx_out_type::out_safex_account || out_type == tx_out_type::out_safex_offer) && m_transfers[idx].m_output_type != out_type))
+          || ((out_type == tx_out_type::out_safex_account || out_type == tx_out_type::out_safex_offer
+               || out_type == tx_out_type::out_safex_price_peg || out_type == tx_out_type::out_safex_feedback_token) && m_transfers[idx].m_output_type != out_type))
         continue;
 
       std::vector<get_outs_entry> v;
@@ -6635,13 +6653,15 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
         get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_feedback_token); // may throw
     else if (command_type == safex::command_t::create_price_peg)
       get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_account); // may throw
+    else if (command_type == safex::command_t::update_price_peg)
+      get_outs(outs, selected_transfers, 0, tx_out_type::out_safex_price_peg); // may throw
   }
 
 
   if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake)
       || (command_type == safex::command_t::create_account) || (command_type == safex::command_t::edit_account)
       || (command_type == safex::command_t::create_offer) || (command_type == safex::command_t::edit_offer)
-      || (command_type == safex::command_t::create_price_peg))
+      || (command_type == safex::command_t::create_price_peg) || (command_type == safex::command_t::update_price_peg))
   {
     //find also outputs for cash fee payment in case of token transaction
     std::vector<std::vector<tools::wallet::get_outs_entry>> cash_fee_outs = AUTO_VAL_INIT(cash_fee_outs);
@@ -6687,7 +6707,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
 
     //paste keys (fake and real)
     const size_t fake_outputs_count_revised = (src.referenced_output_type == tx_out_type::out_safex_account || src.referenced_output_type == tx_out_type::out_safex_offer
-                                                || src.referenced_output_type == tx_out_type::out_safex_feedback_token) ? 0 : fake_outputs_count;
+                                                || src.referenced_output_type == tx_out_type::out_safex_feedback_token || src.referenced_output_type == tx_out_type::out_safex_price_peg) ? 0 : fake_outputs_count;
     for (size_t n = 0; n < fake_outputs_count_revised + 1; ++n)
     {
       tx_output_entry oe = AUTO_VAL_INIT(oe);
@@ -6794,6 +6814,14 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
       const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_price_peg);
       src.command_safex_data = dt_account.output_data;
       src.command_type = safex::command_t::create_price_peg;
+      bool res = get_safex_account_keys(sfx_acc.username, my_safex_keys);
+      THROW_WALLET_EXCEPTION_IF(!res, error::wallet_internal_error, "safex account keys missing");
+    }
+    else if (command_type == safex::command_t::update_price_peg && m_transfers[idx].m_output_type == tx_out_type::out_safex_price_peg)
+    {
+      const cryptonote::tx_destination_entry &dt_account = find_matching_advanced_output(tx_out_type::out_safex_price_peg_update);
+      src.command_safex_data = dt_account.output_data;
+      src.command_type = safex::command_t::update_price_peg;
       bool res = get_safex_account_keys(sfx_acc.username, my_safex_keys);
       THROW_WALLET_EXCEPTION_IF(!res, error::wallet_internal_error, "safex account keys missing");
     }
@@ -8753,6 +8781,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       {
         THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_price_peg, error::safex_invalid_output_error);
       }
+      else if (command_type == safex::command_t::update_price_peg)
+      {
+        THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_price_peg_update, error::safex_invalid_output_error);
+      }
       else
       {
         THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -8987,7 +9019,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
                               || dsts[0].output_type == tx_out_type::out_safex_offer_update
                               || dsts[0].output_type == tx_out_type::out_safex_purchase
                               || dsts[0].output_type == tx_out_type::out_safex_feedback
-                              || dsts[0].output_type == tx_out_type::out_safex_price_peg)) || adding_fee)
+                              || dsts[0].output_type == tx_out_type::out_safex_price_peg
+                              || dsts[0].output_type == tx_out_type::out_safex_price_peg_update)) || adding_fee)
     {
       ADVANCED_TX &tx = txes.back();
 
@@ -9001,7 +9034,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
       const bool advanced_output_reference = (dsts[0].output_type == tx_out_type::out_safex_account_update || dsts[0].output_type == tx_out_type::out_safex_offer
                                                     || dsts[0].output_type == tx_out_type::out_safex_offer_update || dsts[0].output_type == tx_out_type::out_safex_feedback
-                                                    || dsts[0].output_type == tx_out_type::out_safex_price_peg);
+                                                    || dsts[0].output_type == tx_out_type::out_safex_price_peg || dsts[0].output_type == tx_out_type::out_safex_price_peg_update);
 
 
       // if we need to spend cash and don't have any left, we fail
@@ -9144,6 +9177,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           //find price peg output
           idx = pop_advanced_output(tx.selected_transfers, price_peg.creator, tx_out_type::out_safex_account);
         }
+        else if (dsts[0].output_type == tx_out_type::out_safex_price_peg_update) {
+          safex::update_price_peg_data price_peg;
+          cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
+          //find price peg output
+          idx = pop_advanced_output(tx.selected_transfers, price_peg.creator, tx_out_type::out_safex_price_peg);
+        }
       }
       else if (adding_fee)
       {
@@ -9194,6 +9233,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
           //find price peg output
           idx = pop_advanced_output(tx.selected_transfers, price_peg.creator, tx_out_type::out_safex_account);
+        }
+        else if (dsts[0].output_type == tx_out_type::out_safex_price_peg_update) {
+          safex::update_price_peg_data price_peg;
+          cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
+          //find price peg output
+          idx = pop_advanced_output(tx.selected_transfers, price_peg.creator, tx_out_type::out_safex_price_peg);
         }
       }
 

@@ -1092,6 +1092,7 @@ namespace tools
     bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
     bool remove_safex_feedback_token(const crypto::hash& offer_id);
     bool add_safex_price_peg(const safex::safex_price_peg& price_peg);
+    bool update_safex_price_peg(const safex::safex_price_peg& price_peg);
 
 
     std::vector<safex::safex_offer> get_safex_offers();

@@ -449,6 +449,20 @@ namespace tools
         return true;
     }
 
+    bool wallet::update_safex_price_peg(const safex::safex_price_peg &price_peg) {
+
+      for (uint32_t i = 0; i < m_safex_price_pegs.size(); i++)
+      {
+        if (m_safex_price_pegs[i].price_peg_id == price_peg.price_peg_id)
+        {
+          m_safex_price_pegs[i]=price_peg;
+          return true;
+        }
+      }
+
+      return true;
+    }
+
   std::vector<safex::safex_offer> wallet::get_my_safex_offers()
   {
         return m_safex_offers;

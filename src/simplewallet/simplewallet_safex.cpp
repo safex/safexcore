@@ -96,6 +96,13 @@ namespace cryptonote
       return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg,blobdata};
     }
 
+    tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
+    {
+      safex::update_price_peg_data safex_price_peg_output_data{sfx_price_peg};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg_update,blobdata};
+    }
+
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
     //todo Uncomment
@@ -465,10 +472,25 @@ namespace cryptonote
         cryptonote::tx_destination_entry de_price_peg = create_safex_price_peg_destination(info.address, sfx_price_peg);
         dsts.push_back(de_price_peg);
 
-      } else
-      {
-        fail_msg_writer() << tr("Update price peg not supported yet");
-        return true;
+      } else if (command_type == CommandType::TransferUpdatePricePeg) {
+
+        crypto::hash price_peg_id_hash;
+        epee::string_tools::hex_to_pod(local_args[1], price_peg_id_hash);
+
+        std::string price_peg_title = local_args[2];
+        std::string price_peg_currency = local_args[3];
+        uint64_t rate = stod(local_args[4])*COIN;
+
+        std::ostringstream pricepeg_ostr;
+        std::copy(local_args.begin() + 5, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
+        std::string description = pricepeg_ostr.str();
+        std::vector<uint8_t> description_arg{description.begin(),description.end()};
+
+        safex::safex_price_peg sfx_price_peg{price_peg_title,sfx_username,price_peg_currency,description_arg,price_peg_id_hash,rate};
+
+        cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg_update);
+
       }
     }
     else
@@ -626,6 +648,10 @@ namespace cryptonote
 
         case CommandType::TransferCreatePricePeg:
           command = safex::command_t::create_price_peg;
+          break;
+
+        case CommandType::TransferUpdatePricePeg:
+          command = safex::command_t::update_price_peg;
           break;
 
         default:
@@ -1276,10 +1302,31 @@ namespace cryptonote
 
       m_wallet->add_safex_price_peg(sfx_price_peg);
 
+    } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
+      safex::update_price_peg_data price_peg;
+      const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+      cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+      std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+      std::string title{price_peg.title.begin(),price_peg.title.end()};
+      std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+      message_writer(console_color_blue, false) << "\r" <<
+                                                tr("Height ") << height << ", " <<
+                                                tr("txid ") << txid << ", " <<
+                                                tr("Price peg update for account: ") << creator << " received, " <<
+                                                tr("Price peg ID: ") << price_peg.price_peg_id <<
+                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg currency: ") << currency <<
+                                                tr("idx ") << subaddr_index;
+
+      safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
+
+      m_wallet->update_safex_price_peg(sfx_price_peg);
+
     }
 
 
-    if (m_auto_refresh_refreshing)
+
+      if (m_auto_refresh_refreshing)
       m_cmd_binder.print_prompt();
     else
       m_refresh_progress_reporter.update(height, true);
