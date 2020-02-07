@@ -5888,9 +5888,13 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     for(size_t idx: selected_transfers)
     {
       if (m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account ||
-            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer ||
-            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_price_peg ||
-            m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_feedback_token) //no fake outputs count for accounts and offers
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_account_update ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_offer_update ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_price_peg ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_price_peg_update ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_feedback_token ||
+          m_transfers[idx].m_output_type == cryptonote::tx_out_type::out_safex_feedback) //no fake outputs count for accounts and offers
         continue;
 
       cash_token_selected_transfers.push_back(idx);
@@ -6360,7 +6364,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
           || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash)
           || ((out_type == tx_out_type::out_safex_account || out_type == tx_out_type::out_safex_offer
-               || out_type == tx_out_type::out_safex_price_peg || out_type == tx_out_type::out_safex_feedback_token) && m_transfers[idx].m_output_type != out_type))
+               || out_type == tx_out_type::out_safex_price_peg || out_type == tx_out_type::out_safex_feedback_token || out_type == tx_out_type::out_safex_feedback) && m_transfers[idx].m_output_type != out_type))
         continue;
 
       std::vector<get_outs_entry> v;
@@ -6661,7 +6665,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
   if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake)
       || (command_type == safex::command_t::create_account) || (command_type == safex::command_t::edit_account)
       || (command_type == safex::command_t::create_offer) || (command_type == safex::command_t::edit_offer)
-      || (command_type == safex::command_t::create_price_peg) || (command_type == safex::command_t::update_price_peg))
+      || (command_type == safex::command_t::create_price_peg) || (command_type == safex::command_t::update_price_peg)
+      || (command_type == safex::command_t::create_feedback))
   {
     //find also outputs for cash fee payment in case of token transaction
     std::vector<std::vector<tools::wallet::get_outs_entry>> cash_fee_outs = AUTO_VAL_INIT(cash_fee_outs);
