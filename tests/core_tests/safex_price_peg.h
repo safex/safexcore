@@ -77,8 +77,8 @@ public:
   static const std::string data3_alternative;
 
 
-  static const size_t expected_blockchain_total_transactions = 381;
-  static const size_t expected_blockchain_height = 368;
+  static const size_t expected_blockchain_total_transactions = 443;
+  static const size_t expected_blockchain_height = 429;
 
   static bool expected_data_fields_intialized;
   static crypto::public_key expected_alice_account_key;
@@ -90,9 +90,11 @@ public:
   static std::vector<uint8_t> expected_bob_account_data;
   static std::vector<uint8_t> expected_daniel_account_data;
 
+  static crypto::hash expected_alice_price_peg_id;
   static std::string expected_alice_price_peg_title;
   static std::string expected_alice_price_peg_currency;
   static std::vector<uint8_t> expected_alice_price_peg_description;
+  static std::vector<uint8_t> expected_alice_price_peg_new_description;
   static uint64_t    exptected_alice_price_peg_rate;
 
 };

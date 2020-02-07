@@ -371,7 +371,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
             if ((out_type == cryptonote::tx_out_type::out_token) || (out_type == cryptonote::tx_out_type::out_staked_token)
                 || (out_type == cryptonote::tx_out_type::out_safex_account) || (out_type == cryptonote::tx_out_type::out_safex_account_update)
                 || (out_type == cryptonote::tx_out_type::out_safex_offer) || (out_type == cryptonote::tx_out_type::out_safex_offer_update)
-                || (out_type == cryptonote::tx_out_type::out_safex_price_peg))
+                || (out_type == cryptonote::tx_out_type::out_safex_price_peg) || (out_type == cryptonote::tx_out_type::out_safex_price_peg_update))
             {
               if (out.target.type() == typeid(cryptonote::txout_token_to_key))
               {
@@ -392,6 +392,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                   || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account))
                   || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer))
                   || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg))
+                  || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update))
                   || (temp.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)))
                 {
                   //cast tx_out_type and use it as imaginary amount for advanced outputs
@@ -706,6 +707,9 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
             if(out_type == cryptonote::tx_out_type::out_safex_feedback && oi.out_type != cryptonote::tx_out_type::out_safex_feedback_token)
                 continue;
 
+            if(out_type == cryptonote::tx_out_type::out_safex_price_peg_update && oi.out_type != cryptonote::tx_out_type::out_safex_price_peg)
+              continue;
+
             cryptonote::tx_source_entry ts = AUTO_VAL_INIT(ts);
             if (out_type == cryptonote::tx_out_type::out_cash)
             {
@@ -766,6 +770,11 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               ts.referenced_output_type = cryptonote::tx_out_type::out_safex_account;
               ts.command_type = safex::command_t::create_price_peg;
             }
+            else if (out_type == cryptonote::tx_out_type::out_safex_price_peg_update)
+            {
+              ts.referenced_output_type = cryptonote::tx_out_type::out_safex_price_peg;
+              ts.command_type = safex::command_t::update_price_peg;
+            }
             else
             {
               throw std::runtime_error("unknown referenced output type");
@@ -781,6 +790,7 @@ bool fill_tx_sources(std::vector<tx_source_entry>& sources, const std::vector<te
               case cryptonote::tx_out_type::out_safex_offer_update:
               case cryptonote::tx_out_type::out_safex_feedback:
               case cryptonote::tx_out_type::out_safex_price_peg:
+              case cryptonote::tx_out_type::out_safex_price_peg_update:
                 {
                   if (!fill_output_entries_advanced(outs[static_cast<uint64_t>(ts.referenced_output_type)], sender_out, nmix, realOutput, ts.outputs))
                     continue;
@@ -1201,6 +1211,13 @@ tx_destination_entry create_safex_price_peg_destination(const cryptonote::accoun
   return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_price_peg, blobdata};
 }
 
+tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_base &to, const safex::safex_price_peg &price_peg)
+{
+  safex::update_price_peg_data price_peg_output_data{price_peg};
+  blobdata blobdata = cryptonote::t_serializable_object_to_blob(price_peg_output_data);
+  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_price_peg_update, blobdata};
+}
+
 void fill_token_stake_tx_sources_and_destinations(const std::vector<test_event_entry> &events, const block &blk_head,
                                                   const cryptonote::account_base &from, const cryptonote::account_base &to, uint64_t token_amount, uint64_t fee, size_t nmix, std::vector<tx_source_entry> &sources,
                                                   std::vector<tx_destination_entry> &destinations)
@@ -1605,8 +1622,6 @@ void fill_create_price_peg_sources_and_destinations(const std::vector<test_event
 
   const cryptonote::account_base &to = from;
 
-  //token amount is amount of tokens we want to lock for a period for creating offer
-
   //fill cache sources for fee
   if (!fill_tx_sources(sources, events, blk_head,  from, fee, nmix, cryptonote::tx_out_type::out_cash))
     throw std::runtime_error("couldn't fill transaction sources");
@@ -1635,8 +1650,49 @@ void fill_create_price_peg_sources_and_destinations(const std::vector<test_event
   }
 
   //offer
-  tx_destination_entry de_offer = create_safex_price_peg_destination(from, sfx_price_peg);
-  destinations.push_back(de_offer);
+  tx_destination_entry de_price_peg = create_safex_price_peg_destination(from, sfx_price_peg);
+  destinations.push_back(de_price_peg);
+}
+
+void fill_update_price_peg_sources_and_destinations(const std::vector<test_event_entry>& events, const block& blk_head,
+                                                    const cryptonote::account_base &from, uint64_t token_amount,
+                                                    uint64_t fee, size_t nmix, const safex::safex_price_peg &sfx_price_peg, std::vector<tx_source_entry> &sources,
+                                                    std::vector<tx_destination_entry> &destinations, const crypto::public_key& safex_account_pkey = {}){
+  sources.clear();
+  destinations.clear();
+
+  const cryptonote::account_base &to = from;
+
+  //fill cache sources for fee
+  if (!fill_tx_sources(sources, events, blk_head,  from, fee, nmix, cryptonote::tx_out_type::out_cash))
+    throw std::runtime_error("couldn't fill transaction sources");
+
+  //safex price peg command source
+  if (!fill_tx_sources(sources, events, blk_head,  from, token_amount, nmix, cryptonote::tx_out_type::out_safex_price_peg_update, safex_account_pkey))
+    throw std::runtime_error("couldn't fill token transaction sources for update price peg");
+
+  //update source with price peg data
+  for (auto &ts: sources) {
+    if (ts.command_type == safex::command_t::update_price_peg) {
+      safex::update_price_peg_data price_peg_data{sfx_price_peg};
+      ts.command_safex_data = t_serializable_object_to_blob(price_peg_data);
+    }
+
+  }
+
+  //destinations
+
+  //sender change for fee
+  uint64_t cache_back = get_inputs_amount(sources) - fee;
+  if (0 < cache_back)
+  {
+    tx_destination_entry de_change = create_tx_destination(from, cache_back);
+    destinations.push_back(de_change);
+  }
+
+  //offer
+  tx_destination_entry de_price_peg = update_safex_price_peg_destination(from, sfx_price_peg);
+  destinations.push_back(de_price_peg);
 }
 
 void fill_nonce(cryptonote::block& blk, const difficulty_type& diffic, uint64_t height)
@@ -1830,6 +1886,16 @@ bool construct_create_price_peg_transaction(const std::vector<test_event_entry>&
   std::vector<tx_source_entry> sources;
   std::vector<tx_destination_entry> destinations;
   fill_create_price_peg_sources_and_destinations(events, blk_head, from, 0, fee, nmix,  sfx_price_peg, sources, destinations, sfx_acc_keys.get_public_key());
+
+  return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
+}
+
+bool construct_update_price_peg_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
+                                            size_t nmix, const crypto::public_key &pkey, const safex::safex_price_peg& sfx_price_peg, const safex::safex_account_keys &sfx_acc_keys)
+{
+  std::vector<tx_source_entry> sources;
+  std::vector<tx_destination_entry> destinations;
+  fill_update_price_peg_sources_and_destinations(events, blk_head, from, 0, fee, nmix,  sfx_price_peg, sources, destinations, sfx_acc_keys.get_public_key());
 
   return construct_tx(from.get_keys(), sources, destinations, from.get_keys().m_account_address, std::vector<uint8_t>(), tx, 0, sfx_acc_keys);
 }

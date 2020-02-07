@@ -346,6 +346,13 @@ namespace cryptonote
     return m_blockchain_storage.get_safex_price_pegs(safex_price_pegs, currency);
   }
 
+  bool core::get_safex_price_peg( const crypto::hash& price_peg_id, safex::safex_price_peg& sfx_price_peg) const
+  {
+    return m_blockchain_storage.get_safex_price_peg(price_peg_id,sfx_price_peg);
+
+  }
+
+
     //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
   {
@@ -1197,6 +1204,16 @@ namespace cryptonote
           std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
 
           safex::create_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
+          crypto::hash cmd_hash{};
+          get_object_hash(price_peg, cmd_hash);
+          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
+            return false;
+        } else if (txin.command_type == safex::command_t::update_price_peg) {
+          //todo Atana optimize somehow key image validation, so many conversions
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+          safex::update_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
           crypto::hash cmd_hash{};
           get_object_hash(price_peg, cmd_hash);
           if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)

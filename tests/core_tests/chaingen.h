@@ -275,6 +275,9 @@ bool construct_create_feedback_transaction(const std::vector<test_event_entry>& 
 bool construct_create_price_peg_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
                                         size_t nmix, const crypto::public_key &pkey, const safex::safex_price_peg& sfx_price_peg, const safex::safex_account_keys &sfx_acc_keys);
 
+bool construct_update_price_peg_transaction(const std::vector<test_event_entry>& events, cryptonote::transaction &tx, const cryptonote::block& blk_head, const cryptonote::account_base &from, uint64_t fee,
+                                            size_t nmix, const crypto::public_key &pkey, const safex::safex_price_peg& sfx_price_peg, const safex::safex_account_keys &sfx_acc_keys);
+
 void get_confirmed_txs(const std::vector<cryptonote::block>& blockchain, const map_hash2tx_t& mtx, map_hash2tx_t& confirmed_txs);
 bool find_block_chain(const std::vector<test_event_entry>& events, std::vector<cryptonote::block>& blockchain, map_hash2tx_t& mtx, const crypto::hash& head);
 void fill_tx_sources_and_destinations(const std::vector<test_event_entry>& events, const cryptonote::block& blk_head,
@@ -912,6 +915,20 @@ inline bool do_replay_file(const std::string& filename)
 #define MAKE_TX_CREATE_SAFEX_PRICE_PEG_LIST_START(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, HEAD) \
     std::list<cryptonote::transaction> SET_NAME; \
     MAKE_CREATE_SAFEX_PRICE_PEG_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, HEAD);
+
+#define MAKE_UPDATE_SAFEX_PRICE_PEG_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM,  PKEY, SFX_PRICE_PEG, ACC_KEYS, NMIX, HEAD) \
+  {                                                                                      \
+    cryptonote::transaction t;                                                           \
+    construct_update_price_peg_transaction(VEC_EVENTS, t, HEAD, FROM, TESTS_DEFAULT_FEE, NMIX, PKEY, SFX_PRICE_PEG, ACC_KEYS); \
+    SET_NAME.push_back(t);                                                               \
+    VEC_EVENTS.push_back(t);                                                             \
+  }
+
+#define MAKE_UPDATE_SAFEX_PRICE_PEG_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, HEAD) MAKE_UPDATE_SAFEX_PRICE_PEG_TX_MIX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, 0, HEAD)
+
+#define MAKE_TX_UPDATE_SAFEX_PRICE_PEG_LIST_START(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, HEAD) \
+    std::list<cryptonote::transaction> SET_NAME; \
+    MAKE_UPDATE_SAFEX_PRICE_PEG_TX_LIST(VEC_EVENTS, SET_NAME, FROM, PKEY, SFX_PRICE_PEG, ACC_KEYS, HEAD);
 
 
 #define MAKE_MINER_TX_MANUALLY(TX, BLK) MAKE_MINER_TX_AND_KEY_MANUALLY(TX, BLK, 0)
