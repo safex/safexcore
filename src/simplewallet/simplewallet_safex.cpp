@@ -306,6 +306,14 @@ namespace cryptonote
             uint64_t price= stod(local_args[2])*SAFEX_CASH_COIN;
             uint64_t quantity = stoi(local_args[3]);
 
+            long double check_price = stold(local_args[2]);
+            long double check_quantity = stold(local_args[3]);
+
+            if(check_price < 0 || check_quantity < 0){
+              fail_msg_writer() << tr("Negative amount or quantity entered");
+              return true;
+            }
+
             std::ostringstream offerdata_ostr;
             std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
             std::string description = offerdata_ostr.str();

@@ -307,6 +307,10 @@ namespace safex
             result = execution_status::error_account_non_existant;
         }
 
+        if(cmd->get_price() > MONEY_SUPPLY) {
+          result = execution_status::error_offer_price_too_big;
+        }
+
         return result;
     };
 
