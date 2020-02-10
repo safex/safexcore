@@ -437,6 +437,11 @@ namespace cryptonote
             return true;
         }
 
+        if(stars_given > 3){
+          fail_msg_writer() << tr("Feedback rating can be from 0 to 3");
+          return true;
+        }
+
         std::ostringstream comment_ostr;
         std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(comment_ostr, " "));
         comment = comment_ostr.str();

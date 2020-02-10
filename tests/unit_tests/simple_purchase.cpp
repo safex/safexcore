@@ -107,7 +107,7 @@ namespace
 
         m_safex_purchase = safex::safex_purchase{1, m_safex_offer[0].price, m_safex_offer[0].offer_id, true};
 
-        m_safex_feedback = safex::safex_feedback{4,"Eating it all day", m_safex_offer[0].offer_id};
+        m_safex_feedback = safex::safex_feedback{3,"Eating it all day", m_safex_offer[0].offer_id};
 
         offers_total_fee = m_safex_purchase.price*5/100;
 
