@@ -2452,14 +2452,14 @@ namespace cryptonote
 
     safex::safex_account account;
     if (!m_core.get_safex_account_info(req.username, account)) {
-      res.status = "Unable to retrieve account data";
-      return false;
+      res.status = CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST;
+      return true;
     }
 
     res.pkey = epee::string_tools::pod_to_hex(account.pkey);
 
     res.account_data = std::string(std::begin(account.account_data), std::end(account.account_data));
-    res.status = "OK";
+    res.status = CORE_RPC_STATUS_OK;
 
     return true;
   }

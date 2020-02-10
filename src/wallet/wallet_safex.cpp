@@ -378,6 +378,25 @@ namespace tools
       return true;
     }
 
+    bool wallet::safex_account_exists(const std::string &username) {
+
+      cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::request req = AUTO_VAL_INIT(req);
+      cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::response res = AUTO_VAL_INIT(res);
+
+      req.username = username;
+
+      std::string fail_msg;
+
+      m_daemon_rpc_mutex.lock();
+      bool r = net_utils::invoke_http_json("/get_safex_account_info", req, res, m_http_client, rpc_timeout);
+      m_daemon_rpc_mutex.unlock();
+
+      THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_account_info");
+      THROW_WALLET_EXCEPTION_IF(res.status != CORE_RPC_STATUS_OK && res.status != CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST, error::no_connection_to_daemon, "Failed to get safex offers");
+
+      return res.status != CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST;
+    }
+
   std::vector<safex::safex_offer> wallet::get_safex_offers()
   {
       cryptonote::COMMAND_RPC_GET_SAFEX_OFFERS::request req = AUTO_VAL_INIT(req);

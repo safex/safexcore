@@ -1045,6 +1045,12 @@ namespace cryptonote
       }
       const std::string &username = local_args[0];
 
+      if(m_wallet->safex_account_exists(username)) {
+        fail_msg_writer() << tr("safex account already exists in the Blockchain");
+        return true;
+      }
+
+
       std::ostringstream accdata_ostr;
       std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
       const std::string accdata_str = accdata_ostr.str();

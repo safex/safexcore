@@ -42,6 +42,9 @@ namespace cryptonote
 #define CORE_RPC_STATUS_BUSY   "BUSY"
 #define CORE_RPC_STATUS_NOT_MINING "NOT MINING"
 
+// Safex related status
+#define CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST  "SAFEX ACC NOT EXISTS"
+
 // When making *any* change here, bump minor
 // If the change is incompatible, then bump major and set minor to 0
 // This ensures CORE_RPC_VERSION always increases, that every change
@@ -2812,6 +2815,7 @@ namespace cryptonote
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(pkey)
         KV_SERIALIZE(account_data)
+        KV_SERIALIZE(status)
       END_KV_SERIALIZE_MAP()
     };
   };
