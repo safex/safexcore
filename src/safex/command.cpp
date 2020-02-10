@@ -230,7 +230,7 @@ namespace safex
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
     for (auto ch: cmd->get_username()) {
-      if (!std::isalnum(ch) && ch!='_') {
+      if (!std::isalnum(ch) && ch!='_' && ch!='-') {
         return execution_status::error_invalid_account_name;
       }
     }
@@ -269,7 +269,7 @@ namespace safex
 
 
         for (auto ch: cmd->get_username()) {
-            if (!std::isalnum(ch) && ch!='_') {
+            if (!std::isalnum(ch) && ch!='_' && ch!='-') {
                 result = execution_status::error_invalid_account_name;
             }
         }
@@ -302,12 +302,6 @@ namespace safex
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
 
-        for (auto ch: cmd->get_seller()) {
-            if (!std::isalnum(ch) && ch!='_') {
-                result = execution_status::error_invalid_account_name;
-            }
-        }
-
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             result = execution_status::error_account_non_existant;
@@ -333,12 +327,6 @@ namespace safex
 
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
-
-        for (auto ch: cmd->get_seller()) {
-            if (!std::isalnum(ch) && ch!='_') {
-                result = execution_status::error_invalid_account_name;
-            }
-        }
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
