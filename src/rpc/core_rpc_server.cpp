@@ -183,9 +183,13 @@ namespace cryptonote
         bool result  = m_core.get_safex_offers(offers);
 
         for(auto offer: offers) {
-            std::string offer_id_str = epee::string_tools::pod_to_hex(offer.offer_id);
-            COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title,offer.quantity,offer.price,offer.description,offer.active,offer.shipping,offer_id_str,offer.seller,offer.seller_address};
-            res.offers.push_back(ent);
+            if(offer.active && offer.quantity > 0) {
+              std::string offer_id_str = epee::string_tools::pod_to_hex(offer.offer_id);
+              COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title, offer.quantity, offer.price, offer.description,
+                                                      offer.active, offer.shipping, offer_id_str, offer.seller,
+                                                      offer.seller_address};
+              res.offers.push_back(ent);
+            }
         }
         res.status = CORE_RPC_STATUS_OK;
         return true;

@@ -46,7 +46,8 @@ namespace safex
     error_account_non_existant = 13,
     error_offer_non_existant = 14,
     error_purchase_out_of_stock = 15,
-    error_purchase_not_enough_funds = 16
+    error_purchase_not_enough_funds = 16,
+    error_purchase_offer_not_active = 17
   };
 
   struct execution_result

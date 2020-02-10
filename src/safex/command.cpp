@@ -173,6 +173,9 @@ namespace safex
         return execution_status::error_offer_non_existant;
     }
 
+    if(!sfx_offer.active)
+        return execution_status::error_purchase_offer_not_active;
+
     if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
 
