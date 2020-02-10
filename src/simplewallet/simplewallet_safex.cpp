@@ -553,6 +553,14 @@ namespace cryptonote
             fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
             return true;
           }
+
+          uint64_t minimum_tokens = safex::get_minimum_token_stake_amount(m_wallet->nettype());
+
+          if (value_amount < minimum_tokens)
+          {
+            fail_msg_writer() << tr("token amount must be at least. ") << print_money(minimum_tokens);
+            return true;
+          }
           de.token_amount = value_amount;
           de.script_output = true;
           de.output_type = tx_out_type::out_staked_token;
