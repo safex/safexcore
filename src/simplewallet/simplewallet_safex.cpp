@@ -973,7 +973,7 @@ namespace cryptonote
     success_msg_writer() << boost::format("%30s %20s") % tr("Output amount") % tr("Available interest");
     for(auto& pair : interest_per_output)
     {
-      success_msg_writer() << boost::format("%30s %20s") % pair.first % print_money(pair.second);
+      success_msg_writer() << boost::format("%30s %20s") % print_money(pair.first) % print_money(pair.second);
     }
     return true;
   }
@@ -992,7 +992,7 @@ namespace cryptonote
       success_msg_writer() << tr("Safex offers");
       success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
       for (auto &offer: m_wallet->get_my_safex_offers()) {
-          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % print_money(offer.price) % offer.quantity % offer.seller %
                                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
   }
