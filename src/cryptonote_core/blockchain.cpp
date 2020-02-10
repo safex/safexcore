@@ -3319,12 +3319,12 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       uint64_t total_payment = 0;
       crypto::secret_key secret_seller_view_key;
       crypto::public_key public_seller_spend_key;
-      safex::safex_offer offer_to_purchase;
 
       for (const auto &vout: tx.vout) {
-          if (vout.target.type() == typeid(txout_to_script) &&
-              get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase) {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::safex_offer offer_to_purchase;
               safex::create_purchase_data purchase;
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
@@ -3332,11 +3332,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
               get_safex_offer(purchase.offer_id, offer_to_purchase);
 
               secret_seller_view_key = offer_to_purchase.seller_private_view_key;
-              cryptonote::account_public_address seller_address = offer_to_purchase.seller_address;
-
-              public_seller_spend_key = seller_address.m_spend_public_key;
-              std::string seller_key_str = epee::string_tools::pod_to_hex(public_seller_spend_key);
-
+              public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
           }
       }
 
@@ -3344,19 +3340,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
       for (const auto &vout: tx.vout)
       {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
-          {
-              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::create_purchase_data purchase;
-              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
-              total_payment = purchase.price;
-              get_safex_offer(purchase.offer_id,offer_to_purchase);
-
-              std::string desc_secret_key{offer_to_purchase.description.begin(),offer_to_purchase.description.end()};
-              epee::string_tools::hex_to_pod(desc_secret_key, secret_seller_view_key);
-          }
-          else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
           {
               network_fee += vout.amount;
           }
@@ -6226,7 +6210,7 @@ bool Blockchain::get_safex_price_peg( const crypto::hash& price_peg_id, safex::s
   return m_db->get_safex_price_peg(price_peg_id,sfx_price_peg);
 }
 
-std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(crypto::secret_key seller_secret_view_key, crypto::public_key public_seller_spend_key, const cryptonote::transaction& tx) {
+std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(const crypto::secret_key& seller_secret_view_key, const crypto::public_key& public_seller_spend_key, const cryptonote::transaction& tx) {
 
     crypto::public_key pkey;
     if (!crypto::secret_key_to_public_key(seller_secret_view_key, pkey)) {
