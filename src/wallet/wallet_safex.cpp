@@ -344,8 +344,11 @@ namespace tools
   }
 
   bool wallet::add_safex_offer(const safex::safex_offer& offer){
-
-      m_safex_offers.push_back(offer);
+      auto exists = std::find_if(m_safex_offers.begin(), m_safex_offers.end(), [offer] (const safex::safex_offer& sfx_offer) {
+          return sfx_offer.offer_id == offer.offer_id;
+      });
+      if(exists == m_safex_offers.end())
+         m_safex_offers.push_back(offer);
 
       return true;
   }
