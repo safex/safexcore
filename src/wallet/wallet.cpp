@@ -6361,10 +6361,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     {
       const transfer_details &td = m_transfers[idx];
       //skip cash outputs if getting token outputs or other way round
-      if ((!m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_token)
-          || (m_transfers[idx].m_token_transfer && out_type == tx_out_type::out_cash)
-          || ((out_type == tx_out_type::out_safex_account || out_type == tx_out_type::out_safex_offer
-               || out_type == tx_out_type::out_safex_price_peg || out_type == tx_out_type::out_safex_feedback_token || out_type == tx_out_type::out_safex_feedback) && m_transfers[idx].m_output_type != out_type))
+      if (td.m_output_type != out_type)
         continue;
 
       std::vector<get_outs_entry> v;
@@ -6674,7 +6671,7 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     for (auto out: cash_fee_outs)
       outs.push_back(out);
   }
-  else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase || command_type == safex::command_t::create_feedback)
+  else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
   {
     //do nothing
   }
