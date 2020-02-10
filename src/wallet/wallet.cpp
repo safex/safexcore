@@ -9000,6 +9000,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     uint64_t accumulated_staked_token_outputs = 0;
 
     bool adding_fee = false; // true if new outputs go towards fee, rather than destinations
+    bool purchase_init = false;
 
     std::vector<std::vector<tools::wallet::get_outs_entry>> outs;
 
@@ -9241,6 +9242,12 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
           //find price peg output
           idx = pop_advanced_output(tx.selected_transfers, price_peg.creator, tx_out_type::out_safex_price_peg);
+        }
+        else if(command_type == safex::command_t::simple_purchase && needed_cash == 0) {
+          if(purchase_init)
+            continue;
+          purchase_init = true;
+          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true, tx_out_type::out_cash);
         }
       }
 
