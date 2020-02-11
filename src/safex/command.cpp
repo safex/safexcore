@@ -173,6 +173,9 @@ namespace safex
         return execution_status::error_offer_non_existant;
     }
 
+    if(!sfx_offer.active)
+        return execution_status::error_purchase_offer_not_active;
+
     if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
 
@@ -227,7 +230,7 @@ namespace safex
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
     for (auto ch: cmd->get_username()) {
-      if (!std::isalnum(ch) && ch!='_') {
+      if (!std::isalnum(ch) && ch!='_' && ch!='-') {
         return execution_status::error_invalid_account_name;
       }
     }
@@ -266,7 +269,7 @@ namespace safex
 
 
         for (auto ch: cmd->get_username()) {
-            if (!std::isalnum(ch) && ch!='_') {
+            if (!std::isalnum(ch) && ch!='_' && ch!='-') {
                 result = execution_status::error_invalid_account_name;
             }
         }
@@ -299,15 +302,13 @@ namespace safex
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
 
-        for (auto ch: cmd->get_seller()) {
-            if (!std::isalnum(ch) && ch!='_') {
-                result = execution_status::error_invalid_account_name;
-            }
-        }
-
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if(cmd->get_price() > MONEY_SUPPLY) {
+          result = execution_status::error_offer_price_too_big;
         }
 
         return result;
@@ -330,12 +331,6 @@ namespace safex
 
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
-
-        for (auto ch: cmd->get_seller()) {
-            if (!std::isalnum(ch) && ch!='_') {
-                result = execution_status::error_invalid_account_name;
-            }
-        }
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
@@ -365,23 +360,13 @@ namespace safex
     {
 
         execution_status result = execution_status::ok;
-//        std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
-//
-//        for (auto ch: cmd->get_seller()) {
-//            if (!std::isalnum(ch) && ch!='_') {
-//                result = execution_status::error_invalid_account_name;
-//            }
-//        }
-//
-//        std::vector<uint8_t>  dummy{};
-//        if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
-//            result = execution_status::error_account_non_existant;
-//        }
-//
-//        safex::safex_offer sfx_dummy{};
-//        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
-//            result = execution_status::error_offer_non_existant;
-//        }
+        std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(txin.script);
+
+        uint64_t rating_given = cmd->get_stars_given();
+
+        if(rating_given > 3 )
+          result = execution_status::error_feedback_invalid_rating;
+
         return result;
     };
 

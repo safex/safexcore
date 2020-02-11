@@ -109,7 +109,7 @@ gen_safex_purchase_001::gen_safex_purchase_001()
 
   safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false};
 
-  safex_alice_feedback = safex::safex_feedback{4,"Perfect for my concert next week.",safex_offer_bob.offer_id};
+  safex_alice_feedback = safex::safex_feedback{3,"Perfect for my concert next week.",safex_offer_bob.offer_id};
 
 
     if (!expected_data_fields_intialized)

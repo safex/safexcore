@@ -5654,6 +5654,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         cur_safex_offer = m_cur_safex_offer;
 
         uint64_t outputID;
+        uint64_t outputID_creation;
+
+        bool edited = false;
 
 
         uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
@@ -5677,7 +5680,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
             offer.quantity = offer_result.quantity;
 
+            edited = (offer_result.output_ids.size() > 1);
+
             outputID = offer_result.output_ids.back();
+            outputID_creation = offer_result.output_ids.front();
         }
 
 
@@ -5687,6 +5693,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         RCURSOR(output_advanced);
         cur_output_advanced = m_cur_output_advanced;
 
+        //Get offer data
         MDB_val_set(key, outputID);
         blobdata blob;
         MDB_val_set(value_blob, blob);
@@ -5698,17 +5705,30 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         if (get_result == MDB_SUCCESS)
         {
             current = parse_output_advanced_data_from_mdb(value_blob);
-            safex::create_offer_data offer_result;
-            parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
 
-            offer.description = offer_result.description;
-            offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
-            offer.price = offer_result.price;
-            offer.offer_id = offer_result.offer_id;
-            offer.active = offer_result.active;
-            offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
-            offer.seller_private_view_key = offer_result.seller_private_view_key;
-            offer.seller_address = offer_result.seller_address;
+            if(edited){
+              safex::edit_offer_data offer_result;
+              parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data,offer_result);
+
+              offer.description = offer_result.description;
+              offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
+              offer.price = offer_result.price;
+              offer.offer_id = offer_result.offer_id;
+              offer.active = offer_result.active;
+              offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
+            }
+            else {
+              safex::create_offer_data offer_result;
+              parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
+
+              offer.description = offer_result.description;
+              offer.seller = std::string{offer_result.seller.begin(),offer_result.seller.end()};
+              offer.price = offer_result.price;
+              offer.offer_id = offer_result.offer_id;
+              offer.active = offer_result.active;
+              offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
+            }
+
         }
         else if (get_result == MDB_NOTFOUND)
         {
@@ -5717,6 +5737,27 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         else
             throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
+      //Get offer keys
+      MDB_val_set(k_creation, outputID_creation);
+      MDB_val_set(v_blob, blob);
+
+      get_result = mdb_cursor_get(cur_output_advanced, &k_creation, &v_blob, MDB_SET);
+
+      if (get_result == MDB_SUCCESS)
+      {
+        current = parse_output_advanced_data_from_mdb(v_blob);
+        safex::create_offer_data offer_result;
+        parse_and_validate_object_from_blob<safex::create_offer_data>(current.data,offer_result);
+
+        offer.seller_address = offer_result.seller_address;
+        offer.seller_private_view_key = offer_result.seller_private_view_key;
+      }
+      else if (get_result == MDB_NOTFOUND)
+      {
+        throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(outputID) + " but not found: ", get_result).c_str()));
+      }
+      else
+        throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
         TXN_POSTFIX_RDONLY();
 

@@ -306,6 +306,14 @@ namespace cryptonote
             uint64_t price= stod(local_args[2])*SAFEX_CASH_COIN;
             uint64_t quantity = stoi(local_args[3]);
 
+            long double check_price = stold(local_args[2]);
+            long double check_quantity = stold(local_args[3]);
+
+            if(check_price < 0 || check_quantity < 0){
+              fail_msg_writer() << tr("Negative amount or quantity entered");
+              return true;
+            }
+
             std::ostringstream offerdata_ostr;
             std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(offerdata_ostr, " "));
             std::string description = offerdata_ostr.str();
@@ -427,6 +435,11 @@ namespace cryptonote
         if (!epee::string_tools::get_xtype_from_string(stars_given, local_args.front())){
             fail_msg_writer() << tr("Bad stars rating format given!!!");
             return true;
+        }
+
+        if(stars_given > 3){
+          fail_msg_writer() << tr("Feedback rating can be from 0 to 3");
+          return true;
         }
 
         std::ostringstream comment_ostr;
@@ -551,6 +564,14 @@ namespace cryptonote
           if (!tools::is_whole_token_amount(value_amount))
           {
             fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            return true;
+          }
+
+          uint64_t minimum_tokens = safex::get_minimum_token_stake_amount(m_wallet->nettype());
+
+          if (value_amount < minimum_tokens)
+          {
+            fail_msg_writer() << tr("token amount must be at least. ") << print_money(minimum_tokens);
             return true;
           }
           de.token_amount = value_amount;
@@ -973,7 +994,7 @@ namespace cryptonote
     success_msg_writer() << boost::format("%30s %20s") % tr("Output amount") % tr("Available interest");
     for(auto& pair : interest_per_output)
     {
-      success_msg_writer() << boost::format("%30s %20s") % pair.first % print_money(pair.second);
+      success_msg_writer() << boost::format("%30s %20s") % print_money(pair.first) % print_money(pair.second);
     }
     return true;
   }
@@ -992,7 +1013,7 @@ namespace cryptonote
       success_msg_writer() << tr("Safex offers");
       success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Description") %tr("Offer ID");
       for (auto &offer: m_wallet->get_my_safex_offers()) {
-          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+          success_msg_writer() << boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % print_money(offer.price) % offer.quantity % offer.seller %
                                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id;
       }
   }
@@ -1031,7 +1052,17 @@ namespace cryptonote
     local_args.erase(local_args.begin());
     if (command == "new")
     {
+      if (local_args.size() < 2){
+        fail_msg_writer() << tr("usage: safex_account new <account_username> <account_data>");
+        return true;
+      }
       const std::string &username = local_args[0];
+
+      if(m_wallet->safex_account_exists(username)) {
+        fail_msg_writer() << tr("safex account already exists in the Blockchain");
+        return true;
+      }
+
 
       std::ostringstream accdata_ostr;
       std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(accdata_ostr, " "));
