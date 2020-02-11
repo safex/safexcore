@@ -1063,7 +1063,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
                     || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
@@ -2620,6 +2619,8 @@ bool wallet::clear()
   m_local_bc_height = 1;
   m_subaddresses.clear();
   m_subaddress_labels.clear();
+  m_safex_feedback_tokens.clear();
+  m_safex_offers.clear();
   return true;
 }
 
