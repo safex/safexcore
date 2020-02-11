@@ -1100,7 +1100,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
-                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
@@ -1130,7 +1129,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
               || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
-                 || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback_token)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
                  || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
@@ -4459,7 +4457,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
         for (size_t n = 0; n < candidates.size(); ++n)
         {
             const transfer_details &td = transfers[candidates[n]];
-            if (out_type == tx_out_type::out_safex_feedback_token && td.get_out_type() == tx_out_type::out_safex_feedback_token)
+            if (out_type == tx_out_type::out_safex_feedback_token && td.get_out_type() == tx_out_type::out_safex_feedback_token && !td.m_spent)
             {
                 const txout_to_script &current = boost::get<const cryptonote::txout_to_script&>(td.m_tx.vout[td.m_internal_output_index].target);
                 const cryptonote::blobdata blobdata1(begin(current.data), end(current.data));
