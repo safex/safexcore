@@ -650,6 +650,35 @@ namespace cryptonote
 
   };
 
+
+  inline tx_out_type get_tx_type(const  std::vector<tx_out>& vout)
+  {
+    tx_out_type tx_type = tx_out_type::out_invalid;
+    bool token_seen = false;
+    bool advanced_seen = false;
+    for(auto it: vout){
+      switch(get_tx_out_type(it.target)){
+        case tx_out_type::out_cash:
+          if(!token_seen && !advanced_seen)
+            tx_type = tx_out_type::out_cash;
+          break;
+        case tx_out_type::out_token:
+          if(!advanced_seen){
+            token_seen = true;
+            tx_type = tx_out_type::out_token;
+          }
+          break;
+        default:
+          if(get_tx_out_type(it.target) >= tx_out_type::out_advanced && get_tx_out_type(it.target) < tx_out_type::out_invalid
+             && (tx_type < get_tx_out_type(it.target) || tx_type == tx_out_type::out_invalid)){
+            tx_type = get_tx_out_type(it.target);
+            advanced_seen = true;
+          }
+      }
+    }
+    return tx_type;
+  }
+
   class transaction_prefix
   {
 

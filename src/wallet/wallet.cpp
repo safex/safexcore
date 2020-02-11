@@ -1556,6 +1556,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
       payment.m_unlock_time  = tx.unlock_time;
       payment.m_timestamp    = ts;
       payment.m_subaddr_index = i.first;
+      payment.m_output_type = get_tx_type(tx.vout);
       if (pool) {
         emplace_or_replace(m_unconfirmed_payments, payment_id, pool_payment_details{payment, double_spend_seen});
         if (0 != m_callback)
@@ -1576,6 +1577,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
       payment.m_unlock_time  = tx.unlock_time;
       payment.m_timestamp    = ts;
       payment.m_subaddr_index = i.first;
+      payment.m_output_type = get_tx_type(tx.vout);
       if (pool) {
         emplace_or_replace(m_unconfirmed_payments, payment_id, pool_payment_details{payment, double_spend_seen});
         if (0 != m_callback)
@@ -1643,6 +1645,9 @@ void wallet::process_outgoing(const crypto::hash &txid, const cryptonote::transa
     entry.first->second.m_subaddr_account = subaddr_account;
     entry.first->second.m_subaddr_indices = subaddr_indices;
   }
+
+  entry.first->second.m_output_type = get_tx_type(tx.vout);
+
 
   for (const auto &in: tx.vin)
   {

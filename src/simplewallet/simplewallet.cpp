@@ -6087,6 +6087,20 @@ namespace {
       return std::string("Stake token transfer");
     }else if(type == tx_out_type::out_bitcoin_migration) {
       return std::string("Migration transfer");
+    }else if(type == tx_out_type::out_safex_account) {
+      return std::string("Create Safex account transfer");
+    } else if(type == tx_out_type::out_safex_account_update) {
+      return std::string("Update Safex account transfer");
+    }else if(type == tx_out_type::out_safex_offer) {
+      return std::string("Create Safex offer transfer");
+    }else if(type == tx_out_type::out_safex_offer_update) {
+      return std::string("Update Safex offer transfer");
+    }else if(type == tx_out_type::out_safex_purchase) {
+      return std::string("Safex purchase transfer");
+    }else if(type == tx_out_type::out_safex_feedback_token) {
+      return std::string("Safex purchase transfer");
+    }else if(type == tx_out_type::out_safex_feedback) {
+      return std::string("Safex feedback transfer");
     } else {
       return std::string("Unknown type of transfer");
     }
