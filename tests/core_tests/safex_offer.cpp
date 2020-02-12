@@ -67,15 +67,8 @@ std::vector<uint8_t> gen_safex_offer_001::expected_alice_account_data;
 std::vector<uint8_t> gen_safex_offer_001::expected_bob_account_data;
 std::vector<uint8_t> gen_safex_offer_001::expected_daniel_account_data;
 
-crypto::hash gen_safex_offer_001::expected_alice_safex_offer_id;
-crypto::hash gen_safex_offer_001::expected_bob_safex_offer_id;
-std::string gen_safex_offer_001::expected_alice_safex_offer_seller;
-std::string gen_safex_offer_001::expected_alice_safex_offer_title;
-std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_description;
-std::vector<uint8_t> gen_safex_offer_001::expected_alice_safex_offer_new_description;
-uint64_t gen_safex_offer_001::expected_alice_safex_offer_price;
-uint64_t  gen_safex_offer_001::expected_alice_safex_offer_quantity;
-bool gen_safex_offer_001::expected_alice_safex_offer_active_status;
+safex::safex_offer gen_safex_offer_001::expected_alice_safex_offer;
+safex::safex_offer gen_safex_offer_001::expected_bob_safex_offer;
 
 gen_safex_offer_001::gen_safex_offer_001()
 {
@@ -117,6 +110,10 @@ gen_safex_offer_001::gen_safex_offer_001()
     safex_offer_bob = safex::safex_offer("Metallica T-shirt",1000,MK_COINS(10),"Quality 100% cotton t-shirt with the loudest band in the universe",
                                          safex_account_bob.username,bob.get_keys().m_view_secret_key,bob.get_keys().m_account_address);
 
+    safex_price_peg_bob = safex::safex_price_peg("TestPricePeg",safex_account_bob.username,"USD","Best price my man",3.5*COIN);
+
+    safex_offer_bob.set_price_peg(safex_price_peg_bob.price_peg_id,800,1000);
+
   if (!expected_data_fields_intialized)
   {
     expected_alice_account_key = safex_account_alice.pkey;
@@ -128,19 +125,11 @@ gen_safex_offer_001::gen_safex_offer_001()
     expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
 
 
-    expected_alice_safex_offer_id = safex_offer_alice.offer_id;
-    expected_alice_safex_offer_title = safex_offer_alice.title;
-    expected_alice_safex_offer_seller = safex_offer_alice.seller;
-    expected_alice_safex_offer_description = safex_offer_alice.description;
-
-    expected_bob_safex_offer_id = safex_offer_bob.offer_id;
-
-    expected_alice_safex_offer_price = safex_offer_alice.price;
-    expected_alice_safex_offer_quantity = safex_offer_alice.quantity;
-    expected_alice_safex_offer_active_status = safex_offer_alice.active;
+   expected_alice_safex_offer = safex_offer_alice;
+   expected_bob_safex_offer = safex_offer_bob;
 
     std::string new_str_desc{"Now in white!!!"};
-    expected_alice_safex_offer_new_description = {new_str_desc.begin(),new_str_desc.end()};;
+    expected_alice_safex_offer.description = {new_str_desc.begin(),new_str_desc.end()};;
   }
 
   REGISTER_CALLBACK("verify_safex_offer", gen_safex_offer_001::verify_safex_offer);
@@ -182,7 +171,7 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
     MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_3, daniel, safex_account_daniel.username, safex_account_daniel.pkey, safex_account_daniel.account_data, m_safex_account3_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_6);
-    MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(events, txlist_3, bob, safex_account_bob.username, std::vector<uint8_t>(data2_alternative.begin(), data2_alternative.end()), m_safex_account2_keys.get_keys(), blk_6);
+    MAKE_CREATE_SAFEX_PRICE_PEG_TX_LIST(events, txlist_3, bob, safex_account_bob.pkey, safex_price_peg_bob, m_safex_account2_keys.get_keys(), blk_6);
     MAKE_MIGRATION_TX_LIST(events, txlist_3, miner, bob, MK_TOKENS(20000), blk_6, get_hash_from_string(bitcoin_tx_hashes_str[4]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_3);
     REWIND_BLOCKS(events, blk_8, blk_7, miner);
@@ -201,7 +190,7 @@ bool gen_safex_offer_001::generate(std::vector<test_event_entry> &events)
 
 
 
-    safex_offer_alice.description = expected_alice_safex_offer_new_description;
+    safex_offer_alice.description = expected_alice_safex_offer.description;
 
     MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
@@ -233,7 +222,7 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
     std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
     bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
     CHECK_TEST_CONDITION(re);
-
+    //Check safex account
     crypto::public_key pkey{};
     const safex::account_username username01{safex_account_alice.username};
     c.get_blockchain_storage().get_safex_account_public_key(username01, pkey);
@@ -259,37 +248,68 @@ bool gen_safex_offer_001::verify_safex_offer(cryptonote::core &c, size_t ev_inde
   c.get_blockchain_storage().get_safex_account_data(username02, accdata02);
   CHECK_TEST_CONDITION(std::equal(expected_bob_account_data.begin(), expected_bob_account_data.end(), accdata02.begin()));
 
+  //Check alice safex offer
   std::string offer_seller;
-  c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer_id,offer_seller);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_seller.compare(offer_seller) == 0);
+  c.get_blockchain_storage().get_safex_offer_seller(expected_alice_safex_offer.offer_id,offer_seller);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer.seller.compare(offer_seller) == 0);
 
     uint64_t offer_price;
-  c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer_id,offer_price);
-  CHECK_EQ(expected_alice_safex_offer_price, offer_price);
+  c.get_blockchain_storage().get_safex_offer_price(expected_alice_safex_offer.offer_id,offer_price);
+  CHECK_EQ(expected_alice_safex_offer.price, offer_price);
 
   uint64_t offer_quantity;
-  c.get_blockchain_storage().get_safex_offer_quantity(expected_alice_safex_offer_id,offer_quantity);
-  CHECK_EQ(expected_alice_safex_offer_quantity, offer_quantity);
+  c.get_blockchain_storage().get_safex_offer_quantity(expected_alice_safex_offer.offer_id,offer_quantity);
+  CHECK_EQ(expected_alice_safex_offer.quantity, offer_quantity);
 
   bool offer_active;
-  c.get_blockchain_storage().get_safex_offer_active_status(expected_alice_safex_offer_id,offer_active);
-  CHECK_EQ(expected_alice_safex_offer_active_status, offer_active);
+  c.get_blockchain_storage().get_safex_offer_active_status(expected_alice_safex_offer.offer_id,offer_active);
+  CHECK_EQ(expected_alice_safex_offer.active, offer_active);
 
   safex::safex_offer sfx_offer;
-  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_id,sfx_offer);
-  CHECK_TEST_CONDITION(expected_alice_safex_offer_title.compare(sfx_offer.title) == 0);
+  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer.offer_id,sfx_offer);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer.title.compare(sfx_offer.title) == 0);
+  CHECK_EQ(expected_alice_safex_offer.seller_private_view_key, sfx_offer.seller_private_view_key);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer.seller_address == sfx_offer.seller_address);
 
-  std::string desc1{sfx_offer.description.begin(),sfx_offer.description.end()};
-  std::string desc2{expected_alice_safex_offer_new_description.begin(),expected_alice_safex_offer_new_description.end()};
-  CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer_new_description.begin()));
+  CHECK_EQ(expected_alice_safex_offer.price_peg_used, sfx_offer.price_peg_used);
+  CHECK_EQ(expected_alice_safex_offer.price_peg_id, sfx_offer.price_peg_id);
+  CHECK_EQ(expected_alice_safex_offer.min_sfx_price, sfx_offer.min_sfx_price);
+  
+  CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_alice_safex_offer.description.begin()));
 
+  //Check bob safex offer
+  c.get_blockchain_storage().get_safex_offer_seller(expected_bob_safex_offer.offer_id,offer_seller);
+  CHECK_TEST_CONDITION(expected_bob_safex_offer.seller.compare(offer_seller) == 0);
+
+  c.get_blockchain_storage().get_safex_offer_price(expected_bob_safex_offer.offer_id,offer_price);
+  CHECK_EQ(expected_bob_safex_offer.price, offer_price);
+
+  c.get_blockchain_storage().get_safex_offer_quantity(expected_bob_safex_offer.offer_id,offer_quantity);
+  CHECK_EQ(expected_bob_safex_offer.quantity, offer_quantity);
+
+  c.get_blockchain_storage().get_safex_offer_active_status(expected_bob_safex_offer.offer_id,offer_active);
+  CHECK_EQ(expected_bob_safex_offer.active, offer_active);
+
+  c.get_blockchain_storage().get_safex_offer(expected_bob_safex_offer.offer_id,sfx_offer);
+  CHECK_TEST_CONDITION(expected_bob_safex_offer.title.compare(sfx_offer.title) == 0);
+  CHECK_EQ(expected_bob_safex_offer.seller_private_view_key, sfx_offer.seller_private_view_key);
+  CHECK_TEST_CONDITION(expected_bob_safex_offer.seller_address == sfx_offer.seller_address);
+
+  CHECK_EQ(expected_bob_safex_offer.price_peg_used, sfx_offer.price_peg_used);
+  CHECK_EQ(expected_bob_safex_offer.price_peg_id, sfx_offer.price_peg_id);
+  CHECK_EQ(expected_bob_safex_offer.min_sfx_price, sfx_offer.min_sfx_price);
+
+  CHECK_TEST_CONDITION(std::equal(sfx_offer.description.begin(), sfx_offer.description.end(), expected_bob_safex_offer.description.begin()));
+
+
+  //Print offers
   std::vector<safex::safex_offer> offers;
   bool result = c.get_safex_offers(offers);
   CHECK_TEST_CONDITION(result);
 
-  std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Offer title" %  "Price" % "Quantity" % "Seller" % "Description" % "Offer ID"<<std::endl;
+  std::cout << boost::format("%30s %20s %20s %30s %100s %20s") % "Offer title" %  "Price" % "Quantity" % "Seller" % "Description" % "Offer ID"<<std::endl;
   for(auto offer: offers)
-    std::cout<< boost::format("%30s %10s %10s %30s %60s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
+    std::cout<< boost::format("%30s %20s %20s %30s %100s %20s") % offer.title % offer.price % offer.quantity % offer.seller %
                   std::string(begin(offer.description), end(offer.description)) % offer.offer_id<<std::endl;
   return true;
 }

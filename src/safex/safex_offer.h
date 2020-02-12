@@ -41,7 +41,7 @@ namespace safex
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::string& _description,
                std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}):
-              title{_title}, quantity{_quantity}, price{_price}, min_sfx_price{price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_used{false}, price_peg_id{} {
+              title{_title}, quantity{_quantity}, price{_price}, min_sfx_price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_used{false}, price_peg_id{} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           offer_id = create_offer_id(seller_username);

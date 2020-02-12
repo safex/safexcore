@@ -1184,7 +1184,7 @@ namespace cryptonote
             //todo Atana optimize somehow key image validation, so many conversions
             const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
             std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
-            safex::create_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active(),cmd->get_seller_address(),cmd->get_seller_private_view_key());
+            safex::create_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active(),cmd->get_seller_address(),cmd->get_seller_private_view_key(),cmd->get_price_peg_id(),cmd->get_min_sfx_price(),cmd->get_price_peg_used());
             crypto::hash cmd_hash{};
             get_object_hash(offer, cmd_hash);
             if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
@@ -1193,7 +1193,7 @@ namespace cryptonote
           //todo Atana optimize somehow key image validation, so many conversions
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
-          safex::edit_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active());
+          safex::edit_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active(),cmd->get_price_peg_id(),cmd->get_min_sfx_price(),cmd->get_price_peg_used());
           crypto::hash cmd_hash{};
           get_object_hash(offer, cmd_hash);
           if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
