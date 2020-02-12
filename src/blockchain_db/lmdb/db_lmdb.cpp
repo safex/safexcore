@@ -5716,6 +5716,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               offer.offer_id = offer_result.offer_id;
               offer.active = offer_result.active;
               offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
+              offer.price_peg_id = offer_result.price_peg_id;
+              offer.price_peg_used = offer_result.price_peg_used;
+              offer.min_sfx_price = offer_result.min_sfx_price;
             }
             else {
               safex::create_offer_data offer_result;
@@ -5727,6 +5730,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               offer.offer_id = offer_result.offer_id;
               offer.active = offer_result.active;
               offer.title = std::string{offer_result.title.begin(),offer_result.title.end()};
+              offer.price_peg_id = offer_result.price_peg_id;
+              offer.price_peg_used = offer_result.price_peg_used;
+              offer.min_sfx_price = offer_result.min_sfx_price;
             }
 
         }

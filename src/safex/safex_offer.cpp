@@ -35,4 +35,11 @@ namespace safex
         return id;
     }
 
+    void safex_offer::set_price_peg(crypto::hash& _price_peg_id, uint64_t _price, uint64_t _min_sfx_price){
+      price_peg_used = true;
+      price_peg_id = _price_peg_id;
+      price = _price;
+      min_sfx_price = _min_sfx_price;
+    }
+
 }

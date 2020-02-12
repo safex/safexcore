@@ -282,7 +282,7 @@ namespace
 
 #if 1
 
-  TYPED_TEST(SimplePurchaseTest, CreateOfferCommand) {
+  TYPED_TEST(SimplePurchaseTest, CreatePurchaseCommand) {
         boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
         std::string dirPath = tempPath.string();
 

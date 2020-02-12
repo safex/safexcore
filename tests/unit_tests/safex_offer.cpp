@@ -103,6 +103,10 @@ namespace
         m_safex_offer[1] = safex::safex_offer("Barbie",30,500,"This is a Barbie", m_safex_account2.username,m_users_acc[1].get_keys().m_view_secret_key,m_users_acc[1].get_keys().m_account_address);
         m_safex_offer[2] = safex::safex_offer("Car",1,1000,"This is a car", m_safex_account1.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
 
+        m_safex_price_peg = safex::safex_price_peg("USD price peg",m_safex_account1.username, "USD", "xcalibra USD price peg", 30);
+
+        m_safex_offer[2].set_price_peg(m_safex_price_peg.price_peg_id,100,1000);
+
         std::string new_str_desc{"Now without worms!!"};
         std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};
         m_edited_safex_offer = m_safex_offer[0];
@@ -157,6 +161,13 @@ namespace
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
             construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx2)] = tx2;
+          }
+          else if (i == 6)
+          {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_peg, m_safex_account1_keys.get_keys());
+            m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 7)
           {
@@ -232,6 +243,8 @@ namespace
 
       safex::safex_offer m_edited_safex_offer;
 
+      safex::safex_price_peg m_safex_price_peg;
+
 
       std::vector<uint8_t> data1_new;
 
@@ -292,6 +305,12 @@ namespace
             ASSERT_TRUE(std::equal(safex_offer.description.begin(), safex_offer.description.end(),
                                    saved_offer.description.begin()));
             ASSERT_EQ(safex_offer.title,saved_offer.title);
+            ASSERT_EQ(safex_offer.seller_private_view_key, saved_offer.seller_private_view_key);
+            ASSERT_EQ(safex_offer.seller_address, saved_offer.seller_address);
+
+            ASSERT_EQ(safex_offer.price_peg_used, saved_offer.price_peg_used);
+            ASSERT_EQ(safex_offer.price_peg_id, saved_offer.price_peg_id);
+            ASSERT_EQ(safex_offer.min_sfx_price, saved_offer.min_sfx_price);
 
             std::string username;
             result = this->m_db->get_offer_seller(safex_offer.offer_id, username);
@@ -326,6 +345,12 @@ namespace
         ASSERT_TRUE(std::equal(this->m_edited_safex_offer.description.begin(), this->m_edited_safex_offer.description.end(),
                                saved_offer.description.begin()));
         ASSERT_EQ(this->m_edited_safex_offer.title,saved_offer.title);
+        ASSERT_EQ(this->m_edited_safex_offer.seller_private_view_key, saved_offer.seller_private_view_key);
+        ASSERT_EQ(this->m_edited_safex_offer.seller_address, saved_offer.seller_address);
+
+        ASSERT_EQ(this->m_edited_safex_offer.price_peg_used, saved_offer.price_peg_used);
+        ASSERT_EQ(this->m_edited_safex_offer.price_peg_id, saved_offer.price_peg_id);
+        ASSERT_EQ(this->m_edited_safex_offer.min_sfx_price, saved_offer.min_sfx_price);
 
         std::string username;
         result = this->m_db->get_offer_seller(this->m_edited_safex_offer.offer_id, username);

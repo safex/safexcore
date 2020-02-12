@@ -49,7 +49,8 @@ namespace safex
     error_purchase_not_enough_funds = 16,
     error_purchase_offer_not_active = 17,
     error_offer_price_too_big = 18,
-    error_feedback_invalid_rating = 19
+    error_feedback_invalid_rating = 19,
+    error_offer_price_peg_not_existant = 20
   };
 
   struct execution_result
@@ -355,17 +356,21 @@ struct create_price_peg_result : public execution_result
     struct create_offer_data : public command_data
     {
         crypto::hash offer_id{};
+        crypto::hash price_peg_id{};
         std::vector<uint8_t> seller{};
         std::vector<uint8_t> title{};
         uint64_t quantity;
         uint64_t price;
+        uint64_t min_sfx_price;
         std::vector<uint8_t> description{};
         bool active{false};
+        bool price_peg_used{false};
         crypto::secret_key seller_private_view_key;
         cryptonote::account_public_address seller_address;
 
         create_offer_data() {}
-        create_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},title{offer.title.begin(),offer.title.end()},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key}
+        create_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},title{offer.title.begin(),offer.title.end()},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key},
+                                                            price_peg_id{offer.price_peg_id},min_sfx_price{offer.min_sfx_price},price_peg_used{offer.price_peg_used}
         {
         }
         create_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const uint64_t &_price, const std::vector<uint8_t> &_offer_data,const bool &_active, const cryptonote::account_public_address& _seller_address, const crypto::secret_key& _seller_private_view_key):
@@ -373,11 +378,14 @@ struct create_price_peg_result : public execution_result
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
+            FIELD(price_peg_id)
             FIELD(seller)
             FIELD(title)
             FIELD(price)
+            FIELD(min_sfx_price)
             FIELD(quantity)
             FIELD(active)
+            FIELD(price_peg_used)
             FIELD(description)
             FIELD(seller_private_view_key)
             FIELD(seller_address)
@@ -387,15 +395,19 @@ struct create_price_peg_result : public execution_result
     struct edit_offer_data : public command_data
     {
         crypto::hash offer_id{};
+        crypto::hash price_peg_id{};
         std::vector<uint8_t> seller{};
         std::vector<uint8_t> title{};
         uint64_t quantity;
         uint64_t price;
+        uint64_t min_sfx_price;
         std::vector<uint8_t> description{};
         bool active{false};
+        bool price_peg_used{false};
 
         edit_offer_data() {}
-        edit_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id},title{offer.title.begin(),offer.title.end()}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active}
+        edit_offer_data(const safex::safex_offer& offer): offer_id{offer.offer_id},title{offer.title.begin(),offer.title.end()}, description{offer.description},quantity{offer.quantity},price{offer.price},seller(offer.seller.begin(),offer.seller.end()),active{offer.active},
+                                                          price_peg_id{offer.price_peg_id},min_sfx_price{offer.min_sfx_price},price_peg_used{offer.price_peg_used}
         {
         }
         edit_offer_data(const crypto::hash &_offer_id, const std::vector<uint8_t> &_seller, const std::vector<uint8_t> &_title, const uint64_t &_quantity, const uint64_t &_price, const std::vector<uint8_t> &_offer_data,const bool &_active):
@@ -403,11 +415,14 @@ struct create_price_peg_result : public execution_result
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
+            FIELD(price_peg_id)
             FIELD(seller)
             FIELD(title)
             FIELD(price)
+            FIELD(min_sfx_price)
             FIELD(quantity)
             FIELD(active)
+            FIELD(price_peg_used)
             FIELD(description)
         END_SERIALIZE()
     };
@@ -875,22 +890,24 @@ public:
 
     /**
      * @param _version Safex command protocol version
-     * @param _offerid //ID of the offer
-     * @param _offer_data //offer data
+     * @param offer //offer data
     * */
     create_offer(const uint32_t _version, const safex::create_offer_data &offer) :
             command(_version, command_t::create_offer), offer_id(offer.offer_id), description{offer.description},
-            seller{offer.seller},title{offer.title},price{offer.price},quantity{offer.quantity},active{offer.active},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key}{
+            seller{offer.seller},title{offer.title},price{offer.price},quantity{offer.quantity},active{offer.active},seller_address{offer.seller_address},seller_private_view_key{offer.seller_private_view_key},
+            min_sfx_price{offer.min_sfx_price},price_peg_id{offer.price_peg_id},price_peg_used{offer.price_peg_used}{
     }
 
     create_offer() : command(0, command_t::create_offer), offer_id{}, description{} {}
 
     crypto::hash get_offerid() const { return offer_id; }
+    crypto::hash get_price_peg_id() const { return price_peg_id; }
     std::vector<uint8_t> get_seller() const { return seller; }
     std::vector<uint8_t> get_title() const { return title; }
     uint64_t get_price() const { return price; }
     uint64_t get_quantity() const { return quantity; }
     bool get_active() const { return active; }
+    bool get_price_peg_used() const { return price_peg_used; }
     std::vector<uint8_t> get_description() const { return description; }
     cryptonote::account_public_address get_seller_address() const { return seller_address; }
     crypto::secret_key get_seller_private_view_key() const { return seller_private_view_key; }
@@ -902,11 +919,14 @@ public:
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::create_offer);
         FIELD(offer_id)
+        FIELD(price_peg_id)
         FIELD(seller)
         FIELD(title)
         FIELD(price)
+        FIELD(min_sfx_price)
         FIELD(quantity)
         FIELD(active)
+        FIELD(price_peg_used)
         FIELD(description)
         FIELD(seller_private_view_key)
         FIELD(seller_address)
@@ -914,12 +934,15 @@ public:
 
 private:
     crypto::hash offer_id{};
+    crypto::hash price_peg_id{};
     std::vector<uint8_t> seller{};
     std::vector<uint8_t> title{};
     uint64_t quantity{};
     uint64_t price;
+    uint64_t min_sfx_price;
     std::vector<uint8_t> description{};
     bool active{};
+    bool price_peg_used; // is offer using price peg
     crypto::secret_key seller_private_view_key;
     cryptonote::account_public_address seller_address;
 };

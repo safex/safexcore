@@ -311,6 +311,11 @@ namespace safex
           result = execution_status::error_offer_price_too_big;
         }
 
+        safex::safex_price_peg sfx_price_peg{};
+        if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
+          result = execution_status::error_offer_price_peg_not_existant;
+        }
+
         return result;
     };
 
