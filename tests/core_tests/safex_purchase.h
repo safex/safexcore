@@ -75,6 +75,8 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
+  safex::safex_price_peg safex_price_peg_bob;
+
   safex::safex_purchase safex_alice_purchase_from_bob;
 
   safex::safex_feedback safex_alice_feedback;

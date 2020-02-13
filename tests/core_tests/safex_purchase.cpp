@@ -107,7 +107,22 @@ gen_safex_purchase_001::gen_safex_purchase_001()
                                                 safex_account_bob.username,bob.get_keys().m_view_secret_key,bob.get_keys().m_account_address);
 
 
-  safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_bob.price, safex_offer_bob.offer_id, false};
+
+
+
+  safex_price_peg_bob = safex::safex_price_peg("TestPricePeg",safex_account_bob.username,"USD","Best price my man",0.005018*COIN);
+  safex_offer_bob.set_price_peg(safex_price_peg_bob.price_peg_id,MK_COINS(800),MK_COINS(3));
+
+  std::string rate_str = print_money(safex_price_peg_bob.rate);
+  double rate = stod(rate_str);
+
+  std::string price_str = print_money(safex_offer_bob.price);
+  double price = stod(price_str);
+
+  uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
+
+  safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_bob.offer_id, false};
+
 
   safex_alice_feedback = safex::safex_feedback{3,"Perfect for my concert next week.",safex_offer_bob.offer_id};
 
@@ -123,18 +138,20 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_bob_offer_quantity = safex_offer_bob.quantity-safex_alice_purchase_from_bob.quantity;
     expected_purchased_offer_id = safex_alice_purchase_from_bob.offer_id;
 
+
+
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
     expected_alice_balance += MK_COINS(30);
-    expected_alice_balance -=safex_alice_purchase_from_bob.price;
+    expected_alice_balance -= pegged_price;
     expected_alice_balance -= TESTS_DEFAULT_FEE;
 
     expected_bob_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance += MK_TOKENS(20000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance -= 4*TESTS_DEFAULT_FEE;
-    expected_bob_balance +=safex_alice_purchase_from_bob.price*95/100;
+    expected_bob_balance += pegged_price*95/100;
 
-    expected_network_fee += safex_alice_purchase_from_bob.price*5/100;
+    expected_network_fee += pegged_price*5/100;
 
     expected_alice_feedback_star_rating = safex_alice_feedback.stars_given;
     expected_alice_balance -= TESTS_DEFAULT_FEE;
@@ -187,7 +204,7 @@ bool gen_safex_purchase_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_8, blk_7, miner);
 
     MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(events, txlist_4, daniel, safex_account_daniel.username, std::vector<uint8_t>(data3_alternative.begin(), data3_alternative.end()), m_safex_account3_keys.get_keys(), blk_8);
-    MAKE_EDIT_SAFEX_ACCOUNT_TX_LIST(events, txlist_4, bob, safex_account_bob.username, std::vector<uint8_t>(data2_alternative_2.begin(), data2_alternative_2.end()), m_safex_account2_keys.get_keys(),  blk_8);
+    MAKE_CREATE_SAFEX_PRICE_PEG_TX_LIST(events, txlist_4, bob, safex_account_bob.pkey, safex_price_peg_bob, m_safex_account2_keys.get_keys(), blk_8);
     MAKE_CREATE_SAFEX_ACCOUNT_TX_LIST(events, txlist_4, edward, safex_account_edward.username, safex_account_edward.pkey, safex_account_edward.account_data, m_safex_account4_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_8);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_9, blk_8, miner, txlist_4);
     REWIND_BLOCKS(events, blk_10, blk_9, miner);

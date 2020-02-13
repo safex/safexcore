@@ -179,6 +179,28 @@ namespace safex
     if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
 
+    uint64_t sfx_price = sfx_offer.min_sfx_price;
+
+    if(sfx_offer.price_peg_used){
+      safex::safex_price_peg sfx_price_peg;
+      if (!blokchainDB.get_safex_price_peg(sfx_offer.price_peg_id,sfx_price_peg)) {
+        return execution_status::error_offer_price_peg_not_existant;
+      }
+      std::string rate_str = cryptonote::print_money(sfx_price_peg.rate);
+      double rate = stod(rate_str);
+
+      std::string price_str = cryptonote::print_money(sfx_offer.price);
+      double price_dbl = stod(price_str);
+
+      uint64_t pegged_price = (price_dbl*rate)*SAFEX_CASH_COIN;
+
+      if(sfx_price < pegged_price)
+        sfx_price = pegged_price;
+    }
+
+    if(sfx_price * cmd->quantity > cmd->price)
+        return execution_status::error_purchase_not_enough_funds;
+
 
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());
