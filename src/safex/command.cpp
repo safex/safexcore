@@ -416,6 +416,9 @@ namespace safex
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
 
+      if(cmd->get_currency().size()!=3)
+        result = execution_status::error_price_peg_bad_currency_format;
+
       return result;
     };
 
