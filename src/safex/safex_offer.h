@@ -38,6 +38,12 @@ namespace safex
       {
       }
 
+      safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
+                  crypto::hash _id, std::string seller_username, bool _active, const cryptonote::account_public_address& _seller_address, bool _price_peg_used, crypto::hash _price_peg_id, uint64_t _min_sfx_price):title{_title},quantity{_quantity},price{_price},
+                                                          description{_description},offer_id{_id},seller{seller_username},active{_active},seller_address{_seller_address},price_peg_used{_price_peg_used},price_peg_id{_price_peg_id},min_sfx_price{_min_sfx_price}
+      {
+      }
+
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::string& _description,
                std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}):

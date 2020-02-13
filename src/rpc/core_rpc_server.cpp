@@ -185,14 +185,34 @@ namespace cryptonote
         for(auto offer: offers) {
             if(offer.active && offer.quantity > 0) {
               std::string offer_id_str = epee::string_tools::pod_to_hex(offer.offer_id);
-              COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title, offer.quantity, offer.price, offer.description,
-                                                      offer.active, offer.shipping, offer_id_str, offer.seller,
+              std::string price_peg_id_str = epee::string_tools::pod_to_hex(offer.price_peg_id);
+              COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title, offer.quantity, offer.price, offer.min_sfx_price, offer.description,
+                                                      offer.active, offer.price_peg_used, offer.shipping, offer_id_str, price_peg_id_str, offer.seller,
                                                       offer.seller_address};
               res.offers.push_back(ent);
             }
         }
         res.status = CORE_RPC_STATUS_OK;
         return true;
+    }
+    //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_price_pegs(const COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request& req, COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response& res)
+    {
+      PERF_TIMER(on_get_safex_price_pegs);
+      bool r;
+      if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_PRICE_PEGS>(invoke_http_mode::JON, "/get_safex_price_pegs", req, res, r))
+        return r;
+
+      std::vector<safex::safex_price_peg> price_pegs;
+      bool result  = m_core.get_safex_price_pegs(price_pegs,req.currency);
+
+      for(auto price_peg: price_pegs) {
+          std::string price_peg_id_str = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          COMMAND_RPC_GET_SAFEX_PRICE_PEGS::entry ent{price_peg.title,price_peg_id_str,price_peg.creator,price_peg.description,price_peg.currency,price_peg.rate};
+          res.price_pegs.push_back(ent);
+      }
+      res.status = CORE_RPC_STATUS_OK;
+      return true;
     }
     //------------------------------------------------------------------------------------------------------------------------------
     bool core_rpc_server::on_get_safex_ratings(const COMMAND_RPC_GET_SAFEX_RATINGS::request& req, COMMAND_RPC_GET_SAFEX_RATINGS::response& res)
