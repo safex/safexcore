@@ -3367,13 +3367,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           tvc.m_safex_invalid_input = true;
           return false;
       }
-      //check purchase total payment
-      if (total_payment > product_payment + network_fee)
-      {
-          MERROR("Not enough cash given for network fee and product payment ");
-          tvc.m_safex_invalid_input = true;
-          return false;
-      }
   }
   else if (command_type == safex::command_t::create_feedback)
   {
