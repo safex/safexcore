@@ -464,7 +464,7 @@ namespace tools
       m_daemon_rpc_mutex.unlock();
 
       THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_ratings");
-      THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex ratings");
+      THROW_WALLET_EXCEPTION_IF(res.status != CORE_RPC_STATUS_OK, error::no_connection_to_daemon, "Failed to get safex ratings");
 
       for (auto &item : res.ratings) {
         feedbacks.emplace_back(item.star_rating,item.comment,res.offer_id);
