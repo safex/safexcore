@@ -103,6 +103,34 @@ namespace cryptonote
       return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg_update,blobdata};
     }
 
+  bool simple_wallet::calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price){
+
+    sfx_price = sfx_offer.min_sfx_price;
+
+    std::vector<safex::safex_price_peg> sfx_price_pegs = m_wallet->get_safex_price_pegs();
+
+    if(sfx_offer.price_peg_used){
+      crypto::hash price_peg_id = sfx_offer.price_peg_id;
+      auto it = std::find_if(sfx_price_pegs.begin(), sfx_price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
+
+      if(it == sfx_price_pegs.end())
+        return false;
+
+      std::string rate_str = print_money(it->rate);
+      double rate = stod(rate_str);
+
+      std::string price_str = print_money(sfx_offer.price);
+      double price = stod(price_str);
+
+      uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
+
+      if(pegged_price > sfx_price)
+        sfx_price = pegged_price;
+    }
+
+    return true;
+  }
+
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
     //todo Uncomment
@@ -434,9 +462,12 @@ namespace cryptonote
 
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
-        de.amount = quantity_to_purchase*offer_to_purchase->price * 95  / 100;
+        uint64_t sfx_price;
+        bool res = calculate_sfx_price(*offer_to_purchase, sfx_price);
+
+        de.amount = quantity_to_purchase*sfx_price * 95  / 100;
         de.output_type = tx_out_type::out_cash;
-        safex_network_fee += quantity_to_purchase*offer_to_purchase->price * 5  / 100;
+        safex_network_fee += quantity_to_purchase*sfx_price * 5  / 100;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
@@ -447,7 +478,7 @@ namespace cryptonote
             return true;
         }
         //Purchase
-        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,offer_to_purchase->price};
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,sfx_price};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
         de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
         dsts.push_back(de_purchase);
@@ -1017,23 +1048,6 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
-          uint64_t sfx_price = offer.min_sfx_price;
-
-          if(offer.price_peg_used){
-            crypto::hash price_peg_id = offer.price_peg_id;
-            auto it = std::find_if(sfx_price_pegs.begin(), sfx_price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
-
-            std::string rate_str = print_money(it->rate);
-            double rate = stod(rate_str);
-
-            std::string price_str = print_money(offer.price);
-            double price = stod(price_str);
-
-            uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
-
-            if(pegged_price > sfx_price)
-              sfx_price = pegged_price;
-          }
 
 
       if(first)
@@ -1127,6 +1141,13 @@ namespace cryptonote
 
     void simple_wallet::print_safex_offer(safex::safex_offer& offer){
 
+
+      uint64_t sfx_price;
+      bool res = calculate_sfx_price(offer,sfx_price);
+
+      if(!res)
+        return;
+
       auto size_desc = offer.description.size();
 
       uint64_t lines = size_desc / 20 + 1;
@@ -1137,7 +1158,7 @@ namespace cryptonote
 
       for(uint64_t i = 0; i < lines; i++){
         if(i==lines/2)
-          success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#") % offer.title % print_money(offer.price) % offer.quantity % offer.seller %
+          success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#") % offer.title % print_money(sfx_price) % offer.quantity % offer.seller %
                                   std::string(begin(desc), begin(desc)+avaliable) % offer.offer_id;
         else
           success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#") % " " % " " % " " % " " %
