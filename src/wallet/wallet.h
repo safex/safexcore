@@ -782,6 +782,8 @@ namespace tools
 
       a & m_safex_feedback_tokens;
 
+      a & m_safex_price_pegs;
+
     }
 
       static std::string get_default_ringdb_path()
