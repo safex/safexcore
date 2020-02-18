@@ -33,20 +33,27 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
-                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}, const crypto::hash& _price_peg_id = {}):title{_title},quantity{_quantity},price{_price},
-                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_id{_price_peg_id}
+                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}):title{_title},quantity{_quantity},price{_price},
+                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address}
+      {
+      }
+
+      safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
+                  crypto::hash _id, std::string seller_username, bool _active, const cryptonote::account_public_address& _seller_address, bool _price_peg_used, crypto::hash _price_peg_id, uint64_t _min_sfx_price):title{_title},quantity{_quantity},price{_price},
+                                                          description{_description},offer_id{_id},seller{seller_username},active{_active},seller_address{_seller_address},price_peg_used{_price_peg_used},price_peg_id{_price_peg_id},min_sfx_price{_min_sfx_price}
       {
       }
 
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::string& _description,
-               std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}, const crypto::hash& _price_peg_id = {}):
-              title{_title}, quantity{_quantity}, price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_id{_price_peg_id} {
+               std::string seller_username, const crypto::secret_key& view_key, const cryptonote::account_public_address& _seller_address = {}):
+              title{_title}, quantity{_quantity}, price{_price}, min_sfx_price{_price}, active{true}, shipping{}, seller{seller_username},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_used{false}, price_peg_id{} {
 
           description = std::vector<uint8_t>(_description.begin(),_description.end());
           offer_id = create_offer_id(seller_username);
-
       }
+
+    void set_price_peg(crypto::hash& _price_peg_id, uint64_t _price, uint64_t _min_sfx_price);
 
     BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(title)
@@ -56,6 +63,7 @@ namespace safex
         KV_SERIALIZE(min_sfx_price)
         KV_SERIALIZE(description)
         KV_SERIALIZE(active)
+        KV_SERIALIZE(price_peg_used)
         KV_SERIALIZE(shipping)
         KV_SERIALIZE(offer_id)
         KV_SERIALIZE(seller)
@@ -71,6 +79,7 @@ namespace safex
         FIELD(min_sfx_price)
         FIELD(description)
         FIELD(active)
+        FIELD(price_peg_used)
         FIELD(shipping)
         FIELD(offer_id)
         FIELD(seller)
@@ -88,6 +97,7 @@ namespace safex
         a & min_sfx_price;
         a & description;
         a & active;
+        a & price_peg_used;
         a & shipping;
         a & offer_id;
         a & seller;
@@ -102,6 +112,7 @@ namespace safex
       uint64_t min_sfx_price;
       std::vector<uint8_t> description; //description of offer, JSON or other format TBD.
       bool active; //is offer active
+      bool price_peg_used; // is offer using price peg
       std::vector<uint8_t> shipping;
       crypto::hash offer_id; //unique id of the offer
       crypto::hash price_peg_id; //id of the price peg to be used

@@ -70,6 +70,8 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_bob;
 
+  safex::safex_price_peg safex_price_peg_bob;
+
   cryptonote::account_base alice;
   cryptonote::account_base bob;
 
@@ -91,15 +93,8 @@ public:
   static std::vector<uint8_t> expected_bob_account_data;
   static std::vector<uint8_t> expected_daniel_account_data;
 
-  static std::string expected_alice_safex_offer_seller;
-  static std::string expected_alice_safex_offer_title;
-  static crypto::hash expected_alice_safex_offer_id;
-  static crypto::hash expected_bob_safex_offer_id;
-  static uint64_t expected_alice_safex_offer_price;
-  static uint64_t  expected_alice_safex_offer_quantity;
-  static bool expected_alice_safex_offer_active_status;
-  static std::vector<uint8_t> expected_alice_safex_offer_description;
-  static std::vector<uint8_t> expected_alice_safex_offer_new_description;
+  static safex::safex_offer expected_alice_safex_offer;
+  static safex::safex_offer expected_bob_safex_offer;
 
 
 };

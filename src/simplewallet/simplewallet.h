@@ -240,6 +240,8 @@ namespace cryptonote
     bool blackballed(const std::vector<std::string>& args);
     bool version(const std::vector<std::string>& args);
 
+    bool calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price);
+
     uint64_t get_daemon_blockchain_height(std::string& err);
     bool try_connect_to_daemon(bool silent = false, uint32_t* version = nullptr);
     bool ask_wallet_create_if_needed();
@@ -257,6 +259,9 @@ namespace cryptonote
     void print_my_safex_offers();
     void print_not_given_feedbacks();
     void print_my_safex_price_pegs();
+    void print_my_safex_offer(safex::safex_offer& offer);
+    void print_safex_offer(safex::safex_offer& offer);
+
 
     bool list_offers(const std::vector<std::string>& args);
     bool list_ratings(const std::vector<std::string>& args);

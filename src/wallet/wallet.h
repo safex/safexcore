@@ -782,6 +782,8 @@ namespace tools
 
       a & m_safex_feedback_tokens;
 
+      a & m_safex_price_pegs;
+
     }
 
       static std::string get_default_ringdb_path()
@@ -1101,6 +1103,7 @@ namespace tools
     std::vector<safex::safex_offer> get_my_safex_offers();
     std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
+    std::vector<safex::safex_price_peg> get_safex_price_pegs(const std::string& currency = "");
     std::vector<safex::safex_price_peg> get_my_safex_price_pegs();
 
   private:

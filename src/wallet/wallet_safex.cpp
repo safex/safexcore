@@ -415,13 +415,40 @@ namespace tools
       THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex offers");
 
       for (auto &item : res.offers) {
-          crypto::hash hash;
-          epee::string_tools::hex_to_pod(item.offer_id, hash);
-          offers.emplace_back(item.title, item.quantity, item.price, item.description, hash, item.seller, item.active,item.seller_address);
+          crypto::hash offer_hash{};
+          epee::string_tools::hex_to_pod(item.offer_id, offer_hash);
+          crypto::hash price_peg_hash{};
+          epee::string_tools::hex_to_pod(item.price_peg_id, price_peg_hash);
+          offers.emplace_back(item.title, item.quantity, item.price, item.description, offer_hash, item.seller, item.active,item.seller_address,item.price_peg_used,price_peg_hash,item.min_sfx_price);
       }
 
       return offers;
   }
+
+    std::vector<safex::safex_price_peg> wallet::get_safex_price_pegs(const std::string &currency)
+    {
+      cryptonote::COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request req = AUTO_VAL_INIT(req);
+      cryptonote::COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response res = AUTO_VAL_INIT(res);
+
+      std::vector<safex::safex_price_peg> price_pegs;
+
+      req.currency = currency;
+
+      m_daemon_rpc_mutex.lock();
+      bool r = net_utils::invoke_http_json("/get_safex_price_pegs", req, res, m_http_client, rpc_timeout);
+      m_daemon_rpc_mutex.unlock();
+
+      THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_price_pegs");
+      THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex price pegs");
+
+      for (auto &item : res.price_pegs) {
+        crypto::hash hash{};
+        epee::string_tools::hex_to_pod(item.price_peg_id, hash);
+        price_pegs.emplace_back(item.title,item.creator,item.currency,item.description,hash,item.rate);
+      }
+
+      return price_pegs;
+    }
 
   std::vector<safex::safex_feedback> wallet::get_safex_ratings(const crypto::hash& offer_id)
   {
@@ -437,7 +464,7 @@ namespace tools
       m_daemon_rpc_mutex.unlock();
 
       THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_safex_ratings");
-      THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex ratings");
+      THROW_WALLET_EXCEPTION_IF(res.status != CORE_RPC_STATUS_OK, error::no_connection_to_daemon, "Failed to get safex ratings");
 
       for (auto &item : res.ratings) {
         feedbacks.emplace_back(item.star_rating,item.comment,res.offer_id);
