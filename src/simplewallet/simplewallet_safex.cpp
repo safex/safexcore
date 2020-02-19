@@ -465,9 +465,11 @@ namespace cryptonote
         uint64_t sfx_price;
         bool res = calculate_sfx_price(*offer_to_purchase, sfx_price);
 
-        de.amount = quantity_to_purchase*sfx_price * 95  / 100;
+        uint64_t total_sfx_to_pay = quantity_to_purchase*sfx_price;
+
+        de.amount = total_sfx_to_pay * 95  / 100;
         de.output_type = tx_out_type::out_cash;
-        safex_network_fee += quantity_to_purchase*sfx_price * 5  / 100;
+        safex_network_fee += total_sfx_to_pay * 5  / 100;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
@@ -478,7 +480,7 @@ namespace cryptonote
             return true;
         }
         //Purchase
-        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,sfx_price};
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,total_sfx_to_pay};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
         de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
         dsts.push_back(de_purchase);
