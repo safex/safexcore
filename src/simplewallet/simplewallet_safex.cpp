@@ -204,6 +204,20 @@ namespace cryptonote
 
       case CommandType::TransferFeedback:
         min_args = 3;
+      break;
+
+      case CommandType::TransferCreateOffer:
+      case CommandType::TransferCreatePricePeg:
+        min_args = 5;
+      break;
+
+      case CommandType::TransferUpdatePricePeg:
+        min_args = 5;
+        break;
+
+      case CommandType::TransferEditOffer:
+        min_args = 7;
+        break;
 
       default:
         //min_args is 2
