@@ -602,7 +602,7 @@ private:
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void remove_last_advanced_output();
+    void remove_last_advanced_output(const tx_out_type& out_type);
 
   /**
    * Remove last safex account update from database
