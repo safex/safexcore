@@ -986,6 +986,14 @@ namespace tools
       {
       }
     };
+    //----------------------------------------------------------------------------------------------------
+    struct safex_unknown_id : public transfer_error
+    {
+      explicit safex_unknown_id(std::string&& loc)
+                  : transfer_error(std::move(loc), "ID does not exist")
+      {
+      }
+    };
 
 #if !defined(_MSC_VER)
 
