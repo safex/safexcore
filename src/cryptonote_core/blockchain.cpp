@@ -3433,6 +3433,20 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           return false;
         }
 
+        if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+        {
+          MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
+        {
+          MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
         //check price peg data size
         if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
         {
@@ -3461,6 +3475,20 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         {
           std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
           MERROR("Account with username "+username+" does not exists");
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+        {
+          MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
+        {
+          MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
           tvc.m_safex_invalid_input = true;
           return false;
         }

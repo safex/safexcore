@@ -178,14 +178,14 @@
 #define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
 #define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD  ((uint64_t)15) //15 blocks for tests, TBD
 
-#define SAFEX_ACCOUNT_USERNAME_MAX_SIZE         20
+#define SAFEX_ACCOUNT_USERNAME_MAX_SIZE         32
 #define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
 
-#define SAFEX_OFFER_NAME_MAX_SIZE               20
+#define SAFEX_OFFER_NAME_MAX_SIZE               80
 #define SAFEX_OFFER_DATA_MAX_SIZE               2048
 
 
-#define SAFEX_PRICE_PEG_NAME_MAX_SIZE           20
+#define SAFEX_PRICE_PEG_NAME_MAX_SIZE           60
 #define SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE       8
 #define SAFEX_PRICE_PEG_DATA_MAX_SIZE           2048
 

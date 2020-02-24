@@ -455,8 +455,27 @@ namespace safex
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
 
-      if(cmd->get_currency().size()!=3)
+      if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
+
+      if (cmd->get_currency().size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
+      {
         result = execution_status::error_price_peg_bad_currency_format;
+      }
+
+      for (auto ch: cmd->get_currency()) {
+        if (!std::isupper(ch)) {
+          result = execution_status::error_price_peg_bad_currency_format;
+        }
+      }
+
+      //check price peg data size
+      if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
 
       return result;
     };
@@ -479,6 +498,17 @@ namespace safex
 
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+      if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
+
+      //check price peg data size
+      if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
 
       return result;
     };
