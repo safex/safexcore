@@ -1199,11 +1199,11 @@ namespace cryptonote
 
     for(uint64_t i = 0; i < lines; i++){
       if(i==lines/2)
-        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#") % offer.title % print_money(offer.price) % offer.quantity % offer.seller % (offer.price_peg_used?epee::string_tools::pod_to_hex(offer.price_peg_id):"N/A") % print_money(offer.min_sfx_price) %
-                                std::string(begin(desc), begin(desc)+avaliable) % offer.offer_id;
+        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#%|=20|#") % offer.title % print_money(offer.price) % offer.quantity % offer.seller % (offer.price_peg_used?epee::string_tools::pod_to_hex(offer.price_peg_id):"N/A") % print_money(offer.min_sfx_price) %
+                                std::string(begin(desc), begin(desc)+avaliable) % offer.offer_id % (offer.active?"True":"False");
       else
-        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#") % " " % " " % " " % " " % " " % " " %
-                                std::string(begin(desc), begin(desc)+avaliable) % " ";
+        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#%|=20|#") % " " % " " % " " % " " % " " % " " %
+                                std::string(begin(desc), begin(desc)+avaliable) % " " % " ";
       desc = std::vector<uint8_t>(desc.begin()+avaliable,desc.end());
       size_desc = size_desc - avaliable;
       avaliable = size_desc > 20 ? 20: size_desc;
@@ -1214,24 +1214,24 @@ namespace cryptonote
 
 
   void simple_wallet::print_my_safex_offers() {
-    success_msg_writer() << tr(std::string(132,'#').c_str()) <<  tr(" Safex offers ") << tr(std::string(132,'#').c_str());
-    success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#")  % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Price peg") % tr("Minimum SFX price") % tr("Description") %tr("Offer ID");
-    success_msg_writer() << tr(std::string(278,'#').c_str());
+    success_msg_writer() << tr(std::string(142,'#').c_str()) <<  tr(" Safex offers ") << tr(std::string(143,'#').c_str());
+    success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#%|=20|#")  % tr("Offer title") %  tr("Price") % tr("Quantity") % tr("Seller") % tr("Price peg") % tr("Minimum SFX price") % tr("Description") %tr("Offer ID") %tr("Active");
+    success_msg_writer() << tr(std::string(299,'#').c_str());
 
     bool first = false;
 
     for (auto &offer: m_wallet->get_my_safex_offers()) {
 
       if(first)
-        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#")  % tr(std::string(20, '-').c_str()) %  tr(std::string(20, '-').c_str())
+        success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=69|#%|=20|#%|=20|#%|=70|#%|=20|#")  % tr(std::string(20, '-').c_str()) %  tr(std::string(20, '-').c_str())
                                               % tr(std::string(20, '-').c_str()) % tr(std::string(30, '-').c_str()) % tr(std::string(69, '-').c_str())
-                                              % tr(std::string(20, '-').c_str())  % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str());
+                                              % tr(std::string(20, '-').c_str())  % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str()) %tr(std::string(20,'-').c_str());
 
       first = true;
       print_my_safex_offer(offer);
 
     }
-    success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(276,'#').c_str()) << tr(std::string(1,'#').c_str());
+    success_msg_writer() << tr(std::string(299,'#').c_str()) ;
 
   }
 
