@@ -183,7 +183,6 @@
 
 #define SAFEX_OFFER_NAME_MAX_SIZE               20
 #define SAFEX_OFFER_DATA_MAX_SIZE               2048
-#define SAFEX_ACCOUNT_UPDATE_MAX_TIMES          20
 
 
 #define SAFEX_PRICE_PEG_NAME_MAX_SIZE           20

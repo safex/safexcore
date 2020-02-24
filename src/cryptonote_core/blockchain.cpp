@@ -3284,6 +3284,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
                   return false;
               }
 
+              if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
+              {
+                MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+                tvc.m_safex_invalid_input = true;
+                return false;
+              }
+
               //check offer data size
               if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
               {
@@ -3314,6 +3321,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
                   MERROR("Account with username "+username+" does not exists");
                   tvc.m_safex_invalid_input = true;
                   return false;
+              }
+
+              if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
+              {
+                MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+                tvc.m_safex_invalid_input = true;
+                return false;
               }
 
               //check offer data size

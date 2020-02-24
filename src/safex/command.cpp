@@ -348,6 +348,18 @@ namespace safex
           result = execution_status::error_offer_price_too_big;
         }
 
+        if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
+        {
+          MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
+        if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
+        {
+          MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
         safex::safex_price_peg sfx_price_peg{};
         if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
           result = execution_status::error_offer_price_peg_not_existant;
@@ -377,6 +389,18 @@ namespace safex
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
+        {
+          MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
+        if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
+        {
+          MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
         }
 
         safex::safex_offer sfx_dummy{};
