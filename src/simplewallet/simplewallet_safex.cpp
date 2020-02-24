@@ -1305,6 +1305,7 @@ namespace cryptonote
       }
 
       if (m_wallet->generate_safex_account(username, accdata)) {
+        save({});
         success_msg_writer() << tr("New account created");
       } else {
         fail_msg_writer() << tr("Failed to create account");
