@@ -262,6 +262,11 @@ namespace safex
       return execution_status::error_account_already_exists;
     }
 
+    if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+    {
+      return execution_status::error_account_data_too_big;
+    }
+
     if (cmd->get_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
     {
       return execution_status::error_account_data_too_big;
@@ -299,6 +304,16 @@ namespace safex
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_username(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+        {
+          return execution_status::error_account_data_too_big;
+        }
+
+        if (cmd->get_new_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+        {
+          return execution_status::error_account_data_too_big;
         }
 
         return result;

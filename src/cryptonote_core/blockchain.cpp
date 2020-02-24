@@ -3195,6 +3195,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           return false;
         }
 
+        if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+        {
+          MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
         if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
         {
           MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
@@ -3234,6 +3241,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         {
           std::string username(std::begin(account.username), std::end(account.username));
           MERROR("Account with username "+username+" does not exists");
+          tvc.m_safex_invalid_input = true;
+          return false;
+        }
+
+        if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+        {
+          MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
           tvc.m_safex_invalid_input = true;
           return false;
         }
