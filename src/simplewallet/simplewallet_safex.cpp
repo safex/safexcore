@@ -345,14 +345,24 @@ namespace cryptonote
         if (command_type == CommandType::TransferCreateOffer) {
 
             std::string offer_title = local_args[1];
-            uint64_t price= stod(local_args[2])*SAFEX_CASH_COIN;
-            uint64_t quantity = stoi(local_args[3]);
+            uint64_t price;
+            uint64_t quantity;
 
-            long double check_price = stold(local_args[2]);
-            long double check_quantity = stold(local_args[3]);
+            try{
 
-            if(check_price < 0 || check_quantity < 0){
-              fail_msg_writer() << tr("Negative amount or quantity entered");
+              price = stold(local_args[2])*SAFEX_CASH_COIN;
+              quantity = stoi(local_args[3]);
+
+              long double check_price = stold(local_args[2]);
+              long double check_quantity =  stold(local_args[3]);
+
+              if(check_price < 0 || check_quantity < 0){
+                fail_msg_writer() << tr("Negative amount or quantity entered");
+                return true;
+              }
+            }
+            catch(std::invalid_argument& e){
+              fail_msg_writer() << tr("price or quantity not provided. Offer name must be without spaces.");
               return true;
             }
 
@@ -423,15 +433,17 @@ namespace cryptonote
             epee::string_tools::hex_to_pod(local_args[1], offer_id_hash);
 
             std::string offer_title = local_args[2];
-            uint64_t price= stod(local_args[3])*SAFEX_CASH_COIN;
-            uint64_t quantity = stoi(local_args[4]);
+            uint64_t price;
+            uint64_t quantity;
             bool active;
             try {
+                price = stold(local_args[2])*SAFEX_CASH_COIN;
+                quantity = stoi(local_args[3]);
                 active = stoi(local_args[5]);
 
             }
             catch(std::invalid_argument& e){
-                fail_msg_writer() << tr("active status not provided (1 - active, 0 - inactive)");
+                fail_msg_writer() << tr("active status, quantity or price not provided. Offer name must be without spaces.");
                 return true;
             }
 
