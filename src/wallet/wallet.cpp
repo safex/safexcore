@@ -3687,9 +3687,7 @@ boost::optional<tools::password_container> password_prompter(const char *prompt,
 //----------------------------------------------------------------------------------------------------
 void wallet::store()
 {
-    auto pwd = get_password(m_vm, options{}, password_prompter, false);
-
-    store_to("", pwd.get().password());
+  store_to("", epee::wipeable_string());
 }
 //----------------------------------------------------------------------------------------------------
 void wallet::store_to(const std::string &path, const epee::wipeable_string &password)
