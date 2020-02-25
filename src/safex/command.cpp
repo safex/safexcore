@@ -403,6 +403,11 @@ namespace safex
           result = execution_status::error_offer_data_too_big;
         }
 
+        safex::safex_price_peg sfx_price_peg{};
+        if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
+          result = execution_status::error_offer_price_peg_not_existant;
+        }
+
         safex::safex_offer sfx_dummy{};
         if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
             result = execution_status::error_offer_non_existant;

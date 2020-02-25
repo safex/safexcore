@@ -254,6 +254,7 @@ namespace cryptonote
 
     /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
 
+    bool attach_price_peg(safex::safex_offer& sfx_offer);
     bool get_my_interest(const std::vector<std::string>& args);
     void print_safex_accounts();
     void print_my_safex_offers();

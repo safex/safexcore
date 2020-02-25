@@ -374,46 +374,8 @@ namespace cryptonote
 
             std::string confirm = input_line(tr("Do you want to attach this offer to a price peg?  (Y/Yes/N/No): "));
             if (!std::cin.eof() && command_line::is_yes(confirm)) {
-              std::string currency = input_line(
-                      tr("For what currency do you want to attach your offer? (leave blank to list all price pegs in the BC): "));
-              auto price_pegs = m_wallet->get_safex_price_pegs(currency);
-              if (price_pegs.empty()) {
-                fail_msg_writer() << tr("No price peg for given currency found!");
+              if(!attach_price_peg(sfx_offer))
                 return true;
-              }
-
-              print_price_pegs(price_pegs);
-
-              std::string price_peg_id_str = input_line(tr("Enter price peg ID to choose : "));
-
-              bool found = false;
-              crypto::hash price_peg_id;
-              if(!epee::string_tools::hex_to_pod(price_peg_id_str, price_peg_id)){
-                fail_msg_writer() << tr("Bad price peg ID given!!!");
-                return true;
-              }
-
-              for (auto price_peg: price_pegs)
-                if(price_peg.price_peg_id == price_peg_id){
-                  currency = price_peg.currency;
-                  found = true;
-                  break;
-                }
-              if(!found){
-                fail_msg_writer() << tr("No price peg from list selected!");
-                return true;
-              }
-
-              std::string prompt = "Enter price in "+currency+" : ";
-              std::string price_str = input_line(tr(prompt.c_str()));
-              uint64_t new_price = stold(price_str);
-              new_price*=SAFEX_CASH_COIN;
-
-              prompt = "Enter minimum SFX price : ";
-              std::string min_price_str = input_line(tr(prompt.c_str()));
-              uint64_t min_price = stold(min_price_str);
-              min_price*=SAFEX_CASH_COIN;
-              sfx_offer.set_price_peg(price_peg_id,new_price,min_price);
             }
 
             cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
@@ -430,8 +392,8 @@ namespace cryptonote
             uint64_t quantity;
             bool active;
             try {
-                price = stold(local_args[2])*SAFEX_CASH_COIN;
-                quantity = stoi(local_args[3]);
+                price = stold(local_args[3])*SAFEX_CASH_COIN;
+                quantity = stoi(local_args[4]);
                 active = stoi(local_args[5]);
 
             }
@@ -446,6 +408,12 @@ namespace cryptonote
 
             safex::safex_offer sfx_offer{offer_title, quantity, price, std::vector<uint8_t>{description.begin(),description.end()},
                                           offer_id_hash, my_safex_account.username, active, m_wallet->get_account().get_keys().m_account_address, m_wallet->get_account().get_keys().m_view_secret_key};
+
+          std::string confirm = input_line(tr("Do you want to attach this offer to a price peg?  (Y/Yes/N/No): "));
+          if (!std::cin.eof() && command_line::is_yes(confirm)) {
+            if(!attach_price_peg(sfx_offer))
+              return true;
+          }
 
             cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer_update);
@@ -1160,6 +1128,51 @@ namespace cryptonote
 
       return true;
     }
+
+  bool simple_wallet::attach_price_peg(safex::safex_offer& sfx_offer){
+    std::string currency = input_line(
+            tr("For what currency do you want to attach your offer? (leave blank to list all price pegs in the BC): "));
+    auto price_pegs = m_wallet->get_safex_price_pegs(currency);
+    if (price_pegs.empty()) {
+      fail_msg_writer() << tr("No price peg for given currency found!");
+      return true;
+    }
+
+    print_price_pegs(price_pegs);
+
+    std::string price_peg_id_str = input_line(tr("Enter price peg ID to choose : "));
+
+    bool found = false;
+    crypto::hash price_peg_id;
+    if(!epee::string_tools::hex_to_pod(price_peg_id_str, price_peg_id)){
+      fail_msg_writer() << tr("Bad price peg ID given!!!");
+      return false;
+    }
+
+    for (auto price_peg: price_pegs)
+      if(price_peg.price_peg_id == price_peg_id){
+        currency = price_peg.currency;
+        found = true;
+        break;
+      }
+    if(!found){
+      fail_msg_writer() << tr("No price peg from list selected!");
+      return false;
+    }
+
+    std::string prompt = "Enter price in "+currency+" : ";
+    std::string price_str = input_line(tr(prompt.c_str()));
+    uint64_t new_price = stold(price_str);
+    new_price*=SAFEX_CASH_COIN;
+
+    prompt = "Enter minimum SFX price : ";
+    std::string min_price_str = input_line(tr(prompt.c_str()));
+    uint64_t min_price = stold(min_price_str);
+    min_price*=SAFEX_CASH_COIN;
+    sfx_offer.set_price_peg(price_peg_id,new_price,min_price);
+
+    return true;
+  }
 
   bool simple_wallet::get_my_interest(const std::vector<std::string>& args)
   {
