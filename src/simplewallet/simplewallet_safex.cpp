@@ -1302,8 +1302,15 @@ namespace cryptonote
       const std::string &username = local_args[0];
 
       if(m_wallet->safex_account_exists(username)) {
-        fail_msg_writer() << tr("safex account already exists in the Blockchain");
+        fail_msg_writer() << tr("safex account username already exists in the Blockchain");
         return true;
+      }
+
+      for(auto ch: username){
+        if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
+          fail_msg_writer() << tr("safex account username can only have lowercase letters, _ and -");
+          return true;
+        }
       }
 
 

@@ -252,7 +252,7 @@ namespace safex
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
     for (auto ch: cmd->get_username()) {
-      if (!std::isalnum(ch) && ch!='_' && ch!='-') {
+      if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
         return execution_status::error_invalid_account_name;
       }
     }
@@ -296,7 +296,7 @@ namespace safex
 
 
         for (auto ch: cmd->get_username()) {
-            if (!std::isalnum(ch) && ch!='_' && ch!='-') {
+          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
                 result = execution_status::error_invalid_account_name;
             }
         }
