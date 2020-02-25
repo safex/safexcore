@@ -33,8 +33,8 @@ namespace safex
       }
 
       safex_offer(const std::string &_title, const uint64_t _quantity, const uint64_t _price, const std::vector<uint8_t> &_description,
-                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}):title{_title},quantity{_quantity},price{_price},
-                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address}
+                  crypto::hash _id, std::string seller_username, bool _active = true , const cryptonote::account_public_address& _seller_address = {}, const crypto::secret_key& view_key = {}):title{_title},quantity{_quantity},price{_price},min_sfx_price{_price},
+                                                            description{_description},offer_id{_id},seller{seller_username},active{_active},seller_private_view_key{view_key},seller_address{_seller_address},price_peg_used{false}
       {
       }
 
