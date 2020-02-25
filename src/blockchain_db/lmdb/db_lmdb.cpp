@@ -1397,6 +1397,18 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity);
     } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
         remove_last_advanced_output(output_type);
+    } else if (output_type == tx_out_type::out_safex_price_peg) {
+      const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+      const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
+      safex::create_price_peg_data price_peg_output_data;
+      parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
+      remove_safex_price_peg(price_peg_output_data.price_peg_id);
+    } else if(output_type == tx_out_type::out_safex_price_peg_update) {
+      const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+      const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
+      safex::update_price_peg_data price_peg_output_data;
+      parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
+      remove_safex_price_peg_update(price_peg_output_data.price_peg_id);
     }
     else {
       throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
@@ -5015,6 +5027,116 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         else
             throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
+    }
+
+    void BlockchainLMDB::restore_safex_price_peg_data(safex::create_price_peg_result& sfx_price_peg){
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+
+      MDB_cursor *cur_output_advanced;
+      CURSOR(output_advanced);
+      cur_output_advanced = m_cur_output_advanced;
+
+      uint64_t output_id = 0;
+
+      MDB_val_set(key, output_id);
+
+      blobdata blob;
+      MDB_val_set(value_blob, blob);
+
+      output_advanced_data_t current = AUTO_VAL_INIT(current);
+
+      auto get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_LAST);
+
+      while (get_result == MDB_SUCCESS)
+      {
+        safex::create_price_peg_data restored_sfx_price_peg_create;
+        safex::update_price_peg_data restored_sfx_price_peg_update;
+
+        current = parse_output_advanced_data_from_mdb(value_blob);
+
+        if(parse_and_validate_object_from_blob<safex::create_price_peg_data>(current.data, restored_sfx_price_peg_create)){
+
+          if(sfx_price_peg.price_peg_id == restored_sfx_price_peg_create.price_peg_id) {
+            sfx_price_peg.creator = restored_sfx_price_peg_create.creator;
+            sfx_price_peg.rate = restored_sfx_price_peg_create.rate;
+            sfx_price_peg.currency = restored_sfx_price_peg_create.currency;
+            sfx_price_peg.title = restored_sfx_price_peg_create.title;
+            sfx_price_peg.description = restored_sfx_price_peg_create.description;
+            return;
+          }
+        }
+        else if(parse_and_validate_object_from_blob<safex::update_price_peg_data>(current.data, restored_sfx_price_peg_update)){
+          if(sfx_price_peg.price_peg_id == restored_sfx_price_peg_update.price_peg_id) {
+            sfx_price_peg.creator = restored_sfx_price_peg_update.creator;
+            sfx_price_peg.rate = restored_sfx_price_peg_update.rate;
+            sfx_price_peg.currency = restored_sfx_price_peg_update.currency;
+            sfx_price_peg.title = restored_sfx_price_peg_update.title;
+            sfx_price_peg.description = restored_sfx_price_peg_update.description;
+            return;
+          }
+        }
+        get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_PREV);
+
+      }
+
+      throw0(DB_ERROR(lmdb_error("DB error attempting to restore safex price_peg: ", get_result).c_str()));
+
+    }
+
+    void BlockchainLMDB::remove_safex_price_peg(const crypto::hash &price_peg_id){
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+
+      CURSOR(safex_price_peg);
+
+      MDB_val_set(k, price_peg_id);
+
+      auto result = mdb_cursor_get(m_cur_safex_price_peg, &k, NULL, MDB_SET);
+      if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Error finding price_peg to remove: ", result).c_str()));
+      if (!result)
+      {
+        remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg);
+        //Then we remove safex price_peg from DB
+        result = mdb_cursor_del(m_cur_safex_price_peg, 0);
+        if (result)
+          throw1(DB_ERROR(lmdb_error("Error removing price_peg: ", result).c_str()));
+      }
+    }
+
+    void BlockchainLMDB::remove_safex_price_peg_update(const crypto::hash& price_peg_id)
+    {
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+      mdb_txn_cursors *m_cursors = &m_wcursors;
+
+      CURSOR(safex_price_peg);
+
+      MDB_val_set(k, price_peg_id);
+      MDB_val v;
+      auto result = mdb_cursor_get(m_cur_safex_price_peg, &k, &v, MDB_SET);
+      if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Error finding price_peg to remove: ", result).c_str()));
+      if (!result)
+      {
+        safex::create_price_peg_result sfx_price_peg;
+        const cryptonote::blobdata pricepegblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+        cryptonote::parse_and_validate_from_blob(pricepegblob, sfx_price_peg);
+
+        //First we must remove advanced output
+        remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg_update);
+
+
+        restore_safex_price_peg_data(sfx_price_peg);
+
+        //Then we update safex price_peg to DB
+        MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_price_peg));
+        auto result2 = mdb_cursor_put(m_cur_safex_price_peg, &k, &vupdate, (unsigned int) MDB_CURRENT);
+        if (result)
+          throw1(DB_ERROR(lmdb_error("Error removing safex price_peg: ", result).c_str()));
+      }
     }
 
     void BlockchainLMDB::remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity)
