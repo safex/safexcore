@@ -1240,6 +1240,12 @@ simple_wallet::simple_wallet()
                            tr("list_offers"),
                            tr("List current offers in the Blockchain."));
 
+  m_cmd_binder.set_handler("list_price_pegs",
+                           boost::bind(&simple_wallet::list_price_pegs, this, _1),
+                           tr("list_price_pegs [currency]\n"),
+                           tr("List price pegs in the Blockchain.\n"
+                              "If no currency is given, list all price pegs in the Blockchain"));
+
     m_cmd_binder.set_handler("list_ratings",
                              boost::bind(&simple_wallet::list_ratings, this, _1),
                              tr("list_ratings <offer_id>"),

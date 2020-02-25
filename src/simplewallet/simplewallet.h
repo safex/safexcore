@@ -261,10 +261,13 @@ namespace cryptonote
     void print_my_safex_price_pegs();
     void print_my_safex_offer(safex::safex_offer& offer);
     void print_safex_offer(safex::safex_offer& offer);
+    void print_safex_price_peg(safex::safex_price_peg& price_peg);
+    void print_price_pegs(const std::vector<safex::safex_price_peg>& price_pegs);
 
 
     bool list_offers(const std::vector<std::string>& args);
     bool list_ratings(const std::vector<std::string>& args);
+    bool list_price_pegs(const std::vector<std::string>& args);
     // Function responsible for
     bool create_command(CommandType command_type, const std::vector<std::string> &args);
 

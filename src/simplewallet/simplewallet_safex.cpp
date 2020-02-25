@@ -382,14 +382,7 @@ namespace cryptonote
                 return true;
               }
 
-              success_msg_writer() << tr("Safex price pegs");
-              std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % "Price peg title" % "Currency" % "Rate" %
-                           "Creator" % "Description" % "Price peg ID" << std::endl;
-              for (auto price_peg: price_pegs)
-                std::cout << boost::format("%30s %10s %10s %30s %60s %20s") % price_peg.title % price_peg.currency %
-                             print_money(price_peg.rate) % price_peg.creator %
-                             std::string(begin(price_peg.description), end(price_peg.description)) %
-                             price_peg.price_peg_id << std::endl;
+              print_price_pegs(price_pegs);
 
               std::string price_peg_id_str = input_line(tr("Enter price peg ID to choose : "));
 
@@ -1091,6 +1084,38 @@ namespace cryptonote
     return true;
   }
 
+    bool simple_wallet::list_price_pegs(const std::vector<std::string>& args) {
+
+      std::string currency = args.empty()?"":args[0];
+      auto price_pegs = m_wallet->get_safex_price_pegs(currency);
+
+      print_price_pegs(price_pegs);
+
+      return true;
+    }
+
+    void simple_wallet::print_price_pegs(const std::vector<safex::safex_price_peg>& price_pegs){
+      success_msg_writer() << tr(std::string(81,'#').c_str()) <<  tr(" Safex price pegs in the Blockchain ") << tr(std::string(80,'#').c_str());
+
+      success_msg_writer() << boost::format("#%|=30|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#")  % tr("Price peg title") %  tr("Currency") % tr("Rate")  % tr("Creator") %tr("Description") %tr("Price peg ID");
+      success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(195,'#').c_str()) << tr(std::string(1,'#').c_str());
+
+      bool first = false;
+
+
+      for (auto price_peg: price_pegs) {
+
+        if(first)
+          success_msg_writer() << boost::format("#%|=30|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#")  % tr(std::string(30, '-').c_str()) %  tr(std::string(20, '-').c_str())
+                                  % tr(std::string(20, '-').c_str()) % tr(std::string(30, '-').c_str()) % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str());
+
+        first = true;
+
+        print_safex_price_peg(price_peg);
+      }
+      success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(195,'#').c_str()) << tr(std::string(1,'#').c_str());
+    }
+
     void simple_wallet::print_not_given_feedbacks(){
       success_msg_writer() << tr(std::string(20,'#').c_str()) <<  tr(" Safex feedbacks left to give for offers: ") << tr(std::string(20,'#').c_str());
 
@@ -1198,6 +1223,33 @@ namespace cryptonote
 
 
     }
+
+    void simple_wallet::print_safex_price_peg(safex::safex_price_peg& price_peg){
+
+
+      auto size_desc = price_peg.description.size();
+
+      uint64_t lines = size_desc / 20 + 1;
+
+      auto desc = price_peg.description;
+
+      uint64_t avaliable = size_desc > 20 ? 20: size_desc;
+
+      for(uint64_t i = 0; i < lines; i++){
+        if(i==lines/2)
+          success_msg_writer() << boost::format("#%|=30|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#") % price_peg.title % price_peg.currency % print_money(price_peg.rate)% price_peg.creator %
+                                  std::string(begin(desc), begin(desc)+avaliable) % price_peg.price_peg_id;
+        else
+          success_msg_writer() << boost::format("#%|=30|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#") % " " % " " % " " % " " %
+                                  std::string(begin(desc), begin(desc)+avaliable) % " ";
+        desc = std::vector<uint8_t>(desc.begin()+avaliable,desc.end());
+        size_desc = size_desc - avaliable;
+        avaliable = size_desc > 20 ? 20: size_desc;
+      }
+
+
+    }
+
 
   void simple_wallet::print_my_safex_offer(safex::safex_offer& offer){
 
