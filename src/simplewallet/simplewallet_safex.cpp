@@ -547,6 +547,11 @@ namespace cryptonote
         std::string price_peg_currency = local_args[2];
         uint64_t rate;
 
+        if(price_peg_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
+          fail_msg_writer() << tr("Currency must be equal or less than ") << SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE<<tr(" characters!");
+          return true;
+        }
+
         try {
           rate = stod(local_args[3])*COIN;
         }
@@ -571,6 +576,11 @@ namespace cryptonote
         std::string price_peg_title = local_args[2];
         std::string price_peg_currency = local_args[3];
         uint64_t rate;
+
+        if(price_peg_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
+          fail_msg_writer() << tr("Currency must be equal or less than ") << SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE<<tr(" characters!");
+          return true;
+        }
 
         try {
           rate = stod(local_args[4])*COIN;
