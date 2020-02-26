@@ -362,7 +362,7 @@ namespace cryptonote
               }
             }
             catch(std::invalid_argument& e){
-              fail_msg_writer() << tr("price or quantity not provided. Offer name must be without spaces.");
+              fail_msg_writer() << tr("One of the arguments is missing. Please check needed arguments again.");
               return true;
             }
 
@@ -398,7 +398,7 @@ namespace cryptonote
 
             }
             catch(std::invalid_argument& e){
-                fail_msg_writer() << tr("active status, quantity or price not provided. Offer name must be without spaces.");
+                fail_msg_writer() << tr("One of the arguments is missing. Please check needed arguments again.");
                 return true;
             }
 
@@ -545,8 +545,15 @@ namespace cryptonote
 
         std::string price_peg_title = local_args[1];
         std::string price_peg_currency = local_args[2];
-        uint64_t rate = stod(local_args[3])*COIN;
+        uint64_t rate;
 
+        try {
+          rate = stod(local_args[3])*COIN;
+        }
+        catch(std::invalid_argument& e){
+          fail_msg_writer() << tr("One of the arguments is missing. Please check needed arguments again.");
+          return true;
+        }
         std::ostringstream pricepeg_ostr;
         std::copy(local_args.begin() + 4, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
         std::string description = pricepeg_ostr.str();
@@ -563,7 +570,15 @@ namespace cryptonote
 
         std::string price_peg_title = local_args[2];
         std::string price_peg_currency = local_args[3];
-        uint64_t rate = stod(local_args[4])*COIN;
+        uint64_t rate;
+
+        try {
+          rate = stod(local_args[4])*COIN;
+        }
+        catch(std::invalid_argument& e){
+          fail_msg_writer() << tr("One of the arguments is missing. Please check needed arguments again.");
+          return true;
+        }
 
         std::ostringstream pricepeg_ostr;
         std::copy(local_args.begin() + 5, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
