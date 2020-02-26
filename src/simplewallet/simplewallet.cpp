@@ -5136,6 +5136,9 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, crypt
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::rescan_blockchain(const std::vector<std::string> &args_)
 {
+  if (!args_.empty())
+    if (args_[0] == "hard")
+      m_wallet->set_refresh_from_block_height(0);
   return refresh_main(0, true);
 }
 //----------------------------------------------------------------------------------------------------
