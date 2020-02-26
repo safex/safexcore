@@ -1414,7 +1414,7 @@ namespace cryptonote
       }
 
       if (m_wallet->generate_safex_account(username, accdata)) {
-        save({});
+        save_safex({});
         success_msg_writer() << tr("New account created");
       } else {
         fail_msg_writer() << tr("Failed to create account");
@@ -1447,7 +1447,7 @@ namespace cryptonote
       epee::string_tools::hex_to_pod(private_key, skey);
 
       if (m_wallet->recover_safex_account(username, skey)) {
-        save({});
+        save_safex({});
         success_msg_writer() << tr("Account recovered");
       } else {
         fail_msg_writer() << tr("Failed to recover account ") << username;

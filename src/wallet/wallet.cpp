@@ -3513,10 +3513,6 @@ void wallet::load(const std::string& wallet_, const epee::wipeable_string& passw
   }
   LOG_PRINT_L0("Loaded wallet keys file, with public address: " << m_account.get_public_address_str(m_nettype));
 
-  if (!load_safex_keys(m_safex_keys_file, password))
-  {
-      LOG_PRINT_L0("No safex accounts found in : " << m_safex_keys_file);
-  }
   //keys loaded ok!
   //try to load wallet file. but even if we failed, it is not big problem
   if(!boost::filesystem::exists(m_wallet_file, e) || e)
@@ -3596,6 +3592,11 @@ void wallet::load(const std::string& wallet_, const epee::wipeable_string& passw
       m_account_public_address.m_spend_public_key != m_account.get_keys().m_account_address.m_spend_public_key ||
       m_account_public_address.m_view_public_key  != m_account.get_keys().m_account_address.m_view_public_key,
       error::wallet_files_doesnt_correspond, m_keys_file, m_wallet_file);
+  }
+
+  if (!load_safex_keys(m_safex_keys_file, password))
+  {
+    LOG_PRINT_L0("No safex accounts found in : " << m_safex_keys_file);
   }
 
   cryptonote::block genesis;
@@ -3688,6 +3689,59 @@ boost::optional<tools::password_container> password_prompter(const char *prompt,
 void wallet::store()
 {
   store_to("", epee::wipeable_string());
+}
+//----------------------------------------------------------------------------------------------------
+void wallet::store_safex()
+{
+  bool same_file = true;
+  std::string path = "";
+  auto password = epee::wipeable_string();
+#ifdef WIN32
+      //boost canonical messes with linux gnu
+#else
+      if (!path.empty())
+      {
+        std::string canonical_path = boost::filesystem::canonical(m_wallet_file).string();
+        size_t pos = canonical_path.find(path);
+        same_file = pos != std::string::npos;
+      }
+#endif
+
+      if (!same_file)
+      {
+        // check if we want to store to directory which doesn't exists yet
+        boost::filesystem::path parent_path = boost::filesystem::path(path).parent_path();
+
+        // if path is not exists, try to create it
+        if (!parent_path.empty() &&  !boost::filesystem::exists(parent_path))
+        {
+          boost::system::error_code ec;
+          if (!boost::filesystem::create_directories(parent_path, ec))
+          {
+            throw std::logic_error(ec.message());
+          }
+        }
+      }
+
+      const std::string new_safex_keys_file = same_file ? m_safex_keys_file + ".new" : path;
+      const std::string old_safex_keys_file = m_safex_keys_file;
+
+      // save keys to the new file
+      // if we here, main wallet file is saved and we only need to save keys and address files
+      if (!same_file) {
+        prepare_file_names(path);
+        bool r = store_safex_keys(m_safex_keys_file, password);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
+        // remove old safex keys file
+        r = boost::filesystem::remove(old_safex_keys_file);
+        if (!r) {
+          LOG_ERROR("error removing file: " << old_safex_keys_file);
+        }
+      } else {
+        // save to new file
+        bool r = store_safex_keys(m_safex_keys_file, password);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
+      }
 }
 //----------------------------------------------------------------------------------------------------
 void wallet::store_to(const std::string &path, const epee::wipeable_string &password)
