@@ -1062,16 +1062,15 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
-
-
       if(first)
         success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#")  % tr(std::string(20, '-').c_str()) %  tr(std::string(20, '-').c_str())
                                   % tr(std::string(20, '-').c_str()) % tr(std::string(30, '-').c_str()) % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str());
 
-      first = true;
-
-      print_safex_offer(offer);
+      if(offer.active && offer.quantity > 0) {
+        first = true;
+        print_safex_offer(offer);
       }
+    }
     success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(185,'#').c_str()) << tr(std::string(1,'#').c_str());
 
     return true;
@@ -1110,18 +1109,28 @@ namespace cryptonote
     }
 
     void simple_wallet::print_not_given_feedbacks(){
-      success_msg_writer() << tr(std::string(20,'#').c_str()) <<  tr(" Safex feedbacks left to give for offers: ") << tr(std::string(20,'#').c_str());
 
-      success_msg_writer() << boost::format("#%|=80|#")  % tr("Offer ID");
-      success_msg_writer() << boost::format("#%|=80|#")  % std::string(80,'#');
+      auto offers = m_wallet->get_safex_offers();
+
+      success_msg_writer() << tr(std::string(31,'#').c_str()) <<  tr(" Safex feedbacks left to give for offers: ") << tr(std::string(30,'#').c_str());
+
+      success_msg_writer() << boost::format("#%|=20|#%|=80|#")  % tr("Offer title") % tr("Offer ID");
+      success_msg_writer() << boost::format("#%|=101|#")  % std::string(101,'#');
       bool first = false;
       for (auto &offer_id: m_wallet->get_my_safex_feedbacks_to_give()) {
-        if(first)
-          success_msg_writer() << boost::format("#%|=80|#")  % std::string(80,'-');
-        first = true;
-        success_msg_writer() << boost::format("#%|=80|#")  % offer_id;
+
+        auto it = std::find_if(offers.begin(), offers.end(), [offer_id](const safex::safex_offer &sfx_offer) {
+            return offer_id == sfx_offer.offer_id;
+        });
+
+        if (first)
+          success_msg_writer() << boost::format("#%|=20|#%|=80|#") % std::string(20, '-') % std::string(80, '-');
+        if (it != offers.end()) {
+          first = true;
+          success_msg_writer() << boost::format("#%|=20|#%|=80|#") % it->title % offer_id;
+        }
       }
-      success_msg_writer() << boost::format("#%|=80|#")  % std::string(80,'#');
+      success_msg_writer() << boost::format("#%|=101|#")  % std::string(101,'#');
     }
 
     bool simple_wallet::list_ratings(const std::vector<std::string>& args) {
