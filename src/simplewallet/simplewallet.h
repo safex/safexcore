@@ -199,6 +199,7 @@ namespace cryptonote
     bool print_integrated_address(const std::vector<std::string> &args = std::vector<std::string>());
     bool address_book(const std::vector<std::string> &args = std::vector<std::string>());
     bool save(const std::vector<std::string> &args);
+    bool save_safex(const std::vector<std::string> &args);
     bool save_watch_only(const std::vector<std::string> &args);
     bool set_variable(const std::vector<std::string> &args);
     bool rescan_spent(const std::vector<std::string> &args);
@@ -254,17 +255,21 @@ namespace cryptonote
 
     /************************************ SAFEX MARKETPLACE FUNCTIONALITIES *****************************************/
 
+    bool attach_price_peg(safex::safex_offer& sfx_offer);
     bool get_my_interest(const std::vector<std::string>& args);
     void print_safex_accounts();
     void print_my_safex_offers();
     void print_not_given_feedbacks();
     void print_my_safex_price_pegs();
-    void print_my_safex_offer(safex::safex_offer& offer);
+    void print_my_safex_offer(safex::safex_offer& offer, std::vector<safex::safex_price_peg>& price_pegs);
     void print_safex_offer(safex::safex_offer& offer);
+    void print_safex_price_peg(safex::safex_price_peg& price_peg);
+    void print_price_pegs(const std::vector<safex::safex_price_peg>& price_pegs);
 
 
     bool list_offers(const std::vector<std::string>& args);
     bool list_ratings(const std::vector<std::string>& args);
+    bool list_price_pegs(const std::vector<std::string>& args);
     // Function responsible for
     bool create_command(CommandType command_type, const std::vector<std::string> &args);
 

@@ -1729,7 +1729,9 @@ advanced_wallet::advanced_wallet()
                              tr("Show the unspent token outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("rescan_bc",
                            boost::bind(&advanced_wallet::rescan_blockchain, this, _1),
-                           tr("Rescan the blockchain from scratch."));
+                           tr("rescan_bc [hard]"),
+                           tr("Rescan the blockchain from scratch. If \"hard\" is specified, the wallet will scan the whole blockchain no matter when the wallet is created.\n"
+                                         "The \"hard\" option is useful when you want to get advanced outputs that are created earlier on a different wallet and \"rescan_bc\" is not enough."));
   m_cmd_binder.set_handler("set_tx_note",
                            boost::bind(&advanced_wallet::set_tx_note, this, _1),
                            tr("set_tx_note <txid> [free text note]"),

@@ -1240,6 +1240,12 @@ simple_wallet::simple_wallet()
                            tr("list_offers"),
                            tr("List current offers in the Blockchain."));
 
+  m_cmd_binder.set_handler("list_price_pegs",
+                           boost::bind(&simple_wallet::list_price_pegs, this, _1),
+                           tr("list_price_pegs [currency]\n"),
+                           tr("List price pegs in the Blockchain.\n"
+                              "If no currency is given, list all price pegs in the Blockchain"));
+
     m_cmd_binder.set_handler("list_ratings",
                              boost::bind(&simple_wallet::list_ratings, this, _1),
                              tr("list_ratings <offer_id>"),
@@ -2313,6 +2319,22 @@ bool simple_wallet::save(const std::vector<std::string> &args)
     LOCK_IDLE_SCOPE();
     m_wallet->store();
     success_msg_writer() << tr("Wallet data saved");
+  }
+  catch (const std::exception& e)
+  {
+    fail_msg_writer() << e.what();
+  }
+
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool simple_wallet::save_safex(const std::vector<std::string> &args)
+{
+  try
+  {
+    LOCK_IDLE_SCOPE();
+    m_wallet->store_safex();
+    success_msg_writer() << tr("Wallet safex data saved");
   }
   catch (const std::exception& e)
   {
@@ -5130,6 +5152,9 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, crypt
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::rescan_blockchain(const std::vector<std::string> &args_)
 {
+  if (!args_.empty())
+    if (args_[0] == "hard")
+      m_wallet->set_refresh_from_block_height(0);
   return refresh_main(0, true);
 }
 //----------------------------------------------------------------------------------------------------

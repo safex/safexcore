@@ -546,6 +546,23 @@ private:
     void remove_safex_offer_update(const crypto::hash &offer_id);
 
     /**
+     * Remove safex price_peg from database
+     *
+     * @param price_peg_id safex price_peg id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_price_peg(const crypto::hash &price_peg_id);
+
+    /**
+     * Remove safex price_peg update from database
+     *
+     * @param price_peg_id safex price_peg id
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_price_peg_update(const crypto::hash &price_peg_id);
+    /**
     * Create purchase in database
     *
     * @param purchase safex purchase data
@@ -649,6 +666,15 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
     void restore_safex_offer_data(safex::create_offer_result& sfx_offer);
+
+    /**
+     * Restore safex price_peg data by getting it from advanced output table
+     *
+     * @param sfx_price_peg safex price_peg that needs to be updated
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void restore_safex_price_peg_data(safex::create_price_peg_result& sfx_price_peg);
 
 protected:
 

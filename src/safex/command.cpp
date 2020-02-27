@@ -252,7 +252,7 @@ namespace safex
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
     for (auto ch: cmd->get_username()) {
-      if (!std::isalnum(ch) && ch!='_' && ch!='-') {
+      if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
         return execution_status::error_invalid_account_name;
       }
     }
@@ -260,6 +260,11 @@ namespace safex
     std::vector<uint8_t>  dummy{};
     if (blokchainDB.get_account_data(cmd->get_username(), dummy)) {
       return execution_status::error_account_already_exists;
+    }
+
+    if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+    {
+      return execution_status::error_account_data_too_big;
     }
 
     if (cmd->get_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
@@ -291,7 +296,7 @@ namespace safex
 
 
         for (auto ch: cmd->get_username()) {
-            if (!std::isalnum(ch) && ch!='_' && ch!='-') {
+          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
                 result = execution_status::error_invalid_account_name;
             }
         }
@@ -299,6 +304,16 @@ namespace safex
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_username(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+        {
+          return execution_status::error_account_data_too_big;
+        }
+
+        if (cmd->get_new_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+        {
+          return execution_status::error_account_data_too_big;
         }
 
         return result;
@@ -333,6 +348,18 @@ namespace safex
           result = execution_status::error_offer_price_too_big;
         }
 
+        if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
+        {
+          MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
+        if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
+        {
+          MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
         safex::safex_price_peg sfx_price_peg{};
         if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
           result = execution_status::error_offer_price_peg_not_existant;
@@ -362,6 +389,23 @@ namespace safex
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
+        {
+          MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
+        if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
+        {
+          MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+          result = execution_status::error_offer_data_too_big;
+        }
+
+        safex::safex_price_peg sfx_price_peg{};
+        if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
+          result = execution_status::error_offer_price_peg_not_existant;
         }
 
         safex::safex_offer sfx_dummy{};
@@ -416,8 +460,27 @@ namespace safex
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
 
-      if(cmd->get_currency().size()!=3)
+      if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
+
+      if (cmd->get_currency().size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
+      {
         result = execution_status::error_price_peg_bad_currency_format;
+      }
+
+      for (auto ch: cmd->get_currency()) {
+        if (!std::isupper(ch)) {
+          result = execution_status::error_price_peg_bad_currency_format;
+        }
+      }
+
+      //check price peg data size
+      if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
 
       return result;
     };
@@ -440,6 +503,17 @@ namespace safex
 
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+      if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
+
+      //check price peg data size
+      if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
+      {
+        result = execution_status::error_price_peg_data_too_big;
+      }
 
       return result;
     };
