@@ -3695,7 +3695,8 @@ void wallet::store_safex()
 {
   bool same_file = true;
   std::string path = "";
-  auto password = epee::wipeable_string();
+  auto pwd = get_password(m_vm, options{}, password_prompter, false);
+  auto password = pwd.get().password();
 #ifdef WIN32
       //boost canonical messes with linux gnu
 #else
