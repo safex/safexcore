@@ -1388,6 +1388,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         parse_and_validate_object_from_blob(blobdata1, offer_output_data);
         remove_safex_offer_update(offer_output_data.offer_id);
     } else if(output_type == tx_out_type::out_staked_token){
+        //TODO: GRKI check this if needed more logic
         remove_staked_token(tx.vout[i].token_amount);
     } else if(output_type == tx_out_type::out_safex_purchase){
         const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
@@ -1396,7 +1397,14 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         parse_and_validate_object_from_blob(blobdata1, purchase_output_data);
         remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity);
     } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
+        //TODO: GRKI Check this if needed more logic
         remove_last_advanced_output(output_type);
+    } else if (output_type == tx_out_type::out_safex_feedback) {
+      const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
+      const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
+      safex::create_feedback_data feedback_output_data;
+      parse_and_validate_object_from_blob(blobdata1, feedback_output_data);
+      remove_safex_feedback(feedback_output_data.offer_id);
     } else if (output_type == tx_out_type::out_safex_price_peg) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -5168,6 +5176,46 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw0(DB_ERROR(lmdb_error("DB error attempting to remove purchase: ", result).c_str()));
         }
     }
+
+  void BlockchainLMDB::remove_safex_feedback(const crypto::hash& offer_id){
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    MDB_cursor *cur_safex_feedback;
+    CURSOR(safex_feedback)
+    cur_safex_feedback = m_cur_safex_feedback;
+
+    uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
+
+    MDB_val_set(k, offer_id);
+    MDB_val_set(v, temp);
+
+    auto result = mdb_cursor_get(cur_safex_feedback, &k, &v, MDB_SET);
+    if (result == MDB_SUCCESS)
+    {
+      remove_last_advanced_output(tx_out_type::out_safex_feedback);
+
+      std::vector<safex::safex_feedback_db_data> sfx_feedbacks;
+      const cryptonote::blobdata feedbackblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
+      cryptonote::parse_and_validate_from_blob(feedbackblob, sfx_feedbacks);
+
+      sfx_feedbacks.pop_back();
+
+      MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_feedbacks));
+      auto result2 = mdb_cursor_put(cur_safex_feedback, &k, &vupdate, (unsigned int) MDB_CURRENT);
+      if (result2 != MDB_SUCCESS)
+        throw0(DB_ERROR(lmdb_error("Failed to remove feecback for offer id: "+boost::lexical_cast<std::string>(offer_id), result2).c_str()));
+    }
+    else if (result == MDB_NOTFOUND)
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to remove feedback: ", result).c_str()));
+    }
+    else
+    {
+      throw0(DB_ERROR(lmdb_error("DB error attempting to remove feedback: ", result).c_str()));
+    }
+  }
+
 
   void BlockchainLMDB::remove_safex_account_update(const safex::account_username &username)
   {

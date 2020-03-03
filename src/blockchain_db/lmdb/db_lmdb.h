@@ -649,6 +649,15 @@ private:
   */
   void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity);
 
+    /**
+     * Remove safex feedback advanced output and update offer quantity from database
+     *
+     * @param offer_id ID of offer where feedback is given
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_safex_feedback(const crypto::hash& offer_id);
+
   /**
    * Restore safex account data by getting it from advanced output table
    *
