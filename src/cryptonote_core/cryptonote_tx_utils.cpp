@@ -822,7 +822,7 @@ namespace cryptonote
       //find staked token amount matching to this interest
       uint64_t input_token_staked_amount = 0;
       uint64_t output_token_amount = 0;
-      for (uint i = 0; i < sources.size(); i++)
+      for (uint64_t i = 0; i < sources.size(); i++)
         if (sources[i].referenced_output_type == tx_out_type::out_staked_token && sources[i].real_output ==  src_entr.real_output)
           input_token_staked_amount = sources[i].token_amount;
 
