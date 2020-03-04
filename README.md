@@ -5,7 +5,11 @@
 
 Network has performed hard fork 6 with Fix for token overflow issue, Wallet fix and other bug fixes. Current hard fork ready release of Ubuntu, Windows and Mac safexd node binaries and source code is available [here](https://github.com/safex/safexcore/releases).
 
-
+Build | Test 
+------|------
+![](https://github.com/VanGrx/safexcore/workflows/Ubuntu%2018.04%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Ubuntu%2018.04%20Test/badge.svg?branch=master)
+![](https://github.com/VanGrx/safexcore/workflows/Mac%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Mac%20Test/badge.svg?branch=master)
+![](https://github.com/VanGrx/safexcore/workflows/Windows%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Windows%20Test/badge.svg?branch=master)
 
 ## Build Instructions
 

@@ -67,6 +67,10 @@ release-test:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE) && $(MAKE) test
 
+release-test-win64-github:
+	mkdir -p build/release
+	cd build/release && cmake -G "MSYS Makefiles" -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -D ARCH="x86-64"  -D BUILD_64=ON -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE) && $(MAKE) test
+
 release-all:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
@@ -139,6 +143,9 @@ release-static-win64-proto:
 	mkdir -p build/release
 	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
 
+release-static-win64-proto-github:
+	mkdir -p build/release
+	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE)
 
 release-static-win32:
 	mkdir -p build/release
