@@ -118,6 +118,7 @@ if (BUILD_GUI_DEPS)
             wallet_api
             wallet
             multisig
+            safex_core
             cryptonote_core
             cryptonote_basic
             mnemonics
