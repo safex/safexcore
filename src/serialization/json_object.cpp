@@ -217,14 +217,14 @@ void fromJsonValue(const rapidjson::Value& val, long& i)
 
 void fromJsonValue(const rapidjson::Value& val, safex::command_t& command_type)
 {
-    uint temp;
+    uint32_t temp;
     to_uint(val, temp);
     command_type = static_cast<safex::command_t>(temp);
 }
 
 void toJsonValue(rapidjson::Document& doc, const safex::command_t& command_type, rapidjson::Value& val)
 {
-    uint temp = static_cast<uint>(command_type);
+    uint32_t temp = static_cast<uint32_t>(command_type);
     val = rapidjson::Value(temp);
 }
 
