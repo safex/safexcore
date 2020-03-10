@@ -2795,7 +2795,12 @@ bool wallet::store_keys(const std::string& keys_file_name, const epee::wipeable_
 
         for(unsigned  i = 0; i < m_safex_accounts.size(); ++i){
             rapidjson::Value value(rapidjson::kStringType);
-            value.SetString(m_safex_accounts_keys[i].m_secret_key.data, sizeof(m_safex_accounts_keys[i].m_secret_key.data));
+            auto pkey = m_safex_accounts[i].pkey;
+            auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+                  return it.get_public_key() == pkey;
+            });
+            CHECK_AND_ASSERT_MES(safex_keys != m_safex_accounts_keys.end(), false, "failed to generate wallet safex account keys file " << safex_keys_file_name);
+            value.SetString(safex_keys->m_secret_key.data, sizeof(safex_keys->m_secret_key.data));
             rapidjson::Value name(m_safex_accounts[i].username.c_str(), json.GetAllocator());
             json.AddMember(name.Move(), value, json.GetAllocator());
         }

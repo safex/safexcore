@@ -266,8 +266,14 @@ namespace tools
 
     for (uint32_t i=0;i<m_safex_accounts.size();i++) {
       if (m_safex_accounts[i].username == username) {
-         m_safex_accounts.erase(m_safex_accounts.begin()+i);
-         m_safex_accounts_keys.erase(m_safex_accounts_keys.begin()+i);
+        auto pkey = m_safex_accounts[i].pkey;
+        auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+            return it.get_public_key() == pkey;
+        });
+
+        m_safex_accounts.erase(m_safex_accounts.begin()+i);
+        if(safex_keys != m_safex_accounts_keys.end())
+          m_safex_accounts_keys.erase(safex_keys);
       }
     }
 
@@ -335,7 +341,13 @@ namespace tools
     {
       if (m_safex_accounts[i].username == username)
       {
-        acckeys = m_safex_accounts_keys[i];
+        auto pkey = m_safex_accounts[i].pkey;
+        auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+            return it.get_public_key() == pkey;
+        });
+        if(safex_keys == m_safex_accounts_keys.end())
+          return false;
+        acckeys = *safex_keys;
         return true;
       }
     }

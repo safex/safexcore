@@ -776,7 +776,6 @@ namespace tools
       if (ver < 1) return;
 
       a & m_safex_accounts;
-      a & m_safex_accounts_keys;
 
       a & m_safex_offers;
 
