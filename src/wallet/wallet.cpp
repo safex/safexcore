@@ -207,7 +207,6 @@ std::unique_ptr<tools::wallet> make_basic(const boost::program_options::variable
   wallet->init(std::move(daemon_address), std::move(login));
   boost::filesystem::path ringdb_path = command_line::get_arg(vm, opts.shared_ringdb_dir);
   wallet->set_ring_database(ringdb_path.string());
-  wallet->set_vm(vm);
   return wallet;
 }
 
@@ -3691,12 +3690,10 @@ void wallet::store()
   store_to("", epee::wipeable_string());
 }
 //----------------------------------------------------------------------------------------------------
-void wallet::store_safex()
+void wallet::store_safex(const epee::wipeable_string &password)
 {
   bool same_file = true;
   std::string path = "";
-  auto pwd = get_password(m_vm, options{}, password_prompter, false);
-  auto password = pwd.get().password();
 #ifdef WIN32
       //boost canonical messes with linux gnu
 #else
@@ -3860,8 +3857,6 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
     ostr.close();
     THROW_WALLET_EXCEPTION_IF(!success || !ostr.good(), error::file_save_error, new_file);
 #endif
-    bool r = store_safex_keys(m_safex_keys_file, password);
-    THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
     // here we have "*.new" file, we need to rename it to be without ".new"
     std::error_code e = tools::replace_file(new_file, m_wallet_file);
     THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_wallet_file, e);
