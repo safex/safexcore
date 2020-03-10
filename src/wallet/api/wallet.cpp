@@ -1374,6 +1374,23 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
     return transaction;
 }
 
+
+bool WalletImpl::createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password){
+
+  if(m_wallet->safex_account_exists(username)) {
+    return false;
+  }
+
+  if (m_wallet->generate_safex_account(username, description)) {
+    m_wallet->store_safex(password);
+    return true;
+  } else {
+    return false;
+  }
+
+    return true;
+}
+
 PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
 {

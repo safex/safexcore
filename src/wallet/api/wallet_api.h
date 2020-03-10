@@ -489,6 +489,9 @@ struct Wallet
     */
     virtual void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) = 0;
 
+
+    virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password) = 0;
+
    /*!
     * \brief getRestoreHeight - get wallet creation height
     *

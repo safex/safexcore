@@ -137,6 +137,9 @@ public:
                                         uint32_t subaddr_account = 0,
                                         std::set<uint32_t> subaddr_indices = {},
                                         const TransactionType tx_type = TransactionType::CashTransaction);
+
+    bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password);
+
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename);
