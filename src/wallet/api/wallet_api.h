@@ -516,6 +516,7 @@ struct Wallet
     virtual std::vector<SafexAccount> getSafexAccounts() = 0;
 
     virtual SafexAccount getSafexAccount(const std::string& username) = 0;
+    virtual bool recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password) = 0;
 
    /*!
     * \brief getRestoreHeight - get wallet creation height

@@ -141,7 +141,7 @@ public:
     bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password);
     std::vector<SafexAccount> getSafexAccounts();
     SafexAccount getSafexAccount(const std::string& username);
-
+    bool recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password);
 
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);

@@ -1425,6 +1425,20 @@ SafexAccount WalletImpl::getSafexAccount(const std::string& username){
 
 }
 
+bool WalletImpl::recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password){
+
+  crypto::secret_key skey{};
+  epee::string_tools::hex_to_pod(private_key, skey);
+
+  if (m_wallet->recover_safex_account(username, skey)) {
+    m_wallet->store_safex(password);
+    return true;
+  } else {
+    return false;
+  }
+  return true;
+}
+
 PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
 {
