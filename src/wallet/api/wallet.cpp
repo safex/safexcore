@@ -1391,6 +1391,22 @@ bool WalletImpl::createSafexAccount(const std::string& username, const std::vect
     return true;
 }
 
+std::vector<SafexAccount> WalletImpl::getSafexAccounts() {
+
+  std::vector<SafexAccount> sfx_accounts;
+
+  for (auto& acc: m_wallet->get_safex_accounts()) {
+    safex::safex_account_keys keys = AUTO_VAL_INIT(keys);
+    std::string data{acc.account_data.begin(),acc.account_data.end()};
+    m_wallet->get_safex_account_keys(acc.username, keys);
+    std::string pubKey = epee::string_tools::pod_to_hex(keys.m_public_key);
+    std::string secKey = epee::string_tools::pod_to_hex(keys.m_secret_key);
+    sfx_accounts.emplace_back(acc.username,data,pubKey,secKey);
+  }
+
+  return sfx_accounts;
+}
+
 PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
 {

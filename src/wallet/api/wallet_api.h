@@ -197,6 +197,26 @@ struct TransactionHistory
     virtual void refresh() = 0;
 };
 
+struct SafexAccount {
+public:
+    SafexAccount(std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key):
+            username(usr),
+            data(_data),
+            pub_key(_pub_key),
+            sec_key(_sec_key) {}
+
+private:
+    std::string username;
+    std::string data;
+    std::string pub_key;
+    std::string sec_key;
+public:
+    std::string getUsername() const {return username;}
+    std::string getData() const {return data;}
+    std::string getPubKey() const {return pub_key;}
+    std::string getSecKey() const {return sec_key;}
+};
+
 /**
  * @brief AddressBookRow - provides functions to manage address book
  */
@@ -491,6 +511,8 @@ struct Wallet
 
 
     virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password) = 0;
+
+    virtual std::vector<SafexAccount> getSafexAccounts() = 0;
 
    /*!
     * \brief getRestoreHeight - get wallet creation height

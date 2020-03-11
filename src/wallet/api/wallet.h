@@ -139,6 +139,8 @@ public:
                                         const TransactionType tx_type = TransactionType::CashTransaction);
 
     bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password);
+    std::vector<SafexAccount> getSafexAccounts();
+
 
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);
