@@ -1439,6 +1439,14 @@ bool WalletImpl::recoverSafexAccount(const std::string& username, const std::str
   return true;
 }
 
+bool WalletImpl::removeSafexAccount(const std::string& username){
+
+  if (m_wallet->remove_safex_account(username))
+    return true;
+
+  return false;
+}
+
 PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
 {
