@@ -144,6 +144,8 @@ public:
     bool recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password);
     bool removeSafexAccount(const std::string& username);
 
+    PendingTransaction * createAdvancedTransaction(const std::string &dst_addr, const std::string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                   PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand);
 
     virtual PendingTransaction * createSweepUnmixableTransaction();
     bool submitTransaction(const std::string &fileName);

@@ -131,7 +131,7 @@ public:
     CreateAccountCommand(){}
     CreateAccountCommand(std::string& _username, std::string& _data, std::string& _public_key):m_username{_username},m_data{_data},
                                                                                               m_public_key{_public_key},AdvancedCommand{TransactionType::CreateAccountTransaction}{}
-private:
+
     std::string m_username;
     std::string m_data;
     std::string m_public_key;
@@ -773,6 +773,10 @@ struct Wallet
      */
 
     virtual PendingTransaction * createSweepUnmixableTransaction() = 0;
+
+
+    virtual PendingTransaction * createAdvancedTransaction(const std::string &dst_addr, const std::string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                           PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand) = 0;
 
    /*!
     * \brief loadUnsignedTx  - creates transaction from unsigned tx file
