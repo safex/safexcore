@@ -462,6 +462,9 @@ struct create_price_peg_result : public execution_result
         create_feedback_token_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id}
         {
         }
+        create_feedback_token_data(const safex::safex_feedback_token& feedback_token): offer_id{feedback_token.offer_id}
+        {
+        }
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
