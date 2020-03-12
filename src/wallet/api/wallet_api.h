@@ -51,7 +51,17 @@ enum NetworkType : uint8_t {
 enum class TransactionType {
   CashTransaction = 0,
   TokenTransaction = 1,
-  MigrationTransaction = 2
+  MigrationTransaction = 2,
+  StakeTokenTransaction,
+  UnstakeTokenTransaction,
+  PurchaseTransaction,
+  CreateAccountTransaction,
+  EditAccountTransaction,
+  CreateOfferTransaction,
+  EditOfferTransaction,
+  FeedbackTransaction,
+  CreatePricePegTransaction,
+  UpdatePricePegTransaction
 };
 
 namespace Utils {
@@ -108,6 +118,23 @@ struct PendingTransaction
     virtual uint64_t txCount() const = 0;
     virtual std::vector<uint32_t> subaddrAccount() const = 0;
     virtual std::vector<std::set<uint32_t>> subaddrIndices() const = 0;
+};
+
+struct AdvancedCommand{
+    TransactionType m_transaction_type;
+};
+
+
+struct CreateAccountCommand : public AdvancedCommand
+{
+public:
+    CreateAccountCommand(){}
+    CreateAccountCommand(std::string& _username, std::string& _data, std::string& _public_key):m_username{_username},m_data{_data},
+                                                                                              m_public_key{_public_key},AdvancedCommand{TransactionType::CreateAccountTransaction}{}
+private:
+    std::string m_username;
+    std::string m_data;
+    std::string m_public_key;
 };
 
 /**
