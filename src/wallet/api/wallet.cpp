@@ -1525,14 +1525,17 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
           m_status = Status_Error;
           m_errorString = tr("Failed to parse address");
+          break;
         }
         if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
+          break;
         };
         if (!crypto::check_key(my_safex_account.pkey)) {
           m_status = Status_Error;
           m_errorString = tr("Invalid account public key");
+          break;
         }
         cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_safex_account.username, my_safex_account.pkey, my_safex_account.account_data);
 
