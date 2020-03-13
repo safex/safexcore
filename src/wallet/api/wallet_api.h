@@ -52,16 +52,16 @@ enum class TransactionType {
   CashTransaction = 0,
   TokenTransaction = 1,
   MigrationTransaction = 2,
-  StakeTokenTransaction,
-  UnstakeTokenTransaction,
-  PurchaseTransaction,
-  CreateAccountTransaction,
-  EditAccountTransaction,
-  CreateOfferTransaction,
-  EditOfferTransaction,
-  FeedbackTransaction,
-  CreatePricePegTransaction,
-  UpdatePricePegTransaction
+  StakeTokenTransaction = 3,
+  UnstakeTokenTransaction = 4,
+  PurchaseTransaction = 5,
+  CreateAccountTransaction = 6,
+  EditAccountTransaction = 7,
+  CreateOfferTransaction = 8,
+  EditOfferTransaction = 9,
+  FeedbackTransaction = 10,
+  CreatePricePegTransaction = 11,
+  UpdatePricePegTransaction = 12
 };
 
 namespace Utils {
@@ -128,13 +128,10 @@ struct AdvancedCommand{
 struct CreateAccountCommand : public AdvancedCommand
 {
 public:
-    CreateAccountCommand(){}
-    CreateAccountCommand(const std::string& _username, const std::string& _data, const std::string& _public_key):AdvancedCommand{TransactionType::CreateAccountTransaction},m_username{_username},m_data{_data},
-                                                                                              m_public_key{_public_key}{}
+    CreateAccountCommand():AdvancedCommand{TransactionType::CreateAccountTransaction}{}
+    CreateAccountCommand(const std::string& _username):AdvancedCommand{TransactionType::CreateAccountTransaction},m_username{_username}{}
 
     std::string m_username;
-    std::string m_data;
-    std::string m_public_key;
 };
 
 /**
