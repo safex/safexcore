@@ -129,7 +129,7 @@ struct CreateAccountCommand : public AdvancedCommand
 {
 public:
     CreateAccountCommand(){}
-    CreateAccountCommand(std::string& _username, std::string& _data, std::string& _public_key):m_username{_username},m_data{_data},
+    CreateAccountCommand(const std::string& _username, const std::string& _data, const std::string& _public_key):m_username{_username},m_data{_data},
                                                                                               m_public_key{_public_key},AdvancedCommand{TransactionType::CreateAccountTransaction}{}
 
     std::string m_username;
