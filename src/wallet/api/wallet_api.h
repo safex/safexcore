@@ -190,6 +190,16 @@ public:
         bool m_active = true;
     };
 
+struct StakeTokenCommand : public AdvancedCommand
+{
+public:
+    StakeTokenCommand():AdvancedCommand{TransactionType::StakeTokenTransaction}{}
+    StakeTokenCommand(const std::string& _address, const uint64_t _token_amount):AdvancedCommand{TransactionType::StakeTokenTransaction},m_token_amount{_token_amount},m_address{_address}{}
+
+        uint64_t m_token_amount;
+        std::string m_address;
+};
+
 /**
  * @brief Transaction-like interface for sending money
  */

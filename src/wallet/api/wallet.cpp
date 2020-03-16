@@ -1699,6 +1699,37 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::StakeTokenTransaction) {
+
+        Safex::StakeTokenCommand stakeToken = static_cast<Safex::StakeTokenCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+        if (!tools::is_whole_token_amount(*value_amount))
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Token amount must be whole number.");
+          break;
+        }
+
+        uint64_t minimum_tokens = safex::get_minimum_token_stake_amount(m_wallet->nettype());
+
+        if (*value_amount < minimum_tokens)
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Token amount must be at least ") + print_money(minimum_tokens);
+          break;
+        }
+
+
+        de.token_amount = *value_amount;
+        de.script_output = true;
+        de.output_type = tx_out_type::out_staked_token;
+        safex::command_t command = safex::command_t::token_stake;
+        uint64_t unlock_block = 0;
+
+        dsts.push_back(de);
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?
