@@ -1594,6 +1594,54 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::CreateOfferTransaction) {
+
+        Safex::CreateOfferCommand sfxOffer = static_cast<Safex::CreateOfferCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+
+        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse address");
+          break;
+        }
+        if (!m_wallet->get_safex_account(sfxOffer.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        };
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+
+        safex::safex_offer sfx_offer{sfxOffer.m_offer_title, sfxOffer.m_quantity, sfxOffer.m_price,
+                                     sfxOffer.m_description, my_safex_account.username,
+                                     m_wallet->get_account().get_keys().m_view_secret_key,
+                                     m_wallet->get_account().get_keys().m_account_address};
+
+        if (sfxOffer.m_price_peg_used) {
+          crypto::hash price_peg_id;
+          if(!epee::string_tools::hex_to_pod(sfxOffer.m_price_peg_id, price_peg_id)){
+            m_status = Status_Error;
+            m_errorString = tr("Bad price peg ID given");
+            break;
+          }
+          sfx_offer.set_price_peg(price_peg_id, sfxOffer.m_price, sfxOffer.m_min_sfx_price);
+        }
+
+        cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
+        dsts.push_back(de_offer);
+
+
+        uint64_t unlock_block = 0;
+        std::string err;
+        safex::command_t command = safex::command_t::nop;
+        command = safex::command_t::create_offer;
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?

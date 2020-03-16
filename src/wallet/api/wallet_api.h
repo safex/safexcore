@@ -148,6 +148,26 @@ public:
     std::string m_data;
 };
 
+struct CreateOfferCommand : public AdvancedCommand
+{
+public:
+    CreateOfferCommand():AdvancedCommand{TransactionType::CreateOfferTransaction}{}
+    CreateOfferCommand(const std::string& _username, const std::string& _offer_title, const uint64_t _price, const uint64_t _quantity, const std::string& _descritpion, bool _price_peg_used = false, const std::string& _price_peg_id = "", const uint64_t _min_sfx_price = 0):AdvancedCommand{TransactionType::CreateOfferTransaction},
+                          m_username{_username},m_offer_title{_offer_title},m_price{_price},m_quantity{_quantity},m_description{_descritpion},m_price_peg_used{_price_peg_used}, m_price_peg_id{_price_peg_id}, m_min_sfx_price{_price}{
+      if(_price_peg_used)
+        m_min_sfx_price = _min_sfx_price;
+    }
+
+    std::string m_username = "";
+    std::string m_offer_title = "";
+    uint64_t m_price = 0;
+    uint64_t m_quantity = 0;
+    std::string m_description = "";
+    bool m_price_peg_used = false;
+    std::string m_price_peg_id = "";
+    uint64_t m_min_sfx_price = 0;
+};
+
 /**
  * @brief Transaction-like interface for sending money
  */
