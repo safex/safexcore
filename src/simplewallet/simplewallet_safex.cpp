@@ -1573,6 +1573,12 @@ namespace cryptonote
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
+        message_writer(console_color_green, false) << "\r" <<
+                                                   tr("Height ") << height << ", " <<
+                                                   tr("txid ") << txid << ", " <<
+                                                   tr("Updated for account, username: ") << sfx_offer.seller <<
+                                                   tr("Offer title: ") << sfx_offer.title << " update received, " <<
+                                                   tr("idx ") << subaddr_index;
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
         safex::create_purchase_data purchase_data;
