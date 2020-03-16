@@ -120,6 +120,10 @@ struct PendingTransaction
     virtual std::vector<std::set<uint32_t>> subaddrIndices() const = 0;
 };
 
+
+/**
+ * @brief Advanced Safex commands
+ */
 struct AdvancedCommand{
     TransactionType m_transaction_type;
 };
@@ -132,6 +136,16 @@ public:
     CreateAccountCommand(const std::string& _username):AdvancedCommand{TransactionType::CreateAccountTransaction},m_username{_username}{}
 
     std::string m_username;
+};
+
+struct EditAccountCommand : public AdvancedCommand
+{
+public:
+    EditAccountCommand():AdvancedCommand{TransactionType::EditAccountTransaction}{}
+    EditAccountCommand(const std::string& _username, const std::string& _data):AdvancedCommand{TransactionType::EditAccountTransaction},m_username{_username},m_data{_data}{}
+
+    std::string m_username;
+    std::string m_data;
 };
 
 /**

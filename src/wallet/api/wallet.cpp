@@ -1558,6 +1558,42 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {
+
+        Safex::EditAccountCommand sfxAccount = static_cast<Safex::EditAccountCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+
+        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse address");
+          break;
+        }
+        if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        };
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+
+        std::vector<uint8_t> new_accdata(sfxAccount.m_data.begin(), sfxAccount.m_data.end());
+
+        cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, my_safex_account.username, new_accdata);
+
+        dsts.push_back(de_account_update);
+
+
+        uint64_t unlock_block = 0;
+        std::string err;
+        safex::command_t command = safex::command_t::nop;
+        command = safex::command_t::edit_account;
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?
