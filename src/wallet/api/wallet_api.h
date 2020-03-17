@@ -210,6 +210,20 @@ public:
     std::string m_address;
 };
 
+    struct CreatePricePegCommand : public AdvancedCommand
+    {
+    public:
+        CreatePricePegCommand():AdvancedCommand{TransactionType::CreatePricePegTransaction}{}
+        CreatePricePegCommand(const std::string& _title, const std::string& _creator, const std::string& _description, const std::string& _currency, const double _rate):AdvancedCommand{TransactionType::CreatePricePegTransaction},
+                                  m_title{_title},m_creator{_creator},m_description{_description},m_currency{_currency},m_rate{_rate}{}
+
+        std::string m_title = "";
+        std::string m_creator = "";
+        std::string m_description = "";
+        std::string m_currency = "";
+        double m_rate = 0;
+    };
+
 /**
  * @brief Transaction-like interface for sending money
  */
