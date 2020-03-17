@@ -1790,6 +1790,50 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::UpdatePricePegTransaction) {
+
+        Safex::UpdatePricePegCommand updatePricePeg = static_cast<Safex::UpdatePricePegCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+
+        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse address");
+          break;
+        }
+        crypto::hash price_peg_id;
+
+        if(!epee::string_tools::hex_to_pod(updatePricePeg.m_price_peg_id, price_peg_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse price peg id");
+          break;
+        }
+
+        const std::string &sfx_username = updatePricePeg.m_creator;
+        if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown Safex account username");
+          break;
+        }
+
+        if(updatePricePeg.m_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
+          m_status = Status_Error;
+          m_errorString = tr("Currency must be equal or less than ") + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE) + tr(" characters!");
+          break;
+        }
+
+        safex::command_t command = safex::command_t::update_price_peg;
+        uint64_t unlock_block = 0;
+        uint64_t rate = updatePricePeg.m_rate*COIN;
+        std::vector<uint8_t> description_arg{updatePricePeg.m_description.begin(),updatePricePeg.m_description.end()};
+
+        safex::safex_price_peg sfx_price_peg{updatePricePeg.m_title,sfx_username,updatePricePeg.m_currency,description_arg,price_peg_id,rate};
+
+        cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg_update);
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?

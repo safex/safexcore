@@ -224,6 +224,20 @@ public:
         double m_rate = 0;
     };
 
+struct UpdatePricePegCommand : public AdvancedCommand
+{
+public:
+    UpdatePricePegCommand():AdvancedCommand{TransactionType::UpdatePricePegTransaction}{}
+    UpdatePricePegCommand(const std::string& _price_peg_ig, const std::string& _title, const std::string& _creator, const std::string& _description, const std::string& _currency, const double _rate):AdvancedCommand{TransactionType::UpdatePricePegTransaction},
+                                 m_price_peg_id{_price_peg_ig},m_title{_title},m_creator{_creator},m_description{_description},m_currency{_currency},m_rate{_rate}{}
+    std::string m_price_peg_id = "";
+    std::string m_title = "";
+    std::string m_creator = "";
+    std::string m_description = "";
+    std::string m_currency = "";
+    double m_rate = 0;
+};
+
 /**
  * @brief Transaction-like interface for sending money
  */
