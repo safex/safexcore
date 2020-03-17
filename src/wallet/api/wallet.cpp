@@ -1719,7 +1719,8 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
 
-
+        de.addr = info.address;
+        de.is_subaddress = info.is_subaddress;
         de.token_amount = *value_amount;
         de.script_output = true;
         de.output_type = tx_out_type::out_staked_token;
