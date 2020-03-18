@@ -41,35 +41,6 @@ namespace cryptonote
 {
 
 
-
-  bool simple_wallet::calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price){
-
-    sfx_price = sfx_offer.min_sfx_price;
-
-    std::vector<safex::safex_price_peg> sfx_price_pegs = m_wallet->get_safex_price_pegs();
-
-    if(sfx_offer.price_peg_used){
-      crypto::hash price_peg_id = sfx_offer.price_peg_id;
-      auto it = std::find_if(sfx_price_pegs.begin(), sfx_price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
-
-      if(it == sfx_price_pegs.end())
-        return false;
-
-      std::string rate_str = print_money(it->rate);
-      double rate = stod(rate_str);
-
-      std::string price_str = print_money(sfx_offer.price);
-      double price = stod(price_str);
-
-      uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
-
-      if(pegged_price > sfx_price)
-        sfx_price = pegged_price;
-    }
-
-    return true;
-  }
-
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
     //todo Uncomment
@@ -389,7 +360,7 @@ namespace cryptonote
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
         uint64_t sfx_price;
-        bool res = calculate_sfx_price(*offer_to_purchase, sfx_price);
+        bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
 
         uint64_t total_sfx_to_pay = quantity_to_purchase*sfx_price;
 
@@ -1182,7 +1153,7 @@ namespace cryptonote
 
 
       uint64_t sfx_price;
-      bool res = calculate_sfx_price(offer,sfx_price);
+      bool res = m_wallet->calculate_sfx_price(offer,sfx_price);
 
       if(!res)
         return;
