@@ -1464,13 +1464,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
   PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
   do {
-    if(!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), dst_addr)) {
-      // TODO: copy-paste 'if treating as an address fails, try as url' from simplewallet.cpp:1982
-      m_status = Status_Error;
-      m_errorString = "Invalid destination address";
-      break;
-    }
-
 
     std::vector<uint8_t> extra;
     // if dst_addr is not an integrated address, parse payment_id
@@ -1515,18 +1508,22 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
       vector<cryptonote::tx_destination_entry> dsts;
       cryptonote::tx_destination_entry de;
+      safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+      uint64_t unlock_block = 0;
+      safex::command_t command = safex::command_t::nop;
+
+      std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+        m_status = Status_Error;
+        m_errorString = tr("Failed to parse address");
+        break;
+      }
+
 
       if(advancedCommnand.m_transaction_type == TransactionType::CreateAccountTransaction) {
 
         Safex::CreateAccountCommand sfxAccount = static_cast<Safex::CreateAccountCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
 
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
@@ -1538,7 +1535,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
         cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_safex_account.username, my_safex_account.pkey, my_safex_account.account_data);
-
         dsts.push_back(de_account);
 
         //lock tokens for account creation
@@ -1549,26 +1545,14 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         token_create_fee.output_type = tx_out_type::out_token;
         dsts.push_back(token_create_fee);
 
-        uint64_t unlock_block = 0;
-        std::string err;
-        safex::command_t command = safex::command_t::nop;
         uint64_t bc_height = m_wallet->get_blockchain_current_height();
+        unlock_block = bc_height + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD + 10;
         command = safex::command_t::create_account;
-        unlock_block = bc_height + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD + 10; //just in case
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {
 
         Safex::EditAccountCommand sfxAccount = static_cast<Safex::EditAccountCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
 
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
@@ -1583,28 +1567,13 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         std::vector<uint8_t> new_accdata(sfxAccount.m_data.begin(), sfxAccount.m_data.end());
 
         cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, my_safex_account.username, new_accdata);
-
         dsts.push_back(de_account_update);
 
-
-        uint64_t unlock_block = 0;
-        std::string err;
-        safex::command_t command = safex::command_t::nop;
         command = safex::command_t::edit_account;
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::CreateOfferTransaction) {
 
         Safex::CreateOfferCommand sfxOffer = static_cast<Safex::CreateOfferCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
-
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         if (!m_wallet->get_safex_account(sfxOffer.m_username, my_safex_account)) {
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
@@ -1634,25 +1603,11 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
         dsts.push_back(de_offer);
 
-
-        uint64_t unlock_block = 0;
-        std::string err;
-        safex::command_t command = safex::command_t::nop;
         command = safex::command_t::create_offer;
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::EditOfferTransaction) {
 
         Safex::EditOfferCommand sfxOffer = static_cast<Safex::EditOfferCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
-
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         if (!m_wallet->get_safex_account(sfxOffer.m_username, my_safex_account)) {
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
@@ -1691,18 +1646,11 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
         dsts.push_back(de_offer_update);
 
-
-        uint64_t unlock_block = 0;
-        std::string err;
-        safex::command_t command = safex::command_t::nop;
         command = safex::command_t::edit_offer;
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::StakeTokenTransaction) {
 
         Safex::StakeTokenCommand stakeToken = static_cast<Safex::StakeTokenCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
         if (!tools::is_whole_token_amount(*value_amount))
         {
           m_status = Status_Error;
@@ -1724,17 +1672,13 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         de.token_amount = *value_amount;
         de.script_output = true;
         de.output_type = tx_out_type::out_staked_token;
-        safex::command_t command = safex::command_t::token_stake;
-        uint64_t unlock_block = 0;
-
         dsts.push_back(de);
 
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::token_stake;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::UnstakeTokenTransaction) {
 
         Safex::UnstakeTokenCommand stakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
         if (!tools::is_whole_token_amount(*value_amount))
         {
           m_status = Status_Error;
@@ -1747,25 +1691,14 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         de.token_amount = *value_amount;
         de.script_output = true;
         de.output_type = tx_out_type::out_token;
-        safex::command_t command = safex::command_t::token_unstake;
         fake_outs_count = 0;
-        uint64_t unlock_block = 0;
-
         dsts.push_back(de);
 
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::token_unstake;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::CreatePricePegTransaction) {
 
         Safex::CreatePricePegCommand createPricePeg = static_cast<Safex::CreatePricePegCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
-
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
 
         const std::string &sfx_username = createPricePeg.m_creator;
         if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
@@ -1780,27 +1713,17 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
 
-        safex::command_t command = safex::command_t::create_price_peg;
-        uint64_t unlock_block = 0;
         uint64_t rate = createPricePeg.m_rate*COIN;
         safex::safex_price_peg sfx_price_peg{createPricePeg.m_title,sfx_username,createPricePeg.m_currency,createPricePeg.m_description, rate};
 
         cryptonote::tx_destination_entry de_price_peg = create_safex_price_peg_destination(info.address, sfx_price_peg);
         dsts.push_back(de_price_peg);
 
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::create_price_peg;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::UpdatePricePegTransaction) {
 
         Safex::UpdatePricePegCommand updatePricePeg = static_cast<Safex::UpdatePricePegCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
-
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         crypto::hash price_peg_id;
 
         if(!epee::string_tools::hex_to_pod(updatePricePeg.m_price_peg_id, price_peg_id)){
@@ -1822,8 +1745,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
 
-        safex::command_t command = safex::command_t::update_price_peg;
-        uint64_t unlock_block = 0;
         uint64_t rate = updatePricePeg.m_rate*COIN;
         std::vector<uint8_t> description_arg{updatePricePeg.m_description.begin(),updatePricePeg.m_description.end()};
 
@@ -1832,12 +1753,11 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
         dsts.push_back(de_price_peg_update);
 
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::update_price_peg;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::PurchaseTransaction) {
 
         Safex::PurchaseCommand safexPurchase = static_cast<Safex::PurchaseCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
 
         crypto::hash purchase_offer_id{};
         std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
@@ -1870,12 +1790,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         safex_network_fee += total_sfx_to_pay * 5  / 100;
 
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
         //Purchase
         safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,safexPurchase.m_quantity_to_purchase,total_sfx_to_pay};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
@@ -1903,25 +1817,13 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         dsts.push_back(de_net_fee);
 
-        uint64_t unlock_block = 0;
-        safex::command_t command = safex::command_t::simple_purchase;
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::simple_purchase;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::FeedbackTransaction) {
 
         Safex::FeedbackCommand safexFeedback = static_cast<Safex::FeedbackCommand &>(advancedCommnand);
-        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
 
         crypto::hash feedback_offer_id{};
-
-        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
-        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
-        {
-          m_status = Status_Error;
-          m_errorString = tr("Failed to parse address");
-          break;
-        }
 
         if(!epee::string_tools::hex_to_pod(safexFeedback.m_offer_id, feedback_offer_id)){
           m_status = Status_Error;
@@ -1941,11 +1843,10 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
         dsts.push_back(de_feedback);
 
-        uint64_t unlock_block = 0;
-        safex::command_t command = safex::command_t::create_feedback;
-
-        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+        command = safex::command_t::create_feedback;
       }
+
+      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?
