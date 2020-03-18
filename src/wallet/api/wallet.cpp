@@ -1908,6 +1908,44 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::FeedbackTransaction) {
+
+        Safex::FeedbackCommand safexFeedback = static_cast<Safex::FeedbackCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+
+        crypto::hash feedback_offer_id{};
+
+        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr))
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse address");
+          break;
+        }
+
+        if(!epee::string_tools::hex_to_pod(safexFeedback.m_offer_id, feedback_offer_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Bad offer ID given");
+          break;
+        }
+
+
+        if(safexFeedback.m_stars_given > 3){
+          m_status = Status_Error;
+          m_errorString = tr("Feedback rating can be from 0 to 3");
+          break;
+        }
+
+        safex::safex_feedback sfx_feedback{safexFeedback.m_stars_given,safexFeedback.m_comment,feedback_offer_id};
+
+        tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
+        dsts.push_back(de_feedback);
+
+        uint64_t unlock_block = 0;
+        safex::command_t command = safex::command_t::create_feedback;
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?

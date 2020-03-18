@@ -248,6 +248,17 @@ public:
     uint64_t m_quantity_to_purchase = 0;
 };
 
+struct FeedbackCommand : public AdvancedCommand
+{
+public:
+    FeedbackCommand():AdvancedCommand{TransactionType::FeedbackTransaction}{}
+    FeedbackCommand(const std::string& _offer_id, const uint64_t _stars_given, const std::string& _comment):AdvancedCommand{TransactionType::FeedbackTransaction},
+                                                                                         m_offer_id{_offer_id},m_stars_given{_stars_given},m_comment{_comment}{}
+    std::string m_offer_id = "";
+    uint64_t m_stars_given = 0;
+    std::string m_comment = "";
+};
+
 /**
  * @brief Transaction-like interface for sending money
  */
