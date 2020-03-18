@@ -1834,6 +1834,80 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
       }
+      else if(advancedCommnand.m_transaction_type == TransactionType::PurchaseTransaction) {
+
+        Safex::PurchaseCommand safexPurchase = static_cast<Safex::PurchaseCommand &>(advancedCommnand);
+        safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+
+        crypto::hash purchase_offer_id{};
+        std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
+        std::vector<safex::safex_offer>::iterator offer_to_purchase;
+
+        uint64_t safex_network_fee = 0;
+
+        if(!epee::string_tools::hex_to_pod(safexPurchase.m_offer_id, purchase_offer_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Bad offer ID given");
+          break;
+        }
+
+        offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
+            return offer.offer_id == purchase_offer_id;});
+
+        if(offer_to_purchase==offers.end()) {
+          m_status = Status_Error;
+          m_errorString = tr("There is no offer with given id!!");
+          break;
+        }
+
+        uint64_t sfx_price;
+        bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
+
+        uint64_t total_sfx_to_pay = safexPurchase.m_quantity_to_purchase*sfx_price;
+
+        de.amount = total_sfx_to_pay * 95  / 100;
+        de.output_type = tx_out_type::out_cash;
+        safex_network_fee += total_sfx_to_pay * 5  / 100;
+
+        cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
+        std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+        if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse address");
+          break;
+        }
+        //Purchase
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,safexPurchase.m_quantity_to_purchase,total_sfx_to_pay};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+        de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
+        dsts.push_back(de_purchase);
+
+        //Feedback token
+        safex::safex_feedback_token safex_feedback_token_output_data;
+        safex_feedback_token_output_data.offer_id = purchase_offer_id;
+        cryptonote::tx_destination_entry de_feedback_token = AUTO_VAL_INIT(de_feedback_token);
+        de_feedback_token = create_safex_feedback_token_destination(info.address, safex_feedback_token_output_data);
+        dsts.push_back(de_feedback_token);
+
+        de.addr = offer_to_purchase->seller_address;
+
+        dsts.push_back(de);
+
+        cryptonote::tx_destination_entry de_net_fee = AUTO_VAL_INIT(de_net_fee);
+
+        de_net_fee.addr = info.address;
+        de_net_fee.is_subaddress = info.is_subaddress;
+        de_net_fee.amount = safex_network_fee;
+        de_net_fee.script_output = true;
+        de_net_fee.output_type = tx_out_type::out_network_fee;
+
+        dsts.push_back(de_net_fee);
+
+        uint64_t unlock_block = 0;
+        safex::command_t command = safex::command_t::simple_purchase;
+
+        transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      }
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?

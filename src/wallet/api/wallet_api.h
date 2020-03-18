@@ -238,6 +238,16 @@ public:
     double m_rate = 0;
 };
 
+struct PurchaseCommand : public AdvancedCommand
+{
+public:
+    PurchaseCommand():AdvancedCommand{TransactionType::PurchaseTransaction}{}
+    PurchaseCommand(const std::string& _offer_id, const uint64_t _quantity__to_purchase):AdvancedCommand{TransactionType::PurchaseTransaction},
+                                   m_offer_id{_offer_id},m_quantity_to_purchase{_quantity__to_purchase}{}
+    std::string m_offer_id = "";
+    uint64_t m_quantity_to_purchase = 0;
+};
+
 /**
  * @brief Transaction-like interface for sending money
  */
