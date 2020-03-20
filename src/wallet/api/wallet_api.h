@@ -660,12 +660,12 @@ struct Wallet
     virtual void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) = 0;
 
 
-    virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password) = 0;
+    virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description) = 0;
 
     virtual std::vector<SafexAccount> getSafexAccounts() = 0;
 
     virtual SafexAccount getSafexAccount(const std::string& username) = 0;
-    virtual bool recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password) = 0;
+    virtual bool recoverSafexAccount(const std::string& username, const std::string& private_key) = 0;
     virtual bool removeSafexAccount(const std::string& username) = 0;
 
    /*!

@@ -1375,14 +1375,14 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
 }
 
 
-bool WalletImpl::createSafexAccount(const std::string& username, const std::vector<uint8_t>& description, const std::string& password){
+bool WalletImpl::createSafexAccount(const std::string& username, const std::vector<uint8_t>& description){
 
   if(m_wallet->safex_account_exists(username)) {
     return false;
   }
 
   if (m_wallet->generate_safex_account(username, description)) {
-    m_wallet->store_safex(password);
+    m_wallet->store_safex(m_password);
     return true;
   } else {
     return false;
@@ -1425,13 +1425,13 @@ SafexAccount WalletImpl::getSafexAccount(const std::string& username){
 
 }
 
-bool WalletImpl::recoverSafexAccount(const std::string& username, const std::string& private_key, const std::string& password){
+bool WalletImpl::recoverSafexAccount(const std::string& username, const std::string& private_key){
 
   crypto::secret_key skey{};
   epee::string_tools::hex_to_pod(private_key, skey);
 
   if (m_wallet->recover_safex_account(username, skey)) {
-    m_wallet->store_safex(password);
+    m_wallet->store_safex(m_password);
     return true;
   } else {
     return false;
