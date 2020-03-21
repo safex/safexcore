@@ -266,8 +266,14 @@ namespace tools
 
     for (uint32_t i=0;i<m_safex_accounts.size();i++) {
       if (m_safex_accounts[i].username == username) {
-         m_safex_accounts.erase(m_safex_accounts.begin()+i);
-         m_safex_accounts_keys.erase(m_safex_accounts_keys.begin()+i);
+        auto pkey = m_safex_accounts[i].pkey;
+        auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+            return it.get_public_key() == pkey;
+        });
+
+        m_safex_accounts.erase(m_safex_accounts.begin()+i);
+        if(safex_keys != m_safex_accounts_keys.end())
+          m_safex_accounts_keys.erase(safex_keys);
       }
     }
 
@@ -335,7 +341,13 @@ namespace tools
     {
       if (m_safex_accounts[i].username == username)
       {
-        acckeys = m_safex_accounts_keys[i];
+        auto pkey = m_safex_accounts[i].pkey;
+        auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+            return it.get_public_key() == pkey;
+        });
+        if(safex_keys == m_safex_accounts_keys.end())
+          return false;
+        acckeys = *safex_keys;
         return true;
       }
     }
@@ -472,6 +484,34 @@ namespace tools
 
       return feedbacks;
   }
+
+    bool wallet::calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price){
+
+      sfx_price = sfx_offer.min_sfx_price;
+
+      std::vector<safex::safex_price_peg> sfx_price_pegs = get_safex_price_pegs();
+
+      if(sfx_offer.price_peg_used){
+        crypto::hash price_peg_id = sfx_offer.price_peg_id;
+        auto it = std::find_if(sfx_price_pegs.begin(), sfx_price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
+
+        if(it == sfx_price_pegs.end())
+          return false;
+
+        std::string rate_str = print_money(it->rate);
+        double rate = stod(rate_str);
+
+        std::string price_str = print_money(sfx_offer.price);
+        double price = stod(price_str);
+
+        uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
+
+        if(pegged_price > sfx_price)
+          sfx_price = pegged_price;
+      }
+
+      return true;
+    }
 
     bool wallet::add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token){
 

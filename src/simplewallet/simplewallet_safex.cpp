@@ -40,96 +40,6 @@ using boost::lexical_cast;
 namespace cryptonote
 {
 
-  tx_destination_entry create_safex_account_destination(const account_public_address &to, const std::string &username, const crypto::public_key &pkey,
-                                                        const std::vector<uint8_t> &account_data)
-  {
-    safex::create_account_data acc_output_data{username, pkey, account_data};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_account, blobdata};
-  }
-
-  tx_destination_entry edit_safex_account_destination(const account_public_address &to, const std::string &username, const std::vector<uint8_t> &account_data)
-  {
-    safex::edit_account_data acc_output_data{username, account_data};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_account_update, blobdata};
-  }
-
-    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
-    {
-        safex::create_offer_data offer_output_data{sfx_offer};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer, blobdata};
-    }
-
-    tx_destination_entry edit_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
-    {
-        safex::edit_offer_data offer_output_data{sfx_offer};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
-    }
-
-    tx_destination_entry create_safex_purchase_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
-    {
-        safex::create_purchase_data safex_purchase_output_data{sfx_purchase};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_purchase, blobdata};
-    }
-
-    tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::create_feedback_token_data &safex_feedback_token_output_data)
-    {
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_token_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token,blobdata};
-    }
-
-    tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback)
-    {
-        safex::create_feedback_data safex_feedback_output_data{sfx_feedback};
-        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_output_data);
-        return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
-    }
-
-    tx_destination_entry create_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
-    {
-      safex::create_price_peg_data safex_price_peg_output_data{sfx_price_peg};
-      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
-      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg,blobdata};
-    }
-
-    tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
-    {
-      safex::update_price_peg_data safex_price_peg_output_data{sfx_price_peg};
-      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
-      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg_update,blobdata};
-    }
-
-  bool simple_wallet::calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price){
-
-    sfx_price = sfx_offer.min_sfx_price;
-
-    std::vector<safex::safex_price_peg> sfx_price_pegs = m_wallet->get_safex_price_pegs();
-
-    if(sfx_offer.price_peg_used){
-      crypto::hash price_peg_id = sfx_offer.price_peg_id;
-      auto it = std::find_if(sfx_price_pegs.begin(), sfx_price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
-
-      if(it == sfx_price_pegs.end())
-        return false;
-
-      std::string rate_str = print_money(it->rate);
-      double rate = stod(rate_str);
-
-      std::string price_str = print_money(sfx_offer.price);
-      double price = stod(price_str);
-
-      uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
-
-      if(pegged_price > sfx_price)
-        sfx_price = pegged_price;
-    }
-
-    return true;
-  }
 
   bool simple_wallet::create_command(CommandType command_type, const std::vector<std::string> &args_)
   {
@@ -450,7 +360,7 @@ namespace cryptonote
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
         uint64_t sfx_price;
-        bool res = calculate_sfx_price(*offer_to_purchase, sfx_price);
+        bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
 
         uint64_t total_sfx_to_pay = quantity_to_purchase*sfx_price;
 
@@ -473,7 +383,7 @@ namespace cryptonote
         dsts.push_back(de_purchase);
 
         //Feedback token
-        safex::create_feedback_token_data safex_feedback_token_output_data;
+        safex::safex_feedback_token safex_feedback_token_output_data;
         safex_feedback_token_output_data.offer_id = purchase_offer_id;
         cryptonote::tx_destination_entry de_feedback_token = AUTO_VAL_INIT(de_feedback_token);
         de_feedback_token = create_safex_feedback_token_destination(info.address, safex_feedback_token_output_data);
@@ -1243,7 +1153,7 @@ namespace cryptonote
 
 
       uint64_t sfx_price;
-      bool res = calculate_sfx_price(offer,sfx_price);
+      bool res = m_wallet->calculate_sfx_price(offer,sfx_price);
 
       if(!res)
         return;
@@ -1634,6 +1544,12 @@ namespace cryptonote
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
+        message_writer(console_color_green, false) << "\r" <<
+                                                   tr("Height ") << height << ", " <<
+                                                   tr("txid ") << txid << ", " <<
+                                                   tr("Updated for account, username: ") << sfx_offer.seller <<
+                                                   tr("Offer title: ") << sfx_offer.title << " update received, " <<
+                                                   tr("idx ") << subaddr_index;
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
         safex::create_purchase_data purchase_data;

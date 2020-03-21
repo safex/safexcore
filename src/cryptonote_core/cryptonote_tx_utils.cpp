@@ -1707,6 +1707,69 @@ namespace cryptonote
     return true;
   }
 
+    tx_destination_entry create_safex_account_destination(const account_public_address &to, const std::string &username, const crypto::public_key &pkey,
+                                                          const std::vector<uint8_t> &account_data)
+    {
+      safex::create_account_data acc_output_data{username, pkey, account_data};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_account, blobdata};
+    }
+
+    tx_destination_entry edit_safex_account_destination(const account_public_address &to, const std::string &username, const std::vector<uint8_t> &account_data)
+    {
+      safex::edit_account_data acc_output_data{username, account_data};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_account_update, blobdata};
+    }
+
+    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
+    {
+      safex::create_offer_data offer_output_data{sfx_offer};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer, blobdata};
+    }
+
+    tx_destination_entry edit_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer)
+    {
+      safex::edit_offer_data offer_output_data{sfx_offer};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(offer_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_offer_update, blobdata};
+    }
+
+    tx_destination_entry create_safex_purchase_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
+    {
+      safex::create_purchase_data safex_purchase_output_data{sfx_purchase};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_purchase, blobdata};
+    }
+
+    tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback_token &sfx_feedback_token)
+    {
+      safex::create_feedback_token_data safex_feedback_token_output_data{sfx_feedback_token};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_token_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token,blobdata};
+    }
+
+    tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback)
+    {
+      safex::create_feedback_data safex_feedback_output_data{sfx_feedback};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
+    }
+
+    tx_destination_entry create_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
+    {
+      safex::create_price_peg_data safex_price_peg_output_data{sfx_price_peg};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg,blobdata};
+    }
+
+    tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg)
+    {
+      safex::update_price_peg_data safex_price_peg_output_data{sfx_price_peg};
+      blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
+      return tx_destination_entry{0, to, false, tx_out_type::out_safex_price_peg_update,blobdata};
+    }
   //---------------------------------------------------------------
   bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources,
           std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra,

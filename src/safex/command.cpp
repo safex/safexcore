@@ -179,6 +179,9 @@ namespace safex
     if(sfx_offer.quantity < cmd->quantity)
         return execution_status::error_purchase_out_of_stock;
 
+    if(cmd->quantity==0)
+      return execution_status::error_wrong_input_params;
+
     uint64_t sfx_price = sfx_offer.min_sfx_price;
 
     if(sfx_offer.price_peg_used){

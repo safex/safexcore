@@ -36,6 +36,10 @@
 #include "ringct/rctOps.h"
 #include "safex/safex_core.h"
 #include "safex/safex_account.h"
+#include "safex/safex_offer.h"
+#include "safex/safex_purchase.h"
+#include "safex/safex_feedback_token.h"
+#include "safex/safex_feedback.h"
 
 namespace cryptonote
 {
@@ -139,6 +143,15 @@ namespace cryptonote
   bool construct_advanced_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, const safex::safex_account_keys &sfx_acc_keys, bool shuffle_outs = true);
   bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys, const safex::safex_account_keys &sfx_acc_keys = safex::safex_account_keys{});
 
+    tx_destination_entry create_safex_account_destination(const account_public_address &to, const std::string &username, const crypto::public_key &pkey, const std::vector<uint8_t> &account_data);
+    tx_destination_entry edit_safex_account_destination(const account_public_address &to, const std::string &username, const std::vector<uint8_t> &account_data);
+    tx_destination_entry create_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer);
+    tx_destination_entry edit_safex_offer_destination(const account_public_address &to, const safex::safex_offer &sfx_offer);
+    tx_destination_entry create_safex_purchase_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase);
+    tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback_token &sfx_feedback_token);
+    tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback);
+    tx_destination_entry create_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg);
+    tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_public_address  &to, const safex::safex_price_peg &sfx_price_peg);
 
   inline bool is_advanced_transaction(const std::vector<tx_source_entry>& sources);
 

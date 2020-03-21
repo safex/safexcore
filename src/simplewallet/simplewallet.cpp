@@ -2333,7 +2333,14 @@ bool simple_wallet::save_safex(const std::vector<std::string> &args)
   try
   {
     LOCK_IDLE_SCOPE();
-    m_wallet->store_safex();
+
+    auto pass = get_and_verify_password();
+
+    if(!pass)
+      return true;
+
+    auto password = pass->password();
+    m_wallet->store_safex(password);
     success_msg_writer() << tr("Wallet safex data saved");
   }
   catch (const std::exception& e)

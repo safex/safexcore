@@ -101,70 +101,6 @@ tx_destination_entry create_locked_token_tx_destination(const cryptonote::accoun
   return tx_destination_entry{token_amount, to.get_keys().m_account_address, false, tx_out_type::out_staked_token};
 }
 
-tx_destination_entry create_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const crypto::public_key &pkey,
-        const std::vector<uint8_t> &account_data)
-{
-  safex::create_account_data acc_output_data{username, pkey, account_data};
-  blobdata blobdata = cryptonote::t_serializable_object_to_blob(acc_output_data);
-  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account, blobdata};
-}
-
-tx_destination_entry edit_safex_account_destination(const cryptonote::account_base &to, const std::string &username, const std::vector<uint8_t> &new_account_data)
-{
-  safex::edit_account_data new_acc_output_data{username, new_account_data};
-  blobdata blobdata = cryptonote::t_serializable_object_to_blob(new_acc_output_data);
-  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_account_update, blobdata};
-}
-
-tx_destination_entry create_safex_offer_destination(const cryptonote::account_base &to, const safex::safex_offer &offer)
-{
-    safex::create_offer_data new_offer_output_data{offer};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(new_offer_output_data);
-    return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer, blobdata};
-}
-
-tx_destination_entry edit_safex_offer_destination(const cryptonote::account_base &to, const safex::safex_offer &offer)
-{
-    safex::edit_offer_data new_offer_output_data{offer};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(new_offer_output_data);
-    return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_offer_update, blobdata};
-}
-
-tx_destination_entry create_safex_purchase_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
-{
-    safex::create_purchase_data safex_purchase_output_data{sfx_purchase};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_purchase, blobdata};
-}
-
-tx_destination_entry create_safex_feedback_token_destination(const cryptonote::account_public_address  &to, const safex::safex_purchase &sfx_purchase)
-{
-    safex::create_feedback_token_data safex_feedback_token_output_data{sfx_purchase};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_token_output_data);
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback_token,blobdata};
-}
-
-tx_destination_entry create_safex_feedback_destination(const cryptonote::account_public_address  &to, const safex::safex_feedback &sfx_feedback)
-{
-    safex::create_feedback_data safex_feedback_output_data{sfx_feedback};
-    blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_feedback_output_data);
-    return tx_destination_entry{0, to, false, tx_out_type::out_safex_feedback,blobdata};
-}
-
-tx_destination_entry create_safex_price_peg_destination(const cryptonote::account_base &to, const safex::safex_price_peg &sfx_price_peg)
-{
-  safex::create_price_peg_data safex_price_peg_output_data{sfx_price_peg};
-  blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
-  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_price_peg,blobdata};
-}
-
-tx_destination_entry update_safex_price_peg_destination(const cryptonote::account_base &to, const safex::safex_price_peg &sfx_price_peg)
-{
-  safex::update_price_peg_data safex_price_peg_output_data{sfx_price_peg};
-  blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_price_peg_output_data);
-  return tx_destination_entry{0, to.get_keys().m_account_address, false, tx_out_type::out_safex_price_peg_update,blobdata};
-}
-
 bool init_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, std::map<uint64_t, std::vector<size_t> > &outs_mine, const std::vector<cryptonote::block> &blockchain,
                          const cryptonote::account_base &from, cryptonote::tx_out_type out_type, const crypto::public_key& safex_account_pkey)
 {
@@ -816,7 +752,7 @@ void fill_create_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std:
   }
 
   //account
-  tx_destination_entry de_account = create_safex_account_destination(from, username, pkey, account_data);
+  tx_destination_entry de_account = create_safex_account_destination(from.get_keys().m_account_address, username, pkey, account_data);
   destinations.push_back(de_account);
 }
 
@@ -855,7 +791,7 @@ void fill_edit_account_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
   }
 
   //new_account
-  tx_destination_entry de_account = edit_safex_account_destination(from, username, new_account_data);
+  tx_destination_entry de_account = edit_safex_account_destination(from.get_keys().m_account_address, username, new_account_data);
   destinations.push_back(de_account);
 }
 
@@ -894,7 +830,7 @@ void fill_create_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::v
     }
 
     //offer
-    tx_destination_entry de_offer = create_safex_offer_destination(from, sfx_offer);
+    tx_destination_entry de_offer = create_safex_offer_destination(from.get_keys().m_account_address, sfx_offer);
     destinations.push_back(de_offer);
 }
 
@@ -933,7 +869,7 @@ void fill_edit_offer_tx_sources_and_destinations(map_hash2tx_t &txmap,  std::vec
     }
 
     //offer
-    tx_destination_entry de_offer = edit_safex_offer_destination(from, sfx_offer);
+    tx_destination_entry de_offer = edit_safex_offer_destination(from.get_keys().m_account_address, sfx_offer);
     destinations.push_back(de_offer);
 }
 
@@ -981,7 +917,9 @@ void fill_create_purchase_tx_sources_and_destinations(map_hash2tx_t &txmap,  std
     destinations.push_back(de_purchase);
 
     //feedback_token
-    tx_destination_entry de_feedback_token = create_safex_feedback_token_destination(from.get_keys().m_account_address, sfx_purchase);
+    safex::safex_feedback_token sfx_feedback_token;
+    sfx_feedback_token.offer_id = sfx_purchase.offer_id;
+    tx_destination_entry de_feedback_token = create_safex_feedback_token_destination(from.get_keys().m_account_address, sfx_feedback_token);
     destinations.push_back(de_feedback_token);
 
 
@@ -1076,7 +1014,7 @@ void fill_create_price_peg_tx_sources_and_destinations(map_hash2tx_t &txmap,  st
   }
 
   //offer
-  tx_destination_entry de_price_peg = create_safex_price_peg_destination(from, sfx_price_peg);
+  tx_destination_entry de_price_peg = create_safex_price_peg_destination(from.get_keys().m_account_address, sfx_price_peg);
   destinations.push_back(de_price_peg);
 }
 
@@ -1115,7 +1053,7 @@ void fill_update_price_peg_tx_sources_and_destinations(map_hash2tx_t &txmap,  st
   }
 
   //offer
-  tx_destination_entry de_price_peg = update_safex_price_peg_destination(from, sfx_price_peg);
+  tx_destination_entry de_price_peg = update_safex_price_peg_destination(from.get_keys().m_account_address, sfx_price_peg);
   destinations.push_back(de_price_peg);
 }
 

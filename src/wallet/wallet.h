@@ -564,7 +564,7 @@ namespace tools
     void write_watch_only_wallet(const std::string& wallet_name, const epee::wipeable_string& password, std::string &new_keys_filename);
     void load(const std::string& wallet, const epee::wipeable_string& password);
     void store();
-    void store_safex();
+    void store_safex(const epee::wipeable_string &password);
     /*!
      * \brief store_to - stores wallet to another file(s), deleting old ones
      * \param path     - path to the wallet file (keys and address filenames will be generated based on this filename)
@@ -572,7 +572,6 @@ namespace tools
      */
     void store_to(const std::string &path, const epee::wipeable_string &password);
 
-    void set_vm(boost::program_options::variables_map vm){ m_vm = std::move(vm);}
 
     std::string path() const;
 
@@ -777,7 +776,6 @@ namespace tools
       if (ver < 1) return;
 
       a & m_safex_accounts;
-      a & m_safex_accounts_keys;
 
       a & m_safex_offers;
 
@@ -1098,6 +1096,8 @@ namespace tools
     bool add_safex_price_peg(const safex::safex_price_peg& price_peg);
     bool update_safex_price_peg(const safex::safex_price_peg& price_peg);
 
+    bool calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price);
+
 
     std::vector<safex::safex_offer> get_safex_offers();
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
@@ -1275,8 +1275,6 @@ namespace tools
     std::string m_ring_database;
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
-
-    boost::program_options::variables_map m_vm;
 
     std::vector<safex::safex_account> m_safex_accounts;
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;

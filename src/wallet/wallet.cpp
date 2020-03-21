@@ -134,14 +134,8 @@ void do_prepare_file_names(const std::string& file_path, std::string& keys_file,
   }else
   {//provided wallet file name
     keys_file += ".keys";
+    safex_keys_file += ".safex_account_keys";
   }
-    if(string_tools::get_extension(safex_keys_file) == "safex_account_keys")
-    {//provided keys file name
-        wallet_file = string_tools::cut_off_extension(wallet_file);
-    }else
-    {//provided wallet file name
-        safex_keys_file += ".safex_account_keys";
-    }
 }
 
 uint64_t calculate_fee(uint64_t fee_per_kb, size_t bytes, uint64_t fee_multiplier)
@@ -207,7 +201,6 @@ std::unique_ptr<tools::wallet> make_basic(const boost::program_options::variable
   wallet->init(std::move(daemon_address), std::move(login));
   boost::filesystem::path ringdb_path = command_line::get_arg(vm, opts.shared_ringdb_dir);
   wallet->set_ring_database(ringdb_path.string());
-  wallet->set_vm(vm);
   return wallet;
 }
 
@@ -2796,7 +2789,12 @@ bool wallet::store_keys(const std::string& keys_file_name, const epee::wipeable_
 
         for(unsigned  i = 0; i < m_safex_accounts.size(); ++i){
             rapidjson::Value value(rapidjson::kStringType);
-            value.SetString(m_safex_accounts_keys[i].m_secret_key.data, sizeof(m_safex_accounts_keys[i].m_secret_key.data));
+            auto pkey = m_safex_accounts[i].pkey;
+            auto safex_keys = find_if(m_safex_accounts_keys.begin(),m_safex_accounts_keys.end(),[&pkey](const safex::safex_account_keys& it){
+                  return it.get_public_key() == pkey;
+            });
+            CHECK_AND_ASSERT_MES(safex_keys != m_safex_accounts_keys.end(), false, "failed to generate wallet safex account keys file " << safex_keys_file_name);
+            value.SetString(safex_keys->m_secret_key.data, sizeof(safex_keys->m_secret_key.data));
             rapidjson::Value name(m_safex_accounts[i].username.c_str(), json.GetAllocator());
             json.AddMember(name.Move(), value, json.GetAllocator());
         }
@@ -3691,58 +3689,10 @@ void wallet::store()
   store_to("", epee::wipeable_string());
 }
 //----------------------------------------------------------------------------------------------------
-void wallet::store_safex()
+void wallet::store_safex(const epee::wipeable_string &password)
 {
-  bool same_file = true;
-  std::string path = "";
-  auto pwd = get_password(m_vm, options{}, password_prompter, false);
-  auto password = pwd.get().password();
-#ifdef WIN32
-      //boost canonical messes with linux gnu
-#else
-      if (!path.empty())
-      {
-        std::string canonical_path = boost::filesystem::canonical(m_wallet_file).string();
-        size_t pos = canonical_path.find(path);
-        same_file = pos != std::string::npos;
-      }
-#endif
-
-      if (!same_file)
-      {
-        // check if we want to store to directory which doesn't exists yet
-        boost::filesystem::path parent_path = boost::filesystem::path(path).parent_path();
-
-        // if path is not exists, try to create it
-        if (!parent_path.empty() &&  !boost::filesystem::exists(parent_path))
-        {
-          boost::system::error_code ec;
-          if (!boost::filesystem::create_directories(parent_path, ec))
-          {
-            throw std::logic_error(ec.message());
-          }
-        }
-      }
-
-      const std::string new_safex_keys_file = same_file ? m_safex_keys_file + ".new" : path;
-      const std::string old_safex_keys_file = m_safex_keys_file;
-
-      // save keys to the new file
-      // if we here, main wallet file is saved and we only need to save keys and address files
-      if (!same_file) {
-        prepare_file_names(path);
         bool r = store_safex_keys(m_safex_keys_file, password);
         THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
-        // remove old safex keys file
-        r = boost::filesystem::remove(old_safex_keys_file);
-        if (!r) {
-          LOG_ERROR("error removing file: " << old_safex_keys_file);
-        }
-      } else {
-        // save to new file
-        bool r = store_safex_keys(m_safex_keys_file, password);
-        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
-      }
 }
 //----------------------------------------------------------------------------------------------------
 void wallet::store_to(const std::string &path, const epee::wipeable_string &password)
@@ -3860,8 +3810,6 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
     ostr.close();
     THROW_WALLET_EXCEPTION_IF(!success || !ostr.good(), error::file_save_error, new_file);
 #endif
-    bool r = store_safex_keys(m_safex_keys_file, password);
-    THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
     // here we have "*.new" file, we need to rename it to be without ".new"
     std::error_code e = tools::replace_file(new_file, m_wallet_file);
     THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_wallet_file, e);

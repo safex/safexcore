@@ -34,6 +34,21 @@ cmake-debug:
 	mkdir -p build/debug
 	cd build/debug && cmake -D CMAKE_BUILD_TYPE=Debug ../..
 
+
+libwallet-build:
+	mkdir -p build/libwallet
+	cd build/libwallet && cmake -DBUILD_SHARED_LIBS=OFF -DBUILD_GUI_DEPS=ON \
+                         		-DBUILD_TESTS=OFF -DSTATIC=ON -DBOOST_ROOT=${PWD}/boost \
+                         		-DProtobuf_USE_STATIC_LIBS=ON \
+                         		-DBUILD_SAFEX_PROTOBUF_RPC=ON \
+                         		-DARCH="x86-64" -D \
+                         		-DBUILD_64=ON -D \
+                         		-DCMAKE_BUILD_TYPE=release \
+                         		-DCMAKE_BUILD_TYPE=${SAFEX_BUILD_TYPE} \
+                         		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+                         		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
+                         		../.. && $(MAKE) wallet_merged epee easylogging lmdb unbound VERBOSE=1
+
 debug: cmake-debug
 	cd build/debug && $(MAKE)
 
