@@ -29,44 +29,25 @@
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 // Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
-#pragma once
-
+#pragma once 
 #include "chaingen.h"
-#include "block_reward.h"
-#include "block_validation.h"
-#include "chain_split_1.h"
-#include "chain_switch_1.h"
-#include "double_spend.h"
-#include "integer_overflow.h"
-#include "ring_signature_1.h"
-#include "tx_validation.h"
-#include "v2_tests.h"
-#include "chain_migration.h"
-#include "token_transactions.h"
-#include "token_stake.h"
-#include "network_fee.h"
-#include "safex_account.h"
-#include "safex_offer.h"
-#include "safex_purchase.h"
-#include "safex_price_peg.h"
-#include "chain_split_safex.h"
+
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
-class gen_simple_chain_001: public test_chain_unit_base 
+class gen_simple_chain_split_safex : public test_chain_unit_base
 {
 public: 
-  gen_simple_chain_001();
-  bool generate(std::vector<test_event_entry> &events);
-  bool verify_callback_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool verify_callback_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-};
+  gen_simple_chain_split_safex();
+  bool generate(std::vector<test_event_entry> &events) const; 
+  bool check_split_not_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_split_not_switched2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_split_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_split_not_switched_back(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_split_switched_back_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_mempool_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool check_mempool_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
 
-class one_block: public test_chain_unit_base
-{
-  cryptonote::account_base alice;
-public:
-  one_block();
-  bool generate(std::vector<test_event_entry> &events);
-  bool verify_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+private:
 };

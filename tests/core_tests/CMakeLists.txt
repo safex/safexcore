@@ -49,7 +49,8 @@ set(core_tests_sources
   v2_tests.cpp
   chain_migration.cpp
   network_fee.cpp
-  safex_price_peg.cpp)
+  safex_price_peg.cpp
+  chain_split_safex.cpp)
 
 set(core_tests_headers
   block_reward.h
@@ -72,7 +73,8 @@ set(core_tests_headers
   safex_offer.h
   safex_purchase.h
   network_fee.h
-  safex_price_peg.h)
+  safex_price_peg.h
+  chain_split_safex.h)
 
 add_executable(core_tests
   ${core_tests_sources}
