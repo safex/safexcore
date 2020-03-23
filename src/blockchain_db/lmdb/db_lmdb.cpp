@@ -5302,6 +5302,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       mdb_txn_cursors *m_cursors = &m_wcursors;
 
       CURSOR(output_advanced);
+      CURSOR(output_txs);
 
       MDB_val_set(otxk, output_id);
 
