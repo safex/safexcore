@@ -198,6 +198,11 @@ bool gen_simple_chain_split_safex::check_split_switched_back_1(cryptonote::core&
   CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[141])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
 
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+
   return true;
 }//-----------------------------------------------------------------------------------------------------
 bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
@@ -209,6 +214,12 @@ bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core&
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 136);
   CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[209])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
+
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  CHECK_TEST_CONDITION(safex_accounts.size() == 0);
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
