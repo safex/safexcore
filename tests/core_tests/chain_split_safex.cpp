@@ -40,14 +40,10 @@ using namespace cryptonote;
 
 gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 {
-  REGISTER_CALLBACK("check_split_not_switched", gen_simple_chain_split_safex::check_split_not_switched);
-  REGISTER_CALLBACK("check_split_not_switched2", gen_simple_chain_split_safex::check_split_not_switched2);
-  REGISTER_CALLBACK("check_split_switched", gen_simple_chain_split_safex::check_split_switched);
   REGISTER_CALLBACK("check_split_not_switched_back", gen_simple_chain_split_safex::check_split_not_switched_back);
   REGISTER_CALLBACK("check_split_switched_back_1", gen_simple_chain_split_safex::check_split_switched_back_1);
   REGISTER_CALLBACK("check_split_switched_back_2", gen_simple_chain_split_safex::check_split_switched_back_2);
-  REGISTER_CALLBACK("check_mempool_1", gen_simple_chain_split_safex::check_mempool_1);
-  REGISTER_CALLBACK("check_mempool_2", gen_simple_chain_split_safex::check_mempool_2);
+  REGISTER_CALLBACK("check_split_switched_back_3", gen_simple_chain_split_safex::check_split_switched_back_3);
 
   m_safex_account1_keys.generate();
 
@@ -60,22 +56,6 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &events) const
 {
   uint64_t ts_start = 1338224400;
-  /*
-   1    2    3    4    5    6     7     8      9    10    11    12    13    14    15    16    17    18   19   20     21    22    23   <-- main blockchain height
-  (0 )-(1 )-(2 )-(3 )-(4 )-(5 ) -(6 ) -(7 ) -(8 )|-(17) -(18) -(19) -(20) -(21)|-(22)|-(23)|-(24)|
-                              \ -(9 ) -(10)|-(11)|-(12)|-(13) -(14) -(15) -(16)       
-                                                                                      -(25) -(26)|
-                                                                                -(27)|             #check switching to alternative
-                                                              ----------------------------------------------------------------------------------
-                                                                                      -(28) -(29) -(30) -(31)|
-                                                                                -(32)|              #check switching orphans to main
-                                                              ----------------------------------------------------------------------------------
-                                                                                      -(33) -(34)       -(35) -(36)       -(37) -(38)|
-                                                                                -(39)|           #<--this part becomes alternative chain connected to main
-                                                                                                                    -(40)|  #still marked as orphaned 
-                                                                                                  -(41)|
-                                                                                                   #check orphaned with block in the middle of the orphaned chain 
-  */
 
 
 
@@ -89,101 +69,55 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   MAKE_GENESIS_BLOCK(events, blk_0, first_miner_account, ts_start);                           //  0
   MAKE_NEXT_BLOCK(events, blk_1, blk_0, first_miner_account);                                 //  1
   MAKE_NEXT_BLOCK(events, blk_2, blk_1, first_miner_account);                                 //  2
-  MAKE_NEXT_BLOCK(events, blk_3, blk_2, first_miner_account);
-  REWIND_BLOCKS(events, blk_3r, blk_3, first_miner_account);  //  3
-  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, first_miner_account, MK_TOKENS(10000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-  MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, first_miner_account, txlist_0);
-  MAKE_NEXT_BLOCK(events, blk_5, blk_4, first_miner_account);                                 //  5
-  MAKE_NEXT_BLOCK(events, blk_6, blk_5, first_miner_account);                                 //  6
-  MAKE_NEXT_BLOCK(events, blk_7, blk_6, first_miner_account);                                 //  7
-  MAKE_NEXT_BLOCK(events, blk_8, blk_7, first_miner_account);                                 //  8
-  //split
-  MAKE_NEXT_BLOCK(events, blk_9, blk_5, first_miner_account);                                 //  9
-  MAKE_NEXT_BLOCK(events, blk_10, blk_9, first_miner_account);                                //  10
-  DO_CALLBACK(events, "check_split_not_switched");                                            //  11
-  MAKE_NEXT_BLOCK(events, blk_11, blk_10, first_miner_account);                               //  12
-  DO_CALLBACK(events, "check_split_not_switched2");                                           //  13
-  MAKE_NEXT_BLOCK(events, blk_12, blk_11, first_miner_account);                               //  14
-  DO_CALLBACK(events, "check_split_switched");                                                //  15
-  MAKE_NEXT_BLOCK(events, blk_13, blk_12, first_miner_account);                               //  16
-  MAKE_NEXT_BLOCK(events, blk_14, blk_13, first_miner_account);
-  REWIND_BLOCKS(events, blk_14r, blk_14, first_miner_account);  //  3
-  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, first_miner_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14);
-  MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_2);
-  MAKE_NEXT_BLOCK(events, blk_16, blk_15, first_miner_account);                               //  19
+  MAKE_NEXT_BLOCK(events, blk_3, blk_2, first_miner_account);                                 //  3
+  REWIND_BLOCKS(events, blk_3r, blk_3, first_miner_account);                                  //  63
+  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, first_miner_account, MK_TOKENS(10000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0])); // 64
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, first_miner_account, txlist_0);              // 65
+  MAKE_NEXT_BLOCK(events, blk_5, blk_4, first_miner_account);                                 // 66
+  MAKE_NEXT_BLOCK(events, blk_6, blk_5, first_miner_account);                                 // 67
+  MAKE_NEXT_BLOCK(events, blk_7, blk_6, first_miner_account);                                 // 68
+  MAKE_NEXT_BLOCK(events, blk_8, blk_7, first_miner_account);                                 // 69
+  MAKE_NEXT_BLOCK(events, blk_9, blk_8, first_miner_account);                                 // 70
+  MAKE_NEXT_BLOCK(events, blk_10, blk_9, first_miner_account);                                //  71
+  MAKE_NEXT_BLOCK(events, blk_11, blk_10, first_miner_account);                               //  72
+  MAKE_NEXT_BLOCK(events, blk_12, blk_11, first_miner_account);                               //  73
+  MAKE_NEXT_BLOCK(events, blk_13, blk_12, first_miner_account);                               //  74
+  MAKE_NEXT_BLOCK(events, blk_14, blk_13, first_miner_account);                               //  75
+  REWIND_BLOCKS(events, blk_14r, blk_14, first_miner_account);                                //  135
+  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, first_miner_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 136
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_2);            //  137
+  MAKE_NEXT_BLOCK(events, blk_16, blk_15, first_miner_account);                               //  138     //height: 137
 //  //split again and check back switching
-  MAKE_NEXT_BLOCK(events, blk_17, blk_8, first_miner_account);                                //  20
-  MAKE_NEXT_BLOCK(events, blk_18, blk_17,  first_miner_account);                              //  21
-  REWIND_BLOCKS(events, blk_19, blk_18, first_miner_account);
-  MAKE_NEXT_BLOCK(events, blk_20, blk_19,  first_miner_account);                              //  23
-  MAKE_NEXT_BLOCK(events, blk_21, blk_20,  first_miner_account);                              //  24
-  DO_CALLBACK(events, "check_split_not_switched_back");                                       //  25
-  MAKE_NEXT_BLOCK(events, blk_22, blk_21, first_miner_account);                               //  26
-  DO_CALLBACK(events, "check_split_switched_back_1");                                         //  27
-  MAKE_NEXT_BLOCK(events, blk_23, blk_22, first_miner_account);                               //  28
-  DO_CALLBACK(events, "check_split_switched_back_2");                                         //  29
+  MAKE_NEXT_BLOCK(events, blk_17, blk_8, first_miner_account);                                //  139   //70th block
+  MAKE_NEXT_BLOCK(events, blk_18, blk_17,  first_miner_account);                              //  140
+  REWIND_BLOCKS(events, blk_19, blk_18, first_miner_account);                                 //  200
+  MAKE_NEXT_BLOCK(events, blk_20, blk_19,  first_miner_account);                              //  201
+  MAKE_NEXT_BLOCK(events, blk_21, blk_20,  first_miner_account);                              //  202
+  DO_CALLBACK(events, "check_split_not_switched_back");                                       //  203
+  MAKE_NEXT_BLOCK(events, blk_22, blk_21, first_miner_account);                               //  204
+  MAKE_NEXT_BLOCK(events, blk_23, blk_22, first_miner_account);                               //  205
+  MAKE_NEXT_BLOCK(events, blk_24, blk_23, first_miner_account);                               //  206
+  MAKE_NEXT_BLOCK(events, blk_25, blk_24, first_miner_account);                               //  207
+  DO_CALLBACK(events, "check_split_switched_back_1");                                         //  208
+  MAKE_NEXT_BLOCK(events, blk_26, blk_25, first_miner_account);                               //  209
+  DO_CALLBACK(events, "check_split_switched_back_2");                                         //  210
+  MAKE_NEXT_BLOCK(events, blk_27, blk_16, first_miner_account);                               //  211
+  MAKE_NEXT_BLOCK(events, blk_28, blk_27, first_miner_account);                               //  212
+  DO_CALLBACK(events, "check_split_switched_back_3");                                //  213
 
 
   return true;
 }
-//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_mempool_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
-{
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_mempool_2");
-  CHECK_TEST_CONDITION(c.get_pool_transactions_count() == 2);
-  return true;
-}
-//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_mempool_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
-{
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_mempool_1");
-  CHECK_TEST_CONDITION(c.get_pool_transactions_count() == 3);
-  return true;
-}
-//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_not_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
-{
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_not_switched");
-  //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 69);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 70);
 
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[69])));
-  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 2);
-  return true;
-}
-//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_not_switched2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
-{
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_not_switched2");
-  //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 69);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 70);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[69])));
-  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 3);
-  return true;
-}
-//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
-{
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched");
-
-  //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 70);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 71);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[75])));
-  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 3);
-  return true;
-}
 //-----------------------------------------------------------------------------------------------------
 bool gen_simple_chain_split_safex::check_split_not_switched_back(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
   DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_not_switched_back");
   //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 134);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 136);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[141])));
-  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 67);
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[138])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 64);
 
   return true;
 }
@@ -193,9 +127,9 @@ bool gen_simple_chain_split_safex::check_split_switched_back_1(cryptonote::core&
   DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_1");
 
   //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 134);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 136);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[141])));
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[138])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -210,8 +144,8 @@ bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core&
   DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_2");
 
   //check height
-  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 135);
-  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 136);
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 138);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
   CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[209])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
 
@@ -219,6 +153,24 @@ bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core&
   CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
 
   CHECK_TEST_CONDITION(safex_accounts.size() == 0);
+
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_switched_back_3(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_3");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 139);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 141);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[212])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 69);
+
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
 
   return true;
 }

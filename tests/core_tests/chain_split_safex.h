@@ -39,15 +39,12 @@ class gen_simple_chain_split_safex : public test_chain_unit_base
 {
 public: 
   gen_simple_chain_split_safex();
-  bool generate(std::vector<test_event_entry> &events) const; 
-  bool check_split_not_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_split_not_switched2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_split_switched(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
+  bool generate(std::vector<test_event_entry> &events) const;
   bool check_split_not_switched_back(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
   bool check_split_switched_back_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_mempool_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
-  bool check_mempool_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_3(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+
 
   safex::safex_account_key_handler m_safex_account1_keys;
   safex::safex_account safex_account_alice;
