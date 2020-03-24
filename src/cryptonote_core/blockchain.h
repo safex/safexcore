@@ -1589,5 +1589,9 @@ namespace cryptonote
             */
 
       std::vector<crypto::public_key> is_safex_purchase_right_address(const crypto::secret_key& seller_secret_view_key, const crypto::public_key& public_seller_spend_key, const cryptonote::transaction& tx);
+
+      bool is_safex_account_activated(const std::vector<txin_v> &vector);
+
+      bool are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin);
   };
 }  // namespace cryptonote

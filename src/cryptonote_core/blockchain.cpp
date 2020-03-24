@@ -3077,6 +3077,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     {
       if (txin.type() == typeid(txin_to_script))
       {
+        //TODO: Grki check if absolute is needed
         const txin_to_script &in = boost::get<txin_to_script>(txin);
         for (auto index: in.key_offsets) {
           output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_staked_token, index);
@@ -3159,12 +3160,10 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::create_account)
   {
-
-    if( tx.unlock_time < get_current_blockchain_height() + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD )
-    {
-        MERROR("Invalid unlock token period");
-        tvc.m_safex_invalid_input = true;
-        return false;
+    if(!are_safex_tokens_unlocked(tx.vin)){
+      MERROR("Safex tokens unlock period not expired at height "<<m_db->height());
+      tvc.m_safex_invalid_command_params = true;
+      return false;
     }
 
     uint64_t total_locked_tokens = 0;
@@ -3225,7 +3224,11 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::edit_account)
   {
-    //todo Do we need to check for signature of account owner or is it enough in tx_input check? Line: 3490
+    if(!is_safex_account_activated(tx.vin)){
+      MERROR("Safex account activation period not expired at height"<<m_db->height());
+      tvc.m_safex_invalid_command_params = true;
+      return false;
+    }
 
     for (const auto &vout: tx.vout)
     {
@@ -6346,4 +6349,45 @@ std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(cons
     }
 
     return seller_outputs;
+}
+
+bool Blockchain::is_safex_account_activated(const std::vector<txin_v> &tx_vin) {
+  for (const txin_v &txin: tx_vin)
+  {
+    if (txin.type() == typeid(txin_to_script))
+    {
+      const txin_to_script &in = boost::get<txin_to_script>(txin);
+
+      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+      for (auto index: absolute) {
+        output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_safex_account, index);
+        if (out.height+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+          return false;
+      }
+    }
+
+  }
+  return true;
+}
+
+bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
+
+  for (const txin_v &txin: tx_vin)
+  {
+    if (txin.type() == typeid(txin_to_script))
+    {
+      const txin_to_script &in = boost::get<txin_to_script>(txin);
+
+      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+      for (auto index: absolute) {
+        output_data_t out = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
+        if (out.height+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+          return false;
+      }
+    }
+
+  }
+  return true;
 }

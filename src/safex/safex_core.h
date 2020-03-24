@@ -208,6 +208,22 @@ namespace safex
   }
 
   /**
+  * Return safex account activation period
+  *
+  * @return number of blocks that is munimum for safex account to be used
+  */
+  inline uint64_t get_safex_minumum_account_create_period(const cryptonote::network_type nettype)
+  {
+//    TODO: Grki add needed periods
+//    if (nettype == cryptonote::network_type::FAKECHAIN)
+//      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
+//    else if (nettype == cryptonote::network_type::TESTNET)
+//      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
+//    else
+      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
+  }
+
+  /**
    * Calculate amount safex network fee
    *
    * @param cash_amount amount of saxex cash in transaction
