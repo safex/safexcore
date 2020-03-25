@@ -40,10 +40,10 @@ using namespace cryptonote;
 
 gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 {
-  REGISTER_CALLBACK("check_split_not_switched_back", gen_simple_chain_split_safex::check_split_not_switched_back);
-  REGISTER_CALLBACK("check_split_switched_back_1", gen_simple_chain_split_safex::check_split_switched_back_1);
-  REGISTER_CALLBACK("check_split_switched_back_2", gen_simple_chain_split_safex::check_split_switched_back_2);
-  REGISTER_CALLBACK("check_split_switched_back_3", gen_simple_chain_split_safex::check_split_switched_back_3);
+  REGISTER_CALLBACK("check_split_account_present_1", gen_simple_chain_split_safex::check_split_account_present_1);
+  REGISTER_CALLBACK("check_split_account_present_2", gen_simple_chain_split_safex::check_split_account_present_2);
+  REGISTER_CALLBACK("check_split_switched_account", gen_simple_chain_split_safex::check_split_switched_account);
+  REGISTER_CALLBACK("check_split_switched_back_account", gen_simple_chain_split_safex::check_split_switched_back_account);
 
   m_safex_account1_keys.generate();
 
@@ -93,26 +93,26 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   REWIND_BLOCKS(events, blk_19, blk_18, first_miner_account);                                 //  200
   MAKE_NEXT_BLOCK(events, blk_20, blk_19,  first_miner_account);                              //  201
   MAKE_NEXT_BLOCK(events, blk_21, blk_20,  first_miner_account);                              //  202
-  DO_CALLBACK(events, "check_split_not_switched_back");                                       //  203
+  DO_CALLBACK(events, "check_split_account_present_1");                                       //  203
   MAKE_NEXT_BLOCK(events, blk_22, blk_21, first_miner_account);                               //  204
   MAKE_NEXT_BLOCK(events, blk_23, blk_22, first_miner_account);                               //  205
   MAKE_NEXT_BLOCK(events, blk_24, blk_23, first_miner_account);                               //  206
   MAKE_NEXT_BLOCK(events, blk_25, blk_24, first_miner_account);                               //  207
-  DO_CALLBACK(events, "check_split_switched_back_1");                                         //  208
+  DO_CALLBACK(events, "check_split_account_present_2");                                         //  208
   MAKE_NEXT_BLOCK(events, blk_26, blk_25, first_miner_account);                               //  209
-  DO_CALLBACK(events, "check_split_switched_back_2");                                         //  210
+  DO_CALLBACK(events, "check_split_switched_account");                                         //  210
   MAKE_NEXT_BLOCK(events, blk_27, blk_16, first_miner_account);                               //  211
   MAKE_NEXT_BLOCK(events, blk_28, blk_27, first_miner_account);                               //  212
-  DO_CALLBACK(events, "check_split_switched_back_3");                                //  213
+  DO_CALLBACK(events, "check_split_switched_back_account");                                //  213
 
 
   return true;
 }
 
 //-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_not_switched_back(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_simple_chain_split_safex::check_split_account_present_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_not_switched_back");
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_account_present_1");
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
@@ -122,9 +122,9 @@ bool gen_simple_chain_split_safex::check_split_not_switched_back(cryptonote::cor
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_switched_back_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_simple_chain_split_safex::check_split_account_present_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_1");
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_account_present_2");
 
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
@@ -139,9 +139,9 @@ bool gen_simple_chain_split_safex::check_split_switched_back_1(cryptonote::core&
 
   return true;
 }//-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_simple_chain_split_safex::check_split_switched_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_2");
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_account");
 
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 138);
@@ -157,9 +157,9 @@ bool gen_simple_chain_split_safex::check_split_switched_back_2(cryptonote::core&
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
-bool gen_simple_chain_split_safex::check_split_switched_back_3(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+bool gen_simple_chain_split_safex::check_split_switched_back_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
 {
-  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_3");
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_account");
 
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 139);

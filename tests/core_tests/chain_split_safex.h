@@ -40,10 +40,10 @@ class gen_simple_chain_split_safex : public test_chain_unit_base
 public: 
   gen_simple_chain_split_safex();
   bool generate(std::vector<test_event_entry> &events) const;
-  bool check_split_not_switched_back(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_split_switched_back_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events); 
-  bool check_split_switched_back_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
-  bool check_split_switched_back_3(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_account_present_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_account_present_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
 
   safex::safex_account_key_handler m_safex_account1_keys;
