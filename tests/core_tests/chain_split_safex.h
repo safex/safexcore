@@ -46,6 +46,7 @@ public:
   bool check_split_switched_back_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_account_edit_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_account_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_account_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
 
   safex::safex_account_key_handler m_safex_account1_keys;
