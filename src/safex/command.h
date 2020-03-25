@@ -124,19 +124,16 @@ namespace safex
 
     create_account_result(const std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t>& _account_data):
             username{_username}, pkey{_pkey}, account_data{_account_data}{
-        output_ids.clear();
     }
 
     std::vector<uint8_t> username{};
     crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
-    std::vector<uint64_t> output_ids{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
           FIELD(pkey)
           FIELD(account_data)
-          FIELD(output_ids)
       END_SERIALIZE()
   };
 
@@ -148,13 +145,11 @@ namespace safex
     std::vector<uint8_t> username{};
     crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
-    uint64_t output_id{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
           FIELD(pkey)
           FIELD(account_data)
-          FIELD(output_id)
       END_SERIALIZE()
   };
 
