@@ -1374,7 +1374,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
         safex::edit_account_data account_output_data;
         parse_and_validate_object_from_blob(blobdata1, account_output_data);
-        remove_safex_account_update(account_output_data.username);
+        remove_safex_account_update(account_output_data.username, amount_output_indices[i]);
     } else if (output_type == tx_out_type::out_safex_offer) {
         const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -5217,7 +5217,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   }
 
 
-  void BlockchainLMDB::remove_safex_account_update(const safex::account_username &username)
+  void BlockchainLMDB::remove_safex_account_update(const safex::account_username &username, const uint64_t& output_id)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -5238,7 +5238,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
 
       //First we must remove advanced output
-      //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_account_update);
+      remove_advanced_output(cryptonote::tx_out_type::out_safex_account_update, output_id);
 
 
       restore_safex_account_data(sfx_account);

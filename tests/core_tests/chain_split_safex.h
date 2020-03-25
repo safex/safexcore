@@ -44,10 +44,13 @@ public:
   bool check_split_account_present_2(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_back_account(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_account_edit_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_account_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
 
   safex::safex_account_key_handler m_safex_account1_keys;
   safex::safex_account safex_account_alice;
+  static const std::string data_alternative;
 
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f",
                                                 "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",

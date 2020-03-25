@@ -621,7 +621,7 @@ private:
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_account_update(const safex::account_username &username);
+  void remove_safex_account_update(const safex::account_username &username, const uint64_t& output_id);
 
   /**
    * Remove last staked tokens from database

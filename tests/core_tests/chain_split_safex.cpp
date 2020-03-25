@@ -37,6 +37,8 @@ using namespace std;
 using namespace epee;
 using namespace cryptonote;
 
+const std::string gen_simple_chain_split_safex::data_alternative{"Edited account"};
+
 
 gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 {
@@ -44,7 +46,8 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
   REGISTER_CALLBACK("check_split_account_present_2", gen_simple_chain_split_safex::check_split_account_present_2);
   REGISTER_CALLBACK("check_split_switched_account", gen_simple_chain_split_safex::check_split_switched_account);
   REGISTER_CALLBACK("check_split_switched_back_account", gen_simple_chain_split_safex::check_split_switched_back_account);
-
+  REGISTER_CALLBACK("check_split_account_edit_1", gen_simple_chain_split_safex::check_split_account_edit_1);
+  REGISTER_CALLBACK("check_split_switched_account_edit", gen_simple_chain_split_safex::check_split_switched_account_edit);
   m_safex_account1_keys.generate();
 
   safex_account_alice.username = "alice01";
@@ -84,8 +87,8 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   MAKE_NEXT_BLOCK(events, blk_13, blk_12, first_miner_account);                               //  74
   MAKE_NEXT_BLOCK(events, blk_14, blk_13, first_miner_account);                               //  75
   REWIND_BLOCKS(events, blk_14r, blk_14, first_miner_account);                                //  135
-  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_2, first_miner_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 136
-  MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_2);            //  137
+  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, first_miner_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 136
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_1);            //  137
   MAKE_NEXT_BLOCK(events, blk_16, blk_15, first_miner_account);                               //  138     //height: 137
 //  //split again and check back switching
   MAKE_NEXT_BLOCK(events, blk_17, blk_8, first_miner_account);                                //  139   //70th block
@@ -104,6 +107,17 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   MAKE_NEXT_BLOCK(events, blk_27, blk_16, first_miner_account);                               //  211
   MAKE_NEXT_BLOCK(events, blk_28, blk_27, first_miner_account);                               //  212
   DO_CALLBACK(events, "check_split_switched_back_account");                                //  213
+  REWIND_BLOCKS(events, blk_28r, blk_28, first_miner_account);                                //  273
+  MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(events, txlist_2, first_miner_account, safex_account_alice.username, std::vector<uint8_t>(data_alternative.begin(), data_alternative.end()), m_safex_account1_keys.get_keys(), blk_28); // 274
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_29, blk_28r, first_miner_account, txlist_2);            //  275
+  DO_CALLBACK(events, "check_split_account_edit_1");                                 //  276
+  //  //split again and check back switching
+  MAKE_NEXT_BLOCK(events, blk_30, blk_27, first_miner_account);                               //  277
+  MAKE_NEXT_BLOCK(events, blk_31, blk_30, first_miner_account);                               //  278
+  REWIND_BLOCKS(events, blk_31r, blk_31, first_miner_account);                                //  338
+  MAKE_NEXT_BLOCK(events, blk_32, blk_31r, first_miner_account);                              //  339
+  DO_CALLBACK(events, "check_split_switched_account_edit");                         //  340
+
 
 
   return true;
@@ -170,6 +184,55 @@ bool gen_simple_chain_split_safex::check_split_switched_back_account(cryptonote:
   std::vector<std::pair<string,string>> safex_accounts;
   CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
 
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(std::equal(safex_account_alice.account_data.begin(), safex_account_alice.account_data.end(), sfx_account.account_data.begin()));
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_account_edit_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_account_edit_1");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 200);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 203);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[275])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 69);
+
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  std::string sfx_account_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+  CHECK_EQ(sfx_account_data,data_alternative);
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_switched_account_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_account_edit");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 201);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 203);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[339])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 131);
+
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(std::equal(safex_account_alice.account_data.begin(), safex_account_alice.account_data.end(), sfx_account.account_data.begin()));
   CHECK_TEST_CONDITION(safex_accounts.size() == 1);
 
   return true;
