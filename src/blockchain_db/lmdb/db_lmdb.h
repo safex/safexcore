@@ -499,10 +499,11 @@ private:
    * Remove safex account from database
    *
    * @param username safex account username
+   * @param output_id id of the account creation output
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_account(const safex::account_username &username);
+  void remove_safex_account(const safex::account_username &username, const uint64_t& output_id);
 
     /**
      * Add new offer to database
@@ -605,21 +606,13 @@ private:
     /**
     * Remove advanced output from DB
     *
+    * @param out_type Type of the advanced output
     * @param Output id of the advanced output to be deleted
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void remove_advanced_output(uint64_t& output_id);
-
-    /**
-    * Remove last added advanced output from DB
-    *
-    *
-    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
-    *
-    */
-    void remove_last_advanced_output(const tx_out_type& out_type);
+    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id);
 
   /**
    * Remove last safex account update from database

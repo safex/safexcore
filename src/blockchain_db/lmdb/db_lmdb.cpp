@@ -1368,7 +1368,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
       safex::create_account_data account_output_data;
       parse_and_validate_object_from_blob(blobdata1, account_output_data);
-      remove_safex_account(account_output_data.username);
+      remove_safex_account(account_output_data.username, amount_output_indices[i]);
     } else if (output_type == tx_out_type::out_safex_account_update) {
         const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -1398,7 +1398,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity);
     } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
         //TODO: GRKI Check this if needed more logic
-        remove_last_advanced_output(output_type);
+        //remove_last_advanced_output(output_type);
     } else if (output_type == tx_out_type::out_safex_feedback) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -1444,7 +1444,7 @@ void BlockchainLMDB::remove_staked_token(const uint64_t token_amount){
 
     uint64_t outputID;
     memcpy(&outputID, data.mv_data,sizeof(uint64_t));
-    remove_advanced_output(outputID);
+    remove_advanced_output(cryptonote::tx_out_type::out_staked_token, outputID);
 
     if ((result = mdb_cursor_del(cur_token_lock_expiry, 0)))
         throw0(DB_ERROR(lmdb_error("Failed to add staked token output expiry entry: ", result).c_str()));
@@ -4832,7 +4832,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   };
 
 
-  void BlockchainLMDB::remove_safex_account(const safex::account_username &username)
+  void BlockchainLMDB::remove_safex_account(const safex::account_username &username, const uint64_t& output_id)
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -4848,7 +4848,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       throw1(DB_ERROR(lmdb_error("Error finding account to remove: ", result).c_str()));
     if (!result)
     {
-      remove_last_advanced_output(cryptonote::tx_out_type::out_safex_account);
+      remove_advanced_output(cryptonote::tx_out_type::out_safex_account, output_id);
       //Then we remove safex account from DB
       result = mdb_cursor_del(m_cur_safex_account, 0);
       if (result)
@@ -4934,7 +4934,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw1(DB_ERROR(lmdb_error("Error finding offer to remove: ", result).c_str()));
         if (!result)
         {
-            remove_last_advanced_output(cryptonote::tx_out_type::out_safex_offer);
+            //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_offer);
             //Then we remove safex offer from DB
             result = mdb_cursor_del(m_cur_safex_offer, 0);
             if (result)
@@ -4962,7 +4962,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);
 
             //First we must remove advanced output
-            remove_last_advanced_output(cryptonote::tx_out_type::out_safex_offer_update);
+            //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_offer_update);
 
             //Update safex offer data to previous version
             sfx_offer.output_ids.pop_back();
@@ -5096,7 +5096,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         throw1(DB_ERROR(lmdb_error("Error finding price_peg to remove: ", result).c_str()));
       if (!result)
       {
-        remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg);
+        //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg);
         //Then we remove safex price_peg from DB
         result = mdb_cursor_del(m_cur_safex_price_peg, 0);
         if (result)
@@ -5124,7 +5124,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         cryptonote::parse_and_validate_from_blob(pricepegblob, sfx_price_peg);
 
         //First we must remove advanced output
-        remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg_update);
+        //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg_update);
 
 
         restore_safex_price_peg_data(sfx_price_peg);
@@ -5154,7 +5154,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         auto result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
         if (result == MDB_SUCCESS)
         {
-            remove_last_advanced_output(tx_out_type::out_safex_purchase);
+            //remove_last_advanced_output(tx_out_type::out_safex_purchase);
             safex::create_offer_result sfx_offer;
             const cryptonote::blobdata offerblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
             cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);
@@ -5193,7 +5193,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     auto result = mdb_cursor_get(cur_safex_feedback, &k, &v, MDB_SET);
     if (result == MDB_SUCCESS)
     {
-      remove_last_advanced_output(tx_out_type::out_safex_feedback);
+      //remove_last_advanced_output(tx_out_type::out_safex_feedback);
 
       std::vector<safex::safex_feedback_db_data> sfx_feedbacks;
       const cryptonote::blobdata feedbackblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
@@ -5238,7 +5238,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
 
       //First we must remove advanced output
-      remove_last_advanced_output(cryptonote::tx_out_type::out_safex_account_update);
+      //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_account_update);
 
 
       restore_safex_account_data(sfx_account);
@@ -5297,18 +5297,29 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   }
 
 
-  void BlockchainLMDB::remove_advanced_output(uint64_t& output_id){
+  void BlockchainLMDB::remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id){
       check_open();
       mdb_txn_cursors *m_cursors = &m_wcursors;
 
       CURSOR(output_advanced);
       CURSOR(output_txs);
+      CURSOR(output_advanced_type);
+
+      uint64_t output_type = static_cast<uint64_t>(out_type);
+      MDB_val_set(k_output_type, output_type);
+      MDB_val value = {sizeof(uint64_t), (void *)&output_id};
+
+      auto result = mdb_cursor_get(m_cur_output_advanced_type, &k_output_type, &value, MDB_GET_BOTH);
+      if(result != 0)
+      {
+        throw0(DB_ERROR("Unexpected: global output index not found for specified type in m_output_advanced_type"));
+      }
 
       MDB_val_set(otxk, output_id);
 
       MDB_val_set(otxk2, output_id);
 
-      auto result = mdb_cursor_get(m_cur_output_txs, (MDB_val *)&zerokval, &otxk, MDB_GET_BOTH);
+      result = mdb_cursor_get(m_cur_output_txs, (MDB_val *)&zerokval, &otxk, MDB_GET_BOTH);
       if (result == MDB_NOTFOUND)
       {
           throw0(DB_ERROR("Unexpected: global output index not found in m_output_txs"));
@@ -5331,39 +5342,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
           if (result)
               throw1(DB_ERROR(lmdb_error("Error removing advanced output: ", result).c_str()));
       }
-  }
-
-    void BlockchainLMDB::remove_last_advanced_output(const tx_out_type& out_type){
-        check_open();
-        mdb_txn_cursors *m_cursors = &m_wcursors;
-
-        MDB_cursor *cur_output_advanced_type;
-
-        CURSOR(output_advanced_type);
-        cur_output_advanced_type = m_cur_output_advanced_type;
-
-        MDB_val data;
-        MDB_val block_number;
-        uint64_t output_id;
-        uint64_t output_type = static_cast<uint64_t>(out_type);
-        MDB_val_set(k_output_type, output_type);
-        MDB_val value = {sizeof(uint64_t), (void *)&output_id};
-
-        auto result = mdb_cursor_get(cur_output_advanced_type, &k_output_type, &value, MDB_SET);
-        if(result != 0)
-        {
-          return;
-        }
-
-        result = mdb_cursor_get(cur_output_advanced_type, &k_output_type, &value, MDB_LAST_DUP);
-
-        memcpy(&output_id, value.mv_data,sizeof(uint64_t));
-
-        remove_advanced_output(output_id);
-
-      if ((result = mdb_cursor_del(cur_output_advanced_type, 0)))
+      if ((result = mdb_cursor_del(m_cur_output_advanced_type, 0)))
         throw0(DB_ERROR(lmdb_error("Failed to remove advanced output by type: ", result).c_str()));
-
     }
 
     void BlockchainLMDB::create_safex_purchase(const safex::safex_purchase& purchase) {
