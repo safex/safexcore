@@ -1334,7 +1334,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
         safex::edit_offer_data offer_output_data;
         parse_and_validate_object_from_blob(blobdata1, offer_output_data);
-        remove_safex_offer_update(offer_output_data.offer_id);
+        remove_safex_offer_update(offer_output_data.offer_id, amount_output_indices[i]);
     } else if(output_type == tx_out_type::out_staked_token){
         //TODO: GRKI check this if needed more logic
         remove_staked_token(tx.vout[i].token_amount);
@@ -4890,7 +4890,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
     }
 
-    void BlockchainLMDB::remove_safex_offer_update(const crypto::hash& offer_id)
+    void BlockchainLMDB::remove_safex_offer_update(const crypto::hash& offer_id, const uint64_t& output_id)
     {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();
@@ -4910,7 +4910,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);
 
             //First we must remove advanced output
-            //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_offer_update);
+            remove_advanced_output(cryptonote::tx_out_type::out_safex_offer_update, output_id);
 
             //Update safex offer data to previous version
             sfx_offer.output_ids.pop_back();
@@ -4943,7 +4943,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
         output_advanced_data_t current = AUTO_VAL_INIT(current);
 
-        auto get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_SET);
+        auto get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_LAST);
 
         while (get_result == MDB_SUCCESS)
         {
@@ -4958,6 +4958,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.price = restored_sfx_offer_create.price;
               sfx_offer.active = restored_sfx_offer_create.active;
               sfx_offer.seller = restored_sfx_offer_create.seller;
+              return;
             }
           }
           else if(parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data, restored_sfx_offer_update)){
@@ -4966,6 +4967,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.price = restored_sfx_offer_update.price;
               sfx_offer.active = restored_sfx_offer_update.active;
               sfx_offer.seller = restored_sfx_offer_update.seller;
+              return;
             }
           }
           get_result = mdb_cursor_get(cur_output_advanced, &key, &value_blob, MDB_PREV);

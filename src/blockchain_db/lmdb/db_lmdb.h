@@ -540,10 +540,11 @@ private:
      * Remove safex offer update from database
      *
      * @param offer_id safex offer id
+     * @param output_id id of the offer edit output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_offer_update(const crypto::hash &offer_id);
+    void remove_safex_offer_update(const crypto::hash &offer_id, const uint64_t& output_id);
 
     /**
      * Remove safex price_peg from database
