@@ -160,7 +160,6 @@ struct create_offer_result : public execution_result
 
     create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, uint64_t _price, uint64_t _quantity,
             bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active} {
-        output_ids.clear();
     }
 
     crypto::hash offer_id{};
@@ -168,7 +167,8 @@ struct create_offer_result : public execution_result
     uint64_t quantity{};
     uint64_t price;
     bool active{};
-    std::vector<uint64_t> output_ids{};
+    uint64_t output_id{};
+    uint64_t output_id_creation{};
 
     BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
@@ -176,7 +176,8 @@ struct create_offer_result : public execution_result
         FIELD(price)
         FIELD(quantity)
         FIELD(active)
-        FIELD(output_ids)
+        FIELD(output_id)
+        FIELD(output_id_creation)
     END_SERIALIZE()
 
 };

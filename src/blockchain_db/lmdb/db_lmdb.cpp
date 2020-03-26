@@ -1146,12 +1146,9 @@ void BlockchainLMDB::process_advanced_output(const tx_out& tx_output, const uint
       std::string tmp{(char*)val_data.mv_data, val_data.mv_size};
       parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer);
 
-      if((output_type_c == cryptonote::tx_out_type::out_safex_offer && offer.output_ids.empty()) ||
-         (output_type_c == cryptonote::tx_out_type::out_safex_offer_update && !offer.output_ids.empty()))
-          offer.output_ids.push_back(output_id);
-      else
-          throw0(DB_ERROR(lmdb_error("Failed to add output id as it is already there for safex offer entry: ",
-                                     result).c_str()));
+      offer.output_id = output_id;
+      if(tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_offer)
+        offer.output_id_creation = output_id;
 
       blobdata blob{};
       t_serializable_object_to_blob(offer,blob);
@@ -4912,10 +4909,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             //First we must remove advanced output
             remove_advanced_output(cryptonote::tx_out_type::out_safex_offer_update, output_id);
 
-            //Update safex offer data to previous version
-            sfx_offer.output_ids.pop_back();
-
-
             restore_safex_offer_data(sfx_offer);
 
             //Then we update safex offer to DB
@@ -4958,6 +4951,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.price = restored_sfx_offer_create.price;
               sfx_offer.active = restored_sfx_offer_create.active;
               sfx_offer.seller = restored_sfx_offer_create.seller;
+
+              memcpy(&output_id, key.mv_data,sizeof(uint64_t));
+              sfx_offer.output_id = output_id;
+
               return;
             }
           }
@@ -4967,6 +4964,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.price = restored_sfx_offer_update.price;
               sfx_offer.active = restored_sfx_offer_update.active;
               sfx_offer.seller = restored_sfx_offer_update.seller;
+
+              memcpy(&output_id, key.mv_data,sizeof(uint64_t));
+              sfx_offer.output_id = output_id;
+
               return;
             }
           }
@@ -5661,11 +5662,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         RCURSOR(safex_offer)
         cur_safex_offer = m_cur_safex_offer;
 
-        uint64_t outputID;
-        uint64_t outputID_creation;
-
-        bool edited = false;
-
+        uint64_t output_id;
+        uint64_t output_id_creation;
 
         uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
 
@@ -5688,21 +5686,16 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
             offer.quantity = offer_result.quantity;
 
-            edited = (offer_result.output_ids.size() > 1);
-
-            outputID = offer_result.output_ids.back();
-            outputID_creation = offer_result.output_ids.front();
+          output_id = offer_result.output_id;
+          output_id_creation = offer_result.output_id_creation;
         }
-
-
-
 
         MDB_cursor *cur_output_advanced;
         RCURSOR(output_advanced);
         cur_output_advanced = m_cur_output_advanced;
 
         //Get offer data
-        MDB_val_set(key, outputID);
+        MDB_val_set(key, output_id);
         blobdata blob;
         MDB_val_set(value_blob, blob);
 
@@ -5714,7 +5707,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         {
             current = parse_output_advanced_data_from_mdb(value_blob);
 
-            if(edited){
+            if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_offer_update)){
               safex::edit_offer_data offer_result;
               parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data,offer_result);
 
@@ -5746,13 +5739,13 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
         else if (get_result == MDB_NOTFOUND)
         {
-            throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(outputID) + " but not found: ", get_result).c_str()));
+            throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(output_id) + " but not found: ", get_result).c_str()));
         }
         else
             throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
       //Get offer keys
-      MDB_val_set(k_creation, outputID_creation);
+      MDB_val_set(k_creation, output_id_creation);
       MDB_val_set(v_blob, blob);
 
       get_result = mdb_cursor_get(cur_output_advanced, &k_creation, &v_blob, MDB_SET);
@@ -5768,7 +5761,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       }
       else if (get_result == MDB_NOTFOUND)
       {
-        throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(outputID) + " but not found: ", get_result).c_str()));
+        throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(output_id_creation) + " but not found: ", get_result).c_str()));
       }
       else
         throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
