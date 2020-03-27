@@ -1546,7 +1546,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         dsts.push_back(token_create_fee);
 
         uint64_t bc_height = m_wallet->get_blockchain_current_height();
-        unlock_block = bc_height + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD + 10;
+        unlock_block = bc_height + safex::get_safex_minumum_account_create_period(m_wallet->nettype());
         command = safex::command_t::create_account;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {

@@ -654,7 +654,7 @@ namespace cryptonote
 
         case CommandType::TransferCreateAccount:
           command = safex::command_t::create_account;
-          unlock_block = bc_height + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD + 10; //just in case
+          unlock_block = bc_height + safex::get_safex_minumum_account_create_period(m_wallet->nettype());
           break;
 
         case CommandType::TransferEditAccount:
