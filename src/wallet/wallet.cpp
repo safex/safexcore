@@ -5933,7 +5933,11 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     auto end = std::unique(req_t.amounts.begin(), req_t.amounts.end());
     req_t.amounts.resize(std::distance(req_t.amounts.begin(), end));
     req_t.unlocked = true;
-    req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE;
+    //Don't use tokens that are used during SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD as daemon can deny if these tokens are used
+    if(out_type == tx_out_type::out_token)
+      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE - SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
+    if(out_type == tx_out_type::out_cash)
+      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE;
     req_t.out_type = out_type;
     bool r = net_utils::invoke_http_json_rpc("/json_rpc", "get_output_histogram", req_t, resp_t, m_http_client, rpc_timeout);
     m_daemon_rpc_mutex.unlock();
