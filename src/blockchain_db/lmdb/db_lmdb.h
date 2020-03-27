@@ -550,10 +550,11 @@ private:
      * Remove safex price_peg from database
      *
      * @param price_peg_id safex price_peg id
+     * @param output_id id of the price peg creation output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_price_peg(const crypto::hash &price_peg_id);
+    void remove_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& output_id);
 
     /**
      * Remove safex price_peg update from database

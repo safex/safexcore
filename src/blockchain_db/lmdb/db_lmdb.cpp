@@ -1355,7 +1355,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
       safex::create_price_peg_data price_peg_output_data;
       parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
-      remove_safex_price_peg(price_peg_output_data.price_peg_id);
+      remove_safex_price_peg(price_peg_output_data.price_peg_id, amount_output_indices[i]);
     } else if(output_type == tx_out_type::out_safex_price_peg_update) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -5033,7 +5033,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     }
 
-    void BlockchainLMDB::remove_safex_price_peg(const crypto::hash &price_peg_id){
+    void BlockchainLMDB::remove_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& output_id){
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
       check_open();
       mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -5047,7 +5047,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         throw1(DB_ERROR(lmdb_error("Error finding price_peg to remove: ", result).c_str()));
       if (!result)
       {
-        //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg);
+        remove_advanced_output(cryptonote::tx_out_type::out_safex_price_peg, output_id);
         //Then we remove safex price_peg from DB
         result = mdb_cursor_del(m_cur_safex_price_peg, 0);
         if (result)
