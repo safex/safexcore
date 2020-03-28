@@ -1361,7 +1361,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
       safex::update_price_peg_data price_peg_output_data;
       parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
-      remove_safex_price_peg_update(price_peg_output_data.price_peg_id);
+      remove_safex_price_peg_update(price_peg_output_data.price_peg_id, amount_output_indices[i]);
     }
     else {
       throw0(DB_ERROR((std::string("output type removal unsuported, tx_out_type:")+std::to_string(static_cast<int>(output_type))).c_str()));
@@ -5051,7 +5051,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       }
     }
 
-    void BlockchainLMDB::remove_safex_price_peg_update(const crypto::hash& price_peg_id)
+    void BlockchainLMDB::remove_safex_price_peg_update(const crypto::hash& price_peg_id, const uint64_t& output_id)
     {
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
       check_open();
@@ -5071,7 +5071,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         cryptonote::parse_and_validate_from_blob(pricepegblob, sfx_price_peg);
 
         //First we must remove advanced output
-        //remove_last_advanced_output(cryptonote::tx_out_type::out_safex_price_peg_update);
+        remove_advanced_output(cryptonote::tx_out_type::out_safex_price_peg_update, output_id);
 
 
         restore_safex_price_peg_data(sfx_price_peg);

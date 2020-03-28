@@ -56,11 +56,16 @@ public:
   bool check_split_price_peg_present_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_price_peg(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_back_price_peg(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_price_peg_edit_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_price_peg_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_price_peg_edit(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
   static bool expected_data_fields_intialized;
   static safex::safex_offer expected_alice_safex_offer;
   static safex::safex_offer expected_alice_safex_offer_edited;
   static safex::safex_price_peg expected_alice_safex_price_peg;
+  static safex::safex_price_peg expected_alice_safex_price_peg_edited;
+
 
   static uint64_t  expected_network_fee;
   static uint64_t  expected_alice_balance;
@@ -74,6 +79,7 @@ public:
   safex::safex_offer safex_offer_alice;
   safex::safex_offer safex_offer_alice_edited;
   safex::safex_price_peg safex_price_peg_alice;
+  safex::safex_price_peg safex_price_peg_alice_edited;
 
   static const std::string data_alternative;
 
