@@ -69,7 +69,10 @@ $ sudo apt update && sudo apt install build-essential cmake pkg-config \
     libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev \
     libgtest-dev doxygen graphviz libpcsclite-dev libprotobuf-dev
 ```
-
+Clone the git repository with recursive
+```
+$ git clone --recursive https://github.com/safex/safexcore.git
+```
 To build a debug version run:
 ```
 make -j <Your number of cores> debug-all > build.log
