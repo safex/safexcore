@@ -62,6 +62,10 @@ public:
   static safex::safex_offer expected_alice_safex_offer_edited;
   static safex::safex_price_peg expected_alice_safex_price_peg;
 
+  static uint64_t  expected_network_fee;
+  static uint64_t  expected_alice_balance;
+  static uint64_t  expected_bob_balance;
+
   cryptonote::account_base first_miner_account;
   cryptonote::account_base account;
 

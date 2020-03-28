@@ -40,6 +40,10 @@ using namespace cryptonote;
 bool gen_simple_chain_split_safex::expected_data_fields_intialized{false};
 const std::string gen_simple_chain_split_safex::data_alternative{"Edited account"};
 
+uint64_t  gen_simple_chain_split_safex::expected_network_fee;
+uint64_t  gen_simple_chain_split_safex::expected_alice_balance;
+uint64_t  gen_simple_chain_split_safex::expected_bob_balance;
+
 safex::safex_offer gen_simple_chain_split_safex::expected_alice_safex_offer;
 safex::safex_offer gen_simple_chain_split_safex::expected_alice_safex_offer_edited;
 safex::safex_price_peg gen_simple_chain_split_safex::expected_alice_safex_price_peg;
@@ -85,6 +89,15 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 
   if (!expected_data_fields_intialized)
   {
+
+    expected_alice_balance = 0;
+    expected_bob_balance = 0;
+    expected_network_fee = 0;
+
+    expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    expected_alice_balance -= 5*TESTS_DEFAULT_FEE;
+
+
     expected_data_fields_intialized = true;
     expected_alice_safex_offer = safex_offer_alice;
     expected_alice_safex_offer_edited = safex_offer_alice_edited;
@@ -101,13 +114,15 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   crypto::secret_key_to_public_key(first_miner_account.get_keys().m_spend_secret_key, miner_public_key);
   cryptonote::fakechain::set_core_tests_public_key(miner_public_key);
 
-  //                                                                                          events index
   MAKE_GENESIS_BLOCK(events, blk_0, first_miner_account, ts_start);                           //  0
+
+  MAKE_ACCOUNT(events, alice_account);
+  MAKE_ACCOUNT(events, bob_account);                                                          // All events + 2
   MAKE_NEXT_BLOCK(events, blk_1, blk_0, first_miner_account);                                 //  1
   MAKE_NEXT_BLOCK(events, blk_2, blk_1, first_miner_account);                                 //  2
   MAKE_NEXT_BLOCK(events, blk_3, blk_2, first_miner_account);                                 //  3
   REWIND_BLOCKS(events, blk_3r, blk_3, first_miner_account);                                  //  63
-  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, first_miner_account, MK_TOKENS(10000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0])); // 64
+  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, alice_account, MK_TOKENS(10000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0])); // 64
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, first_miner_account, txlist_0);              // 65
   MAKE_NEXT_BLOCK(events, blk_5, blk_4, first_miner_account);                                 // 66
   MAKE_NEXT_BLOCK(events, blk_6, blk_5, first_miner_account);                                 // 67
@@ -123,7 +138,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Create safex account
 
   REWIND_BLOCKS(events, blk_14r, blk_14, first_miner_account);                                //  135
-  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, first_miner_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 136
+  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, alice_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 136
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_1);            //  137
   MAKE_NEXT_BLOCK(events, blk_16, blk_15, first_miner_account);                               //  138     //height: 137
 //  //split again and check back switching
@@ -147,7 +162,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Edit safex account
 
   REWIND_BLOCKS(events, blk_28r, blk_28, first_miner_account);                                //  273
-  MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(events, txlist_2, first_miner_account, safex_account_alice.username, std::vector<uint8_t>(data_alternative.begin(), data_alternative.end()), m_safex_account1_keys.get_keys(), blk_28); // 274
+  MAKE_TX_EDIT_SAFEX_ACCOUNT_LIST_START(events, txlist_2, alice_account, safex_account_alice.username, std::vector<uint8_t>(data_alternative.begin(), data_alternative.end()), m_safex_account1_keys.get_keys(), blk_28); // 274
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_29, blk_28r, first_miner_account, txlist_2);            //  275
   DO_CALLBACK(events, "check_split_account_edit_1");                                 //  276
   //  //split again and check back switching
@@ -163,7 +178,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Create safex offer
 
   REWIND_BLOCKS(events, blk_34r, blk_34, first_miner_account);                                //  403
-  MAKE_TX_CREATE_SAFEX_OFFER_LIST_START(events, txlist_3, first_miner_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_34); // 404
+  MAKE_TX_CREATE_SAFEX_OFFER_LIST_START(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_34); // 404
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_35, blk_34r, first_miner_account, txlist_3);            //  405
   DO_CALLBACK(events, "check_split_offer_present_1");                                //  406
   //  //split again and check back switching
@@ -179,7 +194,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Edit safex offer
 
   REWIND_BLOCKS(events, blk_40r, blk_40, first_miner_account);                                //  533
-  MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_4, first_miner_account, safex_account_alice.pkey, safex_offer_alice_edited, m_safex_account1_keys.get_keys(), blk_40); // 534
+  MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_4, alice_account, safex_account_alice.pkey, safex_offer_alice_edited, m_safex_account1_keys.get_keys(), blk_40); // 534
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_41, blk_40r, first_miner_account, txlist_4);            //  535
   DO_CALLBACK(events, "check_split_offer_edit_1");                                  //  536
   //  //split again and check back switching
@@ -195,7 +210,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Create safex price peg
 
   REWIND_BLOCKS(events, blk_46r, blk_46, first_miner_account);                                //  663
-  MAKE_TX_CREATE_SAFEX_PRICE_PEG_LIST_START(events, txlist_5, first_miner_account, safex_account_alice.pkey, safex_price_peg_alice, m_safex_account1_keys.get_keys(), blk_46); // 664
+  MAKE_TX_CREATE_SAFEX_PRICE_PEG_LIST_START(events, txlist_5, alice_account, safex_account_alice.pkey, safex_price_peg_alice, m_safex_account1_keys.get_keys(), blk_46); // 664
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_47, blk_46r, first_miner_account, txlist_5);            //  665
   DO_CALLBACK(events, "check_split_price_peg_present_1");                            //  666
   //  //split again and check back switching
@@ -219,7 +234,7 @@ bool gen_simple_chain_split_safex::check_split_account_present_1(cryptonote::cor
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[138])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[140])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 64);
 
   return true;
@@ -232,7 +247,7 @@ bool gen_simple_chain_split_safex::check_split_account_present_2(cryptonote::cor
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 137);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[138])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[140])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -249,7 +264,7 @@ bool gen_simple_chain_split_safex::check_split_switched_account(cryptonote::core
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 138);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 139);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[209])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[211])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 68);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -267,7 +282,7 @@ bool gen_simple_chain_split_safex::check_split_switched_back_account(cryptonote:
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 139);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 141);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[212])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[214])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 69);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -289,7 +304,7 @@ bool gen_simple_chain_split_safex::check_split_account_edit_1(cryptonote::core& 
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 200);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 203);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[275])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[277])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 69);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -312,7 +327,7 @@ bool gen_simple_chain_split_safex::check_split_switched_account_edit(cryptonote:
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 201);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 203);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[339])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[341])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 131);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -334,7 +349,7 @@ bool gen_simple_chain_split_safex::check_split_switched_back_account_edit(crypto
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 202);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 205);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[342])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[344])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 132);
 
   std::vector<std::pair<string,string>> safex_accounts;
@@ -357,7 +372,7 @@ bool gen_simple_chain_split_safex::check_split_offer_present_1(cryptonote::core&
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 263);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 267);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[405])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[407])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 132);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -397,7 +412,7 @@ bool gen_simple_chain_split_safex::check_split_switched_offer(cryptonote::core& 
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 264);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 267);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[469])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[471])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 194);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -425,7 +440,7 @@ bool gen_simple_chain_split_safex::check_split_switched_back_offer(cryptonote::c
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 265);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 269);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[472])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[474])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 195);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -464,7 +479,7 @@ bool gen_simple_chain_split_safex::check_split_offer_edit_1(cryptonote::core& c,
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 326);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 331);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[535])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[537])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 195);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -504,7 +519,7 @@ bool gen_simple_chain_split_safex::check_split_switched_offer_edit(cryptonote::c
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 327);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 331);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[599])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[601])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 257);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -544,7 +559,7 @@ bool gen_simple_chain_split_safex::check_split_switched_back_offer_edit(cryptono
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 328);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 333);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[602])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[604])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 258);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -583,7 +598,7 @@ bool gen_simple_chain_split_safex::check_split_price_peg_present_1(cryptonote::c
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 389);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 395);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[665])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[667])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 258);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -637,7 +652,7 @@ bool gen_simple_chain_split_safex::check_split_switched_price_peg(cryptonote::co
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 390);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 395.);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[729])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[731])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 320);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -681,7 +696,7 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg(cryptonot
   //check height
   CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 391);
   CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 397);
-  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[732])));
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[734])));
   CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 321);
   // safex account
   std::vector<std::pair<string,string>> safex_accounts;
@@ -723,6 +738,30 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg(cryptonot
   CHECK_EQ(expected_alice_safex_price_peg.currency, sfx_price_peg.currency);
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg.description.begin(), expected_alice_safex_price_peg.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
+
+  std::list<cryptonote::block> block_list;
+  bool r = c.get_blocks((uint64_t)0, 391, block_list);
+  CHECK_TEST_CONDITION(r);
+
+  std::vector<cryptonote::block> chain;
+  map_hash2tx_t mtx;
+  std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
+  bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
+  CHECK_TEST_CONDITION(re);
+
+  cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
+  cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
+
+
+  uint64_t network_fee_collected = c.get_collected_network_fee(0, 391);
+  CHECK_EQ(network_fee_collected, expected_network_fee);
+
+
+  uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
+  CHECK_EQ(alice_balance, expected_alice_balance);
+
+  uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
+  CHECK_EQ(bob_balance, expected_bob_balance);
 
   return true;
 }
