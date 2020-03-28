@@ -122,7 +122,7 @@ namespace cryptonote
       break;
 
       case CommandType::TransferUpdatePricePeg:
-        min_args = 5;
+        min_args = 3;
         break;
 
       case CommandType::TransferEditOffer:
@@ -483,29 +483,20 @@ namespace cryptonote
         crypto::hash price_peg_id_hash;
         epee::string_tools::hex_to_pod(local_args[1], price_peg_id_hash);
 
-        std::string price_peg_title = local_args[2];
-        std::string price_peg_currency = local_args[3];
         uint64_t rate;
 
-        if(price_peg_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
-          fail_msg_writer() << tr("Currency must be equal or less than ") << SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE<<tr(" characters!");
-          return true;
-        }
-
         try {
-          rate = stod(local_args[4])*COIN;
+          rate = stod(local_args[2])*COIN;
         }
         catch(std::invalid_argument& e){
           fail_msg_writer() << tr("One of the arguments is missing. Please check needed arguments again.");
           return true;
         }
 
-        std::ostringstream pricepeg_ostr;
-        std::copy(local_args.begin() + 5, local_args.end(), ostream_iterator<string>(pricepeg_ostr, " "));
-        std::string description = pricepeg_ostr.str();
-        std::vector<uint8_t> description_arg{description.begin(),description.end()};
+        safex::safex_price_peg sfx_price_peg{};
 
-        safex::safex_price_peg sfx_price_peg{price_peg_title,sfx_username,price_peg_currency,description_arg,price_peg_id_hash,rate};
+        sfx_price_peg.price_peg_id = price_peg_id_hash;
+        sfx_price_peg.rate = rate;
 
         cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
         dsts.push_back(de_price_peg_update);
@@ -1463,7 +1454,7 @@ namespace cryptonote
       //   Usage:
       //  safex_price_peg
       //  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>
-      //  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>
+      //  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_rate>
       if (args.empty())
       {
         // print all the existing price pegs
@@ -1489,7 +1480,7 @@ namespace cryptonote
         success_msg_writer() << tr("usage:\n"
                                    "  safex_price_peg\n"
                                    "  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>\n"
-                                   "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>");
+                                   "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_rate>");
 
       }
       return true;
@@ -1616,21 +1607,14 @@ namespace cryptonote
       safex::update_price_peg_data price_peg;
       const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
       cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
-      std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
-      std::string title{price_peg.title.begin(),price_peg.title.end()};
-      std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
       message_writer(console_color_blue, false) << "\r" <<
                                                 tr("Height ") << height << ", " <<
                                                 tr("txid ") << txid << ", " <<
-                                                tr("Price peg update for account: ") << creator << " received, " <<
-                                                tr("Price peg ID: ") << price_peg.price_peg_id <<
+                                                tr("Price peg update for price peg ID: ") << price_peg.price_peg_id <<
                                                 tr("Price peg rate: ") << price_peg.rate <<
-                                                tr("Price peg currency: ") << currency <<
                                                 tr("idx ") << subaddr_index;
 
-      safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
-
-      m_wallet->update_safex_price_peg(sfx_price_peg);
+      m_wallet->update_safex_price_peg(price_peg.price_peg_id,price_peg.rate);
 
     }
 

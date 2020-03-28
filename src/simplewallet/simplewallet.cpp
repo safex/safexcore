@@ -1287,7 +1287,7 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::safex_price_peg, this, _1),
                            tr("safex_price_peg\n"
                               "  safex_price_peg create [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>\n"
-                              "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_title> <price_peg_currency> <price_peg_rate> <price_peg_description>"),
+                              "  safex_price_peg update [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <account_username> <price_peg_id> <price_peg_rate>"),
                            tr("If no arguments are specified, the wallet shows all the existing safex price pegs for current account.\n"
                               "If the \"create\" argument is specified, the wallet creates a new safex price peg and creates a transaction\n"
                               "If the \"update\" argument is specified, given price peg will be updated with new arguments"));

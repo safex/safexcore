@@ -3467,37 +3467,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         safex::update_price_peg_data price_peg;
         const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
         cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
-        //check username for uniqueness
-        crypto::public_key temppkey{};
-        if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
-        {
-          std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
-          MERROR("Account with username "+username+" does not exists");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
 
-        if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
-        {
-          MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
-        {
-          MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        //check price peg data size
-        if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
-        {
-          MERROR("Price peg data is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_DATA_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
       }
     }
   }
@@ -3932,7 +3902,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
           std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
           crypto::public_key account_pkey{};
-          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
           tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
                                             std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
           );
@@ -3977,7 +3949,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
           std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
           crypto::public_key account_pkey{};
-          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
           check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
         }
         else {

@@ -538,13 +538,13 @@ namespace tools
         return true;
     }
 
-    bool wallet::update_safex_price_peg(const safex::safex_price_peg &price_peg) {
+    bool wallet::update_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& rate) {
 
       for (uint32_t i = 0; i < m_safex_price_pegs.size(); i++)
       {
-        if (m_safex_price_pegs[i].price_peg_id == price_peg.price_peg_id)
+        if (m_safex_price_pegs[i].price_peg_id == price_peg_id)
         {
-          m_safex_price_pegs[i]=price_peg;
+          m_safex_price_pegs[i].rate=rate;
           return true;
         }
       }

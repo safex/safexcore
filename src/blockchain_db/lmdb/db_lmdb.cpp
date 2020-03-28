@@ -5017,11 +5017,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         }
         else if(parse_and_validate_object_from_blob<safex::update_price_peg_data>(current.data, restored_sfx_price_peg_update)){
           if(sfx_price_peg.price_peg_id == restored_sfx_price_peg_update.price_peg_id) {
-            sfx_price_peg.creator = restored_sfx_price_peg_update.creator;
             sfx_price_peg.rate = restored_sfx_price_peg_update.rate;
-            sfx_price_peg.currency = restored_sfx_price_peg_update.currency;
-            sfx_price_peg.title = restored_sfx_price_peg_update.title;
-            sfx_price_peg.description = restored_sfx_price_peg_update.description;
             return;
           }
         }
@@ -5424,8 +5420,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         cryptonote::parse_and_validate_from_blob(pricepegblob, sfx_price_peg);
 
         sfx_price_peg.rate = sfx_price_peg_update_result.rate;
-        sfx_price_peg.description = sfx_price_peg_update_result.description;
-        sfx_price_peg.title = sfx_price_peg_update_result.title;
 
         MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_price_peg));
         auto result2 = mdb_cursor_put(cur_safex_price_peg, &k2, &vupdate, (unsigned int) MDB_CURRENT);
