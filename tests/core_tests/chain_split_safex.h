@@ -62,12 +62,16 @@ public:
   bool check_split_stake_token_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_stake_token(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_back_stake_token(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_safex_purchase_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_safex_purchase(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_safex_purchase(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
   static bool expected_data_fields_intialized;
   static safex::safex_offer expected_alice_safex_offer;
   static safex::safex_offer expected_alice_safex_offer_edited;
   static safex::safex_price_peg expected_alice_safex_price_peg;
   static safex::safex_price_peg expected_alice_safex_price_peg_edited;
+  static safex::safex_purchase  expected_safex_bob_purchase_from_alice;
 
   static uint64_t  expected_staked_tokens;
   static uint64_t  expected_alice_token_balance;
@@ -75,8 +79,10 @@ public:
   static uint64_t  expected_network_fee;
   static uint64_t  expected_alice_balance;
   static uint64_t  expected_bob_balance;
+  static uint64_t  expected_alice_balance_before_purchase;
+  static uint64_t  expected_bob_balance_before_purchase;
 
-  cryptonote::account_base first_miner_account;
+  cryptonote::account_base alice_account;
   cryptonote::account_base account;
 
   safex::safex_account_key_handler m_safex_account1_keys;
@@ -86,6 +92,8 @@ public:
   safex::safex_price_peg safex_price_peg_alice;
   safex::safex_price_peg safex_price_peg_alice_edited;
 
+  safex::safex_purchase safex_bob_purchase_from_alice;
+
   static const std::string data_alternative;
 
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f",
@@ -94,6 +102,12 @@ public:
                                                 "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
                                                 "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55",
                                                 "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
+
+  const uint64_t chekpoint_blocks_total = 139;
+  const uint64_t checkpoint_txs_total = 142;
+  const uint64_t checkpoint_events_total = 216;
+  const uint64_t delta_blocks = 63;
+  const uint64_t delta_events = 130;
 
 private:
 };

@@ -1339,10 +1339,10 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
         safex::create_purchase_data purchase_output_data;
         parse_and_validate_object_from_blob(blobdata1, purchase_output_data);
-        remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity);
+        remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity, amount_output_indices[i]);
     } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
         //TODO: GRKI Check this if needed more logic
-        //remove_last_advanced_output(output_type);
+        remove_advanced_output(output_type, amount_output_indices[i]);
     } else if (output_type == tx_out_type::out_safex_feedback) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
       const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -5096,7 +5096,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       }
     }
 
-    void BlockchainLMDB::remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity)
+    void BlockchainLMDB::remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity, const uint64_t& output_id)
     {
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);
         check_open();
@@ -5113,7 +5113,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         auto result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
         if (result == MDB_SUCCESS)
         {
-            //remove_last_advanced_output(tx_out_type::out_safex_purchase);
+            remove_advanced_output(tx_out_type::out_safex_purchase, output_id);
             safex::create_offer_result sfx_offer;
             const cryptonote::blobdata offerblob((uint8_t*)v.mv_data, (uint8_t*)v.mv_data+v.mv_size);
             cryptonote::parse_and_validate_from_blob(offerblob, sfx_offer);

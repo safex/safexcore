@@ -640,10 +640,11 @@ private:
    *
    * @param offer_id ID of purchased offer to update
    * @param quantity Quantity of product purchased
+   * @param output_id Output ID of the purchase output to be deleted
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity);
+  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity, const uint64_t& output_id);
 
     /**
      * Remove safex feedback advanced output and update offer quantity from database
