@@ -1333,8 +1333,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         parse_and_validate_object_from_blob(blobdata1, offer_output_data);
         remove_safex_offer_update(offer_output_data.offer_id, amount_output_indices[i]);
     } else if(output_type == tx_out_type::out_staked_token){
-        //TODO: GRKI check this if needed more logic
-        remove_staked_token(tx.vout[i].token_amount);
+        remove_staked_token(tx.vout[i].token_amount, amount_output_indices[i]);
     } else if(output_type == tx_out_type::out_safex_purchase){
         const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
         const cryptonote::blobdata blobdata1(begin(txout_to_script1.data), end(txout_to_script1.data));
@@ -1370,7 +1369,7 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
   }
 }
 
-void BlockchainLMDB::remove_staked_token(const uint64_t token_amount){
+void BlockchainLMDB::remove_staked_token(const uint64_t token_amount, const uint64_t& output_id){
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
@@ -1384,15 +1383,28 @@ void BlockchainLMDB::remove_staked_token(const uint64_t token_amount){
     MDB_val data;
     MDB_val block_number;
     auto result = mdb_cursor_get(cur_token_lock_expiry, &block_number, &data, MDB_LAST);
-    if (result != MDB_SUCCESS && result != MDB_NOTFOUND)
+    if (result != MDB_SUCCESS)
         throw0(DB_ERROR(lmdb_error("Failed to get data for staked token output expiry: ", result).c_str()));
 
-    uint64_t outputID;
-    memcpy(&outputID, data.mv_data,sizeof(uint64_t));
-    remove_advanced_output(cryptonote::tx_out_type::out_staked_token, outputID);
+    uint64_t mdb_output_id;
+
+    memcpy(&mdb_output_id, data.mv_data,sizeof(uint64_t));
+
+    while(mdb_output_id != output_id && result==MDB_SUCCESS){
+
+        result = mdb_cursor_get(cur_token_lock_expiry, &block_number, &data, MDB_PREV);
+
+        if(result!=MDB_SUCCESS)
+          throw0(DB_ERROR(lmdb_error("Failed to get data for staked token output expiry: ", result).c_str()));
+
+        memcpy(&mdb_output_id, data.mv_data,sizeof(uint64_t));
+
+    }
+
+    remove_advanced_output(cryptonote::tx_out_type::out_staked_token, output_id);
 
     if ((result = mdb_cursor_del(cur_token_lock_expiry, 0)))
-        throw0(DB_ERROR(lmdb_error("Failed to add staked token output expiry entry: ", result).c_str()));
+        throw0(DB_ERROR(lmdb_error("Failed to remove staked token output expiry entry: ", result).c_str()));
 }
 
 void BlockchainLMDB::remove_output(const uint64_t amount, const uint64_t& out_index, tx_out_type output_type)

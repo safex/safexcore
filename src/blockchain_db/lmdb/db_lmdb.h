@@ -629,10 +629,11 @@ private:
    * Remove last staked tokens from database
    *
    * @param token_amount amount of tokens sent
+   * @param Output id of the stake token output to be deleted
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_staked_token(const uint64_t token_amount);
+  void remove_staked_token(const uint64_t token_amount, const uint64_t& output_id);
 
   /**
    * Remove safex purchase advanced output and update offer quantity from database

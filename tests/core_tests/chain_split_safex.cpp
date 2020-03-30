@@ -49,6 +49,9 @@ safex::safex_offer gen_simple_chain_split_safex::expected_alice_safex_offer_edit
 safex::safex_price_peg gen_simple_chain_split_safex::expected_alice_safex_price_peg;
 safex::safex_price_peg gen_simple_chain_split_safex::expected_alice_safex_price_peg_edited;
 
+uint64_t  gen_simple_chain_split_safex::expected_staked_tokens;
+uint64_t  gen_simple_chain_split_safex::expected_alice_token_balance;
+
 gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 {
   REGISTER_CALLBACK("check_split_account_present_1", gen_simple_chain_split_safex::check_split_account_present_1);
@@ -70,6 +73,9 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
   REGISTER_CALLBACK("check_split_price_peg_edit_1", gen_simple_chain_split_safex::check_split_price_peg_edit_1);
   REGISTER_CALLBACK("check_split_switched_price_peg_edit", gen_simple_chain_split_safex::check_split_switched_price_peg_edit);
   REGISTER_CALLBACK("check_split_switched_back_price_peg_edit", gen_simple_chain_split_safex::check_split_switched_back_price_peg_edit);
+  REGISTER_CALLBACK("check_split_stake_token_1", gen_simple_chain_split_safex::check_split_stake_token_1);
+  REGISTER_CALLBACK("check_split_switched_stake_token", gen_simple_chain_split_safex::check_split_switched_stake_token);
+  REGISTER_CALLBACK("check_split_switched_back_stake_token", gen_simple_chain_split_safex::check_split_switched_back_stake_token);
 
   m_safex_account1_keys.generate();
 
@@ -102,7 +108,11 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
     expected_network_fee = 0;
 
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
-    expected_alice_balance -= 5*TESTS_DEFAULT_FEE;
+    expected_alice_balance -= 7*TESTS_DEFAULT_FEE;
+
+    expected_staked_tokens = MK_TOKENS(10000);
+
+    expected_alice_token_balance = MK_TOKENS(10000);
 
 
     expected_data_fields_intialized = true;
@@ -246,6 +256,22 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   MAKE_NEXT_BLOCK(events, blk_58, blk_53, first_miner_account);                               //  861
   MAKE_NEXT_BLOCK(events, blk_59, blk_58, first_miner_account);                               //  862
   DO_CALLBACK(events, "check_split_switched_back_price_peg_edit");                       //  863
+
+  // Stake tokens
+
+  REWIND_BLOCKS(events, blk_59r, blk_59, first_miner_account);                                //  923
+  MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_7, alice_account, MK_TOKENS(10000), blk_59); // 924
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_60, blk_59r, first_miner_account, txlist_7);            //  925
+  DO_CALLBACK(events, "check_split_stake_token_1");                              //  926
+  //  //split again and check back switching
+  MAKE_NEXT_BLOCK(events, blk_61, blk_58, first_miner_account);                               //  927
+  MAKE_NEXT_BLOCK(events, blk_62, blk_61, first_miner_account);                               //  928
+  REWIND_BLOCKS(events, blk_62r, blk_62, first_miner_account);                                //  988
+  MAKE_NEXT_BLOCK(events, blk_63, blk_62r, first_miner_account);                              //  989
+  DO_CALLBACK(events, "check_split_switched_stake_token");                            //  990
+  MAKE_NEXT_BLOCK(events, blk_64, blk_60, first_miner_account);                               //  991
+  MAKE_NEXT_BLOCK(events, blk_65, blk_64, first_miner_account);                               //  992
+  DO_CALLBACK(events, "check_split_switched_back_stake_token");                       //  993
 
   return true;
 }
@@ -922,8 +948,66 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg_edit(cryp
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
 
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_stake_token_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_stake_token_1");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 515);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 523);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[927])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 384);
+  // safex account
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  std::string sfx_account_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+  CHECK_EQ(sfx_account_data,data_alternative);
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+  // safex offer
+  std::vector<safex::safex_offer> safex_offers;
+  CHECK_TEST_CONDITION(c.get_safex_offers(safex_offers));
+
+  safex::safex_offer sfx_offer;
+  res =  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_edited.offer_id, sfx_offer);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.title.compare(sfx_offer.title) == 0);
+  CHECK_EQ(expected_alice_safex_offer_edited.price, sfx_offer.price);
+  CHECK_EQ(expected_alice_safex_offer_edited.min_sfx_price, sfx_offer.min_sfx_price);
+  CHECK_EQ(expected_alice_safex_offer_edited.price_peg_used, sfx_offer.price_peg_used);
+  CHECK_EQ(expected_alice_safex_offer_edited.quantity, sfx_offer.quantity);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_offer_edited.description.begin(), expected_alice_safex_offer_edited.description.end(), sfx_offer.description.begin()));
+  CHECK_EQ(expected_alice_safex_offer_edited.seller_private_view_key, sfx_offer.seller_private_view_key);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.seller_address == sfx_offer.seller_address);
+  CHECK_TEST_CONDITION(safex_offers.size() == 1);
+  // safex price peg
+  std::vector<safex::safex_price_peg> safex_price_pegs;
+  CHECK_TEST_CONDITION(c.get_safex_price_pegs(safex_price_pegs));
+
+  safex::safex_price_peg sfx_price_peg;
+  res =  c.get_blockchain_storage().get_safex_price_peg(expected_alice_safex_price_peg_edited.price_peg_id, sfx_price_peg);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_price_peg_edited.title.compare(sfx_price_peg.title) == 0);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.creator, sfx_price_peg.creator);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.rate, sfx_price_peg.rate);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.title, sfx_price_peg.title);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.currency, sfx_price_peg.currency);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
+  CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
+  // stake token
+  uint64_t staked_tokens = c.get_staked_tokens();
+  CHECK_EQ(expected_staked_tokens, staked_tokens);
+
+  cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
+
   std::list<cryptonote::block> block_list;
-  bool r = c.get_blocks((uint64_t)0, 391, block_list);
+  bool r = c.get_blocks((uint64_t)0, 515, block_list);
   CHECK_TEST_CONDITION(r);
 
   std::vector<cryptonote::block> chain;
@@ -932,11 +1016,157 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg_edit(cryp
   bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
   CHECK_TEST_CONDITION(re);
 
+  CHECK_EQ(expected_alice_token_balance, get_locked_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(0, get_token_balance(alice_account, blocks, mtx));
+
+
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_switched_stake_token(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_stake_token");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 516);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 523);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[991])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 446);
+  // safex account
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  std::string sfx_account_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+  CHECK_EQ(sfx_account_data,data_alternative);
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+  // safex offer
+  std::vector<safex::safex_offer> safex_offers;
+  CHECK_TEST_CONDITION(c.get_safex_offers(safex_offers));
+
+  safex::safex_offer sfx_offer;
+  res =  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_edited.offer_id, sfx_offer);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.title.compare(sfx_offer.title) == 0);
+  CHECK_EQ(expected_alice_safex_offer_edited.price, sfx_offer.price);
+  CHECK_EQ(expected_alice_safex_offer_edited.min_sfx_price, sfx_offer.min_sfx_price);
+  CHECK_EQ(expected_alice_safex_offer_edited.price_peg_used, sfx_offer.price_peg_used);
+  CHECK_EQ(expected_alice_safex_offer_edited.quantity, sfx_offer.quantity);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_offer_edited.description.begin(), expected_alice_safex_offer_edited.description.end(), sfx_offer.description.begin()));
+  CHECK_EQ(expected_alice_safex_offer_edited.seller_private_view_key, sfx_offer.seller_private_view_key);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.seller_address == sfx_offer.seller_address);
+  CHECK_TEST_CONDITION(safex_offers.size() == 1);
+  // safex price peg
+  std::vector<safex::safex_price_peg> safex_price_pegs;
+  CHECK_TEST_CONDITION(c.get_safex_price_pegs(safex_price_pegs));
+
+  safex::safex_price_peg sfx_price_peg;
+  res =  c.get_blockchain_storage().get_safex_price_peg(expected_alice_safex_price_peg_edited.price_peg_id, sfx_price_peg);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_price_peg_edited.title.compare(sfx_price_peg.title) == 0);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.creator, sfx_price_peg.creator);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.rate, sfx_price_peg.rate);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.title, sfx_price_peg.title);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.currency, sfx_price_peg.currency);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
+  CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
+  // stake token
+  uint64_t staked_tokens = c.get_staked_tokens();
+  CHECK_EQ(0, staked_tokens);
+
+  cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
+
+  std::list<cryptonote::block> block_list;
+  bool r = c.get_blocks((uint64_t)0, 516, block_list);
+  CHECK_TEST_CONDITION(r);
+
+  std::vector<cryptonote::block> chain;
+  map_hash2tx_t mtx;
+  std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
+  bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
+  CHECK_TEST_CONDITION(re);
+
+  CHECK_EQ(0, get_locked_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(expected_alice_token_balance, get_token_balance(alice_account, blocks, mtx));
+
+  return true;
+}
+//-----------------------------------------------------------------------------------------------------
+bool gen_simple_chain_split_safex::check_split_switched_back_stake_token(cryptonote::core &c, size_t ev_index, const std::vector<test_event_entry> &events)
+{
+  DEFINE_TESTS_ERROR_CONTEXT("gen_simple_chain_split_safex::check_split_switched_back_stake_token");
+
+  //check height
+  CHECK_TEST_CONDITION(c.get_current_blockchain_height() == 517);
+  CHECK_TEST_CONDITION(c.get_blockchain_total_transactions() == 525);
+  CHECK_TEST_CONDITION(c.get_tail_id() == get_block_hash(boost::get<cryptonote::block>(events[994])));
+  CHECK_TEST_CONDITION(c.get_alternative_blocks_count() == 447);
+  // safex account
+  std::vector<std::pair<string,string>> safex_accounts;
+  CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
+
+  safex::safex_account sfx_account;
+  bool res = c.get_safex_account_info(safex_account_alice.username,sfx_account);
+  CHECK_TEST_CONDITION(res);
+  std::string sfx_account_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+  CHECK_EQ(sfx_account_data,data_alternative);
+  CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+  // safex offer
+  std::vector<safex::safex_offer> safex_offers;
+  CHECK_TEST_CONDITION(c.get_safex_offers(safex_offers));
+
+  safex::safex_offer sfx_offer;
+  res =  c.get_blockchain_storage().get_safex_offer(expected_alice_safex_offer_edited.offer_id, sfx_offer);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.title.compare(sfx_offer.title) == 0);
+  CHECK_EQ(expected_alice_safex_offer_edited.price, sfx_offer.price);
+  CHECK_EQ(expected_alice_safex_offer_edited.min_sfx_price, sfx_offer.min_sfx_price);
+  CHECK_EQ(expected_alice_safex_offer_edited.price_peg_used, sfx_offer.price_peg_used);
+  CHECK_EQ(expected_alice_safex_offer_edited.quantity, sfx_offer.quantity);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_offer_edited.description.begin(), expected_alice_safex_offer_edited.description.end(), sfx_offer.description.begin()));
+  CHECK_EQ(expected_alice_safex_offer_edited.seller_private_view_key, sfx_offer.seller_private_view_key);
+  CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.seller_address == sfx_offer.seller_address);
+  CHECK_TEST_CONDITION(safex_offers.size() == 1);
+  // safex price peg
+  std::vector<safex::safex_price_peg> safex_price_pegs;
+  CHECK_TEST_CONDITION(c.get_safex_price_pegs(safex_price_pegs));
+
+  safex::safex_price_peg sfx_price_peg;
+  res =  c.get_blockchain_storage().get_safex_price_peg(expected_alice_safex_price_peg_edited.price_peg_id, sfx_price_peg);
+  CHECK_TEST_CONDITION(res);
+  CHECK_TEST_CONDITION(expected_alice_safex_price_peg_edited.title.compare(sfx_price_peg.title) == 0);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.creator, sfx_price_peg.creator);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.rate, sfx_price_peg.rate);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.title, sfx_price_peg.title);
+  CHECK_EQ(expected_alice_safex_price_peg_edited.currency, sfx_price_peg.currency);
+  CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
+  CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
+  // stake token
+  uint64_t staked_tokens = c.get_staked_tokens();
+  CHECK_EQ(expected_staked_tokens, staked_tokens);
+
   cryptonote::account_base alice_account = boost::get<cryptonote::account_base>(events[1]);
   cryptonote::account_base bob_account = boost::get<cryptonote::account_base>(events[2]);
 
+  std::list<cryptonote::block> block_list;
+  bool r = c.get_blocks((uint64_t)0, 517, block_list);
+  CHECK_TEST_CONDITION(r);
 
-  uint64_t network_fee_collected = c.get_collected_network_fee(0, 391);
+  std::vector<cryptonote::block> chain;
+  map_hash2tx_t mtx;
+  std::vector<cryptonote::block> blocks(block_list.begin(), block_list.end());
+  bool re = find_block_chain(events, chain, mtx, get_block_hash(blocks.back()));
+  CHECK_TEST_CONDITION(re);
+
+  CHECK_EQ(expected_alice_token_balance, get_locked_token_balance(alice_account, blocks, mtx));
+  CHECK_EQ(0, get_token_balance(alice_account, blocks, mtx));
+
+
+
+
+  uint64_t network_fee_collected = c.get_collected_network_fee(0, 517);
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
 
