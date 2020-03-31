@@ -105,6 +105,7 @@ public:
   virtual void remove_block() { blocks.pop_back(); }
   virtual uint64_t add_transaction_data(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash& tx_hash) {return 0;}
   virtual void remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx) {}
+  virtual void remove_unstake_token(const crypto::hash& tx_hash, const transaction& tx) {}
   virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) {return 0;}
   virtual void add_tx_amount_output_indices(const uint64_t tx_index, const std::vector<uint64_t>& amount_output_indices) {}
   virtual void add_spent_key(const crypto::key_image& k_image) {}
@@ -112,6 +113,7 @@ public:
   virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
   virtual uint64_t update_staked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){return 0;}
   virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) { return 0;}
+  virtual bool remove_staked_token_for_interval(const uint64_t interval){return true;};
   virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}

@@ -391,6 +391,8 @@ private:
 
   virtual void remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx);
 
+  virtual void remove_unstake_token(const crypto::hash& tx_hash, const transaction& tx);
+
   virtual uint64_t add_output(const crypto::hash& tx_hash,
       const tx_out& tx_output,
       const uint64_t& local_index,
@@ -686,7 +688,7 @@ protected:
 
   uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
 
-
+  bool remove_staked_token_for_interval(const uint64_t interval) override;
 
 private:
   MDB_env* m_env;

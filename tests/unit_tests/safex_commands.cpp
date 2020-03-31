@@ -228,6 +228,9 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void remove_transaction_data(const crypto::hash &tx_hash, const cryptonote::transaction &tx)
     {}
 
+    virtual void remove_unstake_token(const crypto::hash &tx_hash, const cryptonote::transaction &tx)
+    {}
+
     virtual uint64_t add_output(const crypto::hash &tx_hash, const cryptonote::tx_out &tx_output, const uint64_t &local_index, const uint64_t unlock_time, const rct::key *commitment)
     { return 0; }
 
@@ -244,7 +247,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
 
     virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
     virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_locked_tokens_in_interval) { return 0;}
-
+    virtual bool remove_staked_token_for_interval(const uint64_t interval){return true;};
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image &)>) const
     { return true; }
 
