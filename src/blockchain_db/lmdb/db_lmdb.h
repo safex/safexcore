@@ -334,6 +334,8 @@ public:
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
   virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const;
 
+  virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
+
 
     virtual uint64_t add_block( const block& blk
                             , const size_t& block_size
@@ -656,6 +658,15 @@ private:
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
     void remove_safex_feedback(const crypto::hash& offer_id);
+
+    /**
+     * Remove network fee output and update total network fee from database
+     *
+     * @param offer_id ID of offer where feedback is given
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_network_fee_output(const uint64_t& amount, const uint64_t& output_id);
 
   /**
    * Restore safex account data by getting it from advanced output table

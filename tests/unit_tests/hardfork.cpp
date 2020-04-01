@@ -129,6 +129,7 @@ public:
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const { return true; };
   virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const { return true; };
 
+  virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const { return true; };
 
 
     virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }

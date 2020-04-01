@@ -329,6 +329,11 @@ namespace cryptonote
   {
     return m_blockchain_storage.get_safex_accounts(safex_accounts);
   };
+
+  bool core::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+  {
+      return m_blockchain_storage.get_table_sizes(table_sizes);
+  }
     //-----------------------------------------------------------------------------------------------
 
   bool core::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const

@@ -1868,6 +1868,15 @@ namespace cryptonote
        */
       virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const = 0;
 
+      /**
+       * @brief fetch safex tables sizes from the blockchain
+       *
+       * The subclass should return safex tables sizes
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const = 0;
+
       //
       // Hard fork related storage
       //

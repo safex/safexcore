@@ -6203,6 +6203,14 @@ bool Blockchain::get_safex_accounts( std::vector<std::pair<std::string,std::stri
     return m_db->get_safex_accounts(safex_accounts);
 }
 
+bool Blockchain::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_table_sizes(table_sizes);
+}
+
+
 bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
 {
     LOG_PRINT_L3("Blockchain::" << __func__);

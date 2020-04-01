@@ -86,6 +86,8 @@ public:
   static uint64_t  expected_bob_balance_before_purchase;
   static uint64_t  expected_alice_balance_after_unstake;
 
+  static std::vector<uint64_t> expected_sizes;
+
   cryptonote::account_base alice_account;
   cryptonote::account_base account;
 

@@ -318,6 +318,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const { return true; };
     virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const { return true; };
 
+    virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const { return true; };
+
 
     virtual void add_block(const cryptonote::block &blk, const size_t &block_size, const cryptonote::difficulty_type &cumulative_difficulty,
             const uint64_t &coins_generated, const uint64_t &tokens_migrated, const crypto::hash &blk_hash)

@@ -1396,8 +1396,9 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
         safex::create_purchase_data purchase_output_data;
         parse_and_validate_object_from_blob(blobdata1, purchase_output_data);
         remove_safex_purchase(purchase_output_data.offer_id,purchase_output_data.quantity, amount_output_indices[i]);
-    } else if(output_type == tx_out_type::out_network_fee || output_type == tx_out_type::out_safex_feedback_token){
-        //TODO: GRKI Check this if needed more logic
+    } else if(output_type == tx_out_type::out_network_fee){
+        remove_network_fee_output(tx.vout[i].amount, amount_output_indices[i]);
+    } else if (output_type == tx_out_type::out_safex_feedback_token){
         remove_advanced_output(output_type, amount_output_indices[i]);
     } else if (output_type == tx_out_type::out_safex_feedback) {
       const txout_to_script& txout_to_script1 = boost::get<const txout_to_script &>(tx.vout[i].target);
@@ -5261,6 +5262,47 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
     }
   }
 
+  void BlockchainLMDB::remove_network_fee_output(const uint64_t& amount, const uint64_t &output_id)
+  {
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    uint64_t m_height = height();
+
+    MDB_cursor *cur_network_fee_sum;
+    CURSOR(network_fee_sum);
+    cur_network_fee_sum = m_cur_network_fee_sum;
+
+
+
+    uint64_t interval_starting_block = safex::calculate_interval_for_height(m_height, m_nettype);
+    uint64_t network_fee_sum = 0;
+
+    MDB_val_set(k, interval_starting_block);
+    MDB_val_set(v, network_fee_sum);
+
+   auto result = mdb_cursor_get(cur_network_fee_sum, &k, &v, MDB_SET);
+      if (result == MDB_SUCCESS)
+      {
+          remove_advanced_output(tx_out_type::out_network_fee, output_id);
+
+          uint64_t *ptr = (uint64_t *) v.mv_data;
+          network_fee_sum = *ptr;
+
+          network_fee_sum -= amount;
+
+          MDB_val_set(k2, interval_starting_block);
+          MDB_val_set(vupdate, network_fee_sum);
+
+          if(network_fee_sum == 0){
+                if((result = mdb_cursor_del(cur_network_fee_sum, 0)))
+                  throw0(DB_ERROR(lmdb_error("Failed to update network fee sum for interval: ", result).c_str()));
+            }else if ((result = mdb_cursor_put(cur_network_fee_sum, &k2, &vupdate, (unsigned int) MDB_CURRENT )))
+            throw0(DB_ERROR(lmdb_error("Failed to update network fee sum for interval: ", result).c_str()));
+      } else{
+          throw0(DB_ERROR(lmdb_error("DB error attempting to remove network fee output: ", result).c_str()));
+      }
+  }
 
   void BlockchainLMDB::remove_safex_account_update(const safex::account_username &username, const uint64_t& output_id)
   {
@@ -5661,6 +5703,58 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
         return true;
     }
+
+    uint64_t get_size(MDB_cursor *curr_cursor){
+
+      MDB_val k;
+      MDB_val v;
+
+      uint64_t counter = 0;
+
+      auto result = mdb_cursor_get(curr_cursor, &k, &v, MDB_FIRST);
+
+      while(result==MDB_SUCCESS){
+          result = mdb_cursor_get(curr_cursor, &k, &v, MDB_NEXT);
+          counter++;
+        }
+
+
+      return counter;
+    }
+
+    bool BlockchainLMDB::get_table_sizes( std::vector<uint64_t> &table_sizes) const{
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+
+      RCURSOR(output_advanced);
+      RCURSOR(output_advanced_type);
+      RCURSOR(token_staked_sum);
+      RCURSOR(token_staked_sum_total);
+      RCURSOR(network_fee_sum);
+      RCURSOR(token_lock_expiry);
+      RCURSOR(safex_account);
+      RCURSOR(safex_offer);
+      RCURSOR(safex_feedback);
+      RCURSOR(safex_price_peg);
+
+      table_sizes.push_back(get_size(m_cur_output_advanced));
+      table_sizes.push_back(get_size(m_cur_output_advanced_type));
+      table_sizes.push_back(get_size(m_cur_token_staked_sum));
+      table_sizes.push_back(get_size(m_cur_token_staked_sum_total));
+      table_sizes.push_back(get_size(m_cur_network_fee_sum));
+      table_sizes.push_back(get_size(m_cur_token_lock_expiry));
+      table_sizes.push_back(get_size(m_cur_safex_account));
+      table_sizes.push_back(get_size(m_cur_safex_offer));
+      table_sizes.push_back(get_size(m_cur_safex_feedback));
+      table_sizes.push_back(get_size(m_cur_safex_price_peg));
+
+      TXN_POSTFIX_RDONLY();
+
+      return true;
+    }
+
+
 
   bool BlockchainLMDB::get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const{
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);

@@ -56,6 +56,8 @@ safex::safex_purchase  gen_simple_chain_split_safex::expected_safex_bob_purchase
 uint64_t  gen_simple_chain_split_safex::expected_staked_tokens;
 uint64_t  gen_simple_chain_split_safex::expected_alice_token_balance;
 
+std::vector<uint64_t>  gen_simple_chain_split_safex::expected_sizes;
+
 gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 {
   REGISTER_CALLBACK("check_split_account_present_1", gen_simple_chain_split_safex::check_split_account_present_1);
@@ -366,6 +368,12 @@ bool gen_simple_chain_split_safex::check_split_account_present_2(cryptonote::cor
   std::vector<std::pair<string,string>> safex_accounts;
   CHECK_TEST_CONDITION(c.get_safex_accounts(safex_accounts));
 
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
+
   CHECK_TEST_CONDITION(safex_accounts.size() == 1);
 
   return true;
@@ -407,6 +415,14 @@ bool gen_simple_chain_split_safex::check_split_switched_back_account(cryptonote:
   CHECK_TEST_CONDITION(std::equal(safex_account_alice.account_data.begin(), safex_account_alice.account_data.end(), sfx_account.account_data.begin()));
   CHECK_TEST_CONDITION(safex_accounts.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -429,6 +445,14 @@ bool gen_simple_chain_split_safex::check_split_account_edit_1(cryptonote::core& 
   std::string sfx_account_data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
   CHECK_EQ(sfx_account_data,data_alternative);
   CHECK_TEST_CONDITION(safex_accounts.size() == 1);
+
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -475,6 +499,14 @@ bool gen_simple_chain_split_safex::check_split_switched_back_account_edit(crypto
   CHECK_EQ(sfx_account_data,data_alternative);
   CHECK_TEST_CONDITION(safex_accounts.size() == 1);
 
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  sizes.at(2)--;
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -513,6 +545,13 @@ bool gen_simple_chain_split_safex::check_split_offer_present_1(cryptonote::core&
   CHECK_EQ(expected_alice_safex_offer.seller_private_view_key, sfx_offer.seller_private_view_key);
   CHECK_TEST_CONDITION(expected_alice_safex_offer.seller_address == sfx_offer.seller_address);
   CHECK_TEST_CONDITION(safex_offers.size() == 1);
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
 
   return true;
@@ -582,6 +621,13 @@ bool gen_simple_chain_split_safex::check_split_switched_back_offer(cryptonote::c
   CHECK_TEST_CONDITION(expected_alice_safex_offer.seller_address == sfx_offer.seller_address);
   CHECK_TEST_CONDITION(safex_offers.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -621,6 +667,12 @@ bool gen_simple_chain_split_safex::check_split_offer_edit_1(cryptonote::core& c,
   CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.seller_address == sfx_offer.seller_address);
   CHECK_TEST_CONDITION(safex_offers.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -701,6 +753,14 @@ bool gen_simple_chain_split_safex::check_split_switched_back_offer_edit(cryptono
   CHECK_TEST_CONDITION(expected_alice_safex_offer_edited.seller_address == sfx_offer.seller_address);
   CHECK_TEST_CONDITION(safex_offers.size() == 1);
 
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -754,6 +814,13 @@ bool gen_simple_chain_split_safex::check_split_price_peg_present_1(cryptonote::c
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg.description.begin(), expected_alice_safex_price_peg.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
 
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -852,6 +919,15 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg(cryptonot
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg.description.begin(), expected_alice_safex_price_peg.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  sizes.at(2)--;
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -905,6 +981,12 @@ bool gen_simple_chain_split_safex::check_split_price_peg_edit_1(cryptonote::core
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -1012,6 +1094,13 @@ bool gen_simple_chain_split_safex::check_split_switched_back_price_peg_edit(cryp
   CHECK_TEST_CONDITION(std::equal(expected_alice_safex_price_peg_edited.description.begin(), expected_alice_safex_price_peg_edited.description.end(), sfx_price_peg.description.begin()));
   CHECK_TEST_CONDITION(safex_price_pegs.size() == 1);
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -1083,6 +1172,12 @@ bool gen_simple_chain_split_safex::check_split_stake_token_1(cryptonote::core& c
   CHECK_EQ(expected_alice_token_balance, get_locked_token_balance(alice_account, blocks, mtx));
   CHECK_EQ(0, get_token_balance(alice_account, blocks, mtx));
 
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -1236,7 +1331,14 @@ bool gen_simple_chain_split_safex::check_split_switched_back_stake_token(crypton
 
   uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
   CHECK_EQ(bob_balance, expected_bob_balance_before_purchase);
-  return true;
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
+
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -1312,12 +1414,25 @@ bool gen_simple_chain_split_safex::check_split_safex_purchase_1(cryptonote::core
   uint64_t network_fee_collected = c.get_collected_network_fee(0, c.get_current_blockchain_height());
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
+  uint64_t network_fee_intervals = 0;
+
+  for(int i=0;i<=c.get_current_blockchain_height()/10+1;i++)
+    network_fee_intervals += c.get_network_fee_for_interval(i);
+
+  CHECK_EQ(network_fee_intervals, expected_network_fee);
 
   uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
   CHECK_EQ(alice_balance, expected_alice_balance);
 
   uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
   CHECK_EQ(bob_balance, expected_bob_balance);
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -1475,12 +1590,25 @@ bool gen_simple_chain_split_safex::check_split_switched_back_safex_purchase(cryp
   uint64_t network_fee_collected = c.get_collected_network_fee(0, c.get_current_blockchain_height());
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
+  uint64_t network_fee_intervals = 0;
+
+  for(int i=0;i<=c.get_current_blockchain_height()/10+1;i++)
+    network_fee_intervals += c.get_network_fee_for_interval(i);
+
+  CHECK_EQ(network_fee_intervals, expected_network_fee);
 
   uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
   CHECK_EQ(alice_balance, expected_alice_balance);
 
   uint64_t bob_balance =  get_balance(bob_account, chain, mtx);
   CHECK_EQ(bob_balance, expected_bob_balance);
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
 
   return true;
 }
@@ -1560,6 +1688,12 @@ bool gen_simple_chain_split_safex::check_split_unstake_token_1(cryptonote::core 
   uint64_t network_fee_collected = c.get_collected_network_fee(0, c.get_current_blockchain_height());
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
+  uint64_t network_fee_intervals = 0;
+
+  for(int i=0;i<=c.get_current_blockchain_height()/10+1;i++)
+    network_fee_intervals += c.get_network_fee_for_interval(i);
+
+  CHECK_EQ(network_fee_intervals, expected_network_fee);
 
   uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
   CHECK_EQ(alice_balance, expected_alice_balance_after_unstake);
@@ -1570,6 +1704,14 @@ bool gen_simple_chain_split_safex::check_split_unstake_token_1(cryptonote::core 
 
   uint64_t network_fee_distributed = c.get_distributed_network_fee(0,c.get_current_blockchain_height());
   CHECK_EQ(network_fee_distributed, expected_network_fee);
+
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  expected_sizes = sizes;
 
   return true;
 }
@@ -1649,6 +1791,12 @@ bool gen_simple_chain_split_safex::check_split_switched_unstake_token(cryptonote
   uint64_t network_fee_collected = c.get_collected_network_fee(0, c.get_current_blockchain_height());
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
+  uint64_t network_fee_intervals = 0;
+
+  for(int i=0;i<=c.get_current_blockchain_height()/10+1;i++)
+    network_fee_intervals += c.get_network_fee_for_interval(i);
+
+  CHECK_EQ(network_fee_intervals, expected_network_fee);
 
   uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
   CHECK_EQ(alice_balance, expected_alice_balance);
@@ -1738,6 +1886,13 @@ bool gen_simple_chain_split_safex::check_split_switched_back_unstake_token(crypt
   uint64_t network_fee_collected = c.get_collected_network_fee(0, c.get_current_blockchain_height());
   CHECK_EQ(network_fee_collected, expected_network_fee);
 
+  uint64_t network_fee_intervals = 0;
+
+  for(int i=0;i<=c.get_current_blockchain_height()/10+1;i++)
+    network_fee_intervals += c.get_network_fee_for_interval(i);
+
+  CHECK_EQ(network_fee_intervals, expected_network_fee);
+
 
   uint64_t alice_balance =  get_balance(alice_account, chain, mtx);
   CHECK_EQ(alice_balance, expected_alice_balance_after_unstake);
@@ -1748,6 +1903,13 @@ bool gen_simple_chain_split_safex::check_split_switched_back_unstake_token(crypt
 
   uint64_t network_fee_distributed = c.get_distributed_network_fee(0,c.get_current_blockchain_height());
   CHECK_EQ(network_fee_distributed, expected_network_fee);
+
+
+  std::vector<uint64_t> sizes;
+
+  CHECK_TEST_CONDITION(c.get_table_sizes(sizes));
+
+  CHECK_TEST_CONDITION(std::equal(sizes.begin(),sizes.end(),expected_sizes.begin()));
 
   return true;
 }

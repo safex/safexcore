@@ -808,6 +808,9 @@ namespace cryptonote
        */
        bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
 
+       bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
+
+
        /**
        * @brief gets all offers inside the Blockchain
        *
