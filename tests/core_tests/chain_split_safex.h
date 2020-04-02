@@ -68,6 +68,9 @@ public:
   bool check_split_unstake_token_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_unstake_token(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
   bool check_split_switched_back_unstake_token(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_feedback_1(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_feedback(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
+  bool check_split_switched_back_feedback(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry> &events);
 
   static bool expected_data_fields_intialized;
   static safex::safex_offer expected_alice_safex_offer;
@@ -75,6 +78,7 @@ public:
   static safex::safex_price_peg expected_alice_safex_price_peg;
   static safex::safex_price_peg expected_alice_safex_price_peg_edited;
   static safex::safex_purchase  expected_safex_bob_purchase_from_alice;
+  static safex::safex_feedback  expected_bob_feedback;
 
   static uint64_t  expected_staked_tokens;
   static uint64_t  expected_alice_token_balance;
@@ -85,6 +89,7 @@ public:
   static uint64_t  expected_alice_balance_before_purchase;
   static uint64_t  expected_bob_balance_before_purchase;
   static uint64_t  expected_alice_balance_after_unstake;
+  static uint64_t  expected_bob_balance_after_feedback;
 
   static std::vector<uint64_t> expected_sizes;
 
@@ -99,6 +104,8 @@ public:
   safex::safex_price_peg safex_price_peg_alice_edited;
 
   safex::safex_purchase safex_bob_purchase_from_alice;
+
+  safex::safex_feedback safex_bob_feedback;
 
   static const std::string data_alternative;
 
