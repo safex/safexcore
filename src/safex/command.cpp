@@ -441,6 +441,9 @@ namespace safex
         if(rating_given > 3 )
           result = execution_status::error_feedback_invalid_rating;
 
+        if(cmd->get_comment().size() > SAFEX_FEEDBACK_DATA_MAX_SIZE)
+          result = execution_status::error_feedback_data_too_big;
+
         return result;
     };
 

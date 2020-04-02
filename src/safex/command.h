@@ -54,7 +54,8 @@ namespace safex
     error_price_peg_bad_currency_format = 21,
     error_offer_data_too_big = 22,
     error_price_peg_data_too_big = 23,
-    error_price_peg_not_existant = 24
+    error_price_peg_not_existant = 24,
+    error_feedback_data_too_big = 25
   };
 
   struct execution_result

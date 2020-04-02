@@ -189,6 +189,7 @@
 #define SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE       8
 #define SAFEX_PRICE_PEG_DATA_MAX_SIZE           2048
 
+#define SAFEX_FEEDBACK_DATA_MAX_SIZE           2048
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
