@@ -396,7 +396,7 @@ namespace cryptonote
     else if (command_type == CommandType::TransferFeedback)
     {
         crypto::hash purchase_offer_id{};
-        uint64_t stars_given;
+        uint8_t stars_given;
         std::string comment;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);

@@ -217,12 +217,12 @@ struct create_feedback_result : public execution_result
 
     create_feedback_result(){}
 
-    create_feedback_result(crypto::hash _offer_id, std::vector<uint8_t> _comment, uint64_t _stars_given): offer_id{_offer_id},comment{_comment},stars_given{_stars_given} {
+    create_feedback_result(crypto::hash _offer_id, std::vector<uint8_t> _comment, uint8_t _stars_given): offer_id{_offer_id},comment{_comment},stars_given{_stars_given} {
 
     }
 
     crypto::hash offer_id{}; //unique id of the offer
-    uint64_t stars_given;
+    uint8_t stars_given;
     std::vector<uint8_t> comment{};
 
     BEGIN_SERIALIZE_OBJECT()
@@ -464,13 +464,13 @@ struct create_price_peg_result : public execution_result
     struct create_feedback_data : public command_data
     {
         crypto::hash offer_id{}; //unique id of the offer
-        uint64_t stars_given;
+        uint8_t stars_given;
         std::vector<uint8_t> comment{};
 
         create_feedback_data() {}
         create_feedback_data(const safex::safex_feedback& feedback): offer_id{feedback.offer_id},stars_given{feedback.stars_given},comment{feedback.comment.begin(),feedback.comment.end()}{
         }
-        create_feedback_data(const crypto::hash &_offer_id, const uint64_t &_stars_given, const std::vector<uint8_t> _comment):
+        create_feedback_data(const crypto::hash &_offer_id, const uint8_t &_stars_given, const std::vector<uint8_t> _comment):
                 offer_id{_offer_id},stars_given{_stars_given},comment{_comment}{}
 
         BEGIN_SERIALIZE_OBJECT()
@@ -1013,7 +1013,7 @@ public:
 
     crypto::hash get_offerid() const { return offer_id; }
     std::vector<uint8_t> get_comment() const { return comment; }
-    uint64_t get_stars_given() const { return stars_given; }
+    uint8_t get_stars_given() const { return stars_given; }
 
     virtual create_feedback_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -1028,7 +1028,7 @@ public:
 
 private:
     crypto::hash offer_id{}; //unique id of the offer
-    uint64_t stars_given;
+    uint8_t stars_given;
     std::vector<uint8_t> comment{};
 };
 

@@ -30,7 +30,7 @@ namespace safex
       safex_feedback(): comment{}, stars_given{}, offer_id{0}{
       }
 
-      safex_feedback(const uint64_t _stars_given, const std::string _comment, const crypto::hash &_id):stars_given{_stars_given},comment{_comment},
+      safex_feedback(const uint8_t _stars_given, const std::string _comment, const crypto::hash &_id):stars_given{_stars_given},comment{_comment},
                                                                                             offer_id{_id}
       {
       }
@@ -57,7 +57,7 @@ namespace safex
       }
 
       crypto::hash offer_id{}; //unique id of the offer
-      uint64_t stars_given;
+      uint8_t stars_given;
       std::string comment{};
   private:
 
@@ -71,7 +71,7 @@ namespace safex
         safex_feedback_db_data(): comment{}, stars_given{}{
         }
 
-        safex_feedback_db_data(const uint64_t _stars_given, const std::string _comment):stars_given{_stars_given},comment{_comment.begin(),_comment.end()}
+        safex_feedback_db_data(const uint8_t _stars_given, const std::string _comment):stars_given{_stars_given},comment{_comment.begin(),_comment.end()}
         {
         }
 
@@ -92,7 +92,7 @@ namespace safex
             a & stars_given;
             a & comment;
         }
-        uint64_t stars_given;
+        uint8_t stars_given;
         std::vector<uint8_t> comment{};
     private:
 
