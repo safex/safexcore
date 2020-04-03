@@ -351,7 +351,7 @@ namespace
         uint64_t stars_given;
         result = this->m_db->get_offer_stars_given(this->m_safex_purchase.offer_id, stars_given);
         ASSERT_TRUE(result);
-        ASSERT_EQ(this->m_safex_feedback.stars_given, stars_given);
+        ASSERT_EQ(this->m_safex_feedback.stars_given*COIN, stars_given);
 
         uint64_t fee_sum = 0;
 
