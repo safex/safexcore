@@ -242,7 +242,13 @@ namespace tools
   //-----------------------------------------------------------------------------------------------------------------
   bool wallet::generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data)
   {
-    // create a new safex account transaction
+    auto sfx_account = find_if(m_safex_accounts.begin(),m_safex_accounts.end(),[&username](const safex::safex_account& it){
+        return it.username == username;
+    });
+
+    if(sfx_account != m_safex_accounts.end())
+      return false;
+
     safex::safex_account_key_handler new_safex_account_keys;
     new_safex_account_keys.generate();
 
@@ -299,9 +305,6 @@ namespace tools
   {
     safex::safex_account recover_safex_account = AUTO_VAL_INIT(recover_safex_account);
 
-    if(get_safex_account(username,recover_safex_account))
-      return true;
-
     safex::safex_account_key_handler recover_safex_account_keys;
     recover_safex_account_keys.create_from_keys(secret_key);
 
@@ -310,8 +313,12 @@ namespace tools
     recover_safex_account.pkey = recover_safex_account_keys.get_keys().m_public_key;
     //data will be updated during block parsing
 
-    m_safex_accounts_keys.push_back(recover_safex_account_keys.get_keys());
-    m_safex_accounts.push_back(recover_safex_account);
+
+    safex::safex_account_keys sfx_keys;
+    if(!get_safex_account_keys(username,sfx_keys))
+      m_safex_accounts_keys.push_back(recover_safex_account_keys.get_keys());
+    if(!get_safex_account(username,recover_safex_account))
+        m_safex_accounts.push_back(recover_safex_account);
 
     return true;
   }
