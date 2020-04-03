@@ -396,7 +396,7 @@ namespace cryptonote
     else if (command_type == CommandType::TransferFeedback)
     {
         crypto::hash purchase_offer_id{};
-        uint8_t stars_given;
+        uint64_t stars_given;
         std::string comment;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
@@ -418,8 +418,8 @@ namespace cryptonote
             return true;
         }
 
-        if(stars_given > 3){
-          fail_msg_writer() << tr("Feedback rating can be from 0 to 3");
+        if((uint64_t)stars_given > 3){
+          fail_msg_writer() << tr("Feedback rating can be from 0 to 3. given: ")<< stars_given;
           return true;
         }
 
@@ -427,7 +427,7 @@ namespace cryptonote
         std::copy(local_args.begin() + 1, local_args.end(), ostream_iterator<string>(comment_ostr, " "));
         comment = comment_ostr.str();
 
-        safex::safex_feedback sfx_feedback{stars_given,comment,purchase_offer_id};
+        safex::safex_feedback sfx_feedback{(uint8_t)stars_given,comment,purchase_offer_id};
 
 
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
@@ -1053,7 +1053,7 @@ namespace cryptonote
         if(first)
           success_msg_writer() << boost::format("#%|=6|#%|=160|#") %  tr(std::string(6, '-').c_str()) % tr(std::string(160, '-').c_str());
         first = true;
-        success_msg_writer() << boost::format("#%|=6|#%|=160|#") % rating.stars_given % rating.comment;
+        success_msg_writer() << boost::format("#%|=6|#%|=160|#") % (uint64_t)rating.stars_given % rating.comment;
           avg_rating += rating.stars_given;
       }
       success_msg_writer() << tr(std::string(169,'#').c_str());
