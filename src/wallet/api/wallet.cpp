@@ -1838,7 +1838,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
 
-        safex::safex_feedback sfx_feedback{safexFeedback.m_stars_given,safexFeedback.m_comment,feedback_offer_id};
+        safex::safex_feedback sfx_feedback{(uint8_t)safexFeedback.m_stars_given,safexFeedback.m_comment,feedback_offer_id};
 
         tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
         dsts.push_back(de_feedback);
