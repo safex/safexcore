@@ -71,8 +71,8 @@ crypto::hash gen_safex_price_peg_001::expected_alice_price_peg_id;
 std::string gen_safex_price_peg_001::expected_alice_price_peg_title;
 std::string gen_safex_price_peg_001::expected_alice_price_peg_currency;
 std::vector<uint8_t> gen_safex_price_peg_001::expected_alice_price_peg_description;
-std::vector<uint8_t> gen_safex_price_peg_001::expected_alice_price_peg_new_description;
-uint64_t    gen_safex_price_peg_001::exptected_alice_price_peg_rate;
+uint64_t gen_safex_price_peg_001::expected_alice_price_peg_new_rate;
+uint64_t gen_safex_price_peg_001::exptected_alice_price_peg_rate;
 
 gen_safex_price_peg_001::gen_safex_price_peg_001()
 {
@@ -126,9 +126,6 @@ gen_safex_price_peg_001::gen_safex_price_peg_001()
     expected_alice_price_peg_currency = safex_price_peg_alice.currency;
     expected_alice_price_peg_description = safex_price_peg_alice.description;
     exptected_alice_price_peg_rate = safex_price_peg_alice.rate;
-
-    std::string new_str_desc{"Perfect rate for you my friend"};
-    expected_alice_price_peg_new_description = {new_str_desc.begin(),new_str_desc.end()};;
 
   }
 
@@ -186,7 +183,7 @@ bool gen_safex_price_peg_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_11, blk_10, miner, txlist_5);
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
-    safex_price_peg_alice.description = expected_alice_price_peg_new_description;
+    safex_price_peg_alice.rate = expected_alice_price_peg_new_rate;
 
     MAKE_TX_UPDATE_SAFEX_PRICE_PEG_LIST_START(events, txlist_6, alice, safex_account_alice.pkey, safex_price_peg_alice, m_safex_account1_keys.get_keys(), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_6);
@@ -249,11 +246,11 @@ bool gen_safex_price_peg_001::verify_safex_price_peg(cryptonote::core &c, size_t
   bool result = c.get_safex_price_peg(expected_alice_price_peg_id,sfx_price_peg);
   CHECK_TEST_CONDITION(result);
 
-  CHECK_TEST_CONDITION(std::equal(expected_alice_price_peg_new_description.begin(), expected_alice_price_peg_new_description.end(), sfx_price_peg.description.begin()));
+  CHECK_TEST_CONDITION(std::equal(expected_alice_price_peg_description.begin(), expected_alice_price_peg_description.end(), sfx_price_peg.description.begin()));
   CHECK_EQ(expected_alice_price_peg_id, sfx_price_peg.price_peg_id);
   CHECK_EQ(expected_alice_price_peg_currency, sfx_price_peg.currency);
   CHECK_EQ(expected_alice_price_peg_title, sfx_price_peg.title);
-  CHECK_EQ(exptected_alice_price_peg_rate, sfx_price_peg.rate);
+  CHECK_EQ(expected_alice_price_peg_new_rate, sfx_price_peg.rate);
 
 
 

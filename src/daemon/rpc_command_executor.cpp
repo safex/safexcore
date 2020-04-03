@@ -2109,10 +2109,14 @@ bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, cons
       }
     }
 
-
-    tools::success_msg_writer() << "Account: " << safex_username;
-    tools::success_msg_writer() << "Account public key: " << res.pkey;
-    tools::success_msg_writer() << "Account data: " << res.account_data;
+    if(res.status == CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST){
+      tools::fail_msg_writer() << "Account with username " << safex_username << " does not exist";
+    }
+    else {
+      tools::success_msg_writer() << "Account: " << safex_username;
+      tools::success_msg_writer() << "Account public key: " << res.pkey;
+      tools::success_msg_writer() << "Account data: " << res.account_data;
+    }
 
     return true;
   }

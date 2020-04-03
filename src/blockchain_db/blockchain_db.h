@@ -497,6 +497,19 @@ namespace cryptonote
        */
       virtual void remove_transaction_data(const crypto::hash &tx_hash, const transaction &tx) = 0;
 
+    /**
+     * @brief remove data about a unstake token tx
+     *
+     * The subclass implementing this will remove unstake token data from DB
+     *
+     * If any of this cannot be done, the subclass should throw the corresponding
+     * subclass of DB_EXCEPTION
+     *
+     * @param tx_hash the hash of the transaction to be removed
+     * @param tx the transaction
+     */
+    virtual void remove_unstake_token(const crypto::hash &tx_hash, const transaction &tx) = 0;
+
       /**
        * @brief store an output
        *
@@ -659,6 +672,12 @@ namespace cryptonote
         * @return token staked sum for this interval
         */
       virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) = 0;
+      /**
+        * Remove token staked sum for interval
+        *
+        * @return true if it runs OK, false if it fails
+        */
+      virtual bool remove_staked_token_for_interval(const uint64_t interval) = 0;
 
       mutable uint64_t time_tx_exists = 0;  //!< a performance metric
       uint64_t time_commit1 = 0;  //!< a performance metric
@@ -1848,6 +1867,15 @@ namespace cryptonote
        * @return True if no error ocurred
        */
       virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const = 0;
+
+      /**
+       * @brief fetch safex tables sizes from the blockchain
+       *
+       * The subclass should return safex tables sizes
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const = 0;
 
       //
       // Hard fork related storage

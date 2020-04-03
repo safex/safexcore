@@ -276,6 +276,13 @@ void BlockchainDB::pop_block(block& blk, std::vector<transaction>& txs)
 {
   blk = get_top_block();
 
+  uint64_t blk_height = height()-1;
+  if (safex::is_interval_last_block(blk_height, m_nettype))
+  {
+    //update staked token sum for interval for whitch this blok is last
+    remove_staked_token_for_interval(safex::calculate_interval_for_height(blk_height, m_nettype));
+  }
+
   remove_block();
 
   for (const auto& h : boost::adaptors::reverse(blk.tx_hashes))
@@ -311,6 +318,9 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     }
     else if (tx_input.type() == typeid(txin_to_script))
     {
+      auto input = boost::get<txin_to_script>(tx_input);
+      if(input.command_type == safex::command_t::token_unstake)
+        remove_unstake_token(tx_hash, tx);
       remove_spent_key(boost::get<txin_to_script>(tx_input).k_image);
     }
 

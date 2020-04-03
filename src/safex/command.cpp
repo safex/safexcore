@@ -441,6 +441,9 @@ namespace safex
         if(rating_given > 3 )
           result = execution_status::error_feedback_invalid_rating;
 
+        if(cmd->get_comment().size() > SAFEX_FEEDBACK_DATA_MAX_SIZE)
+          result = execution_status::error_feedback_data_too_big;
+
         return result;
     };
 
@@ -494,7 +497,7 @@ namespace safex
       execution_status result = validate(blokchainDB, txin);
       SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate update price peg command", this->get_command_type());
 
-      update_price_peg_result *cr = new update_price_peg_result{this->price_peg_id,this->title,this->creator,this->description,this->currency,this->rate};
+      update_price_peg_result *cr = new update_price_peg_result{this->price_peg_id,this->rate};
       cr->valid = true;
       cr->status = execution_status::ok;
 
@@ -507,15 +510,9 @@ namespace safex
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
 
-      if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
-      {
-        result = execution_status::error_price_peg_data_too_big;
-      }
-
-      //check price peg data size
-      if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
-      {
-        result = execution_status::error_price_peg_data_too_big;
+      safex::safex_price_peg sfx_dummy{};
+      if (!blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(), sfx_dummy)) {
+        result = execution_status::error_price_peg_not_existant;
       }
 
       return result;

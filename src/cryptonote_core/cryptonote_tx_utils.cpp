@@ -1681,7 +1681,7 @@ namespace cryptonote
           }
           else if (src_entr.referenced_output_type == tx_out_type::out_safex_feedback_token && src_entr.command_type == safex::command_t::create_feedback) {
               //todo Atana, figure out how to handle this case
-              MCINFO("construct_tx", "feedback " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str());
+              crypto::generate_ring_signature(tx_prefix_hash, k_image, keys_ptrs, in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());
           }
           else {
             crypto::generate_ring_signature(tx_prefix_hash, k_image, keys_ptrs, in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());

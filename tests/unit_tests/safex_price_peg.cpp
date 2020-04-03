@@ -104,7 +104,6 @@ namespace
        m_edited_safex_price_peg = m_safex_price_pegs[1];
 
        m_edited_safex_price_peg.rate = 40;
-       m_edited_safex_price_peg.description = {'s','m','o','r','2'};
 
        for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {

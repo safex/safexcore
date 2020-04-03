@@ -623,6 +623,10 @@ namespace cryptonote
      */
     bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
 
+    bool is_safex_account_activated(const std::vector<txin_v> &vector);
+
+    bool are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin);
+
     /**
      * @brief get dynamic per kB fee for a given block size
      *
@@ -1048,6 +1052,9 @@ namespace cryptonote
     bool get_safex_offers(std::vector<safex::safex_offer> &safex_offers) const;
     bool get_safex_feedbacks(std::vector<safex::safex_feedback>& safex_feedbacks, const crypto::hash& offer_id) const;
     bool get_safex_price_pegs(std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
+
+    bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
+
   private:
 
     struct outputs_generic_visitor
@@ -1589,5 +1596,6 @@ namespace cryptonote
             */
 
       std::vector<crypto::public_key> is_safex_purchase_right_address(const crypto::secret_key& seller_secret_view_key, const crypto::public_key& public_seller_spend_key, const cryptonote::transaction& tx);
+
   };
 }  // namespace cryptonote

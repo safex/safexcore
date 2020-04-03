@@ -49,6 +49,7 @@
 #include "safex_offer.h"
 #include "safex_purchase.h"
 #include "safex_price_peg.h"
+#include "chain_split_safex.h"
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/

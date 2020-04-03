@@ -329,6 +329,11 @@ namespace cryptonote
   {
     return m_blockchain_storage.get_safex_accounts(safex_accounts);
   };
+
+  bool core::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+  {
+      return m_blockchain_storage.get_table_sizes(table_sizes);
+  }
     //-----------------------------------------------------------------------------------------------
 
   bool core::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
@@ -1213,7 +1218,7 @@ namespace cryptonote
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
 
-          safex::update_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
+          safex::update_price_peg_data price_peg(cmd->get_price_peg_id(),cmd->get_rate());
           crypto::hash cmd_hash{};
           get_object_hash(price_peg, cmd_hash);
           if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)

@@ -53,7 +53,9 @@ namespace safex
     error_offer_price_peg_not_existant = 20,
     error_price_peg_bad_currency_format = 21,
     error_offer_data_too_big = 22,
-    error_price_peg_data_too_big = 23
+    error_price_peg_data_too_big = 23,
+    error_price_peg_not_existant = 24,
+    error_feedback_data_too_big = 25
   };
 
   struct execution_result
@@ -124,19 +126,16 @@ namespace safex
 
     create_account_result(const std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t>& _account_data):
             username{_username}, pkey{_pkey}, account_data{_account_data}{
-        output_ids.clear();
     }
 
     std::vector<uint8_t> username{};
     crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
-    std::vector<uint64_t> output_ids{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
           FIELD(pkey)
           FIELD(account_data)
-          FIELD(output_ids)
       END_SERIALIZE()
   };
 
@@ -148,13 +147,11 @@ namespace safex
     std::vector<uint8_t> username{};
     crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
-    uint64_t output_id{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
           FIELD(pkey)
           FIELD(account_data)
-          FIELD(output_id)
       END_SERIALIZE()
   };
 
@@ -165,7 +162,6 @@ struct create_offer_result : public execution_result
 
     create_offer_result(crypto::hash _offer_id, std::vector<uint8_t> _seller, uint64_t _price, uint64_t _quantity,
             bool _active): offer_id{_offer_id},seller{_seller},price{_price},quantity{_quantity},active{_active} {
-        output_ids.clear();
     }
 
     crypto::hash offer_id{};
@@ -173,7 +169,8 @@ struct create_offer_result : public execution_result
     uint64_t quantity{};
     uint64_t price;
     bool active{};
-    std::vector<uint64_t> output_ids{};
+    uint64_t output_id{};
+    uint64_t output_id_creation{};
 
     BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
@@ -181,7 +178,8 @@ struct create_offer_result : public execution_result
         FIELD(price)
         FIELD(quantity)
         FIELD(active)
-        FIELD(output_ids)
+        FIELD(output_id)
+        FIELD(output_id_creation)
     END_SERIALIZE()
 
 };
@@ -219,12 +217,12 @@ struct create_feedback_result : public execution_result
 
     create_feedback_result(){}
 
-    create_feedback_result(crypto::hash _offer_id, std::vector<uint8_t> _comment, uint64_t _stars_given): offer_id{_offer_id},comment{_comment},stars_given{_stars_given} {
+    create_feedback_result(crypto::hash _offer_id, std::vector<uint8_t> _comment, uint8_t _stars_given): offer_id{_offer_id},comment{_comment},stars_given{_stars_given} {
 
     }
 
     crypto::hash offer_id{}; //unique id of the offer
-    uint64_t stars_given;
+    uint8_t stars_given;
     std::vector<uint8_t> comment{};
 
     BEGIN_SERIALIZE_OBJECT()
@@ -270,25 +268,17 @@ struct create_price_peg_result : public execution_result
 
         update_price_peg_result(){}
 
-        update_price_peg_result(crypto::hash _price_peg_id, std::vector<uint8_t> _title, std::vector<uint8_t> _creator, std::vector<uint8_t> _description, std::vector<uint8_t> _currency,uint64_t _rate)
-                :price_peg_id{_price_peg_id},title{_title},creator{_creator}, description{_description}, currency{_currency},rate{_rate} {
+        update_price_peg_result(crypto::hash _price_peg_id,uint64_t _rate)
+                :price_peg_id{_price_peg_id},rate{_rate} {
           output_ids.clear();
         }
 
-        std::vector<uint8_t> title; //title of the price peg
         crypto::hash price_peg_id; //unique id of the price peg
-        std::vector<uint8_t> creator; // username of the price peg
-        std::vector<uint8_t> description; //description of price peg
-        std::vector<uint8_t> currency;
         uint64_t rate;
         std::vector<uint64_t> output_ids{};
 
         BEGIN_SERIALIZE_OBJECT()
-          FIELD(title)
           FIELD(price_peg_id)
-          FIELD(creator)
-          FIELD(description)
-          FIELD(currency)
           FIELD(rate)
           FIELD(output_ids)
         END_SERIALIZE()
@@ -474,13 +464,13 @@ struct create_price_peg_result : public execution_result
     struct create_feedback_data : public command_data
     {
         crypto::hash offer_id{}; //unique id of the offer
-        uint64_t stars_given;
+        uint8_t stars_given;
         std::vector<uint8_t> comment{};
 
         create_feedback_data() {}
         create_feedback_data(const safex::safex_feedback& feedback): offer_id{feedback.offer_id},stars_given{feedback.stars_given},comment{feedback.comment.begin(),feedback.comment.end()}{
         }
-        create_feedback_data(const crypto::hash &_offer_id, const uint64_t &_stars_given, const std::vector<uint8_t> _comment):
+        create_feedback_data(const crypto::hash &_offer_id, const uint8_t &_stars_given, const std::vector<uint8_t> _comment):
                 offer_id{_offer_id},stars_given{_stars_given},comment{_comment}{}
 
         BEGIN_SERIALIZE_OBJECT()
@@ -522,29 +512,21 @@ struct create_price_peg_result : public execution_result
 
     struct update_price_peg_data : public command_data
     {
-        std::vector<uint8_t> title; //title of the price peg
         crypto::hash price_peg_id; //unique id of the price peg
-        std::vector<uint8_t> creator; // username of the price peg
-        std::vector<uint8_t> description; //description of price peg
-        std::vector<uint8_t> currency;
         uint64_t rate;
 
         update_price_peg_data() {}
-        update_price_peg_data(const safex::safex_price_peg& price_peg): title{price_peg.title.begin(),price_peg.title.end()}, description{price_peg.description},price_peg_id{price_peg.price_peg_id},creator{price_peg.creator.begin(),price_peg.creator.end()},currency(price_peg.currency.begin(),price_peg.currency.end()),rate{price_peg.rate}
+        update_price_peg_data(const safex::safex_price_peg& price_peg): price_peg_id{price_peg.price_peg_id},rate{price_peg.rate}
         {
         }
 
-        update_price_peg_data(const  std::vector<uint8_t>& _title, const crypto::hash& _price_peg_id, const std::vector<uint8_t>& _creator, const std::vector<uint8_t>& _description, const std::vector<uint8_t>& _currency, const uint64_t& _rate):
-                title{_title},price_peg_id{_price_peg_id}, creator{_creator},description{_description},currency{_currency},rate{_rate}
+        update_price_peg_data(const crypto::hash& _price_peg_id, const uint64_t& _rate):
+                price_peg_id{_price_peg_id}, rate{_rate}
         {
         }
 
         BEGIN_SERIALIZE_OBJECT()
-          FIELD(title)
           FIELD(price_peg_id)
-          FIELD(creator)
-          FIELD(description)
-          FIELD(currency)
           FIELD(rate)
         END_SERIALIZE()
     };
@@ -1031,7 +1013,7 @@ public:
 
     crypto::hash get_offerid() const { return offer_id; }
     std::vector<uint8_t> get_comment() const { return comment; }
-    uint64_t get_stars_given() const { return stars_given; }
+    uint8_t get_stars_given() const { return stars_given; }
 
     virtual create_feedback_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
     virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -1046,7 +1028,7 @@ public:
 
 private:
     crypto::hash offer_id{}; //unique id of the offer
-    uint64_t stars_given;
+    uint8_t stars_given;
     std::vector<uint8_t> comment{};
 };
 
@@ -1106,17 +1088,13 @@ public:
      * @param _price_peg_data //price peg data
     * */
     update_price_peg(const uint32_t _version, const safex::update_price_peg_data &price_peg) :
-            command(_version, command_t::update_price_peg), title(price_peg.title), description{price_peg.description},
-            price_peg_id{price_peg.price_peg_id},creator{price_peg.creator},currency{price_peg.currency},rate{price_peg.rate}{
+            command(_version, command_t::update_price_peg),
+            price_peg_id{price_peg.price_peg_id},rate{price_peg.rate}{
     }
 
-    update_price_peg() : command(0, command_t::update_price_peg), price_peg_id{}, description{} {}
+    update_price_peg() : command(0, command_t::update_price_peg), price_peg_id{}{}
 
     crypto::hash get_price_peg_id() const { return price_peg_id; }
-    std::vector<uint8_t> get_creator() const { return creator; }
-    std::vector<uint8_t> get_title() const { return title; }
-    std::vector<uint8_t> get_description() const { return description; }
-    std::vector<uint8_t> get_currency() const { return currency; }
     uint64_t get_rate() const { return rate; }
 
     virtual update_price_peg_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -1125,20 +1103,12 @@ public:
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<command *>(this))
       CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::update_price_peg);
-      FIELD(title)
       FIELD(price_peg_id)
-      FIELD(creator)
-      FIELD(description)
-      FIELD(currency)
       FIELD(rate)
     END_SERIALIZE()
 
 private:
-    std::vector<uint8_t> title; //title of the price peg
     crypto::hash price_peg_id; //unique id of the price peg
-    std::vector<uint8_t> creator; // username of the price peg
-    std::vector<uint8_t> description; //description of price peg
-    std::vector<uint8_t> currency;
     uint64_t rate;
 };
 

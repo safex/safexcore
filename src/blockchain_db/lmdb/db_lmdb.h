@@ -329,12 +329,12 @@ public:
 
   virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
-  virtual bool get_create_account_output_id(const safex::account_username &username, uint64_t& output_id) const;
-  virtual bool get_create_offer_output_id(const crypto::hash& offer_id, uint64_t& output_id) const;
   virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
   virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
   virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const;
+
+  virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
 
 
     virtual uint64_t add_block( const block& blk
@@ -392,6 +392,8 @@ private:
   virtual uint64_t add_transaction_data(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash& tx_hash);
 
   virtual void remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx);
+
+  virtual void remove_unstake_token(const crypto::hash& tx_hash, const transaction& tx);
 
   virtual uint64_t add_output(const crypto::hash& tx_hash,
       const tx_out& tx_output,
@@ -499,10 +501,11 @@ private:
    * Remove safex account from database
    *
    * @param username safex account username
+   * @param output_id id of the account creation output
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_account(const safex::account_username &username);
+  void remove_safex_account(const safex::account_username &username, const uint64_t& output_id);
 
     /**
      * Add new offer to database
@@ -531,37 +534,41 @@ private:
      * Remove safex offer from database
      *
      * @param offer_id safex offer id
+     * @param output_id id of the offer creation output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_offer(const crypto::hash &offer_id);
+    void remove_safex_offer(const crypto::hash &offer_id, const uint64_t& output_id);
 
     /**
      * Remove safex offer update from database
      *
      * @param offer_id safex offer id
+     * @param output_id id of the offer edit output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_offer_update(const crypto::hash &offer_id);
+    void remove_safex_offer_update(const crypto::hash &offer_id, const uint64_t& output_id);
 
     /**
      * Remove safex price_peg from database
      *
      * @param price_peg_id safex price_peg id
+     * @param output_id id of the price peg creation output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_price_peg(const crypto::hash &price_peg_id);
+    void remove_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& output_id);
 
     /**
      * Remove safex price_peg update from database
      *
      * @param price_peg_id safex price_peg id
+     * @param output_id id of the price peg update output
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_price_peg_update(const crypto::hash &price_peg_id);
+    void remove_safex_price_peg_update(const crypto::hash &price_peg_id, const uint64_t& output_id);
     /**
     * Create purchase in database
     *
@@ -605,21 +612,13 @@ private:
     /**
     * Remove advanced output from DB
     *
+    * @param out_type Type of the advanced output
     * @param Output id of the advanced output to be deleted
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void remove_advanced_output(uint64_t& output_id);
-
-    /**
-    * Remove last added advanced output from DB
-    *
-    *
-    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
-    *
-    */
-    void remove_last_advanced_output(const tx_out_type& out_type);
+    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id);
 
   /**
    * Remove last safex account update from database
@@ -628,35 +627,48 @@ private:
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_account_update(const safex::account_username &username);
+  void remove_safex_account_update(const safex::account_username &username, const uint64_t& output_id);
 
   /**
    * Remove last staked tokens from database
    *
    * @param token_amount amount of tokens sent
+   * @param Output id of the stake token output to be deleted
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_staked_token(const uint64_t token_amount);
+  void remove_staked_token(const uint64_t token_amount, const uint64_t& output_id);
 
   /**
    * Remove safex purchase advanced output and update offer quantity from database
    *
    * @param offer_id ID of purchased offer to update
    * @param quantity Quantity of product purchased
+   * @param output_id Output ID of the purchase output to be deleted
    *
    * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
   */
-  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity);
+  void remove_safex_purchase(const crypto::hash& offer_id, const uint64_t quantity, const uint64_t& output_id);
 
     /**
      * Remove safex feedback advanced output and update offer quantity from database
      *
      * @param offer_id ID of offer where feedback is given
+     * @param feedback_output_data Data of feedback to be removed
+     * @param output_id Output ID of the feedback output to be deleted
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_feedback(const crypto::hash& offer_id);
+    void remove_safex_feedback(const crypto::hash& offer_id, safex::create_feedback_data& feedback_output_data, const uint64_t& output_id);
+
+    /**
+     * Remove network fee output and update total network fee from database
+     *
+     * @param offer_id ID of offer where feedback is given
+     *
+     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
+    */
+    void remove_network_fee_output(const uint64_t& amount, const uint64_t& output_id);
 
   /**
    * Restore safex account data by getting it from advanced output table
@@ -689,7 +701,7 @@ protected:
 
   uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t staked_tokens) override;
 
-
+  bool remove_staked_token_for_interval(const uint64_t interval) override;
 
 private:
   MDB_env* m_env;

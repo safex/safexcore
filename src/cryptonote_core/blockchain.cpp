@@ -3077,6 +3077,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     {
       if (txin.type() == typeid(txin_to_script))
       {
+        //TODO: Grki check if absolute is needed
         const txin_to_script &in = boost::get<txin_to_script>(txin);
         for (auto index: in.key_offsets) {
           output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_staked_token, index);
@@ -3160,13 +3161,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   else if (command_type == safex::command_t::create_account)
   {
 
-    if( tx.unlock_time < get_current_blockchain_height() + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD )
-    {
-        MERROR("Invalid unlock token period");
-        tvc.m_safex_invalid_input = true;
-        return false;
-    }
-
     uint64_t total_locked_tokens = 0;
 
     for (const auto &vout: tx.vout)
@@ -3225,7 +3219,11 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::edit_account)
   {
-    //todo Do we need to check for signature of account owner or is it enough in tx_input check? Line: 3490
+    if(!is_safex_account_activated(tx.vin)){
+      MERROR("Safex account activation period not expired at height"<<m_db->height());
+      tvc.m_safex_invalid_command_params = true;
+      return false;
+    }
 
     for (const auto &vout: tx.vout)
     {
@@ -3469,37 +3467,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         safex::update_price_peg_data price_peg;
         const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
         cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
-        //check username for uniqueness
-        crypto::public_key temppkey{};
-        if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
-        {
-          std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
-          MERROR("Account with username "+username+" does not exists");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
 
-        if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
-        {
-          MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
-        {
-          MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        //check price peg data size
-        if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
-        {
-          MERROR("Price peg data is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_DATA_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
       }
     }
   }
@@ -3934,7 +3902,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
           std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
           crypto::public_key account_pkey{};
-          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
           tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
                                             std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
           );
@@ -3979,7 +3949,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
           std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
           crypto::public_key account_pkey{};
-          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
           check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
         }
         else {
@@ -6231,6 +6203,14 @@ bool Blockchain::get_safex_accounts( std::vector<std::pair<std::string,std::stri
     return m_db->get_safex_accounts(safex_accounts);
 }
 
+bool Blockchain::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_table_sizes(table_sizes);
+}
+
+
 bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
 {
     LOG_PRINT_L3("Blockchain::" << __func__);
@@ -6346,4 +6326,54 @@ std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(cons
     }
 
     return seller_outputs;
+}
+
+bool Blockchain::is_safex_account_activated(const std::vector<txin_v> &tx_vin) {
+  for (const txin_v &txin: tx_vin)
+  {
+    if (txin.type() == typeid(txin_to_script))
+    {
+      const txin_to_script &in = boost::get<txin_to_script>(txin);
+
+      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+      for (auto index: absolute) {
+        output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_safex_account, index);
+        if (out.height+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+          return false;
+      }
+    }
+
+  }
+  return true;
+}
+
+bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
+
+  //We search the inputs for tokens
+  for (const txin_v &txin: tx_vin)
+  {
+    if (txin.type() == typeid(txin_token_to_key))
+    {
+      const txin_token_to_key &in = boost::get<txin_token_to_key>(txin);
+      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+      // Now we search the offsets and find their txs
+      for (auto index: absolute) {
+        tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+        cryptonote::transaction tx = m_db->get_tx(toi.first);
+        //Now we search for script input
+        for(auto tx_output: tx.vout)
+          if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account)
+          {
+            const txout_to_script acc_out = boost::get<txout_to_script>(tx_output.target);
+            //Finally we check if script is create_account and if height is enough to use them
+            if(acc_out.output_type == static_cast<uint8_t>(cryptonote::tx_out_type::out_safex_account) && this->m_db->get_tx_block_height(toi.first)+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+              return false;
+          }
+      }
+    }
+
+  }
+  return true;
 }

@@ -153,7 +153,7 @@ gen_safex_purchase_001::gen_safex_purchase_001()
 
     expected_network_fee += pegged_price*5/100;
 
-    expected_alice_feedback_star_rating = safex_alice_feedback.stars_given;
+    expected_alice_feedback_star_rating = safex_alice_feedback.stars_given*COIN;
     expected_alice_balance -= TESTS_DEFAULT_FEE;
 
   }
