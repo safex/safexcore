@@ -654,11 +654,12 @@ private:
      * Remove safex feedback advanced output and update offer quantity from database
      *
      * @param offer_id ID of offer where feedback is given
+     * @param feedback_output_data Data of feedback to be removed
      * @param output_id Output ID of the feedback output to be deleted
      *
      * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     */
-    void remove_safex_feedback(const crypto::hash& offer_id, const uint64_t& output_id);
+    void remove_safex_feedback(const crypto::hash& offer_id, safex::create_feedback_data& feedback_output_data, const uint64_t& output_id);
 
     /**
      * Remove network fee output and update total network fee from database

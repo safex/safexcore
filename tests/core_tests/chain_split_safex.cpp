@@ -2145,8 +2145,7 @@ bool gen_simple_chain_split_safex::check_split_switched_feedback(cryptonote::cor
   // feedback
   std::vector<safex::safex_feedback> sfx_feedbacks;
 
-  CHECK_TEST_CONDITION(c.get_safex_feedbacks(sfx_feedbacks, expected_alice_safex_offer.offer_id));
-  CHECK_TEST_CONDITION(sfx_feedbacks.size() == 0);
+  CHECK_TEST_CONDITION(!c.get_safex_feedbacks(sfx_feedbacks, expected_alice_safex_offer.offer_id));
   return true;
 }
 //-----------------------------------------------------------------------------------------------------
