@@ -131,6 +131,8 @@ void do_prepare_file_names(const std::string& file_path, std::string& keys_file,
   if(string_tools::get_extension(keys_file) == "keys")
   {//provided keys file name
     wallet_file = string_tools::cut_off_extension(wallet_file);
+    safex_keys_file = string_tools::cut_off_extension(wallet_file);
+    safex_keys_file += ".safex_account_keys";
   }else
   {//provided wallet file name
     keys_file += ".keys";
