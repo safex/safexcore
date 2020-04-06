@@ -146,6 +146,7 @@ namespace safex
         FIELD(username)
         FIELD(pkey)
         FIELD(account_data)
+        FIELD(activated)
       END_SERIALIZE()
 
       template<class t_archive>
@@ -154,12 +155,14 @@ namespace safex
         a & username;
         a & pkey;
         a & account_data;
+        a & activated;
       }
 
 
       std::string username;
       crypto::public_key pkey;
       std::vector<uint8_t> account_data;
+      bool activated{false};
   };
 }
 

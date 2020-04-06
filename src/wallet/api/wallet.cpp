@@ -626,6 +626,7 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
         }
 
         m_recoveringFromSeed= true; //Slow sync wallet
+        m_password = password;
 
     }
     catch (const std::exception& e) {
@@ -694,6 +695,7 @@ bool WalletImpl::recover(const std::string &path, const std::string &password, c
     try {
         m_wallet->set_seed_language(old_language);
         m_wallet->generate(path, password, recovery_key, true, false);
+        m_password = password;
 
     } catch (const std::exception &e) {
         m_status = Status_Critical;

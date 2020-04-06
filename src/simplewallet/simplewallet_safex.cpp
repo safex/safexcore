@@ -621,7 +621,6 @@ namespace cryptonote
     {
       // figure out what tx will be necessary
       std::vector<tools::wallet::pending_tx> ptx_vector;
-      uint64_t bc_height = m_wallet->get_blockchain_current_height();
       uint64_t unlock_block = 0;
       std::string err;
       safex::command_t command = safex::command_t::nop;
@@ -645,7 +644,6 @@ namespace cryptonote
 
         case CommandType::TransferCreateAccount:
           command = safex::command_t::create_account;
-          unlock_block = bc_height + safex::get_safex_minumum_account_create_period(m_wallet->nettype());
           break;
 
         case CommandType::TransferEditAccount:
@@ -1125,18 +1123,24 @@ namespace cryptonote
 
   void simple_wallet::print_safex_accounts()
   {
-    success_msg_writer() << tr(std::string(49,'#').c_str()) <<  tr(" Safex accounts ") << tr(std::string(48,'#').c_str());
-    success_msg_writer() << boost::format("#%|=30|#%|=80|#") % tr("Account Username") % tr("Account Data");
-    success_msg_writer() << tr(std::string(113,'#').c_str());
+    success_msg_writer() << tr(std::string(56,'#').c_str()) <<  tr(" Safex accounts ") << tr(std::string(55,'#').c_str());
+    success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % tr("Account Username") % tr("Account Data") % tr("Activated");
+    success_msg_writer() << tr(std::string(127,'#').c_str());
     bool first = false;
 
     for (auto& acc: m_wallet->get_safex_accounts()) {
       if(first)
-        success_msg_writer() << boost::format("#%|=30|#%|=80|#")  % tr(std::string(30, '-').c_str()) %  tr(std::string(80, '-').c_str());
+        success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#")  % tr(std::string(30, '-').c_str()) %  tr(std::string(80, '-').c_str()) %  tr(std::string(13, '-').c_str());
       first=true;
-      success_msg_writer() << boost::format("#%|=30|#%|=80|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data));
+      bool unlocked_account = false;
+      if(acc.activated)
+        unlocked_account = m_wallet->is_safex_account_unlocked(acc.username);
+      std::string status = acc.activated?"Pending":"No";
+      if(unlocked_account)
+        status = "Yes";
+      success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data)) % status;
     }
-    success_msg_writer() << tr(std::string(113,'#').c_str());
+    success_msg_writer() << tr(std::string(127,'#').c_str());
 
   }
 

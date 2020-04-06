@@ -4426,7 +4426,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
           parse_and_validate_object_from_blob(blobdata1, account_output_data);
           current_username = std::string(begin(account_output_data.username), end(account_output_data.username));
       }
-      if (current_username == acc_username)
+      if (current_username == acc_username && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
         idx = (int)n;
     }
 
@@ -5937,7 +5937,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     req_t.unlocked = true;
     //Don't use tokens that are used during SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD as daemon can deny if these tokens are used
     if(out_type == tx_out_type::out_token)
-      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE - SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
+      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE - safex::get_safex_minumum_account_create_period(m_nettype);
     if(out_type == tx_out_type::out_cash)
       req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE;
     req_t.out_type = out_type;
