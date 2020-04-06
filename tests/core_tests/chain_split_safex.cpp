@@ -199,7 +199,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Create safex account
 
   REWIND_BLOCKS(events, blk_14r, blk_14, first_miner_account);                                //  136
-  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, alice_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD, blk_14); // 137
+  MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, alice_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size()+SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN, blk_14); // 137
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_15, blk_14r, first_miner_account, txlist_1);            //  138
   MAKE_NEXT_BLOCK(events, blk_16, blk_15, first_miner_account);                               //  139     //height: 137
 //  //split again and check back switching

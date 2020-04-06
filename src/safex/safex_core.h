@@ -215,11 +215,11 @@ namespace safex
   inline uint64_t get_safex_minumum_account_create_period(const cryptonote::network_type nettype)
   {
 //    TODO: Grki add needed periods
-//    if (nettype == cryptonote::network_type::FAKECHAIN)
-//      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
-//    else if (nettype == cryptonote::network_type::TESTNET)
-//      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
-//    else
+    if (nettype == cryptonote::network_type::FAKECHAIN)
+      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN;
+    else if (nettype == cryptonote::network_type::TESTNET)
+      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET;
+    else
       return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
   }
 

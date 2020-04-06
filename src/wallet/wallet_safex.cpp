@@ -295,6 +295,7 @@ namespace tools
       if (m_safex_accounts[i].username == username)
       {
         m_safex_accounts[i].account_data = accdata;
+        m_safex_accounts[i].activated = true;
       }
     }
 
@@ -339,6 +340,32 @@ namespace tools
   std::vector<safex::safex_account> wallet::get_safex_accounts()
   {
     return std::vector<safex::safex_account>(m_safex_accounts.begin(), m_safex_accounts.end());
+  }
+//-----------------------------------------------------------------------------------------------------------------
+
+  bool wallet::is_safex_account_unlocked(std::string& username)
+  {
+    for(const transfer_details& td: m_transfers)
+    {
+      if(td.m_output_type != cryptonote::tx_out_type::out_safex_account) {
+        continue;
+      }
+
+      for(auto tx_output: td.m_tx.vout)
+        if(tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account){
+            const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
+            safex::create_account_data sfx_account;
+            const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+            cryptonote::parse_and_validate_from_blob(offerblob, sfx_account);
+            std::string sfx_username{sfx_account.username.begin(),sfx_account.username.end()};
+            //If username is not the one, we get out of the loop
+            if(sfx_username != username)
+              break;
+            //If it is, we found it and we just check the height of the bc
+            return td.m_block_height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height;
+        }
+    }
+    return false;
   }
   //-----------------------------------------------------------------------------------------------------------------
   bool wallet::get_safex_account_keys(const std::string &username, safex::safex_account_keys &acckeys)
