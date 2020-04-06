@@ -1599,7 +1599,7 @@ namespace cryptonote
                                                 tr("txid ") << txid << ", " <<
                                                 tr("Price peg creation for account: ") << creator << " received, " <<
                                                 tr("Price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
                                                 tr("Price peg currency: ") << currency <<
                                                 tr("idx ") << subaddr_index;
 
@@ -1615,7 +1615,7 @@ namespace cryptonote
                                                 tr("Height ") << height << ", " <<
                                                 tr("txid ") << txid << ", " <<
                                                 tr("Price peg update for price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
                                                 tr("idx ") << subaddr_index;
 
       m_wallet->update_safex_price_peg(price_peg.price_peg_id,price_peg.rate);
