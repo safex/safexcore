@@ -961,14 +961,17 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
+      if(!offer.active && offer.quantity == 0)
+        continue;
+
       if(first)
         success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#")  % tr(std::string(20, '-').c_str()) %  tr(std::string(20, '-').c_str())
                                   % tr(std::string(20, '-').c_str()) % tr(std::string(30, '-').c_str()) % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str());
 
-      if(offer.active && offer.quantity > 0) {
-        first = true;
-        print_safex_offer(offer);
-      }
+
+      first = true;
+      print_safex_offer(offer);
+
     }
     success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(185,'#').c_str()) << tr(std::string(1,'#').c_str());
 
