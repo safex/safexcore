@@ -1539,6 +1539,8 @@ namespace cryptonote
         cryptonote::parse_and_validate_from_blob(offblob, offer);
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
                                      offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+        if(offer.price_peg_used)
+          sfx_offer.set_price_peg(offer.price_peg_id,offer.price,offer.min_sfx_price);
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
