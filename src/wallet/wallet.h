@@ -1089,6 +1089,7 @@ namespace tools
     bool safex_account_exists(const std::string& username);
 
     bool is_safex_account_unlocked(std::string& username);
+    bool is_create_account_token_fee(const transfer_details& td) const;
 
     bool add_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::safex_offer& offer);

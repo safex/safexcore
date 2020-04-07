@@ -4159,7 +4159,14 @@ bool wallet::is_transfer_unlocked(uint64_t unlock_time, uint64_t block_height) c
 //----------------------------------------------------------------------------------------------------
 bool wallet::is_token_transfer_unlocked(const transfer_details& td) const
 {
-  return is_token_transfer_unlocked(td.m_tx.unlock_time, td.m_block_height);
+
+  auto block_height = td.m_block_height;
+
+  if(td.token_amount()== SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE && is_create_account_token_fee(td)){
+      block_height += safex::get_safex_minumum_account_create_period(m_nettype);
+    }
+
+  return is_token_transfer_unlocked(td.m_tx.unlock_time, block_height);
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet::is_token_transfer_unlocked(uint64_t unlock_time, uint64_t block_height) const
