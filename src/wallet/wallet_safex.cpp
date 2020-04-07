@@ -345,25 +345,9 @@ namespace tools
 
   bool wallet::is_create_account_token_fee(const transfer_details& td) const
   {
-
       auto output_token_fee = td.get_public_key();
-      bool first = true;
-      bool is_token_fee = false;
-      bool is_create_account = false;
-      for(auto tx_output: td.m_tx.vout){
-          // Only one output with SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE token amount is the actual fee. We search for first isntance
-          if(tx_output.target.type() == typeid(txout_token_to_key) && tx_output.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
-              const txout_token_to_key &out = boost::get<txout_token_to_key>(tx_output.target);
-              if(out.key == output_token_fee && first)
-                is_token_fee = true;
-              first = false;
-          }
 
-
-        if(tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account)
-            is_create_account = true;
-      }
-    return is_token_fee && is_create_account;
+      return is_create_safex_account_token_fee(td.m_tx.vout, output_token_fee);
   }
 //-----------------------------------------------------------------------------------------------------------------
 

@@ -3219,11 +3219,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
   else if (command_type == safex::command_t::edit_account)
   {
-    if(!is_safex_account_activated(tx.vin)){
-      MERROR("Safex account activation period not expired at height"<<m_db->height());
-      tvc.m_safex_invalid_command_params = true;
-      return false;
-    }
 
     for (const auto &vout: tx.vout)
     {
@@ -6328,26 +6323,6 @@ std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(cons
     return seller_outputs;
 }
 
-bool Blockchain::is_safex_account_activated(const std::vector<txin_v> &tx_vin) {
-  for (const txin_v &txin: tx_vin)
-  {
-    if (txin.type() == typeid(txin_to_script))
-    {
-      const txin_to_script &in = boost::get<txin_to_script>(txin);
-
-      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
-
-      for (auto index: absolute) {
-        output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_safex_account, index);
-        if (out.height+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
-          return false;
-      }
-    }
-
-  }
-  return true;
-}
-
 bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
 
   //We search the inputs for tokens
@@ -6356,21 +6331,19 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
     if (txin.type() == typeid(txin_token_to_key))
     {
       const txin_token_to_key &in = boost::get<txin_token_to_key>(txin);
+      if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+        return true;
       const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
 
       // Now we search the offsets and find their txs
       for (auto index: absolute) {
         tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+        auto output_token_fee = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
         cryptonote::transaction tx = m_db->get_tx(toi.first);
         //Now we search for script input
-        for(auto tx_output: tx.vout)
-          if (tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account)
-          {
-            const txout_to_script acc_out = boost::get<txout_to_script>(tx_output.target);
-            //Finally we check if script is create_account and if height is enough to use them
-            if(acc_out.output_type == static_cast<uint8_t>(cryptonote::tx_out_type::out_safex_account) && this->m_db->get_tx_block_height(toi.first)+safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
-              return false;
-          }
+        if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
+           output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+          return false;
       }
     }
 
