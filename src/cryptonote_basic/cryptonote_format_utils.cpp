@@ -829,16 +829,19 @@ namespace cryptonote
 
   bool is_create_safex_account_token_fee(const std::vector<tx_out>& vout, const crypto::public_key& output_token_pubkey)
   {
-    bool first = true;
-    bool is_token_fee = false;
+    bool is_token_fee = true;
     bool is_create_account = false;
+    std::array<char,32> iterator_pubkey;
+    std::array<char,32> token_pubkey;
+    std::copy(std::begin(output_token_pubkey.data), std::end(output_token_pubkey.data), std::begin(token_pubkey));
     for(auto tx_output: vout){
         // Only one output with SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE token amount is the actual fee. We search for first isntance
         if(tx_output.target.type() == typeid(txout_token_to_key) && tx_output.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
             const txout_token_to_key &out = boost::get<txout_token_to_key>(tx_output.target);
-            if(out.key == output_token_pubkey && first)
-              is_token_fee = true;
-            first = false;
+            std::copy(std::begin(out.key.data), std::end(out.key.data), std::begin(iterator_pubkey));
+
+            if(iterator_pubkey < token_pubkey)
+              is_token_fee = false;
         }
 
 
