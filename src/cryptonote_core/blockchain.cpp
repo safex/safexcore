@@ -2379,6 +2379,11 @@ bool Blockchain::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMA
     const output_data_t od = m_db->get_output_key(i.amount, i.index, req.out_type);
     tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index, req.out_type);
     bool unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first));
+    if(req.out_type == cryptonote::tx_out_type::out_token){
+      cryptonote::transaction tx = m_db->get_tx(toi.first);
+      if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
+        unlocked &= od.height + safex::get_safex_minumum_account_create_period(m_nettype) <= m_db->height();
+   }
 
     res.outs.push_back({od.pubkey, od.commitment, unlocked, od.height, toi.first});
   }
@@ -2392,12 +2397,19 @@ bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request&
   #ifdef SAFEX_PROTOBUF_RPC
     CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
+    auto out_type = static_cast<cryptonote::tx_out_type>(req.out_type);
+
     for (const auto &i: req.outputs)
     {
       // get tx_hash, tx_out_index from DB
-      const output_data_t od = m_db->get_output_key(i.amount, i.index, static_cast<cryptonote::tx_out_type>(req.out_type));
-      tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index,  static_cast<cryptonote::tx_out_type>(req.out_type));
+      const output_data_t od = m_db->get_output_key(i.amount, i.index, out_type);
+      tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index,  out_type);
       bool unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first));
+      if(out_type == cryptonote::tx_out_type::out_token){
+        cryptonote::transaction tx = m_db->get_tx(toi.first);
+        if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
+          unlocked &= od.height + safex::get_safex_minumum_account_create_period(m_nettype) <= m_db->height();
+     }
 
       proto.add_out_entry(od.pubkey, unlocked, od.height, toi.first);
     }
