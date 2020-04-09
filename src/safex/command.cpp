@@ -77,9 +77,19 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
 
-    //todo Get data about locked token output from database using its index
-    //todo check if db output amount is same as txin amount
-    //todo check if minimum amount of time is fulfilled
+    uint64_t staked_token_index = this->get_staked_token_output_index();
+
+    auto toi = blokchainDB.get_output_tx_and_index_from_global(staked_token_index);
+    auto tx = blokchainDB.get_tx(toi.first);
+    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_key(cryptonote::tx_out_type::out_staked_token, staked_token_index);
+    bool output_found = false;
+    for(auto out: tx.vout)
+      if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)
+        if(out.token_amount == txin.token_amount)
+          output_found = true;
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((output_found), "Locked token amount not the same", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) <= blokchainDB.height()), "Minimum lock period not fulfilled", this->get_command_type());
+
 
     return result;
   }
