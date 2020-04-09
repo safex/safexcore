@@ -1135,13 +1135,10 @@ namespace cryptonote
       if(first)
         success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#")  % tr(std::string(30, '-').c_str()) %  tr(std::string(80, '-').c_str()) %  tr(std::string(13, '-').c_str());
       first=true;
-      bool unlocked_account = false;
-      if(acc.activated)
-        unlocked_account = m_wallet->is_safex_account_unlocked(acc.username);
-      std::string status = acc.activated?"Pending":"No";
-      if(unlocked_account)
-        status = "Yes";
-      success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data)) % status;
+      uint8_t status = m_wallet->get_safex_account_status(acc);
+      std::string status_str = (status==0?"No":(status==1?"Pending":"Yes"));
+
+      success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data)) % status_str;
     }
     success_msg_writer() << tr(std::string(127,'#').c_str());
 

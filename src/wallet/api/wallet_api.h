@@ -349,22 +349,25 @@ struct TransactionHistory
 struct SafexAccount {
 public:
     SafexAccount(){}
-    SafexAccount(std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key):
+    SafexAccount(std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key, const uint8_t& _status):
             username(usr),
             data(_data),
             pub_key(_pub_key),
-            sec_key(_sec_key) {}
+            sec_key(_sec_key),
+            status(_status) {}
 
 private:
     std::string username;
     std::string data;
     std::string pub_key;
     std::string sec_key;
+    uint8_t     status;
 public:
     std::string getUsername() const {return username;}
     std::string getData() const {return data;}
     std::string getPubKey() const {return pub_key;}
     std::string getSecKey() const {return sec_key;}
+    uint8_t getStatus() const {return status;}
 };
 
 /**
