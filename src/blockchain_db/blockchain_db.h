@@ -1406,7 +1406,7 @@ namespace cryptonote
        *
        * @return the requested output data
        */
-      virtual output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const tx_out_type output_type) = 0;
+      virtual output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const tx_out_type output_type) const = 0;
 
       /**
        * @brief get some of an output's data
@@ -1424,7 +1424,7 @@ namespace cryptonote
        *
        * @return list of public keys that can use this output
        */
-      virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) = 0;
+      virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) const = 0;
 
       /**
        * @brief gets an output's tx hash and index
@@ -1481,7 +1481,7 @@ namespace cryptonote
        */
       virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
                                          std::vector<output_data_t> &outputs, const tx_out_type output_type,
-                                         bool allow_partial = false) = 0;
+                                         bool allow_partial = false) const = 0;
 
       /**
        * @brief gets outputs' data
@@ -1496,7 +1496,7 @@ namespace cryptonote
        */
       virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
                                          std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
-                                         bool allow_partial = false) = 0;
+                                         bool allow_partial = false) const = 0;
 
       /*
        * FIXME: Need to check with git blame and ask what this does to

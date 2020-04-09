@@ -3058,7 +3058,7 @@ uint64_t BlockchainLMDB::get_num_outputs(const tx_out_type output_type) const
 }
 
 
-output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type)
+output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -3108,7 +3108,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
 
-  output_advanced_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id)
+  output_advanced_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id) const
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
 
@@ -4019,7 +4019,7 @@ bool BlockchainLMDB::getpwned(output_data_t& data) const{
 
 void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets,
                                            std::vector<output_data_t> &outputs, const tx_out_type output_type,
-                                           bool allow_partial)
+                                           bool allow_partial) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -4088,7 +4088,7 @@ void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::ve
 
   void BlockchainLMDB::get_advanced_output_key(const std::vector<uint64_t> &output_ids,
                                              std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
-                                             bool allow_partial)
+                                             bool allow_partial) const
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
