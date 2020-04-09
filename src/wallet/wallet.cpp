@@ -3712,7 +3712,7 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
 #ifdef WIN32
 //boost canonical messes with linux gnu
 #else
-  if (!path.empty())
+  if (!path.empty() && boost::filesystem::exists(m_wallet_file))
   {
     std::string canonical_path = boost::filesystem::canonical(m_wallet_file).string();
     size_t pos = canonical_path.find(path);
