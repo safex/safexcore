@@ -581,32 +581,32 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
 }
 
 
-TEST_F(SafexCommandExecution, TokenUnlockExecute)
-{
+//TEST_F(SafexCommandExecution, TokenUnlockExecute)
+//{
 
-  try
-  {
+//  try
+//  {
 
-    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-    txinput.token_amount = 120000; //unlock 120k tokens
-    txinput.command_type = command_t::token_unstake;
-    txinput.key_offsets.push_back(23);
-    uint64_t locked_token_output_index = 23;
-    token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
-    safex_command_serializer::serialize_safex_object(command1, txinput.script);
+//    cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+//    txinput.token_amount = 120000; //unlock 120k tokens
+//    txinput.command_type = command_t::token_unstake;
+//    txinput.key_offsets.push_back(23);
+//    uint64_t locked_token_output_index = 23;
+//    token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
+//    safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
-    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_unstake);
-    std::unique_ptr<execution_result> rslt{command2->execute(this->db, txinput)};
-    token_unstake_result* result = static_cast<token_unstake_result *>(rslt.get());
+//    std::unique_ptr<safex::command> command2 = safex_command_serializer::parse_safex_object(txinput.script, command_t::token_unstake);
+//    std::unique_ptr<execution_result> rslt{command2->execute(this->db, txinput)};
+//    token_unstake_result* result = static_cast<token_unstake_result *>(rslt.get());
 
-    std::cout << "Token amount: " << result->token_amount << " valid:" << result->valid << " block number:" << result->block_number << " interest: " << result->interest << std::endl;
-  }
-  catch (std::exception &exception)
-  {
-    FAIL() << "Exception happened " << exception.what();
-  }
-  catch (...)
-  {
-    FAIL() << "Unexpected exception";
-  }
-}
+//    std::cout << "Token amount: " << result->token_amount << " valid:" << result->valid << " block number:" << result->block_number << " interest: " << result->interest << std::endl;
+//  }
+//  catch (std::exception &exception)
+//  {
+//    FAIL() << "Exception happened " << exception.what();
+//  }
+//  catch (...)
+//  {
+//    FAIL() << "Unexpected exception";
+//  }
+//}
