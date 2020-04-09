@@ -3712,7 +3712,7 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
 #ifdef WIN32
 //boost canonical messes with linux gnu
 #else
-  if (!path.empty())
+  if (!path.empty() && boost::filesystem::exists(m_wallet_file))
   {
     std::string canonical_path = boost::filesystem::canonical(m_wallet_file).string();
     size_t pos = canonical_path.find(path);
@@ -4159,7 +4159,14 @@ bool wallet::is_transfer_unlocked(uint64_t unlock_time, uint64_t block_height) c
 //----------------------------------------------------------------------------------------------------
 bool wallet::is_token_transfer_unlocked(const transfer_details& td) const
 {
-  return is_token_transfer_unlocked(td.m_tx.unlock_time, td.m_block_height);
+
+  auto block_height = td.m_block_height;
+
+  if(td.token_amount()== SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE && is_create_account_token_fee(td)){
+      block_height += safex::get_safex_minumum_account_create_period(m_nettype);
+    }
+
+  return is_token_transfer_unlocked(td.m_tx.unlock_time, block_height);
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet::is_token_transfer_unlocked(uint64_t unlock_time, uint64_t block_height) const
@@ -5935,11 +5942,7 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
     auto end = std::unique(req_t.amounts.begin(), req_t.amounts.end());
     req_t.amounts.resize(std::distance(req_t.amounts.begin(), end));
     req_t.unlocked = true;
-    //Don't use tokens that are used during SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD as daemon can deny if these tokens are used
-    if(out_type == tx_out_type::out_token)
-      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE - safex::get_safex_minumum_account_create_period(m_nettype);
-    if(out_type == tx_out_type::out_cash)
-      req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE;
+    req_t.recent_cutoff = time(NULL) - RECENT_OUTPUT_ZONE;
     req_t.out_type = out_type;
     bool r = net_utils::invoke_http_json_rpc("/json_rpc", "get_output_histogram", req_t, resp_t, m_http_client, rpc_timeout);
     m_daemon_rpc_mutex.unlock();

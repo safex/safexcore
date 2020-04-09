@@ -961,14 +961,17 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
+      if(!offer.active && offer.quantity == 0)
+        continue;
+
       if(first)
         success_msg_writer() << boost::format("#%|=20|#%|=20|#%|=20|#%|=30|#%|=20|#%|=70|#")  % tr(std::string(20, '-').c_str()) %  tr(std::string(20, '-').c_str())
                                   % tr(std::string(20, '-').c_str()) % tr(std::string(30, '-').c_str()) % tr(std::string(20, '-').c_str()) %tr(std::string(70, '-').c_str());
 
-      if(offer.active && offer.quantity > 0) {
-        first = true;
-        print_safex_offer(offer);
-      }
+
+      first = true;
+      print_safex_offer(offer);
+
     }
     success_msg_writer() << tr(std::string(1,'#').c_str()) <<  tr(std::string(185,'#').c_str()) << tr(std::string(1,'#').c_str());
 
@@ -1132,13 +1135,10 @@ namespace cryptonote
       if(first)
         success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#")  % tr(std::string(30, '-').c_str()) %  tr(std::string(80, '-').c_str()) %  tr(std::string(13, '-').c_str());
       first=true;
-      bool unlocked_account = false;
-      if(acc.activated)
-        unlocked_account = m_wallet->is_safex_account_unlocked(acc.username);
-      std::string status = acc.activated?"Pending":"No";
-      if(unlocked_account)
-        status = "Yes";
-      success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data)) % status;
+      uint8_t status = m_wallet->get_safex_account_status(acc);
+      std::string status_str = (status==0?"No":(status==1?"Pending":"Yes"));
+
+      success_msg_writer() << boost::format("#%|=30|#%|=80|#%|=13|#") % acc.username % std::string(begin(acc.account_data), end(acc.account_data)) % status_str;
     }
     success_msg_writer() << tr(std::string(127,'#').c_str());
 
@@ -1536,6 +1536,8 @@ namespace cryptonote
         cryptonote::parse_and_validate_from_blob(offblob, offer);
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
                                      offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+        if(offer.price_peg_used)
+          sfx_offer.set_price_peg(offer.price_peg_id,offer.price,offer.min_sfx_price);
         sfx_offer.active = offer.active;
 
         m_wallet->update_safex_offer(sfx_offer);
@@ -1599,7 +1601,7 @@ namespace cryptonote
                                                 tr("txid ") << txid << ", " <<
                                                 tr("Price peg creation for account: ") << creator << " received, " <<
                                                 tr("Price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
                                                 tr("Price peg currency: ") << currency <<
                                                 tr("idx ") << subaddr_index;
 
@@ -1615,7 +1617,7 @@ namespace cryptonote
                                                 tr("Height ") << height << ", " <<
                                                 tr("txid ") << txid << ", " <<
                                                 tr("Price peg update for price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << price_peg.rate <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
                                                 tr("idx ") << subaddr_index;
 
       m_wallet->update_safex_price_peg(price_peg.price_peg_id,price_peg.rate);

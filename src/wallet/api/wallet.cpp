@@ -1403,7 +1403,9 @@ std::vector<SafexAccount> WalletImpl::getSafexAccounts() {
     m_wallet->get_safex_account_keys(acc.username, keys);
     std::string pubKey = epee::string_tools::pod_to_hex(keys.m_public_key);
     std::string secKey = epee::string_tools::pod_to_hex(keys.m_secret_key);
-    sfx_accounts.emplace_back(acc.username,data,pubKey,secKey);
+    uint8_t acc_status = m_wallet->get_safex_account_status(acc);
+
+    sfx_accounts.emplace_back(acc.username,data,pubKey,secKey,acc_status);
   }
 
   return sfx_accounts;
@@ -1422,8 +1424,9 @@ SafexAccount WalletImpl::getSafexAccount(const std::string& username){
   m_wallet->get_safex_account_keys(username, keys);
   std::string pubKey = epee::string_tools::pod_to_hex(keys.m_public_key);
   std::string secKey = epee::string_tools::pod_to_hex(keys.m_secret_key);
+  uint8_t acc_status = m_wallet->get_safex_account_status(sfx_account);
 
-  return SafexAccount{sfx_account.username,data,pubKey,secKey};
+  return SafexAccount{sfx_account.username,data,pubKey,secKey,acc_status};
 
 }
 

@@ -623,8 +623,6 @@ namespace cryptonote
      */
     bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
 
-    bool is_safex_account_activated(const std::vector<txin_v> &vector);
-
     bool are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin);
 
     /**

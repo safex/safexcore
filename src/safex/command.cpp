@@ -77,9 +77,19 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
 
-    //todo Get data about locked token output from database using its index
-    //todo check if db output amount is same as txin amount
-    //todo check if minimum amount of time is fulfilled
+    uint64_t staked_token_index = this->get_staked_token_output_index();
+
+    auto toi = blokchainDB.get_output_tx_and_index_from_global(staked_token_index);
+    auto tx = blokchainDB.get_tx(toi.first);
+    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_key(cryptonote::tx_out_type::out_staked_token, staked_token_index);
+    bool output_found = false;
+    for(auto out: tx.vout)
+      if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)
+        if(out.token_amount == txin.token_amount)
+          output_found = true;
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((output_found), "Locked token amount not the same", this->get_command_type());
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) <= blokchainDB.height()), "Minimum lock period not fulfilled", this->get_command_type());
+
 
     return result;
   }
@@ -394,6 +404,10 @@ namespace safex
             result = execution_status::error_account_non_existant;
         }
 
+        if(cmd->get_price() > MONEY_SUPPLY) {
+          result = execution_status::error_offer_price_too_big;
+        }
+
         if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
         {
           MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
@@ -435,6 +449,11 @@ namespace safex
 
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(txin.script);
+
+        safex::safex_offer sfx_dummy{};
+        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
+            result = execution_status::error_offer_non_existant;
+        }
 
         uint64_t rating_given = cmd->get_stars_given();
 
@@ -482,6 +501,11 @@ namespace safex
         }
       }
 
+      if(cmd->get_rate() == 0)
+      {
+          result = execution_status::error_price_peg_rate_zero;
+      }
+
       //check price peg data size
       if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
       {
@@ -509,6 +533,12 @@ namespace safex
 
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+
+      if(cmd->get_rate() == 0)
+      {
+          result = execution_status::error_price_peg_rate_zero;
+      }
 
       safex::safex_price_peg sfx_dummy{};
       if (!blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(), sfx_dummy)) {

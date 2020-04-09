@@ -341,9 +341,26 @@ namespace tools
   {
     return std::vector<safex::safex_account>(m_safex_accounts.begin(), m_safex_accounts.end());
   }
+  //-----------------------------------------------------------------------------------------------------------------
+  uint8_t wallet::get_safex_account_status(const safex::safex_account& sfx_account) const {
+    if(!sfx_account.activated)
+      return 0;
+    else if (!is_safex_account_unlocked(sfx_account.username))
+      return 1;
+    else
+      return 2;
+
+  }
+
+  bool wallet::is_create_account_token_fee(const transfer_details& td) const
+  {
+      auto output_token_fee = td.get_public_key();
+
+      return is_create_safex_account_token_fee(td.m_tx.vout, output_token_fee);
+  }
 //-----------------------------------------------------------------------------------------------------------------
 
-  bool wallet::is_safex_account_unlocked(std::string& username)
+  bool wallet::is_safex_account_unlocked(const std::string& username) const
   {
     for(const transfer_details& td: m_transfers)
     {
