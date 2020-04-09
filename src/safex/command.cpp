@@ -404,6 +404,10 @@ namespace safex
             result = execution_status::error_account_non_existant;
         }
 
+        if(cmd->get_price() > MONEY_SUPPLY) {
+          result = execution_status::error_offer_price_too_big;
+        }
+
         if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
         {
           MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
@@ -445,6 +449,11 @@ namespace safex
 
         execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(txin.script);
+
+        safex::safex_offer sfx_dummy{};
+        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
+            result = execution_status::error_offer_non_existant;
+        }
 
         uint64_t rating_given = cmd->get_stars_given();
 
@@ -492,6 +501,11 @@ namespace safex
         }
       }
 
+      if(cmd->get_rate() == 0)
+      {
+          result = execution_status::error_price_peg_rate_zero;
+      }
+
       //check price peg data size
       if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
       {
@@ -519,6 +533,12 @@ namespace safex
 
       execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
+
+
+      if(cmd->get_rate() == 0)
+      {
+          result = execution_status::error_price_peg_rate_zero;
+      }
 
       safex::safex_price_peg sfx_dummy{};
       if (!blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(), sfx_dummy)) {

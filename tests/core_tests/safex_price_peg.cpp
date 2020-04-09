@@ -121,6 +121,8 @@ gen_safex_price_peg_001::gen_safex_price_peg_001()
     expected_bob_account_data = std::vector<uint8_t>(std::begin(data2_alternative_2), std::end(data2_alternative_2));
     expected_daniel_account_data = std::vector<uint8_t>(std::begin(data3_alternative), std::end(data3_alternative));
 
+    expected_alice_price_peg_new_rate = 4;
+
     expected_alice_price_peg_id = safex_price_peg_alice.price_peg_id;
     expected_alice_price_peg_title = safex_price_peg_alice.title;
     expected_alice_price_peg_currency = safex_price_peg_alice.currency;
