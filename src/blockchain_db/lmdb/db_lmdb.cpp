@@ -5044,7 +5044,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
           current = parse_output_advanced_data_from_mdb(value_blob);
 
-          if(parse_and_validate_object_from_blob<safex::create_offer_data>(current.data, restored_sfx_offer_create)){
+          if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_offer)){
+
+            parse_and_validate_object_from_blob<safex::create_offer_data>(current.data, restored_sfx_offer_create);
+
             if(sfx_offer.offer_id == restored_sfx_offer_create.offer_id) {
               sfx_offer.quantity = restored_sfx_offer_create.quantity;
               sfx_offer.price = restored_sfx_offer_create.price;
@@ -5057,7 +5060,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               return;
             }
           }
-          else if(parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data, restored_sfx_offer_update)){
+          else if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_offer_update)){
+
+            parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data, restored_sfx_offer_update);
+
             if(sfx_offer.offer_id == restored_sfx_offer_update.offer_id) {
               sfx_offer.quantity = restored_sfx_offer_update.quantity;
               sfx_offer.price = restored_sfx_offer_update.price;
@@ -5104,7 +5110,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
         current = parse_output_advanced_data_from_mdb(value_blob);
 
-        if(parse_and_validate_object_from_blob<safex::create_price_peg_data>(current.data, restored_sfx_price_peg_create)){
+        if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_price_peg)){
+
+          parse_and_validate_object_from_blob<safex::create_price_peg_data>(current.data, restored_sfx_price_peg_create);
+
           if(sfx_price_peg.price_peg_id == restored_sfx_price_peg_create.price_peg_id) {
             sfx_price_peg.creator = restored_sfx_price_peg_create.creator;
             sfx_price_peg.rate = restored_sfx_price_peg_create.rate;
@@ -5114,7 +5123,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             return;
           }
         }
-        else if(parse_and_validate_object_from_blob<safex::update_price_peg_data>(current.data, restored_sfx_price_peg_update)){
+        else if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_price_peg_update)){
+
+          parse_and_validate_object_from_blob<safex::update_price_peg_data>(current.data, restored_sfx_price_peg_update);
+
           if(sfx_price_peg.price_peg_id == restored_sfx_price_peg_update.price_peg_id) {
             sfx_price_peg.rate = restored_sfx_price_peg_update.rate;
             return;
@@ -5355,13 +5367,19 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
         current = parse_output_advanced_data_from_mdb(value_blob);
 
-        if (parse_and_validate_object_from_blob<safex::create_account_data>(current.data, restored_sfx_account_create)) {
+        if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_account)){
+
+          parse_and_validate_object_from_blob<safex::create_account_data>(current.data, restored_sfx_account_create);
+
           if (sfx_account.username == restored_sfx_account_create.username) {
             sfx_account.account_data = restored_sfx_account_create.account_data;
             return;
           }
         }
-        else if (parse_and_validate_object_from_blob<safex::edit_account_data>(current.data, restored_sfx_account_update)){
+        else if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_account_update)){
+
+            parse_and_validate_object_from_blob<safex::edit_account_data>(current.data, restored_sfx_account_update);
+
             sfx_account.account_data = restored_sfx_account_update.account_data;
             return;
           }
