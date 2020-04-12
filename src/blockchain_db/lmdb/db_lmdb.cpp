@@ -3132,6 +3132,8 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     if (result == MDB_SUCCESS)
     {
       output = parse_output_advanced_data_from_mdb(value_blob);
+      if(output.output_type != static_cast<uint64_t>(output_type))
+        throw0(DB_ERROR(lmdb_error("Attemting to get keys from output with ID " + std::to_string(output_id) + " for type "+  std::to_string(static_cast<uint64_t>(output_type)) + " but not found: ", result).c_str()));
     }
     else if (result == MDB_NOTFOUND)
       throw0(DB_ERROR(lmdb_error("Attemting to get keys from output with ID " + std::to_string(output_id) + " but not found: ", result).c_str()));

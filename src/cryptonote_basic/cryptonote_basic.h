@@ -552,11 +552,24 @@ namespace cryptonote
        {
          switch (txin.command_type) {
            case safex::command_t::donate_network_fee:
+           case safex::command_t::simple_purchase:
              return tx_out_type::out_cash;
            case safex::command_t::token_stake:
              return tx_out_type::out_token;
            case safex::command_t::token_unstake:
              return tx_out_type::out_staked_token;
+           case safex::command_t::create_account:
+             return tx_out_type::out_token;
+           case safex::command_t::edit_account:
+           case safex::command_t::create_offer:
+           case safex::command_t::create_price_peg:
+             return tx_out_type::out_safex_account;
+           case safex::command_t::edit_offer:
+             return tx_out_type::out_safex_offer;
+           case safex::command_t::update_price_peg:
+             return tx_out_type::out_safex_price_peg;
+           case safex::command_t::create_feedback:
+             return tx_out_type::out_safex_feedback_token;
            case safex::command_t::nop:
            default:
              return tx_out_type::out_invalid;
