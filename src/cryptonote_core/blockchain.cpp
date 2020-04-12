@@ -5468,6 +5468,8 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   // [output] stores all output_data_t for each absolute_offset
   std::map<std::pair<tx_out_type, uint64_t>, std::vector<output_data_t>> tx_map;
 
+  std::set<tx_out_type> types;
+
   // [input] store all found  advanced output types and vector of their output ids
   std::map<tx_out_type, std::vector<uint64_t>> advanced_output_ids_map;
   // [output] stores all output_advanced_data_t for each tx_out_type
@@ -5523,6 +5525,10 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         if (it != its->second.end())
           SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
 
+        auto it_advanced = its_advanced->second.find(k_image);
+        if (it_advanced != its_advanced->second.end())
+          SCAN_TABLE_QUIT("Duplicate advanced key_image found from incoming blocks.");
+
         const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
         if (output_type == tx_out_type::out_cash || output_type == tx_out_type::out_token)
         {
@@ -5531,7 +5537,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         }
         else
         {
-          //nothing to do here for advanced outputs
+          types.insert(output_type);
 
         }
       }
@@ -5549,6 +5555,12 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
 
         if (tx_map.find(amount) == tx_map.end())
           tx_map.emplace(amount, std::vector<output_data_t>());
+      }
+
+      for(auto type: types)
+      {
+        if(tx_advanced_map.find(type)== tx_advanced_map.end())
+          tx_advanced_map.emplace(type, std::vector<output_advanced_data_t>());
       }
 
       // add new absolute_offsets to offset_map
