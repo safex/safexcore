@@ -138,11 +138,17 @@ public:
                                         std::set<uint32_t> subaddr_indices = {},
                                         const TransactionType tx_type = TransactionType::CashTransaction);
 
+
+    //Safex account realted functions
     bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description);
     std::vector<SafexAccount> getSafexAccounts();
     SafexAccount getSafexAccount(const std::string& username);
     bool recoverSafexAccount(const std::string& username, const std::string& private_key);
     bool removeSafexAccount(const std::string& username);
+
+    //Safex offer realted functions
+    std::vector<SafexOffer> getMySafexOffers();
+    std::vector<SafexOffer> listSafexOffers(bool active);
 
     PendingTransaction * createAdvancedTransaction(const std::string &dst_addr, const std::string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
                                                    PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand);

@@ -349,7 +349,7 @@ struct TransactionHistory
 struct SafexAccount {
 public:
     SafexAccount(){}
-    SafexAccount(std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key, const uint8_t& _status):
+    SafexAccount(const std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key, const uint8_t& _status):
             username(usr),
             data(_data),
             pub_key(_pub_key),
@@ -368,6 +368,50 @@ public:
     std::string getPubKey() const {return pub_key;}
     std::string getSecKey() const {return sec_key;}
     uint8_t getStatus() const {return status;}
+};
+
+struct SafexOffer {
+public:
+    SafexOffer(){}
+    SafexOffer(const std::string &_title, const  uint64_t _quantity, const  uint64_t _price, const uint64_t _min_sfx_price, const std::string& _description,
+               const bool _active, const bool _price_peg_used, const std::string& _offer_id, const std::string& _seller, const std::string& _price_peg_id, const std::string& _currency):
+        title(_title),
+        quantity(_quantity),
+        price(_price),
+        min_sfx_price(_min_sfx_price),
+        description(_description),
+        active(_active),
+        price_peg_used(_price_peg_used),
+        offer_id(_offer_id),
+        price_peg_id(_price_peg_id),
+        seller(_seller),
+        currency(_currency){}
+
+private:
+    std::string title;
+    uint64_t quantity;
+    uint64_t price;
+    uint64_t min_sfx_price;
+    std::string description;
+    bool active;
+    bool price_peg_used;
+    std::string offer_id;
+    std::string price_peg_id;
+    std::string seller;
+    std::string currency;
+public:
+
+    std::string getTitle() const {return title;};
+    uint64_t getQuantity() const {return quantity;};
+    uint64_t getPrice() const {return price;};
+    uint64_t getMin_sfx_price() const {return min_sfx_price;};
+    std::string getDescription() const {return description;};
+    bool getActive() const {return active;};
+    bool getPrice_peg_used() const {return price_peg_used;};
+    std::string getOffer_id() const {return offer_id;};
+    std::string getPrice_peg_id() const {return price_peg_id;};
+    std::string getSeller() const {return seller;};
+    std::string getCurrency() const {return currency;};
 };
 
 /**
@@ -662,14 +706,54 @@ struct Wallet
     */
     virtual void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) = 0;
 
-
+    /*!
+    * \brief createSafexAccount - Generates keys and creates safex account inside the wallet
+    *
+    * \param username - Username of the safex account
+    * \param description - Description of the safex account
+    */
     virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description) = 0;
 
+    /*!
+    * \brief getSafexAccounts - Returns all Safex accounts in the wallet
+    *
+    */
     virtual std::vector<SafexAccount> getSafexAccounts() = 0;
 
+    /*!
+    * \brief getSafexAccount - Returns requested safex account data
+    *
+    * \param username - Username of the specific safex account
+    */
     virtual SafexAccount getSafexAccount(const std::string& username) = 0;
+
+    /*!
+    * \brief recoverSafexAccount - Generates safex account that was created before
+    *
+    * \param username - Username of the specific safex account
+    * \param private_key - Private key of the safex account
+    */
     virtual bool recoverSafexAccount(const std::string& username, const std::string& private_key) = 0;
+
+    /*!
+    * \brief removeSafexAccount - Removes safex account from the wallet file
+    *
+    * \param username - Username of the specific safex account
+    */
     virtual bool removeSafexAccount(const std::string& username) = 0;
+
+    /*!
+    * \brief getMySafexOffers - Returns all Safex offers created by safex accounts from whis wallet
+    *
+    */
+    virtual std::vector<SafexOffer> getMySafexOffers() = 0;
+
+    /*!
+    * \brief listSafexOffers - Returns all Safex offers currently in the blockchain
+    *
+    * \param active - True if you want to return only offers that can be purchased
+    */
+    virtual std::vector<SafexOffer> listSafexOffers(bool active) = 0;
 
    /*!
     * \brief getRestoreHeight - get wallet creation height

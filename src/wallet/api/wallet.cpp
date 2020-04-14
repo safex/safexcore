@@ -1452,6 +1452,48 @@ bool WalletImpl::removeSafexAccount(const std::string& username){
   return false;
 }
 
+std::vector<SafexOffer> WalletImpl::getMySafexOffers(){
+
+    auto price_pegs = m_wallet->get_safex_price_pegs("");
+
+
+    std::vector<SafexOffer> offers;
+    for(auto &offer: m_wallet->get_my_safex_offers()){
+        auto price_peg_id = offer.price_peg_id;
+        std::string currency = "SFX";
+
+        auto it = std::find_if(price_pegs.begin(), price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
+        std::string offerID = epee::string_tools::pod_to_hex(offer.offer_id);
+        std::string pricePegID = epee::string_tools::pod_to_hex(offer.price_peg_id);
+        if(it!=price_pegs.end())
+            currency = it->currency;
+
+        offers.emplace_back(offer.title,offer.quantity,offer.price,offer.min_sfx_price, std::string{offer.description.begin(),offer.description.end()},
+                            offer.active, offer.price_peg_used, offerID, offer.seller, pricePegID,  currency);
+    }
+
+    return offers;
+}
+
+std::vector<SafexOffer> WalletImpl::listSafexOffers(bool active){
+    std::vector<SafexOffer> offers;
+    std::string currency = "SFX";
+
+    for (auto &offer: m_wallet->get_safex_offers())
+        if(!active || offer.active){
+            uint64_t sfx_price;
+            bool res = m_wallet->calculate_sfx_price(offer,sfx_price);
+            if(!res)
+                continue;
+            std::string offerID = epee::string_tools::pod_to_hex(offer.offer_id);
+            std::string pricePegID = epee::string_tools::pod_to_hex(offer.price_peg_id);
+
+            offers.emplace_back(offer.title,offer.quantity,sfx_price,offer.min_sfx_price, std::string{offer.description.begin(),offer.description.end()},
+                                offer.active, offer.price_peg_used, offerID, offer.seller, pricePegID,  currency);
+        }
+    return offers;
+}
+
 PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
                                                            PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand){
 
