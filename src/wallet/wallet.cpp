@@ -1413,7 +1413,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     }
   }
 
-  uint64_t fee = miner_tx ? 0 : tx.version == 1 ? tx_money_spent_in_ins - get_outs_cash_amount(tx) : tx.rct_signatures.txnFee;
+  uint64_t fee = miner_tx ? 0 : tx_money_spent_in_ins - get_outs_cash_amount(tx);
 
   if ((tx_money_spent_in_ins > 0 || tx_tokens_spent_in_ins > 0) && !pool)
   {
@@ -1604,15 +1604,8 @@ void wallet::process_outgoing(const crypto::hash &txid, const cryptonote::transa
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
     entry.first->second.m_token_amount_in = tokens_spent;
-    if (tx.version == 1)
-    {
-      entry.first->second.m_amount_out = get_outs_cash_amount(tx);
-      entry.first->second.m_token_amount_out = get_outs_token_amount(tx);
-    }
-    else
-    {
-      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
-    }
+    entry.first->second.m_amount_out = get_outs_cash_amount(tx);
+    entry.first->second.m_token_amount_out = get_outs_token_amount(tx);
     entry.first->second.m_change = received;
     entry.first->second.m_token_change = tokens_received;
 
