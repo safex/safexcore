@@ -961,7 +961,7 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
-      if(!offer.active && offer.quantity == 0)
+      if(!offer.active || offer.quantity == 0)
         continue;
 
       if(first)
