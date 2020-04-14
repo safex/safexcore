@@ -1103,6 +1103,7 @@ namespace tools
 
     bool calculate_sfx_price(const safex::safex_offer& sfx_offer, uint64_t& sfx_price);
 
+    void process_advanced_output(const cryptonote::txout_to_script &txout, const cryptonote::tx_out_type& output_type);
 
     std::vector<safex::safex_offer> get_safex_offers();
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
