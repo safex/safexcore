@@ -195,7 +195,7 @@ namespace cryptonote
       }
 
       //Here check for tx related safex logic
-      if ((tx.version > HF_VERSION_MIN_SUPPORTED_TX_VERSION) && !m_blockchain.check_safex_tx(tx, tvc))
+      if ( !kept_by_block && (tx.version > HF_VERSION_MIN_SUPPORTED_TX_VERSION) && !m_blockchain.check_safex_tx(tx, tvc))
       {
         tvc.m_verifivation_failed = true;
         tvc.m_safex_verification_failed = true;
