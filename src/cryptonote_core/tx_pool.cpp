@@ -46,6 +46,7 @@
 #include "warnings.h"
 #include "common/perf_timer.h"
 #include "crypto/hash.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "txpool"
@@ -239,6 +240,14 @@ namespace cryptonote
       }
     }
 
+    if (have_tx_safex_restricted(tx))
+    {
+        LOG_PRINT_L1("Transaction with id= "<< id << " has restricted safex usage");
+        tvc.m_verifivation_failed = true;
+        tvc.m_invalid_output = true;
+        return false;
+    }
+
     if (!m_blockchain.check_tx_outputs(tx, tvc))
     {
       LOG_PRINT_L1("Transaction with id= "<< id << " has at least one invalid output");
@@ -282,6 +291,8 @@ namespace cryptonote
           m_blockchain.add_txpool_tx(tx, meta);
           if (!insert_key_images(tx, kept_by_block))
             return false;
+          if (!insert_safex_restrictions(tx, kept_by_block))
+              return false;
           m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)blob_size, receive_time), id);
         }
         catch (const std::exception &e)
@@ -324,6 +335,8 @@ namespace cryptonote
         m_blockchain.add_txpool_tx(tx, meta);
         if (!insert_key_images(tx, kept_by_block))
           return false;
+        if (!insert_safex_restrictions(tx, kept_by_block))
+            return false;
         m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)blob_size, receive_time), id);
       }
       catch (const std::exception &e)
@@ -409,6 +422,7 @@ namespace cryptonote
         m_blockchain.remove_txpool_tx(txid);
         m_txpool_size -= txblob.size();
         remove_transaction_keyimages(tx);
+        remove_safex_restrictions(tx);
         MINFO("Pruned tx " << txid << " from txpool: size: " << it->first.second << ", fee/byte: " << it->first.first);
         m_txs_by_fee_and_receive_time.erase(it--);
       }
@@ -441,6 +455,72 @@ namespace cryptonote
       }
     }
     return true;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::insert_safex_restrictions(const transaction &tx, bool kept_by_block)
+  {
+
+      for (const auto &vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_price_peg_data price_peg;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
+              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+          {
+                //TODO: GRKI check this case as we do not have creator in update price peg
+//              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+//              safex::update_price_peg_data price_peg;
+//              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+//              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+//              std::string username{price_peg..begin(),price_peg.creator.end()};
+//              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, purchase);
+              m_safex_purchase_in_progress.push_back(purchase.offer_id);
+          }
+      }
+      return true;
   }
   //---------------------------------------------------------------------------------
   //FIXME: Can return early before removal of all of the key images.
@@ -482,6 +562,86 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
+  bool tx_memory_pool::remove_safex_restrictions(const transaction &tx)
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      CRITICAL_REGION_LOCAL1(m_blockchain);
+
+
+      for (const auto &vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_account" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_accounts_in_use.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_account_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_accounts_in_use.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_offer" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_accounts_in_use.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_offer_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_accounts_in_use.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_price_peg_data price_peg;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
+              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_price_peg" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_accounts_in_use.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+          {
+              //TODO: GRKI check this case as we do not have creator in update price peg
+              //              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              //              safex::update_price_peg_data price_peg;
+              //              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              //              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+              //              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, purchase);
+              auto it = std::find(m_safex_purchase_in_progress.begin(), m_safex_purchase_in_progress.end(), purchase.offer_id);
+              CHECK_AND_ASSERT_MES(it != m_safex_purchase_in_progress.end(), false, "failed to find safex restriction for type out_safex_purchase" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_purchase_in_progress.erase(it);
+          }
+      }
+      return true;
+  }
+  //---------------------------------------------------------------------------------
   bool tx_memory_pool::take_tx(const crypto::hash &id, transaction &tx, size_t& blob_size, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
@@ -516,6 +676,7 @@ namespace cryptonote
       m_blockchain.remove_txpool_tx(id);
       m_txpool_size -= blob_size;
       remove_transaction_keyimages(tx);
+      remove_safex_restrictions(tx);
     }
     catch (const std::exception &e)
     {
@@ -589,6 +750,7 @@ namespace cryptonote
             m_blockchain.remove_txpool_tx(txid);
             m_txpool_size -= bd.size();
             remove_transaction_keyimages(tx);
+            remove_safex_restrictions(tx);
           }
         }
         catch (const std::exception &e)
@@ -962,10 +1124,95 @@ namespace cryptonote
     return false;
   }
   //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_tx_safex_restricted(const transaction &tx) const
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      CRITICAL_REGION_LOCAL1(m_blockchain);
+      for (const auto &vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              if(have_tx_safex_account_in_use(username))
+                return true;
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_account_data account;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, account);
+              std::string username{account.username.begin(),account.username.end()};
+              if(have_tx_safex_account_in_use(username))
+                  return true;
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              if(have_tx_safex_account_in_use(username))
+                  return true;
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::edit_offer_data offer;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, offer);
+              std::string username{offer.seller.begin(),offer.seller.end()};
+              if(have_tx_safex_account_in_use(username))
+                  return true;
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_price_peg_data price_peg;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
+              if(have_tx_safex_account_in_use(username))
+                  return true;
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+          {
+              //TODO: GRKI check this case as we do not have creator in update price peg
+              //              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              //              safex::update_price_peg_data price_peg;
+              //              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              //              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
+              //              std::string username{price_peg..begin(),price_peg.creator.end()};
+              //              m_safex_accounts_in_use.push_back(username);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(accblob, purchase);
+              if(have_tx_safex_purchase_in_progress(purchase.offer_id))
+                  return true;
+          }
+      }
+      return false;
+  }
+  //---------------------------------------------------------------------------------
   bool tx_memory_pool::have_tx_keyimg_as_spent(const crypto::key_image& key_im) const
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     return m_spent_key_images.end() != m_spent_key_images.find(key_im);
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_tx_safex_account_in_use(const std::string &username) const
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      return m_safex_accounts_in_use.end() != std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_tx_safex_purchase_in_progress(const crypto::hash &offer_id) const
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      return m_safex_purchase_in_progress.end() != std::find(m_safex_purchase_in_progress.begin(), m_safex_purchase_in_progress.end(), offer_id);
   }
   //---------------------------------------------------------------------------------
   void tx_memory_pool::lock() const
@@ -1314,6 +1561,7 @@ namespace cryptonote
           m_blockchain.remove_txpool_tx(txid);
           m_txpool_size -= txblob.size();
           remove_transaction_keyimages(tx);
+          remove_safex_restrictions(tx);
           auto sorted_it = find_tx_in_sorted_container(txid);
           if (sorted_it == m_txs_by_fee_and_receive_time.end())
           {
@@ -1343,6 +1591,8 @@ namespace cryptonote
     m_txpool_max_size = max_txpool_size ? max_txpool_size : DEFAULT_TXPOOL_MAX_SIZE;
     m_txs_by_fee_and_receive_time.clear();
     m_spent_key_images.clear();
+    m_safex_accounts_in_use.clear();
+    m_safex_purchase_in_progress.clear();
     m_txpool_size = 0;
     std::vector<crypto::hash> remove;
 
@@ -1364,6 +1614,11 @@ namespace cryptonote
         {
           MFATAL("Failed to insert key images from txpool tx");
           return false;
+        }
+        if (!insert_safex_restrictions(tx, meta.kept_by_block))
+        {
+            MFATAL("Failed to insert safex data from txpool tx");
+            return false;
         }
         m_txs_by_fee_and_receive_time.emplace(std::pair<double, time_t>(meta.fee / (double)meta.blob_size, meta.receive_time), txid);
         m_txpool_size += meta.blob_size;
