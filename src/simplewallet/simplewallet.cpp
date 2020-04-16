@@ -2328,24 +2328,19 @@ bool simple_wallet::save(const std::vector<std::string> &args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-bool simple_wallet::save_safex(const std::vector<std::string> &args)
+bool simple_wallet::save_safex(const epee::wipeable_string& password)
 {
   try
   {
     LOCK_IDLE_SCOPE();
 
-    auto pass = get_and_verify_password();
-
-    if(!pass)
-      return true;
-
-    auto password = pass->password();
     m_wallet->store_safex(password);
     success_msg_writer() << tr("Wallet safex data saved");
   }
   catch (const std::exception& e)
   {
     fail_msg_writer() << e.what();
+    return false;
   }
 
   return true;

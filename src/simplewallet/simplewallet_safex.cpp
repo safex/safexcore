@@ -1338,8 +1338,12 @@ namespace cryptonote
         return true;
       }
 
-      if (m_wallet->generate_safex_account(username, accdata)) {
-        save_safex({});
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->generate_safex_account(username, accdata) && save_safex(pass->password()) ) {
         success_msg_writer() << tr("New account created");
       } else {
         fail_msg_writer() << tr("Failed to create account");
@@ -1350,7 +1354,13 @@ namespace cryptonote
       const std::string &username = local_args[0];
 
 
-      if (m_wallet->remove_safex_account(username)) {
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->remove_safex_account(username) && save_safex(pass->password()) ) {
+        save_safex(pass->password());
         success_msg_writer() << tr("Account removed");
       } else {
         fail_msg_writer() << tr("Failed to remove account ") << username;
@@ -1371,8 +1381,13 @@ namespace cryptonote
       crypto::secret_key skey{};
       epee::string_tools::hex_to_pod(private_key, skey);
 
-      if (m_wallet->recover_safex_account(username, skey)) {
-        save_safex({});
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->recover_safex_account(username, skey) && save_safex(pass->password()) ) {
+        save_safex(pass->password());
         success_msg_writer() << tr("Account recovered");
       } else {
         fail_msg_writer() << tr("Failed to recover account ") << username;

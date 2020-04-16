@@ -199,7 +199,7 @@ namespace cryptonote
     bool print_integrated_address(const std::vector<std::string> &args = std::vector<std::string>());
     bool address_book(const std::vector<std::string> &args = std::vector<std::string>());
     bool save(const std::vector<std::string> &args);
-    bool save_safex(const std::vector<std::string> &args);
+    bool save_safex(const epee::wipeable_string& password);
     bool save_watch_only(const std::vector<std::string> &args);
     bool set_variable(const std::vector<std::string> &args);
     bool rescan_spent(const std::vector<std::string> &args);
