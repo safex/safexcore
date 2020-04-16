@@ -6117,6 +6117,8 @@ namespace {
       return std::string("Token transfer");
     }else if(type == tx_out_type::out_staked_token) {
       return std::string("Stake token transfer");
+    }else if(type == tx_out_type::out_network_fee) {
+      return std::string("Collect network fee transfer");
     }else if(type == tx_out_type::out_bitcoin_migration) {
       return std::string("Migration transfer");
     }else if(type == tx_out_type::out_safex_account) {
@@ -6205,6 +6207,9 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       uint64_t change = pd.m_change == (uint64_t)-1 ? 0 : pd.m_change; // change may not be known
       uint64_t token_change = pd.m_token_change == (uint64_t)-1 ? 0 : pd.m_token_change;
       uint64_t fee = pd.m_amount_in - pd.m_amount_out;
+      bool unstake_token_transfer = false;
+      if(pd.m_amount_out > pd.m_amount_in)
+          unstake_token_transfer = true;
       std::string dests;
       for (const auto &d: pd.m_dests) {
         if (!dests.empty())
@@ -6216,7 +6221,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
         payment_id = payment_id.substr(0,16);
       success_msg_writer() << "Outgoing transaction found";
       success_msg_writer() << "txid: " << txid;
-      success_msg_writer() << "Transfer type: " << get_output_type_string(pd.m_output_type);
+      success_msg_writer() << "Transfer type: " << get_output_type_string(unstake_token_transfer ? tx_out_type::out_network_fee : pd.m_output_type);
       success_msg_writer() << "Height: " << pd.m_block_height;
       success_msg_writer() << "Timestamp: " << get_human_readable_timestamp(pd.m_timestamp);
       success_msg_writer() << "Amount: " << print_money(pd.m_amount_in - change - fee);
@@ -6224,7 +6229,10 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       success_msg_writer() << "Payment ID: " << payment_id;
       success_msg_writer() << "Change: " << print_money(change);
       success_msg_writer() << "Token Change: " << print_money(token_change);
-      success_msg_writer() << "Fee: " << print_money(fee);
+      if(unstake_token_transfer)
+        success_msg_writer() << "Network fee collected(after tx fee payed): " << print_money(pd.m_amount_out - pd.m_amount_in);
+      else
+        success_msg_writer() << "Fee: " << print_money(fee);
       success_msg_writer() << "Destinations: " << dests;
       success_msg_writer() << "Note: " << m_wallet->get_tx_note(txid);
       return true;
