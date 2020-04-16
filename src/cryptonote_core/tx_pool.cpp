@@ -238,14 +238,14 @@ namespace cryptonote
         tvc.m_double_spend = true;
         return false;
       }
-    }
 
-    if (have_tx_safex_restricted(tx))
-    {
-        LOG_PRINT_L1("Transaction with id= "<< id << " has restricted safex usage");
-        tvc.m_verifivation_failed = true;
-        tvc.m_invalid_output = true;
-        return false;
+      if (have_tx_safex_restricted(tx))
+      {
+          LOG_PRINT_L1("Transaction with id= "<< id << " has restricted safex usage");
+          tvc.m_verifivation_failed = true;
+          tvc.m_invalid_output = true;
+          return false;
+      }
     }
 
     if (!m_blockchain.check_tx_outputs(tx, tvc))
