@@ -4297,6 +4297,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
       candidates.push_back(n);
   }
 
+  THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
   // we have all the least related outputs in candidates, so we can pick either
   // the smallest, or a random one, depending on request
   size_t idx;
