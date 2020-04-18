@@ -567,6 +567,13 @@ struct WalletListener
     virtual void unconfirmedTokensReceived(const std::string &txId, uint64_t token_amount) = 0;
 
     /**
+    * @brief advancedReceived - called when advanced outputs are received
+    * @param txId          - transaction id
+    * @param output_type  - type of advanced output
+    */
+    virtual void advancedReceived(const std::string &txId, const uint8_t output_type) = 0;
+
+    /**
      * @brief newBlock      - called when new block received
      * @param height        - block height
      */

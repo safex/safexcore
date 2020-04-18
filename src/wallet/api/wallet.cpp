@@ -214,6 +214,127 @@ struct WalletCallbackImpl : public tools::i_wallet_callback
       }
     }
 
+    virtual void on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const cryptonote::txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index) {
+
+        std::string tx_hash = epee::string_tools::pod_to_hex(txid);
+
+        if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
+            safex::create_account_data account;
+            const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(accblob, account);
+            std::string accusername(begin(account.username), end(account.username));
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Output of type account, username: ") << accusername << " received, " <<
+                         tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account_update)) {
+            safex::edit_account_data account;
+            const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(accblob, account);
+            std::string accusername(begin(account.username), end(account.username));
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << accusername << " received, " <<
+                         tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer)){
+            safex::create_offer_data offer;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, offer);
+            safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.offer_id,
+                                         std::string{offer.seller.begin(),offer.seller.end()},offer.active,offer.seller_address,offer.price_peg_used,offer.price_peg_id,offer.min_sfx_price};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
+                tr("Offer title: ") << sfx_offer.title << " received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_update)){
+            safex::edit_offer_data offer;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, offer);
+            safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
+                                         offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
+                tr(" Offer title: ") << sfx_offer.title << " update received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
+            safex::create_purchase_data purchase_data;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, purchase_data);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Purchased offer: ") << purchase_data.offer_id << " received, " <<
+                tr("Quantity purchased: ") << purchase_data.quantity << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
+            safex::create_feedback_token_data feedback_token;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, feedback_token);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Feedback token received for offer: ") << feedback_token.offer_id << " received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
+            safex::create_feedback_data feedback;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, feedback);
+            std::string comment{feedback.comment.begin(),feedback.comment.end()};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Feedback sent received for offer: ") << feedback.offer_id << " received, " <<
+                tr("Stars given: ") << feedback.stars_given << ", " <<
+                tr("Comment given: ") << comment << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
+            safex::create_price_peg_data price_peg;
+            const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+            std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+            std::string title{price_peg.title.begin(),price_peg.title.end()};
+            std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Price peg creation for account: ") << creator << " received, " <<
+                tr("Price peg ID: ") << price_peg.price_peg_id << ", " <<
+                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
+                tr("Price peg currency: ") << currency << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
+            safex::update_price_peg_data price_peg;
+            const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Price peg update for price peg ID: ") << price_peg.price_peg_id << ", " <<
+                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
+                tr("idx ") << subaddr_index);
+        }
+        // do not signal on advanced tx if wallet is not syncronized completely
+        if (m_listener && m_wallet->synchronized())
+        {
+            m_listener->advancedReceived(tx_hash, static_cast<uint8_t>(txout.output_type));
+            m_listener->updated();
+        }
+    }
+
     virtual void on_skip_transaction(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx)
     {
         // TODO;
