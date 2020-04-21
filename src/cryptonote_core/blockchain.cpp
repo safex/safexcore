@@ -3358,6 +3358,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       crypto::secret_key secret_seller_view_key;
       crypto::public_key public_seller_spend_key;
 
+      if (tx.unlock_time > m_db->height())
+      {
+          MERROR("Purchase TX should not be locked");
+          tvc.m_safex_invalid_input = true;
+          return false;
+      }
+
       for (const auto &vout: tx.vout) {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
           {
