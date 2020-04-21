@@ -4221,14 +4221,7 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
   CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
     return true;
 }
-//TODO: GRKI Add this where needed
-//
-//    std::vector<rct::ctkey >& m_output_keys;
-//    const Blockchain& m_bch;
-//    outputs_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
-//      m_output_keys(output_keys), m_bch(bch)
-//    {
-//    }
+
 //
 //      bool get_pwned(const public_key &key)
 //      {
@@ -4361,14 +4354,6 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
 //          return false;
 //      }
 //
-//      bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
-//    {
-//      //check tx unlock time
-//      if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
-//      {
-//        MERROR_VER("One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
-//        return false;
-//      }
 //
 //
 //
