@@ -351,7 +351,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       output_type = tx_out_type::out_safex_account;
       break;
     case safex::command_t::edit_offer:
-      output_type = tx_out_type::out_safex_account;
+      output_type = tx_out_type::out_safex_offer;
       break;
     case safex::command_t::simple_purchase:
       //TODO: Check and set correct value
@@ -364,7 +364,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       output_type = tx_out_type::out_safex_account;
       break;
     case safex::command_t::update_price_peg:
-      output_type = tx_out_type::out_safex_account;
+      output_type = tx_out_type::out_safex_price_peg;
       break;
     default:
       MERROR_VER("Unknown command type");
@@ -383,6 +383,8 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case tx_out_type::out_staked_token:
     case tx_out_type::out_safex_account:
     case tx_out_type::out_safex_feedback_token:
+    case tx_out_type::out_safex_offer:
+    case tx_out_type::out_safex_price_peg:
     {
       absolute_offsets = txin.key_offsets;
       break;
@@ -521,7 +523,9 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
   else if ((output_type == tx_out_type::out_staked_token)
            || (output_type == tx_out_type::out_network_fee)
            || (output_type == tx_out_type::out_safex_account)
-           || (output_type == tx_out_type::out_safex_feedback_token)) {
+           || (output_type == tx_out_type::out_safex_feedback_token)
+           || (output_type ==  tx_out_type::out_safex_offer)
+           || (output_type == tx_out_type::out_safex_price_peg)) {
 
     std::vector<output_advanced_data_t> outputs;
     bool found = false;
@@ -961,6 +965,7 @@ block Blockchain::pop_block_from_blockchain()
 
   m_blocks_longhash_table.clear();
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_blocks_txs_check.clear();
   m_check_txin_table.clear();
 
@@ -3353,6 +3358,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       crypto::secret_key secret_seller_view_key;
       crypto::public_key public_seller_spend_key;
 
+      if (tx.unlock_time > m_db->height())
+      {
+          MERROR("Purchase TX should not be locked");
+          tvc.m_safex_invalid_input = true;
+          return false;
+      }
+
       for (const auto &vout: tx.vout) {
           if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
           {
@@ -4216,14 +4228,7 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
   CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
     return true;
 }
-//TODO: GRKI Add this where needed
-//
-//    std::vector<rct::ctkey >& m_output_keys;
-//    const Blockchain& m_bch;
-//    outputs_visitor(std::vector<rct::ctkey>& output_keys, const Blockchain& bch) :
-//      m_output_keys(output_keys), m_bch(bch)
-//    {
-//    }
+
 //
 //      bool get_pwned(const public_key &key)
 //      {
@@ -4356,14 +4361,6 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
 //          return false;
 //      }
 //
-//      bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
-//    {
-//      //check tx unlock time
-//      if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
-//      {
-//        MERROR_VER("One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
-//        return false;
-//      }
 //
 //
 //
@@ -5131,6 +5128,7 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
   TIME_MEASURE_FINISH(t1);
   m_blocks_longhash_table.clear();
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_blocks_txs_check.clear();
   m_check_txin_table.clear();
 
@@ -5444,6 +5442,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   m_fake_pow_calc_time = 0;
 
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_check_txin_table.clear();
 
   TIME_MEASURE_FINISH(prepare);
@@ -5461,6 +5460,8 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   // [output] stores all output_data_t for each absolute_offset
   std::map<std::pair<tx_out_type, uint64_t>, std::vector<output_data_t>> tx_map;
 
+  std::set<tx_out_type> types;
+
   // [input] store all found  advanced output types and vector of their output ids
   std::map<tx_out_type, std::vector<uint64_t>> advanced_output_ids_map;
   // [output] stores all output_advanced_data_t for each tx_out_type
@@ -5470,6 +5471,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         do { \
             MERROR_VER(m) ;\
             m_scan_table.clear(); \
+            m_scan_table_adv.clear(); \
             return false; \
         } while(0); \
 
@@ -5496,6 +5498,15 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       its = m_scan_table.find(tx_prefix_hash);
       assert(its != m_scan_table.end());
 
+      auto its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      if (its_advanced != m_scan_table_adv.end())
+        SCAN_TABLE_QUIT("Duplicate advanced tx found from incoming blocks.");
+
+      m_scan_table_adv.emplace(tx_prefix_hash, std::unordered_map<crypto::key_image, std::vector<output_advanced_data_t>>());
+      its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      assert(its_advanced != m_scan_table_adv.end());
+
+
       // get all amounts from tx.vin(s)
       for (const auto &txin : tx.vin)
       {
@@ -5506,6 +5517,10 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         if (it != its->second.end())
           SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
 
+        auto it_advanced = its_advanced->second.find(k_image);
+        if (it_advanced != its_advanced->second.end())
+          SCAN_TABLE_QUIT("Duplicate advanced key_image found from incoming blocks.");
+
         const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
         if (output_type == tx_out_type::out_cash || output_type == tx_out_type::out_token)
         {
@@ -5514,7 +5529,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         }
         else
         {
-          //nothing to do here for advanced outputs
+          types.insert(output_type);
 
         }
       }
@@ -5532,6 +5547,12 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
 
         if (tx_map.find(amount) == tx_map.end())
           tx_map.emplace(amount, std::vector<output_data_t>());
+      }
+
+      for(auto type: types)
+      {
+        if(tx_advanced_map.find(type)== tx_advanced_map.end())
+          tx_advanced_map.emplace(type, std::vector<output_advanced_data_t>());
       }
 
       // add new absolute_offsets to offset_map

@@ -1209,22 +1209,16 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
             if (0 != m_callback) {
               if (td.m_token_transfer)
                 m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
-              else if ((output_type == tx_out_type::out_safex_account) ||
-                      (output_type == tx_out_type::out_safex_account_update) ||
-                      (output_type == tx_out_type::out_safex_offer) ||
-                      (output_type == tx_out_type::out_safex_offer_update)||
-                      (output_type == tx_out_type::out_safex_purchase)||
-                      (output_type == tx_out_type::out_safex_feedback_token)||
-                      (output_type == tx_out_type::out_safex_feedback) ||
-                      (output_type == tx_out_type::out_safex_price_peg) ||
-                      (output_type == tx_out_type::out_safex_price_peg_update)) {
-                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
-                m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+              else if ((output_type > tx_out_type::out_advanced) && (output_type < tx_out_type::out_invalid)){
+                  const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                  m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+                  process_advanced_output(txout, output_type);
               }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
+
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
@@ -1328,22 +1322,15 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
 
             if (0 != m_callback) {
-              if (td.m_token_transfer)
-                m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
-              else if ((td.m_output_type == tx_out_type::out_safex_account) ||
-                       (td.m_output_type == tx_out_type::out_safex_account_update) ||
-                      (td.m_output_type == tx_out_type::out_safex_offer) ||
-                      (td.m_output_type == tx_out_type::out_safex_offer_update) ||
-                      (td.m_output_type == tx_out_type::out_safex_purchase) ||
-                      (td.m_output_type == tx_out_type::out_safex_feedback_token) ||
-                      (td.m_output_type == tx_out_type::out_safex_feedback) ||
-                      (td.m_output_type == tx_out_type::out_safex_price_peg) ||
-                      (td.m_output_type == tx_out_type::out_safex_price_peg_update)) {
-                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
-                m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
-              }
-              else
-                m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
+                if (td.m_token_transfer)
+                    m_callback->on_tokens_received(height, txid, tx, td.m_token_amount, td.m_subaddr_index);
+                else if ((td.m_output_type > tx_out_type::out_advanced) && (td.m_output_type < tx_out_type::out_invalid)){
+                    const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                    m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
+                    process_advanced_output(txout, td.m_output_type);
+                }
+                else
+                    m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
@@ -1426,7 +1413,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     }
   }
 
-  uint64_t fee = miner_tx ? 0 : tx.version == 1 ? tx_money_spent_in_ins - get_outs_cash_amount(tx) : tx.rct_signatures.txnFee;
+  uint64_t fee = miner_tx ? 0 : tx_money_spent_in_ins - get_outs_cash_amount(tx);
 
   if ((tx_money_spent_in_ins > 0 || tx_tokens_spent_in_ins > 0) && !pool)
   {
@@ -1617,15 +1604,8 @@ void wallet::process_outgoing(const crypto::hash &txid, const cryptonote::transa
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
     entry.first->second.m_token_amount_in = tokens_spent;
-    if (tx.version == 1)
-    {
-      entry.first->second.m_amount_out = get_outs_cash_amount(tx);
-      entry.first->second.m_token_amount_out = get_outs_token_amount(tx);
-    }
-    else
-    {
-      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
-    }
+    entry.first->second.m_amount_out = get_outs_cash_amount(tx);
+    entry.first->second.m_token_amount_out = get_outs_token_amount(tx);
     entry.first->second.m_change = received;
     entry.first->second.m_token_change = tokens_received;
 
@@ -4317,6 +4297,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
       candidates.push_back(n);
   }
 
+  THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
   // we have all the least related outputs in candidates, so we can pick either
   // the smallest, or a random one, depending on request
   size_t idx;

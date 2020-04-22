@@ -431,6 +431,13 @@ namespace cryptonote
     bool insert_key_images(const transaction &tx, bool kept_by_block);
 
     /**
+     * @brief insert safex data into m_safex_accounts_in_use and m_safex_purchase_in_progress
+     *
+     * @return true on success, false on error
+     */
+    bool insert_safex_restrictions(const transaction &tx, bool kept_by_block);
+
+    /**
      * @brief remove old transactions from the pool
      *
      * After a certain time, it is assumed that a transaction which has not
@@ -451,6 +458,24 @@ namespace cryptonote
     bool have_tx_keyimg_as_spent(const crypto::key_image& key_im) const;
 
     /**
+     * @brief check if a transaction in the pool has a safex account usage
+     *
+     * @param username Username of the account that is in use
+     *
+     * @return true if the safex account is in use already, otherwise false
+     */
+    bool have_tx_safex_account_in_use(const std::string& username) const;
+
+    /**
+     * @brief check if a transaction in the pool is purchase for particular offer
+     *
+     * @param offer_id Offer ID of the offer that is already purchased in the pool
+     *
+     * @return true if the purchase with offer ID is in the pool already, otherwise false
+     */
+    bool have_tx_safex_purchase_in_progress(const crypto::hash& offer_id) const;
+
+    /**
      * @brief check if any spent key image in a transaction is in the pool
      *
      * Checks if any of the spent key images in a given transaction are present
@@ -465,6 +490,22 @@ namespace cryptonote
     bool have_tx_keyimges_as_spent(const transaction& tx) const;
 
     /**
+     * @brief check if any safex restriction in a transaction is in the pool
+     *
+     * Checks if any of the safex restrictions(same account doing 2 updates or purchase of same offer)
+     * in a given transaction are present
+     * in any of the transactions in the transaction pool.
+     *
+     * @note see tx_pool::have_tx_safex_account_in_use
+     * @note see tx_poo::have_tx_safex_purchase_in_progress
+     *
+     * @param tx the transaction to check safex restrictions
+     *
+     * @return true if any safex restrictions are present in the pool, otherwise false
+     */
+    bool have_tx_safex_restricted(const transaction& tx) const;
+
+    /**
      * @brief forget a transaction's spent key images
      *
      * Spent key images are stored separately from transactions for
@@ -476,6 +517,15 @@ namespace cryptonote
      * @return false if any key images to be removed cannot be found, otherwise true
      */
     bool remove_transaction_keyimages(const transaction& tx);
+
+    /**
+     * @brief forget a transaction's safex restrictions
+     *
+     * @param tx the transaction
+     *
+     * @return false if any restriction to be removed cannot be found, otherwise true
+     */
+    bool remove_safex_restrictions(const transaction& tx);
 
     /**
      * @brief check if any of a transaction's spent key images are present in a given set
@@ -538,7 +588,11 @@ private:
 #endif
 
     //! container for spent key images from the transactions in the pool
-    key_images_container m_spent_key_images;  
+    key_images_container m_spent_key_images;
+
+    // Safex related members
+    std::vector<std::string> m_safex_accounts_in_use;
+    std::vector<crypto::hash> m_safex_purchase_in_progress;
 
     //TODO: this time should be a named constant somewhere, not hard-coded
     //! interval on which to check for stale/"stuck" transactions

@@ -626,5 +626,79 @@ namespace tools
         return safex::safex_offer{};
   }
 
+  void wallet::process_advanced_output(const cryptonote::txout_to_script &txout, const cryptonote::tx_out_type& output_type){
+      if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
+          safex::create_account_data account;
+          const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+          std::string accusername(begin(account.username), end(account.username));
+          update_safex_account_data(accusername, account.account_data);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account_update)) {
+          safex::edit_account_data account;
+          const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+          std::string accusername(begin(account.username), end(account.username));
+          update_safex_account_data(accusername, account.account_data);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer)){
+          safex::create_offer_data offer;
+          const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(offblob, offer);
+          safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.offer_id,
+                                       std::string{offer.seller.begin(),offer.seller.end()},offer.active,offer.seller_address,offer.price_peg_used,offer.price_peg_id,offer.min_sfx_price};
+          add_safex_offer(sfx_offer);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_update)){
+          safex::edit_offer_data offer;
+          const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(offblob, offer);
+          safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
+                                       offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+          if(offer.price_peg_used)
+              sfx_offer.set_price_peg(offer.price_peg_id,offer.price,offer.min_sfx_price);
+          sfx_offer.active = offer.active;
+         update_safex_offer(sfx_offer);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
+          safex::create_purchase_data purchase_data;
+          const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(offblob, purchase_data);
+          safex::safex_offer my_offer = get_my_safex_offer(purchase_data.offer_id);
+          update_safex_offer(purchase_data);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
+          safex::create_feedback_token_data feedback_token;
+          const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(offblob, feedback_token);
+          add_safex_feedback_token(feedback_token);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
+          safex::create_feedback_data feedback;
+          const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(offblob, feedback);
+          std::string comment{feedback.comment.begin(),feedback.comment.end()};
+          remove_safex_feedback_token(feedback.offer_id);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
+          safex::create_price_peg_data price_peg;
+          const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+          std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+          std::string title{price_peg.title.begin(),price_peg.title.end()};
+          std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+          safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
+          add_safex_price_peg(sfx_price_peg);
+
+      } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
+          safex::update_price_peg_data price_peg;
+          const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+          cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+          update_safex_price_peg(price_peg.price_peg_id,price_peg.rate);
+
+      }
+
+  }
+
 }
 

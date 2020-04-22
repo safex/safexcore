@@ -961,7 +961,7 @@ namespace cryptonote
 
     for (auto &offer: m_wallet->get_safex_offers()) {
 
-      if(!offer.active && offer.quantity == 0)
+      if(!offer.active || offer.quantity == 0)
         continue;
 
       if(first)
@@ -1338,8 +1338,12 @@ namespace cryptonote
         return true;
       }
 
-      if (m_wallet->generate_safex_account(username, accdata)) {
-        save_safex({});
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->generate_safex_account(username, accdata) && save_safex(pass->password()) ) {
         success_msg_writer() << tr("New account created");
       } else {
         fail_msg_writer() << tr("Failed to create account");
@@ -1350,7 +1354,13 @@ namespace cryptonote
       const std::string &username = local_args[0];
 
 
-      if (m_wallet->remove_safex_account(username)) {
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->remove_safex_account(username) && save_safex(pass->password()) ) {
+        save_safex(pass->password());
         success_msg_writer() << tr("Account removed");
       } else {
         fail_msg_writer() << tr("Failed to remove account ") << username;
@@ -1371,8 +1381,13 @@ namespace cryptonote
       crypto::secret_key skey{};
       epee::string_tools::hex_to_pod(private_key, skey);
 
-      if (m_wallet->recover_safex_account(username, skey)) {
-        save_safex({});
+      auto pass = get_and_verify_password();
+
+      if(!pass)
+          return true;
+
+      if (m_wallet->recover_safex_account(username, skey) && save_safex(pass->password()) ) {
+        save_safex(pass->password());
         success_msg_writer() << tr("Account recovered");
       } else {
         fail_msg_writer() << tr("Failed to recover account ") << username;
@@ -1496,73 +1511,61 @@ namespace cryptonote
       const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
       cryptonote::parse_and_validate_from_blob(accblob, account);
       std::string accusername(begin(account.username), end(account.username));
-      m_wallet->update_safex_account_data(accusername, account.account_data);
-
       message_writer(console_color_green, false) << "\r" <<
                                                  tr("Height ") << height << ", " <<
                                                  tr("txid ") << txid << ", " <<
                                                  tr("Output of type account, username: ") << accusername << " received, " <<
                                                  tr("idx ") << subaddr_index;
+
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account_update)) {
       safex::edit_account_data account;
       const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
       cryptonote::parse_and_validate_from_blob(accblob, account);
       std::string accusername(begin(account.username), end(account.username));
-      m_wallet->update_safex_account_data(accusername, account.account_data);
-
-
       message_writer(console_color_green, false) << "\r" <<
                                                  tr("Height ") << height << ", " <<
                                                  tr("txid ") << txid << ", " <<
                                                  tr("Updated for account, username: ") << accusername << " received, " <<
                                                  tr("idx ") << subaddr_index;
+
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer)){
         safex::create_offer_data offer;
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
         cryptonote::parse_and_validate_from_blob(offblob, offer);
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.offer_id,
                                       std::string{offer.seller.begin(),offer.seller.end()},offer.active,offer.seller_address,offer.price_peg_used,offer.price_peg_id,offer.min_sfx_price};
-
-        m_wallet->add_safex_offer(sfx_offer);
         message_writer(console_color_green, false) << "\r" <<
                                                    tr("Height ") << height << ", " <<
                                                    tr("txid ") << txid << ", " <<
-                                                   tr("Updated for account, username: ") << sfx_offer.seller <<
+                                                   tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
                                                    tr("Offer title: ") << sfx_offer.title << " received, " <<
                                                    tr("idx ") << subaddr_index;
+
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_update)){
         safex::edit_offer_data offer;
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
         cryptonote::parse_and_validate_from_blob(offblob, offer);
         safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
                                      offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
-        if(offer.price_peg_used)
-          sfx_offer.set_price_peg(offer.price_peg_id,offer.price,offer.min_sfx_price);
-        sfx_offer.active = offer.active;
-
-        m_wallet->update_safex_offer(sfx_offer);
         message_writer(console_color_green, false) << "\r" <<
                                                    tr("Height ") << height << ", " <<
                                                    tr("txid ") << txid << ", " <<
-                                                   tr("Updated for account, username: ") << sfx_offer.seller <<
-                                                   tr("Offer title: ") << sfx_offer.title << " update received, " <<
+                                                   tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
+                                                   tr(" Offer title: ") << sfx_offer.title << " update received, " <<
                                                    tr("idx ") << subaddr_index;
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
         safex::create_purchase_data purchase_data;
         const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
         cryptonote::parse_and_validate_from_blob(offblob, purchase_data);
-
         safex::safex_offer my_offer = m_wallet->get_my_safex_offer(purchase_data.offer_id);
-
         message_writer(console_color_blue, false) << "\r" <<
                                                   tr("Height ") << height << ", " <<
                                                   tr("txid ") << txid << ", " <<
-                                                  tr("Updated for account, username: ") << my_offer.seller <<
+                                                  tr("Updated for account, username: ") << my_offer.seller << ", " <<
                                                   tr("Purchased offer: ") << my_offer.title << " received, " <<
-                                                  tr("Quantity purchased: ") << purchase_data.quantity <<
+                                                  tr("Quantity purchased: ") << purchase_data.quantity << ", " <<
                                                   tr("idx ") << subaddr_index;
-        m_wallet->update_safex_offer(purchase_data);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
         safex::create_feedback_token_data feedback_token;
@@ -1573,7 +1576,6 @@ namespace cryptonote
                                           tr("txid ") << txid << ", " <<
                                           tr("Feedback token received for offer: ") << feedback_token.offer_id << " received, " <<
                                           tr("idx ") << subaddr_index;
-        m_wallet->add_safex_feedback_token(feedback_token);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
         safex::create_feedback_data feedback;
@@ -1584,10 +1586,9 @@ namespace cryptonote
                                                   tr("Height ") << height << ", " <<
                                                   tr("txid ") << txid << ", " <<
                                                   tr("Feedback sent received for offer: ") << feedback.offer_id << " received, " <<
-                                                  tr("Stars given: ") << feedback.stars_given <<
-                                                  tr("Comment given: ") << comment <<
+                                                  tr("Stars given: ") << feedback.stars_given << ", " <<
+                                                  tr("Comment given: ") << comment << ", " <<
                                                   tr("idx ") << subaddr_index;
-        m_wallet->remove_safex_feedback_token(feedback.offer_id);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
       safex::create_price_peg_data price_peg;
@@ -1600,14 +1601,10 @@ namespace cryptonote
                                                 tr("Height ") << height << ", " <<
                                                 tr("txid ") << txid << ", " <<
                                                 tr("Price peg creation for account: ") << creator << " received, " <<
-                                                tr("Price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
-                                                tr("Price peg currency: ") << currency <<
+                                                tr("Price peg ID: ") << price_peg.price_peg_id << ", " <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
+                                                tr("Price peg currency: ") << currency << ", " <<
                                                 tr("idx ") << subaddr_index;
-
-      safex::safex_price_peg sfx_price_peg{title,creator,currency,price_peg.description,price_peg.price_peg_id,price_peg.rate};
-
-      m_wallet->add_safex_price_peg(sfx_price_peg);
 
     } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
       safex::update_price_peg_data price_peg;
@@ -1616,12 +1613,9 @@ namespace cryptonote
       message_writer(console_color_blue, false) << "\r" <<
                                                 tr("Height ") << height << ", " <<
                                                 tr("txid ") << txid << ", " <<
-                                                tr("Price peg update for price peg ID: ") << price_peg.price_peg_id <<
-                                                tr("Price peg rate: ") << print_money(price_peg.rate) <<
+                                                tr("Price peg update for price peg ID: ") << price_peg.price_peg_id << ", " <<
+                                                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
                                                 tr("idx ") << subaddr_index;
-
-      m_wallet->update_safex_price_peg(price_peg.price_peg_id,price_peg.rate);
-
     }
 
 
