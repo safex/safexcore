@@ -165,7 +165,7 @@ namespace cryptonote
     if (nettype == TESTNET)
     {
       ADD_CHECKPOINT(1,     "753e1454ebc44ffb18d7b390f7393a66ce7f3a8aaaf1e4e857af9df4e80d5784");
-      ADD_CHECKPOINT(185120,"e20c0cb90538e3fefb4e2ef4c7895dbe0747075c4900f476288ea8217a2309b6");
+      ADD_CHECKPOINT(100000,"f3b4a9e3c8fdc040cd78eb108910f1e24d5190cc4539b3cebd4f80aa686e6291");
 
       return true;
     }
