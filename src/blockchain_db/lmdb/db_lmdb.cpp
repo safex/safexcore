@@ -176,9 +176,9 @@ struct MDB_val_copy<cryptonote::output_advanced_data_t>: public MDB_val
     MDB_val_copy(const cryptonote::output_advanced_data_t &okadv) :
             data(new char[okadv.size()])
     {
-      memcpy(data.get(), (void *)&okadv, 4*sizeof(uint64_t));
-      memcpy(data.get()+4*sizeof(uint64_t), (void *)&okadv.pubkey, sizeof(okadv.pubkey));
-      memcpy(data.get()+4*sizeof(uint64_t)+sizeof(okadv.pubkey), (void *)&okadv.data[0], okadv.data.size());
+      memcpy(data.get(), (void *)&okadv, 5*sizeof(uint64_t));
+      memcpy(data.get()+5*sizeof(uint64_t), (void *)&okadv.pubkey, sizeof(okadv.pubkey));
+      memcpy(data.get()+5*sizeof(uint64_t)+sizeof(okadv.pubkey), (void *)&okadv.data[0], okadv.data.size());
       mv_size = okadv.size();
       mv_data = data.get();
     }
@@ -189,11 +189,11 @@ struct MDB_val_copy<cryptonote::output_advanced_data_t>: public MDB_val
 
 cryptonote::output_advanced_data_t parse_output_advanced_data_from_mdb(const MDB_val& val) {
   cryptonote::output_advanced_data_t result = AUTO_VAL_INIT(result);
-  memcpy((void *)&result, val.mv_data, 4*sizeof(uint64_t));
-  memcpy((void *)&result.pubkey, (char *)val.mv_data+4*sizeof(uint64_t), sizeof(result.pubkey));
-  const size_t data_size = val.mv_size-4*sizeof(uint64_t)-sizeof(result.pubkey);
+  memcpy((void *)&result, val.mv_data, 5*sizeof(uint64_t));
+  memcpy((void *)&result.pubkey, (char *)val.mv_data+5*sizeof(uint64_t), sizeof(result.pubkey));
+  const size_t data_size = val.mv_size-5*sizeof(uint64_t)-sizeof(result.pubkey);
   result.data.resize(data_size);
-  memcpy((void *)&result.data[0], (char *)val.mv_data+4*sizeof(uint64_t)+sizeof(result.pubkey), data_size);
+  memcpy((void *)&result.data[0], (char *)val.mv_data+5*sizeof(uint64_t)+sizeof(result.pubkey), data_size);
   return result;
 }
 
@@ -405,7 +405,10 @@ typedef struct outtx {
     uint64_t local_index;
 } outtx;
 
-
+typedef struct outkey_advanced {
+    uint64_t type_index;
+    uint64_t output_id;
+} outkey_advanced;
 
 
 
@@ -1242,6 +1245,7 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   const txout_to_script& txout = boost::get<const txout_to_script &>(tx_output.target);
 
   output_advanced_data_t okadv = AUTO_VAL_INIT(okadv);
+  okadv.type_index = get_num_outputs(out_type);
   okadv.output_type = static_cast<uint64_t>(out_type);
   okadv.height = blockchain_height;
   okadv.unlock_time = unlock_time;
@@ -1259,14 +1263,15 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   //cache output id per type
   const uint64_t output_type = boost::get<txout_to_script>(tx_output.target).output_type;
   MDB_val_set(k_output_type, output_type);
-  MDB_val value = {sizeof(uint64_t), (void *)&output_id};
-  if ((result = mdb_cursor_put(cur_output_advanced_type, &k_output_type, &value, MDB_APPENDDUP)))
+  outkey_advanced outkey_adv{okadv.type_index, okadv.output_id};
+  MDB_val_set(value, outkey_adv);
+    if ((result = mdb_cursor_put(cur_output_advanced_type, &k_output_type, &value, MDB_APPENDDUP)))
     throw0(DB_ERROR(lmdb_error("Failed to add advanced output index: ", result).c_str()));
 
-  process_advanced_output(tx_output, output_id, output_type);
+  process_advanced_output(tx_output, okadv.type_index, output_type);
 
 
-  return output_id;
+  return okadv.type_index;
 }
 
 
@@ -3108,12 +3113,14 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
 
 
-  output_advanced_data_t BlockchainLMDB::get_output_key(const tx_out_type output_type, const uint64_t output_id) const
+  output_advanced_data_t BlockchainLMDB::get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
 
     if (!(output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid))
       throw0(DB_ERROR("Unknown advanced output type"));
+
+    uint64_t output_id = get_output_id(output_type, output_index);
 
     check_open();
 
@@ -3143,6 +3150,42 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
     TXN_POSTFIX_RDONLY();
     return output;
+  }
+
+  uint64_t BlockchainLMDB::get_output_id(const tx_out_type output_type, const uint64_t output_index) const
+  {
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+
+      if (!(output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid))
+          throw0(DB_ERROR("Unknown advanced output type"));
+
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+      MDB_cursor *cur_output_advanced_type;
+      RCURSOR(output_advanced_type);
+      cur_output_advanced_type = m_cur_output_advanced_type;
+
+      uint64_t output_id = 0;
+
+      const uint64_t out_type = static_cast<uint64_t>(output_type);
+      MDB_val_set(key, out_type);
+      MDB_val_set(value, output_index);
+
+      auto result = mdb_cursor_get(cur_output_advanced_type, &key, &value, MDB_GET_BOTH);
+      if (result == MDB_SUCCESS)
+      {
+          outkey_advanced *okadv = (outkey_advanced *)value.mv_data;
+          output_id =  okadv->output_id;
+      }
+      else if (result == MDB_NOTFOUND)
+          throw0(DB_ERROR(lmdb_error("Attemting to get output id from output with index " + std::to_string(output_index) + " but not found: ", result).c_str()));
+      else
+          throw0(DB_ERROR(lmdb_error("DB error attempting to advanced output blob: ", result).c_str()));
+
+
+      TXN_POSTFIX_RDONLY();
+      return output_id;
   }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
@@ -4949,6 +4992,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             sfx_offer.active = active;
             sfx_offer.price = price;
             sfx_offer.quantity = quantity;
+            sfx_offer.edited = true;
 
             MDB_val_copy<blobdata> vupdate(t_serializable_object_to_blob(sfx_offer));
             auto result2 = mdb_cursor_put(cur_safex_offer, &k2, &vupdate, (unsigned int) MDB_CURRENT);
@@ -5840,8 +5884,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         RCURSOR(safex_offer)
         cur_safex_offer = m_cur_safex_offer;
 
-        uint64_t output_id;
-        uint64_t output_id_creation;
+        uint64_t output_index{};
+        uint64_t output_index_creation{};
+        bool edited = false;
 
         uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
 
@@ -5864,9 +5909,15 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
             offer.quantity = offer_result.quantity;
 
-          output_id = offer_result.output_id;
-          output_id_creation = offer_result.output_id_creation;
+
+            output_index = offer_result.output_id;
+            output_index_creation = offer_result.output_id_creation;
+            edited = offer_result.edited;
         }
+
+
+        tx_out_type out_type = edited ? tx_out_type::out_safex_offer_update : tx_out_type::out_safex_offer;
+        uint64_t output_id = get_output_id(out_type, output_index);
 
         MDB_cursor *cur_output_advanced;
         RCURSOR(output_advanced);
@@ -5885,7 +5936,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         {
             current = parse_output_advanced_data_from_mdb(value_blob);
 
-            if(current.output_type == static_cast<uint64_t>(tx_out_type::out_safex_offer_update)){
+            if( edited ){
               safex::edit_offer_data offer_result;
               parse_and_validate_object_from_blob<safex::edit_offer_data>(current.data,offer_result);
 
@@ -5922,6 +5973,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         else
             throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
+
+      uint64_t output_id_creation = get_output_id(tx_out_type::out_safex_offer, output_index_creation);
       //Get offer keys
       MDB_val_set(k_creation, output_id_creation);
       MDB_val_set(v_blob, blob);
@@ -5939,7 +5992,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       }
       else if (get_result == MDB_NOTFOUND)
       {
-        throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(output_id_creation) + " but not found: ", get_result).c_str()));
+        throw0(DB_ERROR(lmdb_error("Attemting to get offer from advanced output with current id " + std::to_string(output_index_creation) + " but not found: ", get_result).c_str()));
       }
       else
         throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
