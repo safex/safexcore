@@ -5106,9 +5106,8 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.price = restored_sfx_offer_create.price;
               sfx_offer.active = restored_sfx_offer_create.active;
               sfx_offer.seller = restored_sfx_offer_create.seller;
-
-              memcpy(&output_id, key.mv_data,sizeof(uint64_t));
-              sfx_offer.output_id = output_id;
+              sfx_offer.edited = false;
+              sfx_offer.output_id = current.type_index;
 
               return;
             }
@@ -5124,7 +5123,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
               sfx_offer.seller = restored_sfx_offer_update.seller;
 
               memcpy(&output_id, key.mv_data,sizeof(uint64_t));
-              sfx_offer.output_id = output_id;
+              sfx_offer.output_id = current.type_index;
 
               return;
             }
@@ -5445,7 +5444,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
   }
 
 
-  void BlockchainLMDB::remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id){
+  void BlockchainLMDB::remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_index){
       check_open();
       mdb_txn_cursors *m_cursors = &m_wcursors;
 
@@ -5455,13 +5454,16 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
       uint64_t output_type = static_cast<uint64_t>(out_type);
       MDB_val_set(k_output_type, output_type);
-      MDB_val value = {sizeof(uint64_t), (void *)&output_id};
+      MDB_val value = {sizeof(uint64_t), (void *)&output_index};
 
       auto result = mdb_cursor_get(m_cur_output_advanced_type, &k_output_type, &value, MDB_GET_BOTH);
       if(result != 0)
       {
         throw0(DB_ERROR("Unexpected: global output index not found for specified type in m_output_advanced_type"));
       }
+
+      outkey_advanced *okadv = (outkey_advanced *)value.mv_data;
+      uint64_t output_id =  okadv->output_id;
 
       MDB_val_set(otxk, output_id);
 

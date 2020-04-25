@@ -614,12 +614,12 @@ private:
     * Remove advanced output from DB
     *
     * @param out_type Type of the advanced output
-    * @param Output id of the advanced output to be deleted
+    * @param Output index of the advanced output to be deleted
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id);
+    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_index);
 
   /**
    * Remove last safex account update from database
