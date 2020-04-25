@@ -204,7 +204,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
                                        const cryptonote::tx_out_type output_type, bool allow_partial = false) const
     {}
 
-    virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids, std::vector<cryptonote::output_advanced_data_t> &outputs,
+    virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes, std::vector<cryptonote::output_advanced_data_t> &outputs,
             const cryptonote::tx_out_type output_type, bool allow_partial = false) const
     {}
 

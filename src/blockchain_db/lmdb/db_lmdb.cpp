@@ -4131,13 +4131,20 @@ void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::ve
 }
 
 
-  void BlockchainLMDB::get_advanced_output_key(const std::vector<uint64_t> &output_ids,
+  void BlockchainLMDB::get_advanced_output_key(const std::vector<uint64_t> &output_indexes,
                                              std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                              bool allow_partial) const
   {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
     outputs.clear();
+
+    std::vector<uint64_t> output_ids;
+
+    for(const auto output_index: output_indexes){
+        uint64_t output_id = get_output_id(output_type, output_index);
+        output_ids.push_back(output_id);
+    }
 
     TXN_PREFIX_RDONLY();
 
