@@ -650,13 +650,13 @@ bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t
         if (!safex::parse_safex_account_key(oi.out, key)) {
           return false;
         }
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
 
       }
       else
       {
         const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
       }
     }
   }
