@@ -234,6 +234,9 @@ bool init_spent_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, map
           {
             output_index &oi = outs[o.first][o.second[i]]; //full data about the utxo
 
+            if(oi.out_type == cryptonote::tx_out_type::out_safex_account || oi.out_type == cryptonote::tx_out_type::out_safex_offer ||
+                oi.out_type == cryptonote::tx_out_type::out_safex_price_peg)
+                continue;
 
             // construct key image for this output
             crypto::key_image img;
