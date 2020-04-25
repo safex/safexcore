@@ -408,7 +408,7 @@ namespace
 
 
 
-    output_advanced_data_t outd = this->m_db->get_output_key(tx_out_type::out_staked_token, test_output_id);
+    output_advanced_data_t outd = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, test_output_id);
     bool match = false;
     crypto::hash matching_tx_hash;
 
@@ -426,12 +426,12 @@ namespace
     }
     ASSERT_EQ(match, true);
 
-    tx_out_index index1 = this->m_db->get_output_tx_and_index_from_global(test_output_id);
+    tx_out_index index1 = this->m_db->get_output_tx_and_index_from_global(outd.output_id);
     ASSERT_EQ(matching_tx_hash, index1.first);
 
 
-    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_staked_token, 5913), DB_ERROR);
-    ASSERT_THROW(this->m_db->get_output_key(tx_out_type::out_cash, test_output_id), DB_ERROR);
+    ASSERT_THROW(this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, 5913), DB_ERROR);
+    ASSERT_THROW(this->m_db->get_output_advanced_data(tx_out_type::out_cash, test_output_id), DB_ERROR);
 
 
     uint64_t tx_index;

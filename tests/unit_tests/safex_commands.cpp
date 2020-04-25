@@ -187,7 +187,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type) const
     { return cryptonote::output_data_t(); }
 
-    virtual cryptonote::output_advanced_data_t get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) const {return cryptonote::output_advanced_data_t{};}
+    virtual cryptonote::output_advanced_data_t get_output_advanced_data(const cryptonote::tx_out_type output_type, const uint64_t output_id) const {return cryptonote::output_advanced_data_t{};}
+    virtual uint64_t get_output_id(const cryptonote::tx_out_type output_type, const uint64_t output_index) const { return 0; }
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
