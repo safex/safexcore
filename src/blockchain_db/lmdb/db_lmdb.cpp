@@ -5297,7 +5297,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     std::string comment{feedback_output_data.comment.begin(),feedback_output_data.comment.end()};
 
-    safex::safex_feedback_db_data sfx_feedback_data{feedback_output_data.stars_given, comment};
+    safex::safex_feedback_db_data sfx_feedback_data{output_id, feedback_output_data.stars_given, comment};
 
     MDB_val_set(k, offer_id);
     MDB_val_copy<blobdata> v(t_serializable_object_to_blob(sfx_feedback_data));
@@ -5545,7 +5545,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
         CURSOR(safex_feedback)
         cur_safex_feedback = m_cur_safex_feedback;
 
-        safex::safex_feedback_db_data sfx_feedback_data{feedback.stars_given, feedback.comment};
+        uint64_t output_index = get_num_outputs(tx_out_type::out_safex_feedback);
+
+        safex::safex_feedback_db_data sfx_feedback_data{output_index, feedback.stars_given, feedback.comment};
 
 
         int result;
