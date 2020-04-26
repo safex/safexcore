@@ -1212,13 +1212,15 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else if ((output_type > tx_out_type::out_advanced) && (output_type < tx_out_type::out_invalid)){
                   const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                   m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
-                  process_advanced_output(txout, output_type);
               }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
-
+          if ((output_type > tx_out_type::out_advanced) && (output_type < tx_out_type::out_invalid)){
+              const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+              process_advanced_output(txout, output_type);
+          }
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
@@ -1327,10 +1329,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 else if ((td.m_output_type > tx_out_type::out_advanced) && (td.m_output_type < tx_out_type::out_invalid)){
                     const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                     m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
-                    process_advanced_output(txout, td.m_output_type);
                 }
                 else
                     m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
+            }
+            if ((td.m_output_type > tx_out_type::out_advanced) && (td.m_output_type < tx_out_type::out_invalid)){
+                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                process_advanced_output(txout, td.m_output_type);
             }
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
