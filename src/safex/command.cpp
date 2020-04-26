@@ -78,10 +78,11 @@ namespace safex
     SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
 
     uint64_t staked_token_index = this->get_staked_token_output_index();
+    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
 
-    auto toi = blokchainDB.get_output_tx_and_index_from_global(staked_token_index);
+
+    auto toi = blokchainDB.get_output_tx_and_index_from_global(od.output_id);
     auto tx = blokchainDB.get_tx(toi.first);
-    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_key(cryptonote::tx_out_type::out_staked_token, staked_token_index);
     bool output_found = false;
     for(auto out: tx.vout)
       if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)

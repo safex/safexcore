@@ -473,7 +473,9 @@ bool init_spent_output_indices(map_output_idx_t& outs, map_output_t& outs_mine, 
             const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
             std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
             subaddresses[from.get_keys().m_account_address.m_spend_public_key] = {0,0};
-            if (oi.out_type == tx_out_type::out_safex_account) continue; //key image check not relevant
+            if(oi.out_type == cryptonote::tx_out_type::out_safex_account || oi.out_type == cryptonote::tx_out_type::out_safex_offer ||
+                oi.out_type == cryptonote::tx_out_type::out_safex_price_peg)
+                continue; //key image check not relevant
             generate_key_image_helper(from.get_keys(), subaddresses, out_key, get_tx_pub_key_from_extra(*oi.p_tx), get_additional_tx_pub_keys_from_extra(*oi.p_tx), oi.out_no, in_ephemeral, img, hw::get_device(("default")));
 
             // lookup for this key image in the events vector
@@ -650,13 +652,13 @@ bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t
         if (!safex::parse_safex_account_key(oi.out, key)) {
           return false;
         }
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
 
       }
       else
       {
         const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
       }
     }
   }

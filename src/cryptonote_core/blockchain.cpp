@@ -597,7 +597,7 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
           if (count < outputs.size())
             output_data = outputs.at(count);
           else
-            output_data = m_db->get_output_key(output_type, i);
+            output_data = m_db->get_output_advanced_data(output_type, i);
 
           // call to the passed boost visitor to grab the public key for the output
           if (!vis.handle_output(output_data.unlock_time, output_data.pubkey, rct::key{0}))
@@ -3097,7 +3097,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         //TODO: Grki check if absolute is needed
         const txin_to_script &in = boost::get<txin_to_script>(txin);
         for (auto index: in.key_offsets) {
-          output_advanced_data_t out = this->m_db->get_output_key(tx_out_type::out_staked_token, index);
+          output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
           if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
             MERROR("Safex token stake period not expired at height"<<m_db->height());
             tvc.m_safex_invalid_command_params = true;
@@ -6085,7 +6085,7 @@ uint64_t Blockchain::calculate_staked_token_interest_for_output(const txin_to_sc
     return 0;
   }
 
-  output_advanced_data_t output_data = m_db->get_output_key(tx_out_type::out_staked_token, txin.key_offsets[0]);
+  output_advanced_data_t output_data = m_db->get_output_advanced_data(tx_out_type::out_staked_token, txin.key_offsets[0]);
 
   if (output_data.height == 0) {
     MERROR("Invalid output lock height");
@@ -6238,6 +6238,12 @@ bool Blockchain::get_table_sizes( std::vector<uint64_t> &table_sizes) const
   return m_db->get_table_sizes(table_sizes);
 }
 
+bool Blockchain::get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
+    return m_db->get_safex_offer_height(offer_id, height);
+}
 
 bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
 {

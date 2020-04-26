@@ -1212,13 +1212,15 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
               else if ((output_type > tx_out_type::out_advanced) && (output_type < tx_out_type::out_invalid)){
                   const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                   m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
-                  process_advanced_output(txout, output_type);
               }
               else
                 m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
             }
           }
-
+          if ((output_type > tx_out_type::out_advanced) && (output_type < tx_out_type::out_invalid)){
+              const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+              process_advanced_output(txout, output_type);
+          }
           total_received_1 += amount;
           total_token_received_1 += token_amount;
         }
@@ -1327,10 +1329,13 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
                 else if ((td.m_output_type > tx_out_type::out_advanced) && (td.m_output_type < tx_out_type::out_invalid)){
                     const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
                     m_callback->on_advanced_output_received(height, txid, tx, txout, td.m_subaddr_index);
-                    process_advanced_output(txout, td.m_output_type);
                 }
                 else
                     m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index);
+            }
+            if ((td.m_output_type > tx_out_type::out_advanced) && (td.m_output_type < tx_out_type::out_invalid)){
+                const txout_to_script &txout = boost::get<txout_to_script>(tx.vout[o].target);
+                process_advanced_output(txout, td.m_output_type);
             }
             total_received_1 += extra_amount;
             total_token_received_1 += extra_token_amount;
@@ -4447,20 +4452,20 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
             {
                 safex::create_feedback_token_data feedback_token_output_data;
                 parse_and_validate_object_from_blob(blobdata1, feedback_token_output_data);
-                if (out_id == feedback_token_output_data.offer_id)
+                if (out_id == feedback_token_output_data.offer_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                   idx = (int)n;
             } else if (out_type == tx_out_type::out_safex_offer && td.get_out_type() == tx_out_type::out_safex_offer)
             {
               safex::create_offer_data offer_output_data;
               parse_and_validate_object_from_blob(blobdata1, offer_output_data);
-              if (out_id == offer_output_data.offer_id)
+              if (out_id == offer_output_data.offer_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                 idx = (int)n;
             }
             else if (out_type == tx_out_type::out_safex_price_peg && td.get_out_type() == tx_out_type::out_safex_price_peg)
             {
               safex::create_price_peg_data price_peg_output_data;
               parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
-              if (out_id == price_peg_output_data.price_peg_id)
+              if (out_id == price_peg_output_data.price_peg_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                 idx = (int)n;
 
             }

@@ -141,6 +141,7 @@ namespace cryptonote
   /** Struct that holds info about advanced output */
   typedef struct output_advanced_data_t
   {
+    uint64_t type_index;   //!< the output's index for particular type
     uint64_t unlock_time;  //!< the output's unlock time (or height)
     uint64_t height;       //!< the height of the block which created the output
     uint64_t output_id;
@@ -148,8 +149,8 @@ namespace cryptonote
     crypto::public_key pubkey;
     blobdata data; //Blob of txoutput
 
-    size_t size() const { return 4 * sizeof(uint64_t) + sizeof(pubkey) + data.size();}
-  } outkey_advanced;
+    size_t size() const { return 5 * sizeof(uint64_t) + sizeof(pubkey) + data.size();}
+  } output_advanced_data_t;
 #pragma pack(pop)
 
 
@@ -1411,8 +1412,7 @@ namespace cryptonote
       /**
        * @brief get some of an output's data
        *
-       * The subclass should return the public key, unlock time, and block height
-       * for the output with the given global index, collected in a struct.
+       * The subclass should return the advanced data, collected in a struct.
        *
        * If the output cannot be found, the subclass should throw OUTPUT_DNE.
        *
@@ -1420,12 +1420,28 @@ namespace cryptonote
        * should throw DB_ERROR with a message stating as much.
        *
        * @param output_type type of output(e.g. staked token output
-       * @param global_index output id of output (output_id)
+       * @param output_index index of the output for selected type
+       *
+       * @return list of advanced output data
+       */
+      virtual output_advanced_data_t get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const = 0;
+
+      /**
+       * @brief get output id for given type and index
+       *
+       * The subclass should return the global output id
+       *
+       * If the output cannot be found, the subclass should throw OUTPUT_DNE.
+       *
+       * If any of these parts cannot be found, but some are, the subclass
+       * should throw DB_ERROR with a message stating as much.
+       *
+       * @param output_type type of output(e.g. staked token output
+       * @param output_index index of the output for selected type
        *
        * @return list of public keys that can use this output
        */
-      virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) const = 0;
-
+      virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const = 0;
       /**
        * @brief gets an output's tx hash and index
        *
@@ -1490,11 +1506,11 @@ namespace cryptonote
        * get_output_data(const uint64_t& amount, const uint64_t& index)
        * but for a list of outputs rather than just one.
        *
-       * @param output_ids a list of output ids
+       * @param output_indexes a list of output indexes for that type
        * @param outputs return-by-reference a list of outputs' metadata
        * @param output_type a utxo type (locked token, ...)
        */
-      virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
+      virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes,
                                          std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                          bool allow_partial = false) const = 0;
 
@@ -1830,6 +1846,16 @@ namespace cryptonote
        * @return True if no error ocurred
        */
       virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
+
+
+      /**
+       * @brief fetch safex offer height from blockchain
+       *
+       * The subclass should return safex offer height
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const = 0;
 
       /**
        * @brief fetch safex price pegs from the blockchain

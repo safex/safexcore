@@ -234,6 +234,9 @@ bool init_spent_output_indices(map_hash2tx_t &txmap, map_output_idx_t &outs, map
           {
             output_index &oi = outs[o.first][o.second[i]]; //full data about the utxo
 
+            if(oi.out_type == cryptonote::tx_out_type::out_safex_account || oi.out_type == cryptonote::tx_out_type::out_safex_offer ||
+                oi.out_type == cryptonote::tx_out_type::out_safex_price_peg)
+                continue;
 
             // construct key image for this output
             crypto::key_image img;
@@ -335,13 +338,13 @@ bool fill_output_entries_advanced(std::vector<output_index>& out_indices, size_t
         if (!safex::parse_safex_account_key(oi.out, key)) {
           return false;
         }
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
 
       }
       else
       {
         const crypto::public_key &key = *boost::apply_visitor(destination_public_key_visitor(), oi.out);
-        output_entries.push_back(tx_source_entry::output_entry(oi.advanced_output_id, rct::ctkey({rct::pk2rct(key), rct::identity()})));
+        output_entries.push_back(tx_source_entry::output_entry(oi.idx, rct::ctkey({rct::pk2rct(key), rct::identity()})));
       }
     }
   }
