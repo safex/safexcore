@@ -372,8 +372,8 @@ namespace tools
         if(tx_output.target.type() == typeid(txout_to_script) && get_tx_out_type(tx_output.target) == cryptonote::tx_out_type::out_safex_account){
             const txout_to_script &out = boost::get<txout_to_script>(tx_output.target);
             safex::create_account_data sfx_account;
-            const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
-            cryptonote::parse_and_validate_from_blob(offerblob, sfx_account);
+            const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+            cryptonote::parse_and_validate_from_blob(accblob, sfx_account);
             std::string sfx_username{sfx_account.username.begin(),sfx_account.username.end()};
             //If username is not the one, we get out of the loop
             if(sfx_username != username)
