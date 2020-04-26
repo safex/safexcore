@@ -4447,20 +4447,20 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
             {
                 safex::create_feedback_token_data feedback_token_output_data;
                 parse_and_validate_object_from_blob(blobdata1, feedback_token_output_data);
-                if (out_id == feedback_token_output_data.offer_id)
+                if (out_id == feedback_token_output_data.offer_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                   idx = (int)n;
             } else if (out_type == tx_out_type::out_safex_offer && td.get_out_type() == tx_out_type::out_safex_offer)
             {
               safex::create_offer_data offer_output_data;
               parse_and_validate_object_from_blob(blobdata1, offer_output_data);
-              if (out_id == offer_output_data.offer_id)
+              if (out_id == offer_output_data.offer_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                 idx = (int)n;
             }
             else if (out_type == tx_out_type::out_safex_price_peg && td.get_out_type() == tx_out_type::out_safex_price_peg)
             {
               safex::create_price_peg_data price_peg_output_data;
               parse_and_validate_object_from_blob(blobdata1, price_peg_output_data);
-              if (out_id == price_peg_output_data.price_peg_id)
+              if (out_id == price_peg_output_data.price_peg_id  && td.m_block_height+ CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= m_local_bc_height)
                 idx = (int)n;
 
             }
