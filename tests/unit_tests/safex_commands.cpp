@@ -187,7 +187,8 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual cryptonote::output_data_t get_output_key(const uint64_t &amount, const uint64_t &index, const cryptonote::tx_out_type output_type) const
     { return cryptonote::output_data_t(); }
 
-    virtual cryptonote::output_advanced_data_t get_output_key(const cryptonote::tx_out_type output_type, const uint64_t output_id) const {return cryptonote::output_advanced_data_t{};}
+    virtual cryptonote::output_advanced_data_t get_output_advanced_data(const cryptonote::tx_out_type output_type, const uint64_t output_id) const {return cryptonote::output_advanced_data_t{};}
+    virtual uint64_t get_output_id(const cryptonote::tx_out_type output_type, const uint64_t output_index) const { return 0; }
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -203,7 +204,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
                                        const cryptonote::tx_out_type output_type, bool allow_partial = false) const
     {}
 
-    virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids, std::vector<cryptonote::output_advanced_data_t> &outputs,
+    virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes, std::vector<cryptonote::output_advanced_data_t> &outputs,
             const cryptonote::tx_out_type output_type, bool allow_partial = false) const
     {}
 
@@ -313,6 +314,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
 
     virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const { return true; };
     virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const { return true; };
+    virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const { return true; };
     virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const { return true; };
     virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const { return true; };
     virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const { return true; };

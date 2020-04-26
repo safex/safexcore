@@ -982,7 +982,7 @@ namespace tools
     struct safex_unknown_account : public transfer_error
     {
       explicit safex_unknown_account(std::string&& loc)
-              : transfer_error(std::move(loc), "account does not exist")
+              : transfer_error(std::move(loc), "account does not exist or is still locked")
       {
       }
     };
@@ -990,7 +990,7 @@ namespace tools
     struct safex_unknown_id : public transfer_error
     {
       explicit safex_unknown_id(std::string&& loc)
-                  : transfer_error(std::move(loc), "ID does not exist")
+                  : transfer_error(std::move(loc), "ID does not exist or is still locked")
       {
       }
     };

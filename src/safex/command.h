@@ -172,6 +172,7 @@ struct create_offer_result : public execution_result
     bool active{};
     uint64_t output_id{};
     uint64_t output_id_creation{};
+    bool edited{false};
 
     BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
@@ -181,6 +182,7 @@ struct create_offer_result : public execution_result
         FIELD(active)
         FIELD(output_id)
         FIELD(output_id_creation)
+        FIELD(edited)
     END_SERIALIZE()
 
 };

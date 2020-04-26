@@ -138,6 +138,7 @@ namespace cryptonote
             std::string price_peg_id;
             std::string seller;
             cryptonote::account_public_address seller_address;
+            uint64_t height;
 
         BEGIN_KV_SERIALIZE_MAP()
                 KV_SERIALIZE(title)
@@ -152,6 +153,7 @@ namespace cryptonote
                 KV_SERIALIZE(price_peg_id)
                 KV_SERIALIZE(seller)
                 KV_SERIALIZE(seller_address)
+                KV_SERIALIZE(height)
             END_KV_SERIALIZE_MAP()
         };
 

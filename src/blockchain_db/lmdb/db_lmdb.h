@@ -279,11 +279,12 @@ public:
                                      std::vector<output_data_t> &outputs, const tx_out_type output_type,
                                      bool allow_partial = false) const;
 
-  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_ids,
+  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes,
                                          std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type,
                                          bool allow_partial = false) const;
 
-  virtual output_advanced_data_t get_output_key(const tx_out_type output_type, const uint64_t output_id) const;
+  virtual output_advanced_data_t get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const;
+  virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const;
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
@@ -329,6 +330,7 @@ public:
 
   virtual bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const;
+  virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const;
   virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const;
   virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const;
@@ -613,12 +615,12 @@ private:
     * Remove advanced output from DB
     *
     * @param out_type Type of the advanced output
-    * @param Output id of the advanced output to be deleted
+    * @param Output index of the advanced output to be deleted
     *
     * If any of this cannot be done, it throw the corresponding subclass of DB_EXCEPTION
     *
     */
-    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_id);
+    void remove_advanced_output(const tx_out_type& out_type, const uint64_t& output_index);
 
   /**
    * Remove last safex account update from database
