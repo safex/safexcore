@@ -335,7 +335,10 @@ namespace cryptonote
       return m_blockchain_storage.get_table_sizes(table_sizes);
   }
     //-----------------------------------------------------------------------------------------------
-
+  bool core::get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const
+  {
+      return m_blockchain_storage.get_safex_offer_height(offer_id, height);
+  }
   bool core::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
   {
       return m_blockchain_storage.get_safex_offers(safex_offers);

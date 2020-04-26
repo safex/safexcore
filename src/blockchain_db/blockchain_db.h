@@ -1847,6 +1847,16 @@ namespace cryptonote
        */
       virtual bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const = 0;
 
+
+      /**
+       * @brief fetch safex offer height from blockchain
+       *
+       * The subclass should return safex offer height
+       *
+       * @return True if no error ocurred
+       */
+      virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const = 0;
+
       /**
        * @brief fetch safex price pegs from the blockchain
        *

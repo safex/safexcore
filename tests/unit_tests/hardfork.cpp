@@ -125,6 +125,7 @@ public:
   virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; };
   virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const { return true; };
   virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const { return true; };
+  virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const { return true; };
   virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const { return true; };
   virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const { return true; };
   virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const { return true; };

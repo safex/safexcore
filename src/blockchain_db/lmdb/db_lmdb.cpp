@@ -5698,6 +5698,54 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       return true;
   }
 
+  bool BlockchainLMDB::get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const{
+
+      LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+      check_open();
+
+      TXN_PREFIX_RDONLY();
+
+      MDB_cursor *cur_safex_offer;
+      RCURSOR(safex_offer)
+      cur_safex_offer = m_cur_safex_offer;
+
+      uint64_t output_index{};
+      bool edited = false;
+
+      uint8_t temp[SAFEX_OFFER_DATA_MAX_SIZE + sizeof(crypto::hash)];
+
+      MDB_val_set(k, offer_id);
+      MDB_val_set(v, temp);
+      auto get_result = mdb_cursor_get(cur_safex_offer, &k, &v, MDB_SET);
+      if (get_result == MDB_NOTFOUND)
+      {
+          return false;
+      }
+      else if (get_result)
+      {
+          throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch offer with id: ").append(offer_id.data), get_result).c_str()));
+      }
+      else if (get_result == MDB_SUCCESS)
+      {
+          safex::create_offer_result offer_result;
+          std::string tmp{(char*)v.mv_data, v.mv_size};
+          parse_and_validate_object_from_blob<safex::create_offer_result>(tmp,offer_result);
+
+          output_index = offer_result.output_id;
+          edited = offer_result.edited;
+      }
+
+
+      tx_out_type out_type = edited ? tx_out_type::out_safex_offer_update : tx_out_type::out_safex_offer;
+
+      output_advanced_data_t adv_data = get_output_advanced_data(out_type, output_index);
+
+      height = adv_data.height;
+
+      return true;
+  }
+
+
     bool BlockchainLMDB::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const{
 
         LOG_PRINT_L3("BlockchainLMDB::" << __func__);

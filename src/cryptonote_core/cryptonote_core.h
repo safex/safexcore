@@ -810,6 +810,12 @@ namespace cryptonote
 
        bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
 
+       /**
+       * @brief gets height of the last time offer was edited(or created)
+       *
+       * @return True if we get the height from Blockchain
+       */
+       bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const;
 
        /**
        * @brief gets all offers inside the Blockchain

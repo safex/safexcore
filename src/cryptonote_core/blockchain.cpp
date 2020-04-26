@@ -6238,6 +6238,12 @@ bool Blockchain::get_table_sizes( std::vector<uint64_t> &table_sizes) const
   return m_db->get_table_sizes(table_sizes);
 }
 
+bool Blockchain::get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
+    return m_db->get_safex_offer_height(offer_id, height);
+}
 
 bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
 {

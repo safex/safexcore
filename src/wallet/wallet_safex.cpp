@@ -478,6 +478,8 @@ namespace tools
       THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get safex offers");
 
       for (auto &item : res.offers) {
+          if(item.height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE > m_local_bc_height)
+              continue;
           crypto::hash offer_hash{};
           epee::string_tools::hex_to_pod(item.offer_id, offer_hash);
           crypto::hash price_peg_hash{};
