@@ -6244,7 +6244,7 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       MDB_val_set(v2, temp);
       get_result = mdb_cursor_get(cur_safex_feedback, &k2, &v2, MDB_FIRST_DUP);
 
-      if (get_result == MDB_SUCCESS)
+      while (get_result == MDB_SUCCESS)
       {
           safex::safex_feedback_db_data sfx_feedback;
           const cryptonote::blobdata tmp((uint8_t*)v2.mv_data, (uint8_t*)v2.mv_data+v2.mv_size);
@@ -6254,10 +6254,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
           get_result = mdb_cursor_get(cur_safex_feedback, &k2, &v2, MDB_NEXT_DUP);
           safex_feedbacks.emplace_back(sfx_feedback.stars_given, comment, offer_id);
-      }
-      else
-      {
-          throw0(DB_ERROR(lmdb_error(std::string("DB error attempting to fetch feedbacks for offer with id: ").append(offer_id.data), get_result).c_str()));
       }
 
       TXN_POSTFIX_RDONLY();
