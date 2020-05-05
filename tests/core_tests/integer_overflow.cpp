@@ -78,6 +78,7 @@ namespace
         se.real_out_tx_key = get_tx_pub_key_from_extra(tx);
         se.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(tx);
         se.real_output_in_tx_index = out_idx;
+        se.referenced_output_type = cryptonote::tx_out_type::out_token;
 
         sources.push_back(se);
     }
