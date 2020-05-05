@@ -284,7 +284,7 @@ public:
                                          bool allow_partial = false) const;
 
   virtual output_advanced_data_t get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const;
-  virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const;
+  virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const;
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,

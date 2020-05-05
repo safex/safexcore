@@ -570,6 +570,8 @@ namespace cryptonote
              return tx_out_type::out_safex_price_peg;
            case safex::command_t::create_feedback:
              return tx_out_type::out_safex_feedback_token;
+           case safex::command_t::distribute_network_fee:
+             return tx_out_type::out_network_fee;
            case safex::command_t::nop:
            default:
              return tx_out_type::out_invalid;

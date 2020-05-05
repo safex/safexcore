@@ -1438,10 +1438,11 @@ namespace cryptonote
        *
        * @param output_type type of output(e.g. staked token output
        * @param output_index index of the output for selected type
+       * @param output_id reference to var where output_id will be returned
        *
-       * @return list of public keys that can use this output
+       * @return true if it can find output id, false if it is not found
        */
-      virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const = 0;
+      virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const = 0;
       /**
        * @brief gets an output's tx hash and index
        *
