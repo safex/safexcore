@@ -562,20 +562,20 @@ namespace safex
 
   bool validate_safex_command(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    //parse command and execute it
+    //parse command and validate it
     try
     {
       std::unique_ptr<command> cmd = safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
-      std::shared_ptr<execution_result> result{cmd->execute(blokchainDB, txin)};
-      if (result->status != execution_status::ok)
+      execution_status result{cmd->validate(blokchainDB, txin)};
+      if (result != execution_status::ok)
       {
-        LOG_ERROR("Execution of safex command failed, status:" << static_cast<int>(result->status));
+        LOG_ERROR("Validation of safex command failed, status:" << static_cast<int>(result));
         return false;
       }
     }
     catch (command_exception &ex)
     {
-      LOG_ERROR("Error in safex command execution:" << ex.what());
+      LOG_ERROR("Error in safex command validation:" << ex.what());
       return false;
     }
 
