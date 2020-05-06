@@ -141,6 +141,14 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
   }
 
   for (const txin_v& tx_input : tx.vin)
+      if(tx_input.type() == typeid(txin_to_script)){
+          const cryptonote::txin_to_script &txin = boost::get<cryptonote::txin_to_script>(tx_input);
+          if (!safex::validate_safex_command(*this, txin)) {
+              throw SAFEX_TX_CONFLICT(tx_hash);
+          }
+      }
+
+  for (const txin_v& tx_input : tx.vin)
   {
 
     if ((tx_input.type() == typeid(txin_to_key))
@@ -149,7 +157,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
     {
       auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
       if (!k_image_opt)
-        DB_ERROR("Output does not have proper key image");
+        throw DB_ERROR("Output does not have proper key image");
       const crypto::key_image &k_image = *k_image_opt;
       add_spent_key(k_image);
     }
@@ -164,7 +172,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
       //mark key image as spent
       auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
       if (!k_image_opt)
-        DB_ERROR("Output does not have proper key image");
+        throw DB_ERROR("Output does not have proper key image");
       const crypto::key_image &k_image = *k_image_opt;
       add_spent_key(k_image);
 

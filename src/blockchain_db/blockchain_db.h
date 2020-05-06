@@ -403,6 +403,21 @@ namespace cryptonote
       {}
   };
 
+  /**
+ * @brief thrown when a transaction cannot be added due to conflict with another tx in the block
+ */
+  class SAFEX_TX_CONFLICT : public DB_EXCEPTION
+  {
+  public:
+      SAFEX_TX_CONFLICT() : DB_EXCEPTION("The safex transaction verification failed!")
+      {}
+
+      SAFEX_TX_CONFLICT(const crypto::hash& _tx_hash) : DB_EXCEPTION("The safex transaction verification failed!"), tx_hash(_tx_hash)
+      {}
+
+      crypto::hash tx_hash;
+  };
+
 /***********************************
  * End of Exception Definitions
  ***********************************/

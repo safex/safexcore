@@ -4887,6 +4887,20 @@ leave:
       return_tx_to_pool(txs);
       return false;
     }
+    catch (const SAFEX_TX_CONFLICT& e){
+
+        for(auto tx: txs){
+            cryptonote::transaction tmp;
+            if(m_db->get_tx(tx.hash,tmp))
+                m_db->revert_transaction(tx.hash);
+        }
+        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+        txs.erase(it);
+        LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+        bvc.m_verifivation_failed = true;
+        return_tx_to_pool(txs);
+        return false;
+    }
     catch (const std::exception& e)
     {
 
