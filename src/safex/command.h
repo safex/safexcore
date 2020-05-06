@@ -56,7 +56,9 @@ namespace safex
     error_price_peg_data_too_big = 23,
     error_price_peg_not_existant = 24,
     error_feedback_data_too_big = 25,
-    error_price_peg_rate_zero = 26
+    error_price_peg_rate_zero = 26,
+    error_unstake_token_output_not_found = 27,
+    error_unstake_token_minimum_period = 28
   };
 
   struct execution_result

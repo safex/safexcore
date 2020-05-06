@@ -42,8 +42,10 @@ namespace safex
     execution_status result = execution_status::ok;
 
     //per input execution, one input could be less than SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT, all inputs must be SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((tools::is_whole_token_amount(this->get_staked_token_amount())), "Staked input is not whole token amount", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == this->get_staked_token_amount()), "Input amount differs from token stake command amount", this->get_command_type());
+    if(!tools::is_whole_token_amount(this->get_staked_token_amount()))
+        result = execution_status::error_wrong_input_params;
+    if(!(txin.token_amount == this->get_staked_token_amount()))
+        result = execution_status::error_wrong_input_params;
 
     return result;
   }
@@ -74,8 +76,11 @@ namespace safex
 
     execution_status result = execution_status::ok;
 
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
+    if(!(txin.key_offsets.size() == 1))
+        result = execution_status::error_wrong_input_params;
+
+    if(!(txin.key_offsets[0] == this->get_staked_token_output_index()))
+        result = execution_status::error_wrong_input_params;
 
     uint64_t staked_token_index = this->get_staked_token_output_index();
     const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
@@ -88,9 +93,12 @@ namespace safex
       if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)
         if(out.token_amount == txin.token_amount)
           output_found = true;
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((output_found), "Locked token amount not the same", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) <= blokchainDB.height()), "Minimum lock period not fulfilled", this->get_command_type());
 
+
+    if(!output_found)
+        result = execution_status::error_unstake_token_output_not_found;
+    if(!(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) <= blokchainDB.height()))
+        result = execution_status::error_unstake_token_minimum_period;
 
     return result;
   }
@@ -118,10 +126,8 @@ namespace safex
   execution_status token_collect::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
-    execution_status result = execution_status::ok;
-
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets.size() == 1), "Only one locked token output could be processed per input", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.key_offsets[0] == this->get_staked_token_output_index()), "Locked token output ID does not match", this->get_command_type());
+    //TODO: GRKI Do not allow token_collect for now
+    execution_status result = execution_status::invalid;
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
@@ -150,8 +156,10 @@ namespace safex
 
     execution_status result = execution_status::ok;
 
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->get_command_type());
+    if(!(txin.amount > 0))
+        return execution_status::error_wrong_input_params;
+    if(txin.token_amount != 0)
+        return execution_status::error_wrong_input_params;
 
     return result;
   };
@@ -215,9 +223,10 @@ namespace safex
     if(sfx_price * cmd->quantity > cmd->price)
         return execution_status::error_purchase_not_enough_funds;
 
-
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Purchase amount must be greater than zero ", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Could not purchase with tokens ", this->get_command_type());
+    if(!(txin.amount > 0))
+        return execution_status::error_wrong_input_params;
+    if(txin.token_amount != 0)
+        return execution_status::error_wrong_input_params;
 
     return result;
   };
@@ -239,8 +248,10 @@ namespace safex
   {
 
     execution_status result = execution_status::ok;
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.amount > 0), "Amount to donate must be greater than zero ", this->get_command_type());
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount == 0), "Tokens could not be donated to network ", this->get_command_type());
+    if(!(txin.amount > 0))
+        return execution_status::error_wrong_input_params;
+    if(txin.token_amount != 0)
+        return execution_status::error_wrong_input_params;
 
     return result;
   };
@@ -260,8 +271,8 @@ namespace safex
 
   execution_status create_account::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((txin.token_amount > 0), "Create account must reference at least one token output and in total is "+
-                  std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)+" tokens needed for locking", this->get_command_type());
+    if(txin.token_amount == 0)
+        return execution_status::error_wrong_input_params;
 
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
