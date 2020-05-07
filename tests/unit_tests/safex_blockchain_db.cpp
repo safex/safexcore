@@ -52,7 +52,7 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 23;
+  const int NUMBER_OF_BLOCKS = 53;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
@@ -161,7 +161,7 @@ namespace
             std::cout << "tx 15 hash: " << epee::string_tools::pod_to_hex(get_transaction_hash(tx)) << std::endl;
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 17)
+          else if (i == 47)
           {
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
@@ -169,7 +169,7 @@ namespace
             construct_token_unstake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 100 * SAFEX_TOKEN, default_miner_fee, 0); //unlock 100
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 19)
+          else if (i == 49)
           {
             //token stake transaction
             tx_list.resize(tx_list.size() + 1);
@@ -177,7 +177,7 @@ namespace
             construct_token_stake_transaction(m_txmap, m_blocks, tx, m_users_acc[1], m_users_acc[1], 200 * SAFEX_TOKEN, default_miner_fee, 0);
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 21)
+          else if (i == 51)
           {
             //token unlock transaction
             tx_list.resize(tx_list.size() + 1);
@@ -397,7 +397,7 @@ namespace
     data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 15);
     ASSERT_EQ(data.size(), 0);
 
-    data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 19);
+    data = this->m_db->get_token_stake_expiry_outputs(SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD + 49);
     ASSERT_EQ(data.size(), 1);
 
     uint64_t test_output_id = data[0]; //first tx in 11 block
@@ -412,8 +412,8 @@ namespace
     bool match = false;
     crypto::hash matching_tx_hash;
 
-    //find pkey key in transaction output of block 19
-    for (transaction& tx: this->m_txs[19])
+    //find pkey key in transaction output of block 49
+    for (transaction& tx: this->m_txs[49])
     {
       for (tx_out out: tx.vout)
       {

@@ -97,7 +97,7 @@ namespace safex
 
     if(!output_found)
         result = execution_status::error_unstake_token_output_not_found;
-    if(!(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) <= blokchainDB.height()))
+    if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
         result = execution_status::error_unstake_token_minimum_period;
 
     return result;
