@@ -3880,9 +3880,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
         }
-        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
-                boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
           //todo atana nothing to do here
           results[sig_index] = true;
         }
@@ -3936,9 +3934,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
+        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee) ) {
           //todo atana nothing to do here
           results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
