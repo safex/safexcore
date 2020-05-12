@@ -3220,7 +3220,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
           return false;
         }
       }
-        if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token)
+        if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token && vout.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
         {
           total_locked_tokens += vout.token_amount;
         }
