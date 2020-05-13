@@ -2763,8 +2763,6 @@ bool wallet::store_keys(const std::string& keys_file_name, const epee::wipeable_
  */
     bool wallet::store_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
     {
-        if(m_safex_accounts.empty())
-            return true;
 
         std::string safex_keys_data;
         bool r;
