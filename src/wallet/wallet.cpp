@@ -4439,7 +4439,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
         }
 
 
-        THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_account);
+        THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_id);
 
         int idx = -1;
         for (size_t n = 0; n < candidates.size(); ++n)
