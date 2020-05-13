@@ -1344,7 +1344,7 @@ namespace cryptonote
 
       for(auto ch: username){
         if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-          fail_msg_writer() << tr("safex account username can only have lowercase letters, _ and -");
+          fail_msg_writer() << tr("safex account username can only have lowercase letters, digits, _ and -");
           return true;
         }
       }
