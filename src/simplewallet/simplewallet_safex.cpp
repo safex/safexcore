@@ -1387,7 +1387,6 @@ namespace cryptonote
           return true;
 
       if (m_wallet->remove_safex_account(username) && save_safex(pass->password()) ) {
-        save_safex(pass->password());
         success_msg_writer() << tr("Account removed");
       } else {
         fail_msg_writer() << tr("Failed to remove account ") << username;
@@ -1414,7 +1413,6 @@ namespace cryptonote
           return true;
 
       if (m_wallet->recover_safex_account(username, skey) && save_safex(pass->password()) ) {
-        save_safex(pass->password());
         success_msg_writer() << tr("Account recovered");
       } else {
         fail_msg_writer() << tr("Failed to recover account ") << username;

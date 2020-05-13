@@ -1567,8 +1567,10 @@ bool WalletImpl::recoverSafexAccount(const std::string& username, const std::str
 
 bool WalletImpl::removeSafexAccount(const std::string& username){
 
-  if (m_wallet->remove_safex_account(username))
+  if (m_wallet->remove_safex_account(username)) {
+    m_wallet->store_safex(m_password);
     return true;
+  }
 
   return false;
 }
