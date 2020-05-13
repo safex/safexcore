@@ -260,8 +260,15 @@ namespace cryptonote
 
             try{
 
-              price = stold(local_args[2])*SAFEX_CASH_COIN;
-              quantity = stoi(local_args[3]);
+              bool ok = cryptonote::parse_amount(price, local_args[2]);
+              if(!ok || 0 == price)
+              {
+                  fail_msg_writer() << tr("amount is wrong: ") << local_args[2] <<
+                      ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+                  return true;
+              }
+
+              quantity = stoull(local_args[3]);
 
               long double check_price = stold(local_args[2]);
               long double check_quantity =  stold(local_args[3]);
@@ -1098,13 +1105,27 @@ namespace cryptonote
 
     std::string prompt = "Enter price in "+currency+" : ";
     std::string price_str = input_line(tr(prompt.c_str()));
-    uint64_t new_price = stold(price_str);
-    new_price*=SAFEX_CASH_COIN;
+    uint64_t new_price;
+
+    bool ok = cryptonote::parse_amount(new_price, price_str);
+    if(!ok || 0 == new_price)
+    {
+        fail_msg_writer() << tr("amount is wrong: ") << price_str  <<
+            ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+        return false;
+    }
 
     prompt = "Enter minimum SFX price : ";
     std::string min_price_str = input_line(tr(prompt.c_str()));
-    uint64_t min_price = stold(min_price_str);
-    min_price*=SAFEX_CASH_COIN;
+    uint64_t min_price;
+
+    ok = cryptonote::parse_amount(min_price, min_price_str);
+    if(!ok || 0 == min_price)
+    {
+        fail_msg_writer() << tr("amount is wrong: ") << min_price_str  <<
+            ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+        return false;
+    }
     sfx_offer.set_price_peg(price_peg_id,new_price,min_price);
 
     return true;
