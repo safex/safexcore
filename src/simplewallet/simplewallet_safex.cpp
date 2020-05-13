@@ -1416,6 +1416,10 @@ namespace cryptonote
     }
     else if (command == "keys")
     {
+    if(local_args.size() != 1){
+      fail_msg_writer() << tr("One Safex account username was not given");
+      return true;
+    }
       const std::string &username = local_args[0];
 
       if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }
