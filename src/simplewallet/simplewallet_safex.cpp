@@ -1374,6 +1374,12 @@ namespace cryptonote
     {
       const std::string &username = local_args[0];
 
+      safex::safex_account sfx_acc;
+      if (!m_wallet->get_safex_account(username, sfx_acc)) {
+          fail_msg_writer() << tr("Safex account does not exist: ") << username;
+          return true;
+      }
+
 
       auto pass = get_and_verify_password();
 
