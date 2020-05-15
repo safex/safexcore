@@ -3024,9 +3024,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   std::vector<txin_to_script> input_commands_to_execute;
 
-  //Transaction must have commands of only one type:
-  safex::command_t command_type = safex::command_t::invalid_command;
-
   bool unstake_seen = false;
   bool network_fee_seen = false;
   bool only_donate_seen = true;
@@ -3050,10 +3047,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       if(txin_script.command_type != safex::command_t::token_stake)
         only_stake_seen = false;
 
-      if (command_type == safex::command_t::invalid_command) {
-        command_type = txin_script.command_type;
-      }
-
       input_commands_to_execute.push_back(txin_script);
     }
   }
@@ -3069,13 +3062,13 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
 
   //validate all command logic
-  for (const txin_to_script cmd: input_commands_to_execute)
+  for (const txin_to_script cmd: input_commands_to_execute){
     if (!safex::validate_safex_command(*m_db, cmd)) {
       tvc.m_safex_command_execution_failed = true;
       return false;
     }
 
-
+    safex::command_t command_type = cmd.command_type;
 
 
   if (command_type == safex::command_t::token_stake)
@@ -3507,7 +3500,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     tvc.m_safex_invalid_command = true;
     return false;
   }
-
+  }
 
   return true;
 }
