@@ -623,6 +623,16 @@ namespace cryptonote
      */
     bool check_safex_tx(const transaction &tx, tx_verification_context &tvc);
 
+    /**
+     * @brief check if transaction outputs and inputs satisfy command type restrictions
+     *
+     * @param tx the transaction to validate
+     * @param command_type command type that is being checked
+     *
+     * @return returns false if tx does not hold safex related restrictions, otherwise true
+     */
+    bool check_safex_tx_command(const transaction &tx, const safex::command_t& command_type);
+
     bool are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin);
 
     /**
