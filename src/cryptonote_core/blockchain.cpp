@@ -3083,6 +3083,15 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
 
     if (command_type == safex::command_t::token_stake)
     {
+        /* Find amount of input staked tokens */
+        uint64_t inputs_staked_token_amount = 0;
+        for(const auto &vin: tx.vin)
+            if ((vin.type() == typeid(txin_to_script))){
+                const txin_to_script &txin_script = boost::get<txin_to_script>(vin);
+                if(txin_script.command_type == safex::command_t::token_stake)
+                    inputs_staked_token_amount += txin_script.token_amount;
+            }
+
         /* Find amount of output staked tokens */
         uint64_t outputs_staked_token_amount = 0;
         for (const auto &vout: tx.vout)
@@ -3097,6 +3106,12 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         if (outputs_staked_token_amount < safex::get_minimum_token_stake_amount(m_nettype))
         {
             MERROR("Safex token stake amount too small, must be at least "<< cryptonote::print_money(safex::get_minimum_token_stake_amount(m_nettype)));
+            return false;
+        }
+        /* Check if amount of staked tokens in the output is less or equal to the amount in the input*/
+        if (inputs_staked_token_amount < outputs_staked_token_amount)
+        {
+            MERROR("Safex token stake output amount higher than input amount");
             return false;
         }
     }
