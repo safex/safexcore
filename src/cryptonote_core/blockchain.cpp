@@ -3214,13 +3214,7 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
-        std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(command.script, command.command_type);
-        std::unique_ptr<safex::create_account_result> result(dynamic_cast<safex::create_account_result*>(cmd->execute(*m_db, command)));
-        if (result->status != safex::execution_status::ok)
-        {
-            LOG_ERROR("Execution of create account command failed, status:" << static_cast<int>(result->status));
-            return false;
-        }
+        std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(command.script);
 
         for (const auto &vout: tx.vout)
         {
@@ -3237,8 +3231,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 safex::create_account_data account;
                 const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
 
-                if(result->username != account.username || result->pkey != account.pkey || result->account_data != account.account_data){
+
+                if(cmd->get_username() != account_username || cmd->get_account_key() != account.pkey || cmd->get_account_data() != account.account_data){
                     MERROR("Output data not matching input command data");
                     return false;
                 }
@@ -3298,13 +3294,8 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
-        std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(command.script, command.command_type);
-        std::unique_ptr<safex::edit_account_result> result(dynamic_cast<safex::edit_account_result*>(cmd->execute(*m_db, command)));
-        if (result->status != safex::execution_status::ok)
-        {
-            LOG_ERROR("Execution of edit account command failed, status:" << static_cast<int>(result->status));
-            return false;
-        }
+        std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(command.script);
+
 
         for (const auto &vout: tx.vout)
         {
@@ -3321,8 +3312,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 safex::edit_account_data account;
                 const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
 
-                if(result->username != account.username || result->account_data != account.account_data){
+
+                if(cmd->get_username() != account_username || cmd->get_new_account_data() != account.account_data){
                     MERROR("Output data not matching input command data");
                     return false;
                 }
