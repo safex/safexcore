@@ -3286,15 +3286,47 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::edit_account)
     {
+        bool edit_account_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::edit_account)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::command> cmd = safex::safex_command_serializer::parse_safex_object(command.script, command.command_type);
+        std::unique_ptr<safex::edit_account_result> result(dynamic_cast<safex::edit_account_result*>(cmd->execute(*m_db, command)));
+        if (result->status != safex::execution_status::ok)
+        {
+            LOG_ERROR("Execution of edit account command failed, status:" << static_cast<int>(result->status));
+            return false;
+        }
 
         for (const auto &vout: tx.vout)
         {
             if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
             {
+                if(edit_account_seen)
+                {
+                    MERROR("Multiple Safex account edit outputs");
+                    return false;
+                }
+                edit_account_seen = true;
+
                 const txout_to_script &out = boost::get<txout_to_script>(vout.target);
                 safex::edit_account_data account;
                 const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(accblob, account);
+
+                if(result->username != account.username || result->account_data != account.account_data){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
                 //check username for uniqueness
                 crypto::public_key temppkey{};
                 if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
