@@ -3023,6 +3023,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   if (tx.version == 1) return true;
 
   std::vector<txin_to_script> input_commands_to_execute;
+  std::set<safex::command_t> input_commands_to_check;
 
   bool unstake_seen = false;
   bool network_fee_seen = false;
@@ -3048,6 +3049,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         only_stake_seen = false;
 
       input_commands_to_execute.push_back(txin_script);
+      input_commands_to_check.insert(txin_script.command_type);
     }
   }
 
@@ -3062,14 +3064,15 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
 
   //validate all command logic
-  for (const txin_to_script cmd: input_commands_to_execute){
-
+  for (const txin_to_script cmd: input_commands_to_execute)
       if (!safex::validate_safex_command(*m_db, cmd)) {
         tvc.m_safex_command_execution_failed = true;
         return false;
-    }
+      }
 
-    if (!check_safex_tx_command(tx, cmd.command_type)){
+  //check all commands tx restrictions
+  for (const safex::command_t cmd_type: input_commands_to_check){
+    if (!check_safex_tx_command(tx, cmd_type)){
         tvc.m_safex_invalid_input = true;
         return false;
     }
@@ -3122,7 +3125,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         {
             if (txin.type() == typeid(txin_to_script))
             {
-                //TODO: Grki check if absolute is needed
                 const txin_to_script &in = boost::get<txin_to_script>(txin);
                 for (auto index: in.key_offsets) {
                     output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
