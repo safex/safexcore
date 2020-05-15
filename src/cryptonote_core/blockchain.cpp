@@ -3346,16 +3346,46 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::create_offer)
     {
-        //todo check for signature of account owner
-        //TODO: Make additional checks
+        bool create_offer_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_offer)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(command.script);
+
+
         for (const auto &vout: tx.vout)
         {
             if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
             {
+                if(create_offer_seen)
+                {
+                    MERROR("Multiple Safex offer create outputs");
+                    return false;
+                }
+                create_offer_seen = true;
+
                 const txout_to_script &out = boost::get<txout_to_script>(vout.target);
                 safex::create_offer_data offer;
                 const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+                if(cmd->get_offerid() != offer.offer_id || cmd->get_price_peg_id() != offer.price_peg_id || cmd->get_seller() != offer.seller
+                    || cmd->get_title() != offer.title || cmd->get_price() != offer.price || cmd->get_min_sfx_price() != offer.min_sfx_price
+                    || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
+                    || cmd->get_description() != offer.description || cmd->get_seller_private_view_key() != offer.seller_private_view_key
+                    || cmd->get_seller_address() != offer.seller_address){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
                 //check username for uniqueness
                 crypto::public_key temppkey{};
                 if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
