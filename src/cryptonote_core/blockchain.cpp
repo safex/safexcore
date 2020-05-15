@@ -3022,16 +3022,15 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   if (tx.version == 1) return true;
 
-  std::vector<const txin_to_script*> input_commands_to_execute;
+  std::vector<txin_to_script> input_commands_to_execute;
 
   //Transaction must have commands of only one type:
   safex::command_t command_type = safex::command_t::invalid_command;
-  for (size_t i = 0; i < tx.vin.size(); i++)
+  for (auto txin: tx.vin)
   {
-    const txin_v &txin = tx.vin[i];
     if ((txin.type() == typeid(txin_to_script)))
     {
-      const txin_to_script &txin_script = boost::get<txin_to_script>(tx.vin[i]);
+      const txin_to_script &txin_script = boost::get<txin_to_script>(txin);
       safex::command_t tmp = txin_script.command_type;
       //multiple different commands on input, error
       if ((command_type == safex::command_t::token_unstake && tmp == safex::command_t::distribute_network_fee) ||
@@ -3047,7 +3046,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         command_type = tmp;
       }
 
-      input_commands_to_execute.push_back(&txin_script);
+      input_commands_to_execute.push_back(txin_script);
     }
   }
 
@@ -3058,8 +3057,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
 
   //validate all command logic
-  for (const txin_to_script* pcmd: input_commands_to_execute)
-    if (!safex::validate_safex_command(*m_db, *pcmd)) {
+  for (const txin_to_script cmd: input_commands_to_execute)
+    if (!safex::validate_safex_command(*m_db, cmd)) {
       tvc.m_safex_command_execution_failed = true;
       return false;
     }
