@@ -3026,34 +3026,46 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   //Transaction must have commands of only one type:
   safex::command_t command_type = safex::command_t::invalid_command;
+
+  bool unstake_seen = false;
+  bool network_fee_seen = false;
+  bool only_donate_seen = true;
+  bool only_stake_seen = true;
+
   for (auto txin: tx.vin)
   {
     if ((txin.type() == typeid(txin_to_script)))
     {
       const txin_to_script &txin_script = boost::get<txin_to_script>(txin);
-      safex::command_t tmp = txin_script.command_type;
-      //multiple different commands on input, error
-      if ((command_type == safex::command_t::token_unstake && tmp == safex::command_t::distribute_network_fee) ||
-              (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unstake)) {
-        //this is ok
-      }
-      else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
-        tvc.m_safex_verification_failed = true;
-        return false;
-      }
+
+      if(txin_script.command_type == safex::command_t::token_unstake)
+        unstake_seen = true;
+
+      if(txin_script.command_type == safex::command_t::distribute_network_fee)
+        network_fee_seen = true;
+
+      if(txin_script.command_type != safex::command_t::donate_network_fee)
+        only_donate_seen = false;
+
+      if(txin_script.command_type != safex::command_t::token_stake)
+        only_stake_seen = false;
 
       if (command_type == safex::command_t::invalid_command) {
-        command_type = tmp;
+        command_type = txin_script.command_type;
       }
 
       input_commands_to_execute.push_back(txin_script);
     }
   }
 
-  //there is no valid command found on input
-  if (command_type == safex::command_t::invalid_command) {
-    tvc.m_safex_invalid_command = true;
-    return false;
+    // Per TX there can be :
+    // * 1  command for all types
+    // * 2  commands if they are  1 unstake token and 1 distribute network fee
+    // * >1 commands if they are all stake token or donate_network_fee
+    if (!(input_commands_to_execute.size() == 1 || (input_commands_to_execute.size() == 2 && unstake_seen && network_fee_seen)
+            || (input_commands_to_execute.size() > 1 && (only_donate_seen || only_stake_seen)))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
   }
 
   //validate all command logic
