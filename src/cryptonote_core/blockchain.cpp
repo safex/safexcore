@@ -3607,16 +3607,46 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::create_price_peg)
     {
-        //todo check for signature of account owner
-        //TODO: Make additional checks
+        bool create_price_peg_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_price_peg)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(command.script);
+
         for (const auto &vout: tx.vout)
         {
             if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
             {
+                if(create_price_peg_seen)
+                {
+                    MERROR("Multiple Safex create price peg outputs");
+                    return false;
+                }
+                create_price_peg_seen = true;
+
                 const txout_to_script &out = boost::get<txout_to_script>(vout.target);
                 safex::create_price_peg_data price_peg;
                 const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
+
+                if(cmd->get_title() != price_peg.title
+                    || cmd->get_price_peg_id() != price_peg.price_peg_id
+                    || cmd->get_creator() != price_peg.creator
+                    || cmd->get_description() != price_peg.description
+                    || cmd->get_currency() != price_peg.currency
+                    || cmd->get_rate() != price_peg.rate){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
                 //check username for uniqueness
                 crypto::public_key temppkey{};
                 if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
