@@ -3481,6 +3481,20 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         uint64_t total_payment = 0;
         crypto::secret_key secret_seller_view_key;
         crypto::public_key public_seller_spend_key;
+        bool purchase_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::simple_purchase)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::simple_purchase> cmd = safex::safex_command_serializer::parse_safex_command<safex::simple_purchase>(command.script);
+
 
         if (tx.unlock_time > m_db->height())
         {
@@ -3491,11 +3505,27 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         for (const auto &vout: tx.vout) {
             if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
             {
+                if(purchase_seen)
+                {
+                    MERROR("Multiple Safex purchase outputs");
+                    return false;
+                }
+                purchase_seen = true;
+
                 const txout_to_script &out = boost::get<txout_to_script>(vout.target);
                 safex::safex_offer offer_to_purchase;
                 safex::create_purchase_data purchase;
                 const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+
+                if(cmd->get_offerid() != purchase.offer_id
+                    || cmd->get_price() != purchase.price
+                    || cmd->get_quantity() != purchase.quantity
+                    || cmd->get_shipping() != purchase.shipping){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
                 total_payment = purchase.price;
                 get_safex_offer(purchase.offer_id, offer_to_purchase);
 

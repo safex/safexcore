@@ -752,6 +752,10 @@ struct create_price_peg_result : public execution_result
 
       simple_purchase() : command(0, command_t::simple_purchase) {}
 
+      crypto::hash get_offerid(){ return offer_id; }
+      uint64_t get_quantity(){ return quantity; }
+      uint64_t get_price(){ return price; }
+      bool get_shipping() { return shipping; }
 
       virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
       virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
