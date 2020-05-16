@@ -3566,16 +3566,42 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::create_feedback)
     {
-        //TODO: Make additional checks
+        bool feedback_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_feedback)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(command.script);
+
         for (const auto &vout: tx.vout)
         {
             if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback)
             {
+                if(feedback_seen)
+                {
+                    MERROR("Multiple Safex feedback outputs");
+                    return false;
+                }
+                feedback_seen = true;
+
                 const txout_to_script &out = boost::get<txout_to_script>(vout.target);
                 safex::create_feedback_data feedback;
                 const cryptonote::blobdata feedbackblob(std::begin(out.data), std::end(out.data));
                 cryptonote::parse_and_validate_from_blob(feedbackblob, feedback);
-                //TODO: check if OfferID exists
+
+                if(cmd->get_offerid() != feedback.offer_id
+                    || cmd->get_stars_given() != feedback.stars_given
+                    || cmd->get_comment() != feedback.comment){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
             }
         }
     }
