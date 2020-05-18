@@ -431,7 +431,7 @@ namespace cryptonote
     bool insert_key_images(const transaction &tx, bool kept_by_block);
 
     /**
-     * @brief insert safex data into m_safex_accounts_in_use and m_safex_purchase_in_progress
+     * @brief insert safex data into m_safex_accounts_in_use, m_safex_purchase_in_progress and m_safex_price_peg_update_in_progress
      *
      * @return true on success, false on error
      */
@@ -474,6 +474,15 @@ namespace cryptonote
      * @return true if the purchase with offer ID is in the pool already, otherwise false
      */
     bool have_tx_safex_purchase_in_progress(const crypto::hash& offer_id) const;
+
+    /**
+     * @brief check if a transaction in the pool has a safex price peg usage
+     *
+     * @param price_peg_id Price peg ID that is in use
+     *
+     * @return true if the safex price peg is in use already, otherwise false
+     */
+    bool have_tx_safex_price_peg_in_use(const crypto::hash& price_peg_id) const;
 
     /**
      * @brief check if any spent key image in a transaction is in the pool
@@ -593,6 +602,7 @@ private:
     // Safex related members
     std::vector<std::string> m_safex_accounts_in_use;
     std::vector<crypto::hash> m_safex_purchase_in_progress;
+    std::vector<crypto::hash> m_safex_price_peg_update_in_progress;
 
     //TODO: this time should be a named constant somewhere, not hard-coded
     //! interval on which to check for stale/"stuck" transactions
