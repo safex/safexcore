@@ -8884,7 +8884,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           }
           ++num_nondust_staked_token_outputs;
         }
-        else if (td.token_amount() > 0 &&  td.m_output_type == cryptonote::tx_out_type::out_token)
+        else if (td.token_amount() > 0 &&  td.m_output_type == cryptonote::tx_out_type::out_token && is_token_transfer_unlocked(td))
         {
           auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
           if (found == unused_token_transfers_indices_per_subaddr.end())
