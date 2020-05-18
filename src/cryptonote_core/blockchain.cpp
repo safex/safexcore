@@ -6620,7 +6620,24 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
            output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
           return false;
       }
-    }
+    } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_account))
+        {
+            const txin_to_script &in = boost::get<txin_to_script>(txin);
+            if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+                return true;
+            const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+            // Now we search the offsets and find their txs
+            for (auto index: absolute) {
+                tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+                auto output_token_fee = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
+                cryptonote::transaction tx = m_db->get_tx(toi.first);
+                //Now we search for script input
+                if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
+                    output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+                    return false;
+            }
+        }
 
   }
   return true;
