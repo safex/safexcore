@@ -1036,6 +1036,16 @@ uint64_t WalletImpl::unlockedTokenBalance(uint32_t accountIndex) const
   return m_wallet->unlocked_token_balance(accountIndex);
 }
 
+uint64_t WalletImpl::stakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->staked_token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::unlockedStakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->unlocked_staked_token_balance(accountIndex);
+}
+
 uint64_t WalletImpl::blockChainHeight() const
 {
     if(m_wallet->light_wallet()) {

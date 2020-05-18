@@ -819,6 +819,22 @@ struct Wallet
       return result;
   }
 
+  virtual uint64_t stakedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t stakedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += stakedTokenBalance(i);
+      return result;
+  }
+
+  virtual uint64_t unlockedStakedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t unlockedStakedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += unlockedStakedTokenBalance(i);
+      return result;
+  }
+
    /**
     * @brief watchOnly - checks if wallet is watch only
     * @return - true if watch only

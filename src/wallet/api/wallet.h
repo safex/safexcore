@@ -104,6 +104,8 @@ public:
     uint64_t unlockedBalance(uint32_t accountIndex = 0) const;
     uint64_t tokenBalance(uint32_t accountIndex = 0) const;
     uint64_t unlockedTokenBalance(uint32_t accountIndex = 0) const;
+    uint64_t stakedTokenBalance(uint32_t accountIndex = 0) const;
+    uint64_t unlockedStakedTokenBalance(uint32_t accountIndex = 0) const;
     uint64_t blockChainHeight() const;
     uint64_t approximateBlockChainHeight() const;
     uint64_t daemonBlockChainHeight() const;
