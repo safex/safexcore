@@ -6752,24 +6752,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     {
       src.command_type = safex::command_t::token_unstake;
 
-      //also, create additional source for interest distribution
-      cryptonote::tx_source_entry src_interest = AUTO_VAL_INIT(src_interest);
-      src_interest.command_type = safex::command_t::distribute_network_fee;
-      src_interest.referenced_output_type = tx_out_type::out_network_fee;
-      src_interest.real_output_in_tx_index = src.real_output_in_tx_index; //reference same token output
-      //******************************************************************************************************/
-      //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
-      //******************************************************************************************************/
-      src_interest.real_out_tx_key = src.real_out_tx_key; // here just for completion, does not actually used for check
-      src_interest.outputs = src.outputs;
-      src_interest.real_output = src.real_output;
-      src_interest.amount = get_interest_for_transfer(td);
+      src.amount = get_interest_for_transfer(td);
 
-      // add source and destinations
-      if (src_interest.amount > 0)
-      {
-        additional_sources.push_back(src_interest);
-      }
     }
     else if (command_type == safex::command_t::create_account && (!command_input_creted))
     {

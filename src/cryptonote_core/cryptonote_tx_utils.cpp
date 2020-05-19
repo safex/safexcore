@@ -635,25 +635,6 @@ namespace cryptonote
       safex::donate_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
       safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
     }
-    else if (src_entr.command_type == safex::command_t::distribute_network_fee)
-    {
-      input.amount = src_entr.amount;
-      input.k_image = AUTO_VAL_INIT(input.k_image);
-      //we will set kimage as output id of token stake output that is unstaked in this transaction
-      uint64_t temp = src_entr.outputs[0].first;
-      memcpy((void*)(&input.k_image), (char *)(&temp), sizeof(temp));
-
-
-      //fill outputs array and use relative offsets
-      for (const tx_source_entry::output_entry &out_entry: src_entr.outputs)
-        input.key_offsets.push_back(out_entry.first);
-
-      input.key_offsets = absolute_output_offsets_to_relative(input.key_offsets);
-
-      //here, prepare data of transaction command execution and serialize command
-      safex::distribute_fee cmd{SAFEX_COMMAND_PROTOCOL_VERSION, src_entr.amount};
-      safex::safex_command_serializer::serialize_safex_object(cmd, input.script);
-    }
     else if (src_entr.command_type == safex::command_t::create_account)
     {
       input.k_image = img;
@@ -818,7 +799,7 @@ namespace cryptonote
     tx_destination_entry dst_entr{};
 
     //add interest output for fee distribution
-    if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
+    if (input_txin_to_script.command_type == safex::command_t::token_unstake) {
       //find staked token amount matching to this interest
       uint64_t input_token_staked_amount = 0;
       uint64_t output_token_amount = 0;
@@ -1271,9 +1252,10 @@ namespace cryptonote
         tx.vin.push_back(input_txin_to_script);
 
         //adhoc add destination for interest based on input distribute newtork fee command
-        if (input_txin_to_script.command_type == safex::command_t::distribute_network_fee) {
+        if (input_txin_to_script.command_type == safex::command_t::token_unstake) {
           tx_destination_entry dst_interest = adjust_advanced_outputs(sources, src_entr, input_txin_to_script, destinations);
-          destinations.push_back(dst_interest);
+          if(dst_interest.amount > 0)
+            destinations.push_back(dst_interest);
         }
 
       }
@@ -1674,10 +1656,6 @@ namespace cryptonote
                     || src_entr.referenced_output_type == tx_out_type::out_safex_price_peg) {
             crypto::generate_signature(tx_prefix_hash, sfx_acc_keys.m_public_key, sfx_acc_keys.m_secret_key, *sigs.data());
             MCINFO("construct_tx", "sfx account advanced_output_id="<< src_entr.real_output);
-          }
-          else if (src_entr.referenced_output_type == tx_out_type::out_network_fee && src_entr.command_type == safex::command_t::distribute_network_fee) {
-            //todo Atana, figure out how to handle this case
-            MCINFO("construct_tx", "donation " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str());
           }
           else {
             crypto::generate_ring_signature(tx_prefix_hash, k_image, keys_ptrs, in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());

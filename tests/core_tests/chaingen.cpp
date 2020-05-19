@@ -538,9 +538,6 @@ bool create_network_token_lock_interest_map(const std::vector<test_event_entry> 
                                 if (in.command_type == safex::command_t::token_unstake) {
                                     currently_locked_tokens -= in.token_amount;
                                 }
-                                else if (in.command_type == safex::command_t::distribute_network_fee) {
-                                    //nothing to do??
-                                }
                             }
 
 
@@ -916,23 +913,10 @@ bool fill_unstake_token_sources(std::vector<tx_source_entry> &sources, const std
 
             if (sources_found)
             {
-              cryptonote::tx_source_entry ts_interest = AUTO_VAL_INIT(ts_interest);
-              ts_interest.referenced_output_type = cryptonote::tx_out_type::out_network_fee;
-              ts_interest.command_type = safex::command_t::distribute_network_fee;
-              ts_interest.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
-              ts_interest.real_output_in_tx_index = oi.out_no; //reference same token output
-              //******************************************************************************************************/
-              //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
-              //******************************************************************************************************/
-              ts_interest.real_out_tx_key = get_tx_pub_key_from_extra(*oi.p_tx); // here just for completion, does not actually used for check
-              //ts_interest.real_out_tx_key = AUTO_VAL_INIT(ts_interest.real_out_tx_key); //not used
-              ts_interest.outputs = ts.outputs;
-              ts_interest.real_output = realOutput;
 
-
+              ts.amount = calculate_token_holder_interest_for_output(oi.blk_height, current_height, interest_map, oi.token_amount);
               sources.push_back(ts);
-              if (ts_interest.amount > 0)
-                sources.push_back(ts_interest);
+
             }
 
 
@@ -1218,7 +1202,7 @@ void fill_token_unstake_tx_sources_and_destinations(const std::vector<test_event
   // Interest destination is added in construct_advanced_tx_with_tx_key, review if this is optimal
   tx_destination_entry de_interest = AUTO_VAL_INIT(de_interest);
   for (tx_source_entry &source: sources) {
-    if (source.command_type == safex::command_t::distribute_network_fee) {
+      if (source.command_type == safex::command_t::token_unstake && source.amount > 0) {
       de_interest = create_interest_destination(to, source.amount);
     }
   }

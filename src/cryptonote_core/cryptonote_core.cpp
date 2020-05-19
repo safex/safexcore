@@ -1176,10 +1176,7 @@ namespace cryptonote
       } else if (in.type() == typeid(const txin_to_script)) {
 
         const txin_to_script &txin = boost::get<const txin_to_script>(in);
-        if (txin.command_type == safex::command_t::distribute_network_fee) {
-          // todo atana: check if this is necessary
-          LOG_PRINT_L2("skip key image validation of distributed network fee");
-        } else if (txin.command_type == safex::command_t::edit_account) {
+        if (txin.command_type == safex::command_t::edit_account) {
           //todo Atana optimize somehow key image validation, so many conversions
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);

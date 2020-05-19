@@ -231,31 +231,6 @@ namespace safex
     return result;
   };
 
-
-  distribute_fee_result* distribute_fee::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
-  {
-    execution_status result = validate(blokchainDB, txin);
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(result == execution_status::ok, "Failed to validate distribute fee command", this->get_command_type());
-
-    distribute_fee_result *cr = new distribute_fee_result{};
-    cr->amount = txin.amount;
-    cr->valid = true;
-    cr->status = execution_status::ok;
-    return cr;
-  };
-
-  execution_status distribute_fee::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
-  {
-
-    execution_status result = execution_status::ok;
-    if(!(txin.amount > 0))
-        return execution_status::error_wrong_input_params;
-    if(txin.token_amount != 0)
-        return execution_status::error_wrong_input_params;
-
-    return result;
-  };
-
   create_account_result* create_account::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 

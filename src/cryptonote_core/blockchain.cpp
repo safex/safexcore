@@ -338,9 +338,6 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::donate_network_fee:
       output_type = tx_out_type::out_cash;
       break;
-    case safex::command_t::distribute_network_fee:
-      output_type = tx_out_type::out_network_fee;
-      break;
     case safex::command_t::create_account:
       output_type = tx_out_type::out_token;
       break;
@@ -3025,8 +3022,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   std::vector<txin_to_script> input_commands_to_execute;
   std::set<safex::command_t> input_commands_to_check;
 
-  bool unstake_seen = false;
-  bool network_fee_seen = false;
   bool only_donate_seen = true;
   bool only_stake_seen = true;
 
@@ -3035,12 +3030,6 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
     if ((txin.type() == typeid(txin_to_script)))
     {
       const txin_to_script &txin_script = boost::get<txin_to_script>(txin);
-
-      if(txin_script.command_type == safex::command_t::token_unstake)
-        unstake_seen = true;
-
-      if(txin_script.command_type == safex::command_t::distribute_network_fee)
-        network_fee_seen = true;
 
       if(txin_script.command_type != safex::command_t::donate_network_fee)
         only_donate_seen = false;
@@ -3055,9 +3044,8 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
     // Per TX there can be :
     // * 1  command for all types
-    // * 2  commands if they are  1 unstake token and 1 distribute network fee
     // * >1 commands if they are all stake token or donate_network_fee
-    if (!(input_commands_to_execute.size() == 1 || (input_commands_to_execute.size() == 2 && unstake_seen && network_fee_seen)
+    if (!(input_commands_to_execute.size() == 1
             || (input_commands_to_execute.size() > 1 && (only_donate_seen || only_stake_seen)))) {
       tvc.m_safex_invalid_command = true;
       return false;
@@ -3135,6 +3123,38 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+
+        //TODO: GRKI Refactor this
+
+        /* Find cash and token amount that is distributed, check if they match */
+        uint64_t distributed_cash_amount = 0;
+        uint64_t unstaked_token_amount = 0;
+        uint64_t expected_interest = 0;
+        for (const auto &txin: tx.vin)
+        {
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::token_unstake)
+                {
+                    unstaked_token_amount += stxin.token_amount;
+                    expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
+                    distributed_cash_amount += stxin.amount;
+
+                    if (stxin.key_offsets.size() != 1)
+                    {
+                        MERROR("Interest should be distributed for particular token stake output");
+                        return false;
+                    }
+                }
+            }
+        }
+        /* Check if donated cash amount matches */
+        if (distributed_cash_amount > expected_interest)
+        {
+            MERROR("Token unstake interest too high");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::donate_network_fee)
     {
@@ -3160,41 +3180,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         if (outputs_donated_cash_amount >= input_cash_amount)
         {
             MERROR("Invalid safex cash input amount");
-            return false;
-        }
-    }
-    else if (command_type == safex::command_t::distribute_network_fee)
-    {
-        /* Find cash and token amount that is distributed, check if they match */
-        uint64_t distributed_cash_amount = 0;
-        uint64_t unstaked_token_amount = 0;
-        uint64_t expected_interest = 0;
-        for (const auto &txin: tx.vin)
-        {
-            if (txin.type() == typeid(txin_to_script))
-            {
-                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
-                if (stxin.command_type == safex::command_t::token_unstake)
-                {
-                    unstaked_token_amount += stxin.token_amount;
-                    expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
-                }
-                else if (stxin.command_type == safex::command_t::distribute_network_fee)
-                {
-                    distributed_cash_amount += stxin.amount;
-
-                    if (stxin.key_offsets.size() != 1)
-                    {
-                        MERROR("Interest should be distributed for particular token stake output");
-                        return false;
-                    }
-                }
-            }
-        }
-        /* Check if donated cash amount matches */
-        if (distributed_cash_amount > expected_interest)
-        {
-            MERROR("Token unstake interest too high");
             return false;
         }
     }
@@ -3831,17 +3816,11 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   }
   else if (txin.command_type == safex::command_t::token_unstake)
   {
-    if (txin.amount > 0 || txin.token_amount == 0)
+    if (txin.token_amount == 0)
       return false;
   }
   else if (txin.command_type == safex::command_t::donate_network_fee)
   {
-    if (txin.amount == 0 || txin.token_amount > 0)
-      return false;
-  }
-  else if (txin.command_type == safex::command_t::distribute_network_fee)
-  {
-    //todo atana calculate if interest amount matches
     if (txin.amount == 0 || txin.token_amount > 0)
       return false;
   }
@@ -4106,10 +4085,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
         }
-        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee)) {
-          //todo atana nothing to do here
-          results[sig_index] = true;
-        }
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
           std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
           crypto::public_key account_pkey{};
@@ -4160,9 +4135,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee) ) {
-          //todo atana nothing to do here
-          results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
             std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
             crypto::public_key account_pkey{};

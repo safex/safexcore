@@ -63,7 +63,6 @@ namespace safex
       token_unstake = 0x02,
       token_collect = 0x03,
       donate_network_fee = 0x04, /* Donate safex cash to newtork token holders */
-      distribute_network_fee = 0x05, /* Distribute collected newtork fee to token holders */
       simple_purchase = 0x06,
       create_account = 0x0A, /* Create Safex account */
       edit_account = 0x0B, /* Edit Safex account */

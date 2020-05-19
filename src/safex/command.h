@@ -117,11 +117,6 @@ namespace safex
       END_SERIALIZE()
   };
 
-  struct distribute_fee_result : public execution_result
-  {
-    uint64_t amount = 0; //cash amount do donate to newtork token holders
-  };
-
   struct create_account_result : public execution_result
   {
 
@@ -777,37 +772,6 @@ struct create_price_peg_result : public execution_result
       bool shipping{};
   };
 
-
-  class distribute_fee : public command
-  {
-    public:
-      friend class safex_command_serializer;
-
-      /**
-       * @param _version Safex command protocol version
-       * @param _donate_amount //amount of safex cash that will be distributed to token holders that unstake tokens
-      * */
-      distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command(_version, command_t::distribute_network_fee),
-                                                                                        safex_cash_amount(_donation_safex_cash_amount) {}
-
-      distribute_fee() : command(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
-
-      uint64_t get_staked_token_output_index() const { return safex_cash_amount; }
-
-      virtual distribute_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
-      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
-
-      BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command *>(this))
-        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::distribute_network_fee);
-        VARINT_FIELD(safex_cash_amount)
-      END_SERIALIZE()
-
-    private:
-
-      uint64_t safex_cash_amount;
-  };
-
   class create_account : public command
   {
     public:
@@ -1158,9 +1122,6 @@ private:
             break;
           case safex::command_t::token_collect:
             return std::unique_ptr<command>(parse_safex_object<token_collect>(buffer));
-            break;
-          case safex::command_t::distribute_network_fee:
-            return std::unique_ptr<command>(parse_safex_object<distribute_fee>(buffer));
             break;
           case safex::command_t::donate_network_fee:
             return std::unique_ptr<command>(parse_safex_object<donate_fee>(buffer));

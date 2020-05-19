@@ -1587,10 +1587,6 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   {
     //network_fee_sum is updated at place of output processing
   }
-  else if (txin.command_type == safex::command_t::distribute_network_fee)
-  {
-
-  }
   else if (txin.command_type == safex::command_t::create_account)
   {
 
