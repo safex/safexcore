@@ -6286,40 +6286,7 @@ uint64_t Blockchain::calculate_staked_token_interest(const uint64_t token_amount
 
 uint64_t Blockchain::calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const
 {
-  uint64_t ret = 0;
-
-  if (txin.command_type != safex::command_t::token_unstake) {
-    MERROR("Invalid command for interest calculation");
-    return 0;
-  }
-
-  output_advanced_data_t output_data = m_db->get_output_advanced_data(tx_out_type::out_staked_token, txin.key_offsets[0]);
-
-  if (output_data.height == 0) {
-    MERROR("Invalid output lock height");
-    return 0;
-  }
-
-  uint64_t starting_interval = safex::calculate_interval_for_height(output_data.height, m_nettype) + 1;
-  uint64_t end_interval = safex::calculate_interval_for_height(unlock_height, m_nettype) - 1;
-
-  if (starting_interval > end_interval) {
-    MERROR("Calculating interest for invalid intervals");
-    return 0;
-  }
-
-  safex::map_interval_interest interest_map;
-  if (!m_db->get_interval_interest_map(starting_interval, end_interval, interest_map)) {
-    MERROR("Could not get interval map");
-    return 0;
-  }
-
-  uint64_t  interest = 0;
-  for (uint64_t i=starting_interval;i<=end_interval;++i) {
-    interest += interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
-  }
-
-  return interest;
+    return m_db->calculate_staked_token_interest_for_output(txin, unlock_height);
 }
 
 std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interval, uint64_t end_interval)

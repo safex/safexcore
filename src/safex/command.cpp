@@ -94,6 +94,10 @@ namespace safex
         if(out.token_amount == txin.token_amount)
           output_found = true;
 
+    uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
+
+    if(txin.amount > expected_interest)
+        result = execution_status::error_unstake_token_network_fee_not_matching;
 
     if(!output_found)
         result = execution_status::error_unstake_token_output_not_found;

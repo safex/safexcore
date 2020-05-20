@@ -1770,6 +1770,15 @@ namespace cryptonote
       virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
 
 
+      /**
+       * Returns accumulated interest for given output
+       *
+       *
+       * @param txin script of unstake command
+       * @param unlock_height height of the Blockchain when the command is called
+       * @return Total SFX network fee for given output
+       */
+      virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const = 0;
 
       /**
        * Get safex account public key
