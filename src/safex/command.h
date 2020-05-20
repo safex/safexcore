@@ -144,12 +144,10 @@ namespace safex
             username{_username}, account_data{_account_data} {
     }
     std::vector<uint8_t> username{};
-    crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
-          FIELD(pkey)
           FIELD(account_data)
       END_SERIALIZE()
   };
