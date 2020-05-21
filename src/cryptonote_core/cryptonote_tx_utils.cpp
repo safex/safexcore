@@ -1196,8 +1196,7 @@ namespace cryptonote
       keypair &in_ephemeral = in_contexts.back().in_ephemeral;
       crypto::key_image img{};
       const auto &out_key = reinterpret_cast<const crypto::public_key &>(src_entr.outputs[src_entr.real_output].second.dest);
-      if (src_entr.referenced_output_type == tx_out_type::out_safex_account || src_entr.referenced_output_type == tx_out_type::out_safex_offer
-          || src_entr.referenced_output_type == tx_out_type::out_safex_price_peg)
+      if (!safex::is_safex_key_image_verification_needed(src_entr.command_type))
       {
         if (!crypto::check_key(out_key))
         {
@@ -1205,9 +1204,7 @@ namespace cryptonote
           return false;
         }
 
-        //todo Atana check if there is better way to generate key image, currently it is hash of input command
         crypto::hash cmd_hash{};
-        get_blob_hash(src_entr.command_safex_data, cmd_hash);
         memcpy(img.data, cmd_hash.data, sizeof(img.data));
 
       } else {
