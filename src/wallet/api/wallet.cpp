@@ -1615,6 +1615,12 @@ std::vector<SafexOffer> WalletImpl::listSafexOffers(bool active){
     return offers;
 }
 
+uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output){
+
+    return m_wallet->get_current_interest(interest_per_output);
+}
+
+
 PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
                                                            PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand){
 
