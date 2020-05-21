@@ -1176,55 +1176,7 @@ namespace cryptonote
       } else if (in.type() == typeid(const txin_to_script)) {
 
         const txin_to_script &txin = boost::get<const txin_to_script>(in);
-        if (txin.command_type == safex::command_t::edit_account) {
-          //todo Atana optimize somehow key image validation, so many conversions
-          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
-          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
-          safex::edit_account_data account(cmd->get_username(), cmd->get_new_account_data());
-          crypto::hash cmd_hash{};
-          get_object_hash(account, cmd_hash);
-          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
-            return false;
-        } else if (txin.command_type == safex::command_t::create_offer) {
-            //todo Atana optimize somehow key image validation, so many conversions
-            const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
-            std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
-            safex::create_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active(),cmd->get_seller_address(),cmd->get_seller_private_view_key(),cmd->get_price_peg_id(),cmd->get_min_sfx_price(),cmd->get_price_peg_used());
-            crypto::hash cmd_hash{};
-            get_object_hash(offer, cmd_hash);
-            if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
-                return false;
-        } else if (txin.command_type == safex::command_t::edit_offer) {
-          //todo Atana optimize somehow key image validation, so many conversions
-          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
-          std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
-          safex::edit_offer_data offer(cmd->get_offerid(),cmd->get_seller(),cmd->get_title(),cmd->get_quantity(),cmd->get_price(),cmd->get_description(),cmd->get_active(),cmd->get_price_peg_id(),cmd->get_min_sfx_price(),cmd->get_price_peg_used());
-          crypto::hash cmd_hash{};
-          get_object_hash(offer, cmd_hash);
-          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
-              return false;
-      } else if (txin.command_type == safex::command_t::create_price_peg) {
-          //todo Atana optimize somehow key image validation, so many conversions
-          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
-          std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
-
-          safex::create_price_peg_data price_peg(cmd->get_title(),cmd->get_price_peg_id(),cmd->get_creator(),cmd->get_description(),cmd->get_currency(),cmd->get_rate());
-          crypto::hash cmd_hash{};
-          get_object_hash(price_peg, cmd_hash);
-          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
-            return false;
-        } else if (txin.command_type == safex::command_t::update_price_peg) {
-          //todo Atana optimize somehow key image validation, so many conversions
-          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
-          std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
-
-          safex::update_price_peg_data price_peg(cmd->get_price_peg_id(),cmd->get_rate());
-          crypto::hash cmd_hash{};
-          get_object_hash(price_peg, cmd_hash);
-          if (memcmp(cmd_hash.data, k_image.data, sizeof(k_image.data)) != 0)
-            return false;
-        }
-        else {
+        if (safex::is_safex_key_image_verification_needed(txin.command_type)){
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
           // invalid key_image
           if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
