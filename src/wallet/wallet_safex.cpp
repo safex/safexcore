@@ -158,6 +158,40 @@ namespace tools
 
     return my_interest;
   }
+  //-----------------------------------------------------------------------------------------------------------------
+  std::map<uint64_t, uint64_t> wallet::get_interest_map(const uint64_t start_interval, const uint64_t end_interval)
+  {
+      //TODO: GRKI Remove static at one point please...
+      static std::map<uint64_t, uint64_t> interest_map;
+
+      cryptonote::COMMAND_RPC_GET_INTEREST_MAP::request req = AUTO_VAL_INIT(req);
+      cryptonote::COMMAND_RPC_GET_INTEREST_MAP::response res = AUTO_VAL_INIT(res);
+
+      req.begin_interval = safex::calculate_interval_for_height(start_interval, this->nettype()) + 1; //earning interest starts from next interval
+      req.end_interval = safex::calculate_interval_for_height(end_interval, this->nettype()) - 1; //finishes in previous interval
+
+      if (req.begin_interval > req.end_interval)
+          return interest_map;
+
+      if (interest_map.find(req.begin_interval) == interest_map.end() || interest_map.find(req.end_interval) == interest_map.end())
+      {
+
+          m_daemon_rpc_mutex.lock();
+          bool r = net_utils::invoke_http_json("/get_interest_map", req, res, m_http_client, rpc_timeout);
+          m_daemon_rpc_mutex.unlock();
+
+          THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_interest_map");
+          THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get interest map");
+
+          for (auto &item : res.interest_per_interval)
+          {
+              interest_map.insert({item.interval, item.cash_per_token});
+          }
+
+      }
+      return interest_map;
+
+  }
 
 //-----------------------------------------------------------------------------------------------------------------
   uint64_t wallet::get_interest_for_transfer(const transfer_details &td)
@@ -174,35 +208,13 @@ namespace tools
       return 0;
     }
 
-    cryptonote::COMMAND_RPC_GET_INTEREST_MAP::request req = AUTO_VAL_INIT(req);
-    cryptonote::COMMAND_RPC_GET_INTEREST_MAP::response res = AUTO_VAL_INIT(res);
+    auto begin_interval = td.m_block_height;
+    auto end_interval = this->get_blockchain_current_height();
+    auto interest_map = get_interest_map(begin_interval, end_interval);
 
-    req.begin_interval = safex::calculate_interval_for_height(td.m_block_height, this->nettype()) + 1; //earning interest starts from next interval
-    req.end_interval = safex::calculate_interval_for_height(this->get_blockchain_current_height(), this->nettype()) - 1; //finishes in previous interval
-
-    if (req.begin_interval > req.end_interval) return 0;
-
-    static std::map<uint64_t, uint64_t> interest_map;
-
-    if (interest_map.find(req.begin_interval) == interest_map.end() || interest_map.find(req.end_interval) == interest_map.end())
-    {
-
-      m_daemon_rpc_mutex.lock();
-      bool r = net_utils::invoke_http_json("/get_interest_map", req, res, m_http_client, rpc_timeout);
-      m_daemon_rpc_mutex.unlock();
-
-      THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "get_interest_map");
-      THROW_WALLET_EXCEPTION_IF(res.status != "OK", error::no_connection_to_daemon, "Failed to get interest map");
-
-      for (auto &item : res.interest_per_interval)
-      {
-        interest_map.insert({item.interval, item.cash_per_token});
-      }
-
-    }
 
     uint64_t interest = 0;
-    for (uint64_t i = req.begin_interval; i <= req.end_interval; ++i)
+    for (uint64_t i = begin_interval; i <= end_interval; ++i)
     {
       LOG_PRINT_L2("Interest map for i=" << i << " is " << interest_map[i]);
       interest += interest_map[i] * (td.token_amount() / SAFEX_TOKEN);

@@ -1076,6 +1076,7 @@ namespace tools
     bool is_output_blackballed(const crypto::public_key &output) const;
 
 
+    std::map<uint64_t, uint64_t> get_interest_map(const uint64_t start_interval, const uint64_t end_interval);
     uint64_t get_interest_for_transfer(const transfer_details& td);
     uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
 
