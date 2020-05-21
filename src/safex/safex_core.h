@@ -105,6 +105,24 @@ namespace safex
 #define SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type) {LOG_ERROR(message); std::stringstream ss; ss << message; throw safex::command_exception(command_type, ss.str());}
 #define SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(expr, message, command_type) do {if(!(expr)) SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type);} while(0)
 
+/**
+* Returns if input needs key_image verification
+*
+*
+* @return true if it needs key_image verification, false otherwise
+*/
+  inline uint64_t is_safex_key_image_verification_needed(const safex::command_t& command_type)
+{
+
+    if(command_type == safex::command_t::edit_account
+        || command_type == safex::command_t::create_offer
+        || command_type == safex::command_t::edit_offer
+        || command_type == safex::command_t::create_price_peg
+        || command_type == safex::command_t::update_price_peg)
+        return false;
+    else
+        return true;
+}
 
   /**
  * Returns number of blocks in interval
