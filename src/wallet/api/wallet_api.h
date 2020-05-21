@@ -762,6 +762,13 @@ struct Wallet
     */
     virtual std::vector<SafexOffer> listSafexOffers(bool active) = 0;
 
+    /*!
+    * \brief getMyInterest - Returns total interest and also interest for each stake token output
+    *
+    * \param interest_per_output - Vector of pairs staked token amount and collected fee
+    */
+    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
+
    /*!
     * \brief getRestoreHeight - get wallet creation height
     *
