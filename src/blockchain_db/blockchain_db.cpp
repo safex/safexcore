@@ -174,7 +174,9 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
       if (!k_image_opt)
         throw DB_ERROR("Output does not have proper key image");
       const crypto::key_image &k_image = *k_image_opt;
-      add_spent_key(k_image);
+
+      if(is_safex_key_image_verification_needed(txin.command_type))
+        add_spent_key(k_image);
 
 
     }
@@ -189,14 +191,22 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
       {
         if ((tx_input.type() == typeid(txin_to_key))
             || (tx_input.type() == typeid(txin_token_to_key))
-            || (tx_input.type() == typeid(txin_token_migration))
-            || (tx_input.type() == typeid(txin_to_script))
-                )
+            || (tx_input.type() == typeid(txin_token_migration)))
         {
           auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
           if (!k_image_opt) continue;
           const crypto::key_image &k_image = *k_image_opt;
           remove_spent_key(k_image);
+        } else if (tx_input.type() == typeid(txin_to_script)){
+            auto input = boost::get<txin_to_script>(tx_input);
+
+            if(safex::is_safex_key_image_verification_needed(input.command_type))
+            {
+                auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx_input);
+                if (!k_image_opt) continue;
+                const crypto::key_image &k_image = *k_image_opt;
+                remove_spent_key(k_image);
+            }
         }
       }
       return;
@@ -329,7 +339,9 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       auto input = boost::get<txin_to_script>(tx_input);
       if(input.command_type == safex::command_t::token_unstake)
         remove_unstake_token(tx_hash, tx);
-      remove_spent_key(boost::get<txin_to_script>(tx_input).k_image);
+
+      if(safex::is_safex_key_image_verification_needed(input.command_type))
+        remove_spent_key(boost::get<txin_to_script>(tx_input).k_image);
     }
 
   }

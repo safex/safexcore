@@ -447,8 +447,16 @@ namespace cryptonote
         CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
             << ",  kei_image_set.size()=" << kei_image_set.size() << ENDL << "txin.k_image=" << k_image << ENDL
             << "tx_id=" << id );
+
+        if (in.type() == typeid(txin_to_script)){
+        auto input = boost::get<txin_to_script>(in);
+
+        if(!safex::is_safex_key_image_verification_needed(input.command_type))
+             continue;
+        }
         auto ins_res = kei_image_set.insert(id);
         CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
+
       } else {
         LOG_ERROR("wrong input variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
         return false;
@@ -535,6 +543,12 @@ namespace cryptonote
     {
       if (cryptonote::is_valid_transaction_input_type(vi, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), vi);
+        if (vi.type() == typeid(const txin_to_script)){
+            auto input = boost::get<txin_to_script>(vi);
+
+            if(!safex::is_safex_key_image_verification_needed(input.command_type))
+                continue;
+        }
         auto it = m_spent_key_images.find(k_image);
         CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << k_image << ENDL
             << "transaction id = " << get_transaction_hash(tx));
@@ -1113,6 +1127,13 @@ namespace cryptonote
     {
       if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+
+        if (in.type() == typeid(const txin_to_script)){
+        auto input = boost::get<txin_to_script>(in);
+
+        if(!safex::is_safex_key_image_verification_needed(input.command_type))
+                continue;
+        }
         if(have_tx_keyimg_as_spent(k_image))
           return true;
       } else {

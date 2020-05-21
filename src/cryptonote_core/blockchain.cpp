@@ -3713,6 +3713,13 @@ bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
       CHECK_AND_ASSERT_MES(k_image_opt, true, "key image is not available in input");
       const crypto::key_image &k_image = *k_image_opt;
 
+      if (in.type() == typeid(txin_to_script))
+      {
+          const txin_to_script& in_to_script = boost::get<txin_to_script>(in);
+          if(!safex::is_safex_key_image_verification_needed(in_to_script.command_type))
+              continue;
+      }
+
       if(have_tx_keyimg_as_spent(k_image))
         return true;
     } else {
@@ -4021,13 +4028,26 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     // make sure tx output has key offset(s) (is signed to be used)
     CHECK_AND_ASSERT_MES(is_valid_txin_key_offsets(txin), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
-
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
-    if (have_tx_keyimg_as_spent(k_image))
+
+    if (txin.type() == typeid(txin_to_script))
     {
-      MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
-      tvc.m_double_spend = true;
-      return false;
+        const txin_to_script& in_to_script = boost::get<txin_to_script>(txin);
+        if(safex::is_safex_key_image_verification_needed(in_to_script.command_type)){
+            if (have_tx_keyimg_as_spent(k_image))
+            {
+              MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+              tvc.m_double_spend = true;
+              return false;
+            }
+        }
+    } else {
+        if (have_tx_keyimg_as_spent(k_image))
+        {
+            MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+            tvc.m_double_spend = true;
+            return false;
+        }
     }
 
 
