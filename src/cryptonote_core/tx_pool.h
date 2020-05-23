@@ -431,7 +431,7 @@ namespace cryptonote
     bool insert_key_images(const transaction &tx, bool kept_by_block);
 
     /**
-     * @brief insert safex data into m_safex_accounts_in_use, m_safex_purchase_in_progress and m_safex_price_peg_update_in_progress
+     * @brief insert safex data into m_safex_accounts_in_use, m_safex_offers_in_use, m_safex_purchase_in_progress and m_safex_price_peg_update_in_progress
      *
      * @return true on success, false on error
      */
@@ -465,6 +465,15 @@ namespace cryptonote
      * @return true if the safex account is in use already, otherwise false
      */
     bool have_tx_safex_account_in_use(const std::string& username) const;
+
+    /**
+     * @brief check if a transaction in the pool has a safex offer usage
+     *
+     * @param username Offer ID of the offer that is in use
+     *
+     * @return true if the safex offer is in use already, otherwise false
+     */
+    bool have_tx_safex_offer_in_use(const crypto::hash& offer_id) const;
 
     /**
      * @brief check if a transaction in the pool is purchase for particular offer
@@ -601,6 +610,7 @@ private:
 
     // Safex related members
     std::vector<std::string> m_safex_accounts_in_use;
+    std::vector<crypto::hash> m_safex_offers_in_use;
     std::vector<crypto::hash> m_safex_purchase_in_progress;
     std::vector<crypto::hash> m_safex_price_peg_update_in_progress;
 
