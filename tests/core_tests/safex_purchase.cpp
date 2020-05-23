@@ -139,6 +139,7 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_purchased_offer_id = safex_alice_purchase_from_bob.offer_id;
 
 
+    expected_network_fee += calculate_safex_network_fee(pegged_price, FAKECHAIN, safex::command_t::simple_purchase);
 
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 2*TESTS_DEFAULT_FEE;
@@ -149,9 +150,8 @@ gen_safex_purchase_001::gen_safex_purchase_001()
     expected_bob_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance += MK_TOKENS(20000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_bob_balance -= 4*TESTS_DEFAULT_FEE;
-    expected_bob_balance += pegged_price*95/100;
+    expected_bob_balance += pegged_price-expected_network_fee;
 
-    expected_network_fee += pegged_price*5/100;
 
     expected_alice_feedback_star_rating = safex_alice_feedback.stars_given*COIN;
     expected_alice_balance -= TESTS_DEFAULT_FEE;

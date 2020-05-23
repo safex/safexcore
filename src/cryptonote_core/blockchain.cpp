@@ -3526,14 +3526,15 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
             }
         }
 
+        uint64_t calculated_network_fee = calculate_safex_network_fee(total_payment, m_nettype, command_type);
         //check network fee payment
-        if (total_payment*5/100 > network_fee)
+        if (calculated_network_fee > network_fee)
         {
             MERROR("Not enough cash given for network fee");
             return false;
         }
         //check purchase cash payment
-        if (total_payment*95/100 > product_payment)
+        if (total_payment - calculated_network_fee > product_payment)
         {
             MERROR("Not enough cash given for product payment");
             return false;

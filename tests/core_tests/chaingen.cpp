@@ -1482,14 +1482,14 @@ void fill_create_purchase_tx_sources_and_destinations(const std::vector<test_eve
 
     tx_destination_entry de_donation_fee = AUTO_VAL_INIT(de_donation_fee);
     de_donation_fee.addr = from.get_keys().m_account_address;
-    de_donation_fee.amount = sfx_purchase.price*5/100;
+    de_donation_fee.amount = calculate_safex_network_fee(sfx_purchase.price, FAKECHAIN, safex::command_t::simple_purchase);
     de_donation_fee.script_output = true;
     de_donation_fee.output_type = tx_out_type::out_network_fee;
     destinations.push_back(de_donation_fee);
 
     cryptonote::tx_destination_entry item_purchase_fee = AUTO_VAL_INIT(item_purchase_fee);
     item_purchase_fee.addr = seller_address;
-    item_purchase_fee.amount = sfx_purchase.price*95/100;
+    item_purchase_fee.amount = sfx_purchase.price - de_donation_fee.amount;
     item_purchase_fee.output_type = tx_out_type::out_cash;
     destinations.push_back(item_purchase_fee);
 }

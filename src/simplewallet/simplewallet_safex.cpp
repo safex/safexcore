@@ -368,12 +368,17 @@ namespace cryptonote
 
         uint64_t sfx_price;
         bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
+        if(!res) {
+            fail_msg_writer() << tr("Error calculating SFX price for purchase!!");
+            return true;
+        }
 
         uint64_t total_sfx_to_pay = quantity_to_purchase*sfx_price;
 
-        de.amount = total_sfx_to_pay * 95  / 100;
+        safex_network_fee = calculate_safex_network_fee(total_sfx_to_pay, m_wallet->nettype(), safex::command_t::simple_purchase);
+
+        de.amount = total_sfx_to_pay - safex_network_fee;
         de.output_type = tx_out_type::out_cash;
-        safex_network_fee += total_sfx_to_pay * 5  / 100;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);

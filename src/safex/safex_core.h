@@ -253,7 +253,7 @@ namespace safex
     uint64_t fee = 0;
 
     //todo handle multiplication that overflows
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE) < cash_amount, "Overflow calculating transaction fee", safex::command_t::token_stake);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE) >= cash_amount, "Overflow calculating transaction fee", command_type);
 
     switch (nettype) {
       default:
