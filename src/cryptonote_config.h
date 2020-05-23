@@ -193,6 +193,7 @@ constexpr uint64_t SAFEX_ACCOUNT_DATA_MAX_SIZE                      = 2048;
 //Safex offer constants
 constexpr uint64_t SAFEX_OFFER_NAME_MAX_SIZE                        = 80;
 constexpr uint64_t SAFEX_OFFER_DATA_MAX_SIZE                        = 2048;
+constexpr uint64_t SAFEX_OFFER_MINIMUM_PRICE                        = SAFEX_CASH_COIN/1000; // 0.001 SFX
 
 //Safex price peg constants
 constexpr uint64_t SAFEX_PRICE_PEG_NAME_MAX_SIZE                    = 60;

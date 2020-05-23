@@ -261,7 +261,7 @@ namespace cryptonote
             try{
 
               bool ok = cryptonote::parse_amount(price, local_args[2]);
-              if(!ok || 0 == price)
+              if(!ok || price == 0)
               {
                   fail_msg_writer() << tr("amount is wrong: ") << local_args[2] <<
                       ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
@@ -294,6 +294,11 @@ namespace cryptonote
               if(!attach_price_peg(sfx_offer))
                 return true;
             }
+            if(sfx_offer.min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE){
+                fail_msg_writer() << tr("Minimum price is wrong: ") << print_money(sfx_offer.min_sfx_price) <<
+                    ", " << tr("expected number from ") << print_money(SAFEX_OFFER_MINIMUM_PRICE) << tr(" to ") << print_money(std::numeric_limits<uint64_t>::max());
+                return true;
+            }
 
             cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer);
@@ -308,10 +313,29 @@ namespace cryptonote
             uint64_t price;
             uint64_t quantity;
             bool active;
+
+
             try {
-                price = stold(local_args[3])*SAFEX_CASH_COIN;
-                quantity = stoi(local_args[4]);
+
+                bool ok = cryptonote::parse_amount(price, local_args[3]);
+                if(!ok || price == 0)
+                {
+                    fail_msg_writer() << tr("amount is wrong: ") << local_args[3] <<
+                        ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+                    return true;
+                }
+
+                quantity = stoull(local_args[4]);
                 active = stoi(local_args[5]);
+
+                long double check_price = stold(local_args[3]);
+                long double check_quantity =  stold(local_args[4]);
+                int         check_active   = stoi(local_args[5]);
+
+                if(check_price < 0 || check_quantity < 0 || (check_active != 1 && check_active != 0) ){
+                    fail_msg_writer() << tr("Negative amount, quantity, or active not 1 or 0 entered");
+                    return true;
+                }
 
             }
             catch(std::invalid_argument& e){
@@ -329,6 +353,12 @@ namespace cryptonote
           std::string confirm = input_line(tr("Do you want to attach this offer to a price peg?  (Y/Yes/N/No): "));
           if (!std::cin.eof() && command_line::is_yes(confirm)) {
             if(!attach_price_peg(sfx_offer))
+              return true;
+          }
+
+          if(sfx_offer.min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE){
+              fail_msg_writer() << tr("Minimum price is wrong: ") << print_money(sfx_offer.min_sfx_price) <<
+                  ", " << tr("expected number from ") << print_money(SAFEX_OFFER_MINIMUM_PRICE) << tr(" to ") << print_money(std::numeric_limits<uint64_t>::max());
               return true;
           }
 

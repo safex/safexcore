@@ -348,6 +348,10 @@ namespace safex
             result = execution_status::error_account_non_existant;
         }
 
+        if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
+            result = execution_status::error_offer_price_too_small;
+        }
+
         if(cmd->get_price() > MONEY_SUPPLY) {
           result = execution_status::error_offer_price_too_big;
         }
@@ -393,6 +397,10 @@ namespace safex
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             result = execution_status::error_account_non_existant;
+        }
+
+        if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
+            result = execution_status::error_offer_price_too_small;
         }
 
         if(cmd->get_price() > MONEY_SUPPLY) {
