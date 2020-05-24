@@ -260,8 +260,15 @@ namespace cryptonote
 
             try{
 
-              price = stold(local_args[2])*SAFEX_CASH_COIN;
-              quantity = stoi(local_args[3]);
+              bool ok = cryptonote::parse_amount(price, local_args[2]);
+              if(!ok || price == 0)
+              {
+                  fail_msg_writer() << tr("amount is wrong: ") << local_args[2] <<
+                      ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+                  return true;
+              }
+
+              quantity = stoull(local_args[3]);
 
               long double check_price = stold(local_args[2]);
               long double check_quantity =  stold(local_args[3]);
@@ -287,6 +294,11 @@ namespace cryptonote
               if(!attach_price_peg(sfx_offer))
                 return true;
             }
+            if(sfx_offer.min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE){
+                fail_msg_writer() << tr("Minimum price is wrong: ") << print_money(sfx_offer.min_sfx_price) <<
+                    ", " << tr("expected number from ") << print_money(SAFEX_OFFER_MINIMUM_PRICE) << tr(" to ") << print_money(std::numeric_limits<uint64_t>::max());
+                return true;
+            }
 
             cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
             dsts.push_back(de_offer);
@@ -301,10 +313,29 @@ namespace cryptonote
             uint64_t price;
             uint64_t quantity;
             bool active;
+
+
             try {
-                price = stold(local_args[3])*SAFEX_CASH_COIN;
-                quantity = stoi(local_args[4]);
+
+                bool ok = cryptonote::parse_amount(price, local_args[3]);
+                if(!ok || price == 0)
+                {
+                    fail_msg_writer() << tr("amount is wrong: ") << local_args[3] <<
+                        ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+                    return true;
+                }
+
+                quantity = stoull(local_args[4]);
                 active = stoi(local_args[5]);
+
+                long double check_price = stold(local_args[3]);
+                long double check_quantity =  stold(local_args[4]);
+                int         check_active   = stoi(local_args[5]);
+
+                if(check_price < 0 || check_quantity < 0 || (check_active != 1 && check_active != 0) ){
+                    fail_msg_writer() << tr("Negative amount, quantity, or active not 1 or 0 entered");
+                    return true;
+                }
 
             }
             catch(std::invalid_argument& e){
@@ -322,6 +353,12 @@ namespace cryptonote
           std::string confirm = input_line(tr("Do you want to attach this offer to a price peg?  (Y/Yes/N/No): "));
           if (!std::cin.eof() && command_line::is_yes(confirm)) {
             if(!attach_price_peg(sfx_offer))
+              return true;
+          }
+
+          if(sfx_offer.min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE){
+              fail_msg_writer() << tr("Minimum price is wrong: ") << print_money(sfx_offer.min_sfx_price) <<
+                  ", " << tr("expected number from ") << print_money(SAFEX_OFFER_MINIMUM_PRICE) << tr(" to ") << print_money(std::numeric_limits<uint64_t>::max());
               return true;
           }
 
@@ -361,12 +398,17 @@ namespace cryptonote
 
         uint64_t sfx_price;
         bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
+        if(!res) {
+            fail_msg_writer() << tr("Error calculating SFX price for purchase!!");
+            return true;
+        }
 
         uint64_t total_sfx_to_pay = quantity_to_purchase*sfx_price;
 
-        de.amount = total_sfx_to_pay * 95  / 100;
+        safex_network_fee = calculate_safex_network_fee(total_sfx_to_pay, m_wallet->nettype(), safex::command_t::simple_purchase);
+
+        de.amount = total_sfx_to_pay - safex_network_fee;
         de.output_type = tx_out_type::out_cash;
-        safex_network_fee += total_sfx_to_pay * 5  / 100;
 
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
@@ -1098,13 +1140,27 @@ namespace cryptonote
 
     std::string prompt = "Enter price in "+currency+" : ";
     std::string price_str = input_line(tr(prompt.c_str()));
-    uint64_t new_price = stold(price_str);
-    new_price*=SAFEX_CASH_COIN;
+    uint64_t new_price;
+
+    bool ok = cryptonote::parse_amount(new_price, price_str);
+    if(!ok || 0 == new_price)
+    {
+        fail_msg_writer() << tr("amount is wrong: ") << price_str  <<
+            ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+        return false;
+    }
 
     prompt = "Enter minimum SFX price : ";
     std::string min_price_str = input_line(tr(prompt.c_str()));
-    uint64_t min_price = stold(min_price_str);
-    min_price*=SAFEX_CASH_COIN;
+    uint64_t min_price;
+
+    ok = cryptonote::parse_amount(min_price, min_price_str);
+    if(!ok || 0 == min_price)
+    {
+        fail_msg_writer() << tr("amount is wrong: ") << min_price_str  <<
+            ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+        return false;
+    }
     sfx_offer.set_price_peg(price_peg_id,new_price,min_price);
 
     return true;
@@ -1323,7 +1379,7 @@ namespace cryptonote
 
       for(auto ch: username){
         if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-          fail_msg_writer() << tr("safex account username can only have lowercase letters, _ and -");
+          fail_msg_writer() << tr("safex account username can only have lowercase letters, digits, _ and -");
           return true;
         }
       }
@@ -1353,6 +1409,12 @@ namespace cryptonote
     {
       const std::string &username = local_args[0];
 
+      safex::safex_account sfx_acc;
+      if (!m_wallet->get_safex_account(username, sfx_acc)) {
+          fail_msg_writer() << tr("Safex account does not exist: ") << username;
+          return true;
+      }
+
 
       auto pass = get_and_verify_password();
 
@@ -1360,7 +1422,6 @@ namespace cryptonote
           return true;
 
       if (m_wallet->remove_safex_account(username) && save_safex(pass->password()) ) {
-        save_safex(pass->password());
         success_msg_writer() << tr("Account removed");
       } else {
         fail_msg_writer() << tr("Failed to remove account ") << username;
@@ -1387,7 +1448,6 @@ namespace cryptonote
           return true;
 
       if (m_wallet->recover_safex_account(username, skey) && save_safex(pass->password()) ) {
-        save_safex(pass->password());
         success_msg_writer() << tr("Account recovered");
       } else {
         fail_msg_writer() << tr("Failed to recover account ") << username;
@@ -1395,6 +1455,10 @@ namespace cryptonote
     }
     else if (command == "keys")
     {
+    if(local_args.size() != 1){
+      fail_msg_writer() << tr("One Safex account username was not given");
+      return true;
+    }
       const std::string &username = local_args[0];
 
       if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }

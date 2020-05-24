@@ -660,7 +660,7 @@ namespace cryptonote
       if (vin.type() == typeid(txin_to_script))
       {
         const txin_to_script& in = boost::get<txin_to_script>(vin);
-        if (in.command_type == safex::command_t::distribute_network_fee) {
+        if (in.command_type == safex::command_t::token_unstake) {
           network_fee += in.amount;
         }
       }

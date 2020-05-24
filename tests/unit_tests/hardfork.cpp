@@ -93,7 +93,7 @@ public:
   virtual uint64_t get_indexing_base() const { return 0; }
   virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return output_data_t(); }
   virtual output_advanced_data_t  get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const  { return output_advanced_data_t{}; }
-  virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const { return 0; }
+  virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const { return 0; }
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return tx_out_index(); }
   virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return tx_out_index(); }
   virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const {}
@@ -158,6 +158,7 @@ public:
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
   virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
   virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
+  virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const override { return 0; }
 
   virtual void add_block( const block& blk
                         , const size_t& block_size

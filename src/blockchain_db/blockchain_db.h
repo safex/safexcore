@@ -403,6 +403,21 @@ namespace cryptonote
       {}
   };
 
+  /**
+ * @brief thrown when a transaction cannot be added due to conflict with another tx in the block
+ */
+  class SAFEX_TX_CONFLICT : public DB_EXCEPTION
+  {
+  public:
+      SAFEX_TX_CONFLICT() : DB_EXCEPTION("The safex transaction verification failed!")
+      {}
+
+      SAFEX_TX_CONFLICT(const crypto::hash& _tx_hash) : DB_EXCEPTION("The safex transaction verification failed!"), tx_hash(_tx_hash)
+      {}
+
+      crypto::hash tx_hash;
+  };
+
 /***********************************
  * End of Exception Definitions
  ***********************************/
@@ -1438,10 +1453,11 @@ namespace cryptonote
        *
        * @param output_type type of output(e.g. staked token output
        * @param output_index index of the output for selected type
+       * @param output_id reference to var where output_id will be returned
        *
-       * @return list of public keys that can use this output
+       * @return true if it can find output id, false if it is not found
        */
-      virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const = 0;
+      virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const = 0;
       /**
        * @brief gets an output's tx hash and index
        *
@@ -1754,6 +1770,15 @@ namespace cryptonote
       virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const = 0;
 
 
+      /**
+       * Returns accumulated interest for given output
+       *
+       *
+       * @param txin script of unstake command
+       * @param unlock_height height of the Blockchain when the command is called
+       * @return Total SFX network fee for given output
+       */
+      virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const = 0;
 
       /**
        * Get safex account public key

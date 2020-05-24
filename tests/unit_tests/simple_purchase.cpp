@@ -109,7 +109,7 @@ namespace
 
         m_safex_feedback = safex::safex_feedback{3,"Eating it all day", m_safex_offer[0].offer_id};
 
-        offers_total_fee = m_safex_purchase.price*5/100;
+        offers_total_fee = calculate_safex_network_fee(m_safex_purchase.price, FAKECHAIN, safex::command_t::simple_purchase);
 
 
         std::string new_str_desc{"Now without worms!!"};

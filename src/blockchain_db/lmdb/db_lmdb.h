@@ -284,7 +284,7 @@ public:
                                          bool allow_partial = false) const;
 
   virtual output_advanced_data_t get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const;
-  virtual uint64_t get_output_id(const tx_out_type output_type, const uint64_t output_index) const;
+  virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const;
 
   virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& output_id) const;
   virtual void get_output_tx_and_index_from_global(const std::vector<uint64_t> &global_indices,
@@ -320,6 +320,7 @@ public:
   virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override;
   virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override;
   virtual bool get_interval_interest_map(const uint64_t start_interval, const uint64_t  end_interval, safex::map_interval_interest &map) const override;
+  virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const override;
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const;
   virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const;
   virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const;

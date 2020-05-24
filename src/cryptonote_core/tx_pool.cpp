@@ -447,8 +447,16 @@ namespace cryptonote
         CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
             << ",  kei_image_set.size()=" << kei_image_set.size() << ENDL << "txin.k_image=" << k_image << ENDL
             << "tx_id=" << id );
+
+        if (in.type() == typeid(txin_to_script)){
+        auto input = boost::get<txin_to_script>(in);
+
+        if(!safex::is_safex_key_image_verification_needed(input.command_type))
+             continue;
+        }
         auto ins_res = kei_image_set.insert(id);
         CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
+
       } else {
         LOG_ERROR("wrong input variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
         return false;
@@ -482,42 +490,30 @@ namespace cryptonote
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              m_safex_accounts_in_use.push_back(username);
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              m_safex_offers_in_use.push_back(offer.offer_id);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::edit_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              m_safex_accounts_in_use.push_back(username);
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              m_safex_offers_in_use.push_back(offer.offer_id);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_price_peg_data price_peg;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
-              m_safex_accounts_in_use.push_back(username);
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              m_safex_price_peg_update_in_progress.push_back(price_peg.price_peg_id);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
           {
-                //TODO: GRKI check this case as we do not have creator in update price peg
-//              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-//              safex::update_price_peg_data price_peg;
-//              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-//              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-//              std::string username{price_peg..begin(),price_peg.creator.end()};
-//              m_safex_accounts_in_use.push_back(username);
-          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
-          {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::create_purchase_data purchase;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, purchase);
-              m_safex_purchase_in_progress.push_back(purchase.offer_id);
+              safex::update_price_peg_data price_peg;
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              m_safex_price_peg_update_in_progress.push_back(price_peg.price_peg_id);
           }
       }
       return true;
@@ -537,6 +533,12 @@ namespace cryptonote
     {
       if (cryptonote::is_valid_transaction_input_type(vi, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), vi);
+        if (vi.type() == typeid(const txin_to_script)){
+            auto input = boost::get<txin_to_script>(vi);
+
+            if(!safex::is_safex_key_image_verification_needed(input.command_type))
+                continue;
+        }
         auto it = m_spent_key_images.find(k_image);
         CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << k_image << ENDL
             << "transaction id = " << get_transaction_hash(tx));
@@ -594,49 +596,38 @@ namespace cryptonote
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
-              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_offer" << ENDL << "transaction id = " << get_transaction_hash(tx));
-              m_safex_accounts_in_use.erase(it);
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              auto it = std::find(m_safex_offers_in_use.begin(), m_safex_offers_in_use.end(), offer.offer_id);
+              CHECK_AND_ASSERT_MES(it != m_safex_offers_in_use.end(), false, "failed to find safex restriction for type out_safex_offer" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_offers_in_use.erase(it);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::edit_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
-              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_offer_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
-              m_safex_accounts_in_use.erase(it);
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              auto it = std::find(m_safex_offers_in_use.begin(), m_safex_offers_in_use.end(), offer.offer_id);
+              CHECK_AND_ASSERT_MES(it != m_safex_offers_in_use.end(), false, "failed to find safex restriction for type out_safex_offer" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_offers_in_use.erase(it);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_price_peg_data price_peg;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
-              auto it = std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
-              CHECK_AND_ASSERT_MES(it != m_safex_accounts_in_use.end(), false, "failed to find safex restriction for type out_safex_price_peg" << ENDL << "transaction id = " << get_transaction_hash(tx));
-              m_safex_accounts_in_use.erase(it);
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              auto it = std::find(m_safex_price_peg_update_in_progress.begin(), m_safex_price_peg_update_in_progress.end(), price_peg.price_peg_id);
+              CHECK_AND_ASSERT_MES(it != m_safex_price_peg_update_in_progress.end(), false, "failed to find safex restriction for type out_safex_price_peg_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_price_peg_update_in_progress.erase(it);
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
           {
-              //TODO: GRKI check this case as we do not have creator in update price peg
-              //              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              //              safex::update_price_peg_data price_peg;
-              //              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              //              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-              //              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
-          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
-          {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::create_purchase_data purchase;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, purchase);
-              auto it = std::find(m_safex_purchase_in_progress.begin(), m_safex_purchase_in_progress.end(), purchase.offer_id);
-              CHECK_AND_ASSERT_MES(it != m_safex_purchase_in_progress.end(), false, "failed to find safex restriction for type out_safex_purchase" << ENDL << "transaction id = " << get_transaction_hash(tx));
-              m_safex_purchase_in_progress.erase(it);
+              safex::update_price_peg_data price_peg;
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              auto it = std::find(m_safex_price_peg_update_in_progress.begin(), m_safex_price_peg_update_in_progress.end(), price_peg.price_peg_id);
+              CHECK_AND_ASSERT_MES(it != m_safex_price_peg_update_in_progress.end(), false, "failed to find safex restriction for type out_safex_price_peg_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              m_safex_price_peg_update_in_progress.erase(it);
           }
       }
       return true;
@@ -1114,6 +1105,13 @@ namespace cryptonote
     {
       if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+
+        if (in.type() == typeid(const txin_to_script)){
+        auto input = boost::get<txin_to_script>(in);
+
+        if(!safex::is_safex_key_image_verification_needed(input.command_type))
+                continue;
+        }
         if(have_tx_keyimg_as_spent(k_image))
           return true;
       } else {
@@ -1152,45 +1150,41 @@ namespace cryptonote
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              if(have_tx_safex_account_in_use(username))
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              if(have_tx_safex_offer_in_use(offer.offer_id))
                   return true;
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::edit_offer_data offer;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, offer);
-              std::string username{offer.seller.begin(),offer.seller.end()};
-              if(have_tx_safex_account_in_use(username))
+              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(offerblob, offer);
+              if(have_tx_safex_offer_in_use(offer.offer_id))
                   return true;
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_price_peg_data price_peg;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-              std::string username{price_peg.creator.begin(),price_peg.creator.end()};
-              if(have_tx_safex_account_in_use(username))
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              if(have_tx_safex_price_peg_in_use(price_peg.price_peg_id))
                   return true;
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
           {
-              //TODO: GRKI check this case as we do not have creator in update price peg
-              //              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              //              safex::update_price_peg_data price_peg;
-              //              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              //              cryptonote::parse_and_validate_from_blob(accblob, price_peg);
-              //              std::string username{price_peg..begin(),price_peg.creator.end()};
-              //              m_safex_accounts_in_use.push_back(username);
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::update_price_peg_data price_peg;
+              const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
+              if(have_tx_safex_price_peg_in_use(price_peg.price_peg_id))
+                  return true;
           } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
           {
               const txout_to_script &out = boost::get<txout_to_script>(vout.target);
               safex::create_purchase_data purchase;
-              const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(accblob, purchase);
-              if(have_tx_safex_purchase_in_progress(purchase.offer_id))
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              if(have_tx_safex_offer_in_use(purchase.offer_id))
                   return true;
           }
       }
@@ -1209,10 +1203,16 @@ namespace cryptonote
       return m_safex_accounts_in_use.end() != std::find(m_safex_accounts_in_use.begin(), m_safex_accounts_in_use.end(), username);
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::have_tx_safex_purchase_in_progress(const crypto::hash &offer_id) const
+  bool tx_memory_pool::have_tx_safex_offer_in_use(const crypto::hash& offer_id) const
   {
       CRITICAL_REGION_LOCAL(m_transactions_lock);
-      return m_safex_purchase_in_progress.end() != std::find(m_safex_purchase_in_progress.begin(), m_safex_purchase_in_progress.end(), offer_id);
+      return m_safex_offers_in_use.end() != std::find(m_safex_offers_in_use.begin(), m_safex_offers_in_use.end(), offer_id);
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_tx_safex_price_peg_in_use(const crypto::hash &price_peg_id) const
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      return m_safex_price_peg_update_in_progress.end() != std::find(m_safex_price_peg_update_in_progress.begin(), m_safex_price_peg_update_in_progress.end(), price_peg_id);
   }
   //---------------------------------------------------------------------------------
   void tx_memory_pool::lock() const
@@ -1592,7 +1592,7 @@ namespace cryptonote
     m_txs_by_fee_and_receive_time.clear();
     m_spent_key_images.clear();
     m_safex_accounts_in_use.clear();
-    m_safex_purchase_in_progress.clear();
+    m_safex_offers_in_use.clear();
     m_txpool_size = 0;
     std::vector<crypto::hash> remove;
 

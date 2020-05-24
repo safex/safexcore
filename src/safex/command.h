@@ -40,23 +40,33 @@ namespace safex
     ok = 0,
     invalid = 1,
     error_wrong_input_params = 1,
+    // Safex account
     error_account_data_too_big = 10,
     error_account_already_exists = 11,
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
-    error_offer_non_existant = 14,
-    error_purchase_out_of_stock = 15,
-    error_purchase_not_enough_funds = 16,
-    error_purchase_offer_not_active = 17,
-    error_offer_price_too_big = 18,
-    error_feedback_invalid_rating = 19,
-    error_offer_price_peg_not_existant = 20,
-    error_price_peg_bad_currency_format = 21,
-    error_offer_data_too_big = 22,
-    error_price_peg_data_too_big = 23,
-    error_price_peg_not_existant = 24,
-    error_feedback_data_too_big = 25,
-    error_price_peg_rate_zero = 26
+    // Safex purchase
+    error_offer_non_existant = 20,
+    error_purchase_out_of_stock = 21,
+    error_purchase_not_enough_funds = 23,
+    error_purchase_offer_not_active = 24,
+    // Safex offer
+    error_offer_price_too_big = 30,
+    error_offer_price_too_small = 31,
+    error_offer_data_too_big = 32,
+    error_offer_price_peg_not_existant = 33,
+    // Safex feedback
+    error_feedback_invalid_rating = 40,
+    error_feedback_data_too_big = 41,
+    // Safex price peg
+    error_price_peg_bad_currency_format = 51,
+    error_price_peg_data_too_big = 52,
+    error_price_peg_not_existant = 53,
+    error_price_peg_rate_zero = 54,
+    // Safex unstake token
+    error_unstake_token_output_not_found = 60,
+    error_unstake_token_minimum_period = 61,
+    error_unstake_token_network_fee_not_matching = 62
   };
 
   struct execution_result
@@ -115,11 +125,6 @@ namespace safex
       END_SERIALIZE()
   };
 
-  struct distribute_fee_result : public execution_result
-  {
-    uint64_t amount = 0; //cash amount do donate to newtork token holders
-  };
-
   struct create_account_result : public execution_result
   {
 
@@ -146,12 +151,10 @@ namespace safex
             username{_username}, account_data{_account_data} {
     }
     std::vector<uint8_t> username{};
-    crypto::public_key pkey{};
     std::vector<uint8_t> account_data{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(username)
-          FIELD(pkey)
           FIELD(account_data)
       END_SERIALIZE()
   };
@@ -750,6 +753,10 @@ struct create_price_peg_result : public execution_result
 
       simple_purchase() : command(0, command_t::simple_purchase) {}
 
+      crypto::hash get_offerid(){ return offer_id; }
+      uint64_t get_quantity(){ return quantity; }
+      uint64_t get_price(){ return price; }
+      bool get_shipping() { return shipping; }
 
       virtual simple_purchase_result* execute(const cryptonote::BlockchainDB &blockchain, const cryptonote::txin_to_script &txin) override;
       virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
@@ -769,37 +776,6 @@ struct create_price_peg_result : public execution_result
       uint64_t quantity{};
       uint64_t price{};
       bool shipping{};
-  };
-
-
-  class distribute_fee : public command
-  {
-    public:
-      friend class safex_command_serializer;
-
-      /**
-       * @param _version Safex command protocol version
-       * @param _donate_amount //amount of safex cash that will be distributed to token holders that unstake tokens
-      * */
-      distribute_fee(const uint32_t _version, const uint64_t _donation_safex_cash_amount) : command(_version, command_t::distribute_network_fee),
-                                                                                        safex_cash_amount(_donation_safex_cash_amount) {}
-
-      distribute_fee() : command(0, command_t::distribute_network_fee), safex_cash_amount(0) {}
-
-      uint64_t get_staked_token_output_index() const { return safex_cash_amount; }
-
-      virtual distribute_fee_result* execute(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
-      virtual execution_status validate(const cryptonote::BlockchainDB &blokchain, const cryptonote::txin_to_script &txin) override;
-
-      BEGIN_SERIALIZE_OBJECT()
-        FIELDS(*static_cast<command *>(this))
-        CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::distribute_network_fee);
-        VARINT_FIELD(safex_cash_amount)
-      END_SERIALIZE()
-
-    private:
-
-      uint64_t safex_cash_amount;
   };
 
   class create_account : public command
@@ -1152,9 +1128,6 @@ private:
             break;
           case safex::command_t::token_collect:
             return std::unique_ptr<command>(parse_safex_object<token_collect>(buffer));
-            break;
-          case safex::command_t::distribute_network_fee:
-            return std::unique_ptr<command>(parse_safex_object<distribute_fee>(buffer));
             break;
           case safex::command_t::donate_network_fee:
             return std::unique_ptr<command>(parse_safex_object<donate_fee>(buffer));

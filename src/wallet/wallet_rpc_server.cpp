@@ -804,8 +804,9 @@ bool wallet_rpc_server::validate_transfer_advanced(
         }
         // Allow to collect outputs for regular SFX transaction.
         else if(cmd_type == safex::command_t::simple_purchase) {
-            de.amount = destination.amount * 95 / 100;
-            safex_network_fee += destination.amount * 5 / 100;
+            uint64_t network_fee = calculate_safex_network_fee(destination.amount, m_wallet->nettype(), safex::command_t::simple_purchase);
+            safex_network_fee += network_fee;
+            de.amount = destination.amount - network_fee;
         }
     
         dsts.push_back(de);

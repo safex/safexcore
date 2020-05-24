@@ -188,7 +188,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     { return cryptonote::output_data_t(); }
 
     virtual cryptonote::output_advanced_data_t get_output_advanced_data(const cryptonote::tx_out_type output_type, const uint64_t output_id) const {return cryptonote::output_advanced_data_t{};}
-    virtual uint64_t get_output_id(const cryptonote::tx_out_type output_type, const uint64_t output_index) const { return 0; }
+    virtual bool get_output_id(const cryptonote::tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const { return 0; }
 
     virtual cryptonote::tx_out_index get_output_tx_and_index_from_global(const uint64_t &index) const
     { return cryptonote::tx_out_index(); }
@@ -304,6 +304,7 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
     virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
     virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
+    virtual uint64_t calculate_staked_token_interest_for_output(const cryptonote::txin_to_script &txin, const uint64_t unlock_height) const override { return 0; };
     virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
     virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}
     virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const { return true;}
@@ -506,7 +507,7 @@ TEST_F(SafexCommandExecution, TokenLockExceptions)
   }
   catch (safex::command_exception &exception)
   {
-    ASSERT_STREQ(std::string("Staked input is not whole token amount").c_str(), std::string(exception.what()).c_str());
+
   }
   catch (std::exception &exception)
   {

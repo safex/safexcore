@@ -2763,8 +2763,6 @@ bool wallet::store_keys(const std::string& keys_file_name, const epee::wipeable_
  */
     bool wallet::store_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
     {
-        if(m_safex_accounts.empty())
-            return true;
 
         std::string safex_keys_data;
         bool r;
@@ -4439,7 +4437,7 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
         }
 
 
-        THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_account);
+        THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::safex_unknown_id);
 
         int idx = -1;
         for (size_t n = 0; n < candidates.size(); ++n)
@@ -6754,24 +6752,8 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     {
       src.command_type = safex::command_t::token_unstake;
 
-      //also, create additional source for interest distribution
-      cryptonote::tx_source_entry src_interest = AUTO_VAL_INIT(src_interest);
-      src_interest.command_type = safex::command_t::distribute_network_fee;
-      src_interest.referenced_output_type = tx_out_type::out_network_fee;
-      src_interest.real_output_in_tx_index = src.real_output_in_tx_index; //reference same token output
-      //******************************************************************************************************/
-      //todo atana check if this is safe, if we can use same public key for interest, as ring size is only 1
-      //******************************************************************************************************/
-      src_interest.real_out_tx_key = src.real_out_tx_key; // here just for completion, does not actually used for check
-      src_interest.outputs = src.outputs;
-      src_interest.real_output = src.real_output;
-      src_interest.amount = get_interest_for_transfer(td);
+      src.amount = get_interest_for_transfer(td);
 
-      // add source and destinations
-      if (src_interest.amount > 0)
-      {
-        additional_sources.push_back(src_interest);
-      }
     }
     else if (command_type == safex::command_t::create_account && (!command_input_creted))
     {
@@ -8886,7 +8868,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           }
           ++num_nondust_staked_token_outputs;
         }
-        else if (td.token_amount() > 0 &&  td.m_output_type == cryptonote::tx_out_type::out_token)
+        else if (td.token_amount() > 0 &&  td.m_output_type == cryptonote::tx_out_type::out_token && is_token_transfer_unlocked(td))
         {
           auto found = std::find_if(unused_token_transfers_indices_per_subaddr.begin(), unused_token_transfers_indices_per_subaddr.end(), find_predicate);
           if (found == unused_token_transfers_indices_per_subaddr.end())

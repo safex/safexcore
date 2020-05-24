@@ -1036,6 +1036,16 @@ uint64_t WalletImpl::unlockedTokenBalance(uint32_t accountIndex) const
   return m_wallet->unlocked_token_balance(accountIndex);
 }
 
+uint64_t WalletImpl::stakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->staked_token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::unlockedStakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->unlocked_staked_token_balance(accountIndex);
+}
+
 uint64_t WalletImpl::blockChainHeight() const
 {
     if(m_wallet->light_wallet()) {
@@ -1567,8 +1577,10 @@ bool WalletImpl::recoverSafexAccount(const std::string& username, const std::str
 
 bool WalletImpl::removeSafexAccount(const std::string& username){
 
-  if (m_wallet->remove_safex_account(username))
+  if (m_wallet->remove_safex_account(username)) {
+    m_wallet->store_safex(m_password);
     return true;
+  }
 
   return false;
 }
@@ -1752,7 +1764,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           m_status = Status_Error;
           m_errorString = tr("Unknown safex account username");
           break;
-        };
+        }
         if (!crypto::check_key(my_safex_account.pkey)) {
           m_status = Status_Error;
           m_errorString = tr("Invalid account public key");
@@ -1772,6 +1784,12 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
             break;
           }
           sfx_offer.set_price_peg(price_peg_id, sfxOffer.m_price, sfxOffer.m_min_sfx_price);
+        }
+
+        if (sfxOffer.m_min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE) {
+            m_status = Status_Error;
+            m_errorString = tr("Wrong minimum SFX price");
+            break;
         }
 
         cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
@@ -1815,6 +1833,12 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
             break;
           }
           sfx_offer.set_price_peg(price_peg_id, sfxOffer.m_price, sfxOffer.m_min_sfx_price);
+        }
+
+        if (sfxOffer.m_min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE) {
+            m_status = Status_Error;
+            m_errorString = tr("Wrong minimum SFX price");
+            break;
         }
 
         cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
@@ -1956,12 +1980,18 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         uint64_t sfx_price;
         bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
+        if(!res) {
+            m_status = Status_Error;
+            m_errorString = tr("Error calculating SFX price for purchase!!");
+            break;
+        }
 
         uint64_t total_sfx_to_pay = safexPurchase.m_quantity_to_purchase*sfx_price;
 
-        de.amount = total_sfx_to_pay * 95  / 100;
+        safex_network_fee = calculate_safex_network_fee(total_sfx_to_pay, m_wallet->nettype(), safex::command_t::simple_purchase);
+
+        de.amount = total_sfx_to_pay - safex_network_fee;
         de.output_type = tx_out_type::out_cash;
-        safex_network_fee += total_sfx_to_pay * 5  / 100;
 
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
         //Purchase

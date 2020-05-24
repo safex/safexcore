@@ -169,30 +169,39 @@
 #define HF_VERSION_STOP_COUNTERFEIT_TOKENS      6
 
 //Safex related constants
-#define SAFEX_COMMAND_PROTOCOL_VERSION          1
-#define SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT         10000 * SAFEX_TOKEN
-#define SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD  500000
-#define SAFEX_DEFAULT_INTERVAL_PERIOD           1000 //blocks
-#define SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD SAFEX_DEFAULT_INTERVAL_PERIOD*10 //blocks
-#define SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE    ((uint64_t)5)
-#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE     ((uint64_t)100*SAFEX_TOKEN)
+constexpr uint64_t SAFEX_COMMAND_PROTOCOL_VERSION                   = 1;
 
-#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN  ((uint64_t)1)
-#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET  ((uint64_t)150)
-#define SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD  ((uint64_t)150)// TBD
+//Safex token stake constants
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                 = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD          = 500000;
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD                    = 1000; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD         = SAFEX_DEFAULT_INTERVAL_PERIOD*10; //blocks
 
-#define SAFEX_ACCOUNT_USERNAME_MAX_SIZE         32
-#define SAFEX_ACCOUNT_DATA_MAX_SIZE             2048
+//Safex network fee constants
+constexpr uint64_t SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE             = 5;
 
-#define SAFEX_OFFER_NAME_MAX_SIZE               80
-#define SAFEX_OFFER_DATA_MAX_SIZE               2048
+//Safex create account token lock constants
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE              = 100*SAFEX_TOKEN;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN = 1;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET   = 10;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD           = 150;// TBD
 
+//Safex account constants
+constexpr uint64_t SAFEX_ACCOUNT_USERNAME_MAX_SIZE                  = 32;
+constexpr uint64_t SAFEX_ACCOUNT_DATA_MAX_SIZE                      = 2048;
 
-#define SAFEX_PRICE_PEG_NAME_MAX_SIZE           60
-#define SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE       8
-#define SAFEX_PRICE_PEG_DATA_MAX_SIZE           2048
+//Safex offer constants
+constexpr uint64_t SAFEX_OFFER_NAME_MAX_SIZE                        = 80;
+constexpr uint64_t SAFEX_OFFER_DATA_MAX_SIZE                        = 2048;
+constexpr uint64_t SAFEX_OFFER_MINIMUM_PRICE                        = SAFEX_CASH_COIN/10000; // 0.0001 SFX
 
-#define SAFEX_FEEDBACK_DATA_MAX_SIZE           2048
+//Safex price peg constants
+constexpr uint64_t SAFEX_PRICE_PEG_NAME_MAX_SIZE                    = 60;
+constexpr uint64_t SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE                = 8;
+constexpr uint64_t SAFEX_PRICE_PEG_DATA_MAX_SIZE                    = 2048;
+
+//Safex feedback constants
+constexpr uint64_t SAFEX_FEEDBACK_DATA_MAX_SIZE                     = 2048;
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 

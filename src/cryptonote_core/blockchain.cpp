@@ -338,9 +338,6 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
     case safex::command_t::donate_network_fee:
       output_type = tx_out_type::out_cash;
       break;
-    case safex::command_t::distribute_network_fee:
-      output_type = tx_out_type::out_network_fee;
-      break;
     case safex::command_t::create_account:
       output_type = tx_out_type::out_token;
       break;
@@ -3022,483 +3019,688 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
 
   if (tx.version == 1) return true;
 
-  std::vector<const txin_to_script*> input_commands_to_execute;
+  std::vector<txin_to_script> input_commands_to_execute;
+  std::set<safex::command_t> input_commands_to_check;
 
-  //Transaction must have commands of only one type:
-  safex::command_t command_type = safex::command_t::invalid_command;
-  for (size_t i = 0; i < tx.vin.size(); i++)
+  bool only_donate_seen = true;
+  bool only_stake_seen = true;
+
+  for (auto txin: tx.vin)
   {
-    const txin_v &txin = tx.vin[i];
     if ((txin.type() == typeid(txin_to_script)))
     {
-      const txin_to_script &txin_script = boost::get<txin_to_script>(tx.vin[i]);
-      safex::command_t tmp = txin_script.command_type;
-      //multiple different commands on input, error
-      if ((command_type == safex::command_t::token_unstake && tmp == safex::command_t::distribute_network_fee) ||
-              (command_type == safex::command_t::distribute_network_fee && tmp == safex::command_t::token_unstake)) {
-        //this is ok
-      }
-      else if (command_type != safex::command_t::invalid_command && command_type != tmp) {
-        tvc.m_safex_verification_failed = true;
-        return false;
-      }
+      const txin_to_script &txin_script = boost::get<txin_to_script>(txin);
 
-      if (command_type == safex::command_t::invalid_command) {
-        command_type = tmp;
-      }
+      if(txin_script.command_type != safex::command_t::donate_network_fee)
+        only_donate_seen = false;
 
-      input_commands_to_execute.push_back(&txin_script);
+      if(txin_script.command_type != safex::command_t::token_stake)
+        only_stake_seen = false;
+
+      input_commands_to_execute.push_back(txin_script);
+      input_commands_to_check.insert(txin_script.command_type);
     }
   }
 
-  //there is no valid command found on input
-  if (command_type == safex::command_t::invalid_command) {
-    tvc.m_safex_invalid_command = true;
-    return false;
+    // Per TX there can be :
+    // * 1  command for all types
+    // * >1 commands if they are all stake token or donate_network_fee
+    if (!(input_commands_to_execute.size() == 1
+            || (input_commands_to_execute.size() > 1 && (only_donate_seen || only_stake_seen)))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
   }
 
   //validate all command logic
-  for (const txin_to_script* pcmd: input_commands_to_execute)
-    if (!safex::validate_safex_command(*m_db, *pcmd)) {
-      tvc.m_safex_command_execution_failed = true;
-      return false;
-    }
-
-
-
-
-  if (command_type == safex::command_t::token_stake)
-  {
-    /* Find amount of output staked tokens */
-    uint64_t outputs_staked_token_amount = 0;
-    for (const auto &vout: tx.vout)
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
-          outputs_staked_token_amount += vout.token_amount;
+  for (const txin_to_script cmd: input_commands_to_execute)
+      if (!safex::validate_safex_command(*m_db, cmd)) {
+        tvc.m_safex_command_execution_failed = true;
+        return false;
       }
 
-    /* Check if minumum amount of tokens is staked */
-    if (outputs_staked_token_amount < safex::get_minimum_token_stake_amount(m_nettype))
-    {
-      MERROR("Safex token stake amount too small, must be at least "<< cryptonote::print_money(safex::get_minimum_token_stake_amount(m_nettype)));
-      tvc.m_safex_invalid_command_params = true;
-      return false;
-    }
-  }
-  else if (command_type == safex::command_t::token_unstake)
-  {
-    //Check if tokens are staked long enough
-    for (const txin_v &txin: tx.vin)
-    {
-      if (txin.type() == typeid(txin_to_script))
-      {
-        //TODO: Grki check if absolute is needed
-        const txin_to_script &in = boost::get<txin_to_script>(txin);
-        for (auto index: in.key_offsets) {
-          output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
-          if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
-            MERROR("Safex token stake period not expired at height"<<m_db->height());
-            tvc.m_safex_invalid_command_params = true;
-            return false;
-          }
-        }
-
-
-      }
-
-    }
-  }
-  else if (command_type == safex::command_t::donate_network_fee)
-  {
-    /* Find cash amount on output that is donated */
-    uint64_t outputs_donated_cash_amount = 0;
-    for (const auto &vout: tx.vout)
-    {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        if (out.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee))
-          outputs_donated_cash_amount += vout.amount;
-      }
-    }
-
-    uint64_t input_cash_amount = 0;
-    for (const auto &txin: tx.vin)
-    {
-      input_cash_amount += get_tx_input_cash_amount(txin);
-    }
-
-    /* Check if donated cash amount matches */
-    if (outputs_donated_cash_amount >= input_cash_amount)
-    {
-      MERROR("Invalid safex cash input amount");
-      tvc.m_safex_invalid_input = true;
-      return false;
-    }
-  }
-  else if (command_type == safex::command_t::distribute_network_fee)
-  {
-    /* Find cash and token amount that is distributed, check if they match */
-    uint64_t distributed_cash_amount = 0;
-    uint64_t unstaked_token_amount = 0;
-    uint64_t expected_interest = 0;
-    for (const auto &txin: tx.vin)
-    {
-      if (txin.type() == typeid(txin_to_script))
-      {
-        const txin_to_script &stxin = boost::get<txin_to_script>(txin);
-        if (stxin.command_type == safex::command_t::token_unstake)
-        {
-          unstaked_token_amount += stxin.token_amount;
-          expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
-        }
-        else if (stxin.command_type == safex::command_t::distribute_network_fee)
-        {
-          distributed_cash_amount += stxin.amount;
-
-          if (stxin.key_offsets.size() != 1)
-          {
-            MERROR("Interest should be distributed for particular token stake output");
-            tvc.m_safex_invalid_input = true;
-            return false;
-          }
-        }
-      }
-    }
-    /* Check if donated cash amount matches */
-    if (distributed_cash_amount > expected_interest)
-    {
-      MERROR("Token unstake interest too high");
-      tvc.m_safex_invalid_input = true;
-      return false;
-    }
-  }
-  else if (command_type == safex::command_t::create_account)
-  {
-
-    uint64_t total_locked_tokens = 0;
-
-    for (const auto &vout: tx.vout)
-    {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        safex::create_account_data account;
-        const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-        cryptonote::parse_and_validate_from_blob(accblob, account);
-        //check username for uniqueness
-        crypto::public_key temppkey{};
-        if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
-        {
-          std::string username(std::begin(account.username), std::end(account.username));
-          MERROR("Account with username "+username+" already exists");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        //check if account pkey is valid
-        if (!crypto::check_key(account.pkey))
-        {
-          MERROR("Account public key not valid");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-        {
-          MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-        {
-          MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-      }
-        if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token)
-        {
-          total_locked_tokens += vout.token_amount;
-        }
-
-    }
-
-    if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
-        MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
+  //check all commands tx restrictions
+  for (const safex::command_t cmd_type: input_commands_to_check){
+    if (!check_safex_tx_command(tx, cmd_type)){
         tvc.m_safex_invalid_input = true;
         return false;
     }
 
   }
-  else if (command_type == safex::command_t::edit_account)
-  {
-
-    for (const auto &vout: tx.vout)
-    {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        safex::edit_account_data account;
-        const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
-        cryptonote::parse_and_validate_from_blob(accblob, account);
-        //check username for uniqueness
-        crypto::public_key temppkey{};
-        if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
-        {
-          std::string username(std::begin(account.username), std::end(account.username));
-          MERROR("Account with username "+username+" does not exists");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-        {
-          MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        //check account new data size
-        if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-        {
-          MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-      }
-    }
-  }
-  else if (command_type == safex::command_t::create_offer)
-  {
-      //todo check for signature of account owner
-      //TODO: Make additional checks
-      for (const auto &vout: tx.vout)
-      {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
-          {
-              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::create_offer_data offer;
-              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(offerblob, offer);
-              //check username for uniqueness
-              crypto::public_key temppkey{};
-              if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-              {
-                  std::string username(std::begin(offer.seller), std::end(offer.seller));
-                  MERROR("Account with username "+username+" does not exists");
-                  tvc.m_safex_invalid_input = true;
-                  return false;
-              }
-
-              if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-              {
-                MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                tvc.m_safex_invalid_input = true;
-                return false;
-              }
-
-              //check offer data size
-              if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-              {
-                  MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-                  tvc.m_safex_invalid_input = true;
-                  return false;
-              }
-          }
-      }
-  }
-  else if (command_type == safex::command_t::edit_offer)
-  {
-      //todo check for signature of account owner
-      //TODO: Make additional checks
-      for (const auto &vout: tx.vout)
-      {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
-          {
-              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::edit_offer_data offer;
-              const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(offerblob, offer);
-              //check username for uniqueness
-              crypto::public_key temppkey{};
-              if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-              {
-                  std::string username(std::begin(offer.seller), std::end(offer.seller));
-                  MERROR("Account with username "+username+" does not exists");
-                  tvc.m_safex_invalid_input = true;
-                  return false;
-              }
-
-              if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-              {
-                MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                tvc.m_safex_invalid_input = true;
-                return false;
-              }
-
-              //check offer data size
-              if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-              {
-                  MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-                  tvc.m_safex_invalid_input = true;
-                  return false;
-              }
-          }
-      }
-  }
-  else if (command_type == safex::command_t::simple_purchase)
-  {
-      uint64_t network_fee = 0;
-      uint64_t product_payment = 0;
-      uint64_t total_payment = 0;
-      crypto::secret_key secret_seller_view_key;
-      crypto::public_key public_seller_spend_key;
-
-      if (tx.unlock_time > m_db->height())
-      {
-          MERROR("Purchase TX should not be locked");
-          tvc.m_safex_invalid_input = true;
-          return false;
-      }
-
-      for (const auto &vout: tx.vout) {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
-          {
-              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::safex_offer offer_to_purchase;
-              safex::create_purchase_data purchase;
-              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
-              total_payment = purchase.price;
-              get_safex_offer(purchase.offer_id, offer_to_purchase);
-
-              secret_seller_view_key = offer_to_purchase.seller_private_view_key;
-              public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
-          }
-      }
-
-      std::vector<crypto::public_key> seller_outs= is_safex_purchase_right_address(secret_seller_view_key, public_seller_spend_key, tx);
-
-      for (const auto &vout: tx.vout)
-      {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
-          {
-              network_fee += vout.amount;
-          }
-          else if (vout.target.type() == typeid(txout_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_cash)
-          {
-              const crypto::public_key &out = *boost::apply_visitor(destination_public_key_visitor(), vout.target);
-              auto it = std::find(seller_outs.begin(),seller_outs.end(),out);
-              if(it!=seller_outs.end())
-                product_payment += vout.amount;
-          }
-      }
-
-      //check network fee payment
-      if (total_payment*5/100 > network_fee)
-      {
-          MERROR("Not enough cash given for network fee");
-          tvc.m_safex_invalid_input = true;
-          return false;
-      }
-      //check purchase cash payment
-      if (total_payment*95/100 > product_payment)
-      {
-          MERROR("Not enough cash given for product payment");
-          tvc.m_safex_invalid_input = true;
-          return false;
-      }
-  }
-  else if (command_type == safex::command_t::create_feedback)
-  {
-      //TODO: Make additional checks
-      for (const auto &vout: tx.vout)
-      {
-          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback)
-          {
-              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-              safex::create_feedback_data feedback;
-              const cryptonote::blobdata feedbackblob(std::begin(out.data), std::end(out.data));
-              cryptonote::parse_and_validate_from_blob(feedbackblob, feedback);
-              //TODO: check if OfferID exists
-          }
-      }
-  }
-  else if (command_type == safex::command_t::create_price_peg)
-  {
-    //todo check for signature of account owner
-    //TODO: Make additional checks
-    for (const auto &vout: tx.vout)
-    {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        safex::create_price_peg_data price_peg;
-        const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
-        cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
-        //check username for uniqueness
-        crypto::public_key temppkey{};
-        if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
-        {
-          std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
-          MERROR("Account with username "+username+" does not exists");
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
-        {
-          MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
-        {
-          MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-
-        //check price peg data size
-        if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
-        {
-          MERROR("Price peg data is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_DATA_MAX_SIZE));
-          tvc.m_safex_invalid_input = true;
-          return false;
-        }
-      }
-    }
-  }
-  else if (command_type == safex::command_t::update_price_peg)
-  {
-    //todo check for signature of account owner
-    //TODO: Make additional checks
-    for (const auto &vout: tx.vout)
-    {
-      if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
-      {
-        const txout_to_script &out = boost::get<txout_to_script>(vout.target);
-        safex::update_price_peg_data price_peg;
-        const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
-        cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
-
-      }
-    }
-  }
-  else
-  {
-    MERROR("Unsupported safex command");
-    tvc.m_safex_invalid_command = true;
-    return false;
-  }
-
 
   return true;
+}
+//------------------------------------------------------------------
+bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::command_t &command_type){
+
+    if (command_type == safex::command_t::token_stake)
+    {
+        /* Find amount of input staked tokens */
+        uint64_t inputs_staked_token_amount = 0;
+        for(const auto &vin: tx.vin)
+            if ((vin.type() == typeid(txin_to_script))){
+                const txin_to_script &txin_script = boost::get<txin_to_script>(vin);
+                if(txin_script.command_type == safex::command_t::token_stake)
+                    inputs_staked_token_amount += txin_script.token_amount;
+            }
+
+        /* Find amount of output staked tokens */
+        uint64_t outputs_staked_token_amount = 0;
+        for (const auto &vout: tx.vout)
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
+            {
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                if (out.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
+                    outputs_staked_token_amount += vout.token_amount;
+            }
+
+        /* Check if minumum amount of tokens is staked */
+        if (outputs_staked_token_amount < safex::get_minimum_token_stake_amount(m_nettype))
+        {
+            MERROR("Safex token stake amount too small, must be at least "<< cryptonote::print_money(safex::get_minimum_token_stake_amount(m_nettype)));
+            return false;
+        }
+        /* Check if amount of staked tokens in the output is less or equal to the amount in the input*/
+        if (inputs_staked_token_amount < outputs_staked_token_amount)
+        {
+            MERROR("Safex token stake output amount higher than input amount");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::token_unstake)
+    {
+        uint64_t distributed_cash_amount = 0;
+        uint64_t unstaked_token_amount = 0;
+        uint64_t expected_interest = 0;
+        for (const auto &txin: tx.vin)
+        {
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::token_unstake)
+                {
+                    // Find cash and token amount that is distributed, check if they match
+                    unstaked_token_amount += stxin.token_amount;
+                    expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
+                    distributed_cash_amount += stxin.amount;
+
+                    if (stxin.key_offsets.size() != 1)
+                    {
+                        MERROR("Interest should be distributed for particular token stake output");
+                        return false;
+                    }
+                    // Check if tokens are staked long enough
+                    for (auto index: stxin.key_offsets) {
+                        output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
+                        if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
+                            MERROR("Safex token stake period not expired at height"<<m_db->height());
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        /* Check if donated cash amount matches */
+        if (distributed_cash_amount > expected_interest)
+        {
+            MERROR("Token unstake interest too high");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::donate_network_fee)
+    {
+        /* Find cash amount on output that is donated */
+        uint64_t outputs_donated_cash_amount = 0;
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+            {
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                if (out.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee))
+                    outputs_donated_cash_amount += vout.amount;
+            }
+        }
+
+        uint64_t input_cash_amount = 0;
+        for (const auto &txin: tx.vin)
+        {
+            input_cash_amount += get_tx_input_cash_amount(txin);
+        }
+
+        /* Check if donated cash amount matches */
+        if (outputs_donated_cash_amount >= input_cash_amount)
+        {
+            MERROR("Invalid safex cash input amount");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_account)
+    {
+
+        uint64_t total_locked_tokens = 0;
+        bool create_account_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_account)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+            {
+                if(create_account_seen)
+                {
+                    MERROR("Multiple Safex account creation outputs");
+                    return false;
+                }
+                create_account_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_account_data account;
+                const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
+
+
+                if(cmd->get_username() != account_username || cmd->get_account_key() != account.pkey || cmd->get_account_data() != account.account_data){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                //check username for uniqueness
+                crypto::public_key temppkey{};
+                if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
+                {
+                    std::string username(std::begin(account.username), std::end(account.username));
+                    MERROR("Account with username "+username+" already exists");
+                    return false;
+                }
+
+                //check if account pkey is valid
+                if (!crypto::check_key(account.pkey))
+                {
+                    MERROR("Account public key not valid");
+                    return false;
+                }
+
+                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+                {
+                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
+                    return false;
+                }
+
+                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+                {
+                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
+                    return false;
+                }
+            }
+            if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token && vout.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+            {
+                total_locked_tokens += vout.token_amount;
+            }
+
+        }
+
+        if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
+            MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
+            return false;
+        }
+
+    }
+    else if (command_type == safex::command_t::edit_account)
+    {
+        bool edit_account_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::edit_account)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(command.script);
+
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+            {
+                if(edit_account_seen)
+                {
+                    MERROR("Multiple Safex account edit outputs");
+                    return false;
+                }
+                edit_account_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::edit_account_data account;
+                const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
+
+
+                if(cmd->get_username() != account_username || cmd->get_new_account_data() != account.account_data){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                //check username for uniqueness
+                crypto::public_key temppkey{};
+                if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
+                {
+                    std::string username(std::begin(account.username), std::end(account.username));
+                    MERROR("Account with username "+username+" does not exists");
+                    return false;
+                }
+
+                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
+                {
+                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
+                    return false;
+                }
+
+                //check account new data size
+                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
+                {
+                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
+                    return false;
+                }
+            }
+        }
+    }
+    else if (command_type == safex::command_t::create_offer)
+    {
+        bool create_offer_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_offer)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(command.script);
+
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
+            {
+                if(create_offer_seen)
+                {
+                    MERROR("Multiple Safex offer create outputs");
+                    return false;
+                }
+                create_offer_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_offer_data offer;
+                const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+                if(cmd->get_offerid() != offer.offer_id || cmd->get_price_peg_id() != offer.price_peg_id || cmd->get_seller() != offer.seller
+                    || cmd->get_title() != offer.title || cmd->get_price() != offer.price || cmd->get_min_sfx_price() != offer.min_sfx_price
+                    || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
+                    || cmd->get_description() != offer.description || cmd->get_seller_private_view_key() != offer.seller_private_view_key
+                    || cmd->get_seller_address() != offer.seller_address){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                //check username for uniqueness
+                crypto::public_key temppkey{};
+                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
+                {
+                    std::string username(std::begin(offer.seller), std::end(offer.seller));
+                    MERROR("Account with username "+username+" does not exists");
+                    return false;
+                }
+
+                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
+                {
+                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+                    return false;
+                }
+
+                //check offer data size
+                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
+                {
+                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+                    return false;
+                }
+            }
+        }
+    }
+    else if (command_type == safex::command_t::edit_offer)
+    {
+        bool edit_offer_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::edit_offer)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+            {
+                if(edit_offer_seen)
+                {
+                    MERROR("Multiple Safex offer edit outputs");
+                    return false;
+                }
+                edit_offer_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::edit_offer_data offer;
+                const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+                if(cmd->get_offerid() != offer.offer_id || cmd->get_price_peg_id() != offer.price_peg_id || cmd->get_seller() != offer.seller
+                    || cmd->get_title() != offer.title || cmd->get_price() != offer.price || cmd->get_min_sfx_price() != offer.min_sfx_price
+                    || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
+                    || cmd->get_description() != offer.description){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                //check username for uniqueness
+                crypto::public_key temppkey{};
+                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
+                {
+                    std::string username(std::begin(offer.seller), std::end(offer.seller));
+                    MERROR("Account with username "+username+" does not exists");
+                    return false;
+                }
+
+                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
+                {
+                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
+                    return false;
+                }
+
+                //check offer data size
+                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
+                {
+                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
+                    return false;
+                }
+            }
+        }
+    }
+    else if (command_type == safex::command_t::simple_purchase)
+    {
+        uint64_t network_fee = 0;
+        uint64_t product_payment = 0;
+        uint64_t total_payment = 0;
+        crypto::secret_key secret_seller_view_key;
+        crypto::public_key public_seller_spend_key;
+        bool purchase_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::simple_purchase)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::simple_purchase> cmd = safex::safex_command_serializer::parse_safex_command<safex::simple_purchase>(command.script);
+
+
+        if (tx.unlock_time > m_db->height())
+        {
+            MERROR("Purchase TX should not be locked");
+            return false;
+        }
+
+        for (const auto &vout: tx.vout) {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+            {
+                if(purchase_seen)
+                {
+                    MERROR("Multiple Safex purchase outputs");
+                    return false;
+                }
+                purchase_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::safex_offer offer_to_purchase;
+                safex::create_purchase_data purchase;
+                const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+
+                if(cmd->get_offerid() != purchase.offer_id
+                    || cmd->get_price() != purchase.price
+                    || cmd->get_quantity() != purchase.quantity
+                    || cmd->get_shipping() != purchase.shipping){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                total_payment = purchase.price;
+                get_safex_offer(purchase.offer_id, offer_to_purchase);
+
+                secret_seller_view_key = offer_to_purchase.seller_private_view_key;
+                public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
+            }
+        }
+
+        std::vector<crypto::public_key> seller_outs= is_safex_purchase_right_address(secret_seller_view_key, public_seller_spend_key, tx);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+            {
+                network_fee += vout.amount;
+            }
+            else if (vout.target.type() == typeid(txout_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_cash)
+            {
+                const crypto::public_key &out = *boost::apply_visitor(destination_public_key_visitor(), vout.target);
+                auto it = std::find(seller_outs.begin(),seller_outs.end(),out);
+                if(it!=seller_outs.end())
+                    product_payment += vout.amount;
+            }
+        }
+
+        uint64_t calculated_network_fee = calculate_safex_network_fee(total_payment, m_nettype, command_type);
+        //check network fee payment
+        if (calculated_network_fee > network_fee)
+        {
+            MERROR("Not enough cash given for network fee");
+            return false;
+        }
+        //check purchase cash payment
+        if (total_payment - calculated_network_fee > product_payment)
+        {
+            MERROR("Not enough cash given for product payment");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_feedback)
+    {
+        bool feedback_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_feedback)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback)
+            {
+                if(feedback_seen)
+                {
+                    MERROR("Multiple Safex feedback outputs");
+                    return false;
+                }
+                feedback_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_feedback_data feedback;
+                const cryptonote::blobdata feedbackblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(feedbackblob, feedback);
+
+                if(cmd->get_offerid() != feedback.offer_id
+                    || cmd->get_stars_given() != feedback.stars_given
+                    || cmd->get_comment() != feedback.comment){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+            }
+        }
+    }
+    else if (command_type == safex::command_t::create_price_peg)
+    {
+        bool create_price_peg_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_price_peg)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
+            {
+                if(create_price_peg_seen)
+                {
+                    MERROR("Multiple Safex create price peg outputs");
+                    return false;
+                }
+                create_price_peg_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_price_peg_data price_peg;
+                const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
+
+                if(cmd->get_title() != price_peg.title
+                    || cmd->get_price_peg_id() != price_peg.price_peg_id
+                    || cmd->get_creator() != price_peg.creator
+                    || cmd->get_description() != price_peg.description
+                    || cmd->get_currency() != price_peg.currency
+                    || cmd->get_rate() != price_peg.rate){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                //check username for uniqueness
+                crypto::public_key temppkey{};
+                if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
+                {
+                    std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
+                    MERROR("Account with username "+username+" does not exists");
+                    return false;
+                }
+
+                if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
+                {
+                    MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
+                    return false;
+                }
+
+                if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
+                {
+                    MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
+                    return false;
+                }
+
+                //check price peg data size
+                if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
+                {
+                    MERROR("Price peg data is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_DATA_MAX_SIZE));
+                    return false;
+                }
+            }
+        }
+    }
+    else if (command_type == safex::command_t::update_price_peg)
+    {
+        bool update_price_peg_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::update_price_peg)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+            {
+                if(update_price_peg_seen)
+                {
+                    MERROR("Multiple Safex update price peg outputs");
+                    return false;
+                }
+                update_price_peg_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::update_price_peg_data price_peg;
+                const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
+
+                if(cmd->get_price_peg_id() != price_peg.price_peg_id
+                    || cmd->get_rate() != price_peg.rate){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+            }
+        }
+    }
+    else
+    {
+        MERROR("Unsupported safex command");
+        return false;
+    }
+
+    return true;
 }
 //------------------------------------------------------------------
 bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
@@ -3511,6 +3713,13 @@ bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
       auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);  //key image boost optional of currently checked input
       CHECK_AND_ASSERT_MES(k_image_opt, true, "key image is not available in input");
       const crypto::key_image &k_image = *k_image_opt;
+
+      if (in.type() == typeid(txin_to_script))
+      {
+          const txin_to_script& in_to_script = boost::get<txin_to_script>(in);
+          if(!safex::is_safex_key_image_verification_needed(in_to_script.command_type))
+              continue;
+      }
 
       if(have_tx_keyimg_as_spent(k_image))
         return true;
@@ -3605,17 +3814,11 @@ bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verifica
   }
   else if (txin.command_type == safex::command_t::token_unstake)
   {
-    if (txin.amount > 0 || txin.token_amount == 0)
+    if (txin.token_amount == 0)
       return false;
   }
   else if (txin.command_type == safex::command_t::donate_network_fee)
   {
-    if (txin.amount == 0 || txin.token_amount > 0)
-      return false;
-  }
-  else if (txin.command_type == safex::command_t::distribute_network_fee)
-  {
-    //todo atana calculate if interest amount matches
     if (txin.amount == 0 || txin.token_amount > 0)
       return false;
   }
@@ -3826,13 +4029,26 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     // make sure tx output has key offset(s) (is signed to be used)
     CHECK_AND_ASSERT_MES(is_valid_txin_key_offsets(txin), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
-
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
-    if (have_tx_keyimg_as_spent(k_image))
+
+    if (txin.type() == typeid(txin_to_script))
     {
-      MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
-      tvc.m_double_spend = true;
-      return false;
+        const txin_to_script& in_to_script = boost::get<txin_to_script>(txin);
+        if(safex::is_safex_key_image_verification_needed(in_to_script.command_type)){
+            if (have_tx_keyimg_as_spent(k_image))
+            {
+              MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+              tvc.m_double_spend = true;
+              return false;
+            }
+        }
+    } else {
+        if (have_tx_keyimg_as_spent(k_image))
+        {
+            MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+            tvc.m_double_spend = true;
+            return false;
+        }
     }
 
 
@@ -3879,12 +4095,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         // 1. Thread ring signature verification if possible.
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
-        }
-        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
-                boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
-          //todo atana nothing to do here
-          results[sig_index] = true;
         }
         else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
           std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
@@ -3936,11 +4146,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::distribute_network_fee ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::simple_purchase ||
-                                                               boost::get<txin_to_script>(txin).command_type == safex::command_t::create_feedback)) {
-          //todo atana nothing to do here
-          results[sig_index] = true;
         } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
             std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
             crypto::public_key account_pkey{};
@@ -4886,6 +5091,20 @@ leave:
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
+    }
+    catch (const SAFEX_TX_CONFLICT& e){
+
+        for(auto tx: txs){
+            cryptonote::transaction tmp;
+            if(m_db->get_tx(tx.hash,tmp))
+                m_db->revert_transaction(tx.hash);
+        }
+        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+        txs.erase(it);
+        LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+        bvc.m_verifivation_failed = true;
+        return_tx_to_pool(txs);
+        return false;
     }
     catch (const std::exception& e)
     {
@@ -6078,40 +6297,7 @@ uint64_t Blockchain::calculate_staked_token_interest(const uint64_t token_amount
 
 uint64_t Blockchain::calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const
 {
-  uint64_t ret = 0;
-
-  if (txin.command_type != safex::command_t::token_unstake) {
-    MERROR("Invalid command for interest calculation");
-    return 0;
-  }
-
-  output_advanced_data_t output_data = m_db->get_output_advanced_data(tx_out_type::out_staked_token, txin.key_offsets[0]);
-
-  if (output_data.height == 0) {
-    MERROR("Invalid output lock height");
-    return 0;
-  }
-
-  uint64_t starting_interval = safex::calculate_interval_for_height(output_data.height, m_nettype) + 1;
-  uint64_t end_interval = safex::calculate_interval_for_height(unlock_height, m_nettype) - 1;
-
-  if (starting_interval > end_interval) {
-    MERROR("Calculating interest for invalid intervals");
-    return 0;
-  }
-
-  safex::map_interval_interest interest_map;
-  if (!m_db->get_interval_interest_map(starting_interval, end_interval, interest_map)) {
-    MERROR("Could not get interval map");
-    return 0;
-  }
-
-  uint64_t  interest = 0;
-  for (uint64_t i=starting_interval;i<=end_interval;++i) {
-    interest += interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
-  }
-
-  return interest;
+    return m_db->calculate_staked_token_interest_for_output(txin, unlock_height);
 }
 
 std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
@@ -6384,7 +6570,24 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
            output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
           return false;
       }
-    }
+    } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_account))
+        {
+            const txin_to_script &in = boost::get<txin_to_script>(txin);
+            if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+                return true;
+            const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+            // Now we search the offsets and find their txs
+            for (auto index: absolute) {
+                tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+                auto output_token_fee = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
+                cryptonote::transaction tx = m_db->get_tx(toi.first);
+                //Now we search for script input
+                if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
+                    output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+                    return false;
+            }
+        }
 
   }
   return true;

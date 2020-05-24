@@ -112,7 +112,7 @@ gen_safex_offer_001::gen_safex_offer_001()
 
     safex_price_peg_bob = safex::safex_price_peg("TestPricePeg",safex_account_bob.username,"USD","Best price my man",3.5*COIN);
 
-    safex_offer_bob.set_price_peg(safex_price_peg_bob.price_peg_id,800,1000);
+    safex_offer_bob.set_price_peg(safex_price_peg_bob.price_peg_id,800,MK_COINS(1000));
 
   if (!expected_data_fields_intialized)
   {

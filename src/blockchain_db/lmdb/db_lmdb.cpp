@@ -1587,10 +1587,6 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
   {
     //network_fee_sum is updated at place of output processing
   }
-  else if (txin.command_type == safex::command_t::distribute_network_fee)
-  {
-
-  }
   else if (txin.command_type == safex::command_t::create_account)
   {
 
@@ -3120,7 +3116,10 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     if (!(output_type >= cryptonote::tx_out_type::out_advanced && output_type < cryptonote::tx_out_type::out_invalid))
       throw0(DB_ERROR("Unknown advanced output type"));
 
-    uint64_t output_id = get_output_id(output_type, output_index);
+    uint64_t output_id;
+
+    if( !get_output_id(output_type, output_index, output_id) )
+      throw0(DB_ERROR("Output ID not found!"));
 
     check_open();
 
@@ -3152,7 +3151,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
     return output;
   }
 
-  uint64_t BlockchainLMDB::get_output_id(const tx_out_type output_type, const uint64_t output_index) const
+  bool BlockchainLMDB::get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const
   {
       LOG_PRINT_L3("BlockchainLMDB::" << __func__);
 
@@ -3166,7 +3165,6 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
       RCURSOR(output_advanced_type);
       cur_output_advanced_type = m_cur_output_advanced_type;
 
-      uint64_t output_id = 0;
 
       const uint64_t out_type = static_cast<uint64_t>(output_type);
       MDB_val_set(key, out_type);
@@ -3179,13 +3177,13 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
           output_id =  okadv->output_id;
       }
       else if (result == MDB_NOTFOUND)
-          throw0(DB_ERROR(lmdb_error("Attemting to get output id from output with index " + std::to_string(output_index) + " but not found: ", result).c_str()));
+          return false;
       else
           throw0(DB_ERROR(lmdb_error("DB error attempting to advanced output blob: ", result).c_str()));
 
 
       TXN_POSTFIX_RDONLY();
-      return output_id;
+      return true;
   }
 
 tx_out_index BlockchainLMDB::get_output_tx_and_index_from_global(const uint64_t& output_id) const
@@ -4142,8 +4140,9 @@ void BlockchainLMDB::get_amount_output_key(const uint64_t &amount, const std::ve
     std::vector<uint64_t> output_ids;
 
     for(const auto output_index: output_indexes){
-        uint64_t output_id = get_output_id(output_type, output_index);
-        output_ids.push_back(output_id);
+        uint64_t output_id;
+        if(get_output_id(output_type, output_index, output_id))
+            output_ids.push_back(output_id);
     }
 
     TXN_PREFIX_RDONLY();
@@ -4859,6 +4858,44 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
     return true;
   };
+
+  uint64_t BlockchainLMDB::calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const
+  {
+
+      if (txin.command_type != safex::command_t::token_unstake) {
+          MERROR("Invalid command for interest calculation");
+          return 0;
+      }
+
+      output_advanced_data_t output_data = get_output_advanced_data(tx_out_type::out_staked_token, txin.key_offsets[0]);
+
+      if (output_data.height == 0) {
+          MERROR("Invalid output lock height");
+          return 0;
+      }
+
+      uint64_t starting_interval = safex::calculate_interval_for_height(output_data.height, m_nettype) + 1;
+      uint64_t end_interval = safex::calculate_interval_for_height(unlock_height, m_nettype) - 1;
+
+      if (starting_interval > end_interval) {
+          MERROR("Calculating interest for invalid intervals");
+          return 0;
+      }
+
+      safex::map_interval_interest interest_map;
+      if (!get_interval_interest_map(starting_interval, end_interval, interest_map)) {
+          MERROR("Could not get interval map");
+          return 0;
+      }
+
+      uint64_t  interest = 0;
+      for (uint64_t i=starting_interval;i<=end_interval;++i) {
+          interest += interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
+      }
+
+      return interest;
+  }
+
 
   void BlockchainLMDB::add_safex_account(const safex::account_username &username, const blobdata &blob) {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -5976,7 +6013,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
 
         tx_out_type out_type = edited ? tx_out_type::out_safex_offer_update : tx_out_type::out_safex_offer;
-        uint64_t output_id = get_output_id(out_type, output_index);
+        uint64_t output_id;
+        if( !get_output_id(out_type, output_index, output_id))
+            throw0(DB_ERROR("Output ID not found!"));
 
         MDB_cursor *cur_output_advanced;
         RCURSOR(output_advanced);
@@ -6033,7 +6072,9 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
             throw0(DB_ERROR(lmdb_error("DB error attempting to get advanced output data: ", get_result).c_str()));
 
 
-      uint64_t output_id_creation = get_output_id(tx_out_type::out_safex_offer, output_index_creation);
+        uint64_t output_id_creation;
+        if(!get_output_id(tx_out_type::out_safex_offer, output_index_creation, output_id_creation))
+            throw0(DB_ERROR("Output ID of offer creation not found!"));
       //Get offer keys
       MDB_val_set(k_creation, output_id_creation);
       MDB_val_set(v_blob, blob);

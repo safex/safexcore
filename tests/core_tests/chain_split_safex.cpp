@@ -127,14 +127,14 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 
     expected_alice_balance = 0;
     expected_bob_balance = 0;
-    expected_network_fee = safex_bob_purchase_from_alice.price*5/100;
+    expected_network_fee = calculate_safex_network_fee(safex_bob_purchase_from_alice.price, FAKECHAIN, safex::command_t::simple_purchase);
 
     expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 7*TESTS_DEFAULT_FEE;
 
     expected_alice_balance_before_purchase = expected_alice_balance;
 
-    expected_alice_balance += safex_bob_purchase_from_alice.price*95/100;
+    expected_alice_balance += safex_bob_purchase_from_alice.price - expected_network_fee;
 
     expected_alice_balance_after_unstake = expected_alice_balance + expected_network_fee - TESTS_DEFAULT_FEE;
 

@@ -63,7 +63,6 @@ namespace safex
       token_unstake = 0x02,
       token_collect = 0x03,
       donate_network_fee = 0x04, /* Donate safex cash to newtork token holders */
-      distribute_network_fee = 0x05, /* Distribute collected newtork fee to token holders */
       simple_purchase = 0x06,
       create_account = 0x0A, /* Create Safex account */
       edit_account = 0x0B, /* Edit Safex account */
@@ -106,6 +105,24 @@ namespace safex
 #define SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type) {LOG_ERROR(message); std::stringstream ss; ss << message; throw safex::command_exception(command_type, ss.str());}
 #define SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(expr, message, command_type) do {if(!(expr)) SAFEX_COMMAND_ASSERT_MES_AND_THROW(message, command_type);} while(0)
 
+/**
+* Returns if input needs key_image verification
+*
+*
+* @return true if it needs key_image verification, false otherwise
+*/
+  inline uint64_t is_safex_key_image_verification_needed(const safex::command_t& command_type)
+{
+
+    if(command_type == safex::command_t::edit_account
+        || command_type == safex::command_t::create_offer
+        || command_type == safex::command_t::edit_offer
+        || command_type == safex::command_t::create_price_peg
+        || command_type == safex::command_t::update_price_peg)
+        return false;
+    else
+        return true;
+}
 
   /**
  * Returns number of blocks in interval
@@ -236,7 +253,7 @@ namespace safex
     uint64_t fee = 0;
 
     //todo handle multiplication that overflows
-    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE) < cash_amount, "Overflow calculating transaction fee", safex::command_t::token_stake);
+    SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES((cash_amount * SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE) >= cash_amount, "Overflow calculating transaction fee", command_type);
 
     switch (nettype) {
       default:
