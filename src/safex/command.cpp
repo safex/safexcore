@@ -552,6 +552,11 @@ namespace safex
     //parse command and validate it
     try
     {
+        if(!safex::is_safex_key_image_verification_needed(txin.command_type) && txin.key_offsets.size() != 1)
+        {
+          LOG_ERROR("Commands that don't have key image verification must have only 1 key offset");
+          return false;
+        }
       std::unique_ptr<command> cmd = safex_command_serializer::parse_safex_object(txin.script, txin.command_type);
       execution_status result{cmd->validate(blokchainDB, txin)};
       if (result != execution_status::ok)

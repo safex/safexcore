@@ -351,7 +351,6 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       output_type = tx_out_type::out_safex_offer;
       break;
     case safex::command_t::simple_purchase:
-      //TODO: Check and set correct value
       output_type = tx_out_type::out_cash;
       break;
     case safex::command_t::create_feedback:
@@ -371,6 +370,11 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
 
   if (!txin.key_offsets.size())
     return false;
+
+  if(!safex::is_safex_key_image_verification_needed(txin.command_type) && txin.key_offsets.size() != 1){
+      MERROR_VER("Commands that don't have key image verification must have only 1 key offset");
+      return false;
+  }
 
 
   std::vector<uint64_t> absolute_offsets;
