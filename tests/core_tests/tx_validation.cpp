@@ -117,7 +117,7 @@ namespace
 
               if (dst_entr.output_type == tx_out_type::out_staked_token) {
                 txout_to_script ts;
-                ts.keys.push_back(out_eph_public_key);
+                ts.key = out_eph_public_key;
                 ts.output_type = static_cast<int8_t>(tx_out_type::out_staked_token);
                 out.target = ts;
 

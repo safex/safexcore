@@ -63,14 +63,14 @@ namespace cryptonote
 
   struct txout_to_script
   {
-    std::vector<crypto::public_key> keys;
+    crypto::public_key key;
     std::vector<uint8_t> data; //Local output data and state
     uint8_t output_type{0};
 
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(output_type)
-      FIELD(keys)
+      FIELD(key)
       FIELD(data)
     END_SERIALIZE()
   };
@@ -115,7 +115,7 @@ namespace cryptonote
 
       boost::optional<const crypto::public_key &> operator()(const cryptonote::txout_to_script &txout) const
       {
-        return txout.keys[0];
+        return txout.key;
       }
   };
 
