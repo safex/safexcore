@@ -5009,7 +5009,7 @@ leave:
     {
       // validate that transaction inputs and the keys spending them are correct.
       tx_verification_context tvc;
-      if(!check_tx_inputs(tx, tvc))
+      if(!check_tx_inputs(tx, tvc) || !check_safex_tx(tx, tvc))
       {
         MERROR_VER("Block with id: " << id  << " has at least one transaction (id: " << tx_id << ") with wrong inputs.");
 
