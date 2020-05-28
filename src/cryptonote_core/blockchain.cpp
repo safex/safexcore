@@ -5098,6 +5098,7 @@ leave:
     }
     catch (const SAFEX_TX_CONFLICT& e){
 
+        m_db->revert_transaction(bl.miner_tx.hash);
         for(auto tx: txs){
             cryptonote::transaction tmp;
             if(m_db->get_tx(tx.hash,tmp))
@@ -5113,6 +5114,7 @@ leave:
     catch (const std::exception& e)
     {
 
+      m_db->revert_transaction(bl.miner_tx.hash);
       for(auto tx: txs){
         cryptonote::transaction tmp;
         if(m_db->get_tx(tx.hash,tmp))
