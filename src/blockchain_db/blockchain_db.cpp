@@ -253,11 +253,19 @@ uint64_t BlockchainDB::add_block( const block& blk
   add_transaction(blk_hash, blk.miner_tx);
   int tx_i = 0;
   crypto::hash tx_hash = crypto::null_hash;
-  for (const transaction& tx : txs)
+  try
   {
-    tx_hash = blk.tx_hashes[tx_i];
-    add_transaction(blk_hash, tx, &tx_hash);
-    ++tx_i;
+      for (const transaction& tx : txs)
+      {
+        tx_hash = blk.tx_hashes[tx_i];
+        add_transaction(blk_hash, tx, &tx_hash);
+        ++tx_i;
+      }
+  }
+  catch(SAFEX_TX_CONFLICT& e)
+  {
+      block_txn_abort();
+      throw e;
   }
   TIME_MEASURE_FINISH(time1);
   time_add_transaction += time1;
