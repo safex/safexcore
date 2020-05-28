@@ -4205,6 +4205,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     sig_index++;
   }
 
+  if(!check_safex_tx(tx,tvc)){
+      tvc.m_verifivation_failed = true;
+      tvc.m_safex_verification_failed = true;
+      return false;
+  }
+
   if ((tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION) && threads > 1)
     waiter.wait();
 
@@ -5009,7 +5015,7 @@ leave:
     {
       // validate that transaction inputs and the keys spending them are correct.
       tx_verification_context tvc;
-      if(!check_tx_inputs(tx, tvc) || !check_safex_tx(tx, tvc))
+      if(!check_tx_inputs(tx, tvc))
       {
         MERROR_VER("Block with id: " << id  << " has at least one transaction (id: " << tx_id << ") with wrong inputs.");
 
