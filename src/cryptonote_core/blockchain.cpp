@@ -4205,12 +4205,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     sig_index++;
   }
 
-  if(!check_safex_tx(tx,tvc)){
-      tvc.m_verifivation_failed = true;
-      tvc.m_safex_verification_failed = true;
-      return false;
-  }
-
   if ((tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION) && threads > 1)
     waiter.wait();
 
@@ -4241,6 +4235,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   {
     MERROR_VER("Transaction of version " << tx.version<<" not yet supported");
     return false;
+  }
+
+  if(!check_safex_tx(tx,tvc)){
+      tvc.m_verifivation_failed = true;
+      tvc.m_safex_verification_failed = true;
+      return false;
   }
 
   return true;
@@ -5110,8 +5110,6 @@ leave:
             if(m_db->get_tx(tx.hash,tmp))
                 m_db->revert_transaction(tx.hash);
         }
-        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
-        txs.erase(it);
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
         bvc.m_verifivation_failed = true;
         return_tx_to_pool(txs);
