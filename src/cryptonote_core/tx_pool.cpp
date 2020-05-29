@@ -1242,7 +1242,7 @@ namespace cryptonote
       if(true)
       {
         //if we already failed on this height and id, skip actual ring signature check
-        if(txd.last_failed_id == m_blockchain.get_block_id_by_height(txd.last_failed_height))
+        if(txd.last_failed_id == m_blockchain.get_block_id_by_height(m_blockchain.get_current_blockchain_height()-1))
           return false;
         //check ring signature again, it is possible (with very small chance) that this transaction become again valid
         tx_verification_context tvc;
@@ -1263,6 +1263,42 @@ namespace cryptonote
 
     //transaction is ok.
     return true;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left) const
+  {
+      if(get_tx_type(tx.vout) != tx_out_type::out_safex_purchase)
+          return true;
+
+      for (auto vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+
+              if(offer_quantity_left.count(purchase.offer_id) == 0){
+                  uint64_t quantity;
+                  auto res = m_blockchain.get_safex_offer_quantity(purchase.offer_id, quantity);
+                  if(!res){
+                      txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                      txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                      return false;
+                  }
+                  offer_quantity_left[purchase.offer_id] = quantity;
+              }
+              if(offer_quantity_left[purchase.offer_id] < purchase.quantity){
+                  txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                  txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                  return false;
+              }
+              offer_quantity_left[purchase.offer_id] -= purchase.quantity;
+          }
+      }
+
+      return true;
   }
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::have_key_images(const std::unordered_set<crypto::key_image>& k_images, const transaction& tx)
@@ -1409,6 +1445,8 @@ namespace cryptonote
 
     LockedTXN lock(m_blockchain);
 
+    std::unordered_map<crypto::hash, uint64_t> offer_quantity_left;
+
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
     {
@@ -1472,18 +1510,18 @@ namespace cryptonote
       // included into the blockchain or that are
       // missing key images
       const cryptonote::txpool_tx_meta_t original_meta = meta;
-      bool ready = is_transaction_ready_to_go(meta, tx);
+      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left);
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try
-	{
-	  m_blockchain.update_txpool_tx(sorted_it->second, meta);
-	}
-        catch (const std::exception &e)
-	{
-	  MERROR("Failed to update tx meta: " << e.what());
-	  // continue, not fatal
-	}
+        {
+          m_blockchain.update_txpool_tx(sorted_it->second, meta);
+        }
+            catch (const std::exception &e)
+        {
+          MERROR("Failed to update tx meta: " << e.what());
+          // continue, not fatal
+        }
       }
       if (!ready)
       {
