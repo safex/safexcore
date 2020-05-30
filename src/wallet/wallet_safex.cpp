@@ -167,8 +167,8 @@ namespace tools
       cryptonote::COMMAND_RPC_GET_INTEREST_MAP::request req = AUTO_VAL_INIT(req);
       cryptonote::COMMAND_RPC_GET_INTEREST_MAP::response res = AUTO_VAL_INIT(res);
 
-      req.begin_interval = safex::calculate_interval_for_height(start_interval, this->nettype()) + 1; //earning interest starts from next interval
-      req.end_interval = safex::calculate_interval_for_height(end_interval, this->nettype()) - 1; //finishes in previous interval
+      req.begin_interval = start_interval;
+      req.end_interval = end_interval;
 
       if (req.begin_interval > req.end_interval)
           return interest_map;
@@ -208,8 +208,8 @@ namespace tools
       return 0;
     }
 
-    auto begin_interval = td.m_block_height;
-    auto end_interval = this->get_blockchain_current_height();
+    auto begin_interval = safex::calculate_interval_for_height(td.m_block_height, this->nettype()) + 1; //earning interest starts from next interval
+    auto end_interval = safex::calculate_interval_for_height(this->get_blockchain_current_height(), this->nettype()) - 1; //finishes in previous interval
     auto interest_map = get_interest_map(begin_interval, end_interval);
 
 
