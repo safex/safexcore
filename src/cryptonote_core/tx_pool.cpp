@@ -1321,15 +1321,22 @@ namespace cryptonote
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::append_key_images(std::unordered_set<crypto::key_image>& k_images, const transaction& tx)
   {
-    for(size_t i = 0; i!= tx.vin.size(); i++)
+    for(auto& txin: tx.vin)
     {
-      if (cryptonote::is_valid_transaction_input_type(tx.vin[i], tx.version)) {
-        auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx.vin[i]);
+      if (txin.type() == typeid(txin_to_script))
+      {
+        const txin_to_script& in_to_script = boost::get<txin_to_script>(txin);
+        if(!safex::is_safex_key_image_verification_needed(in_to_script.command_type))
+            continue;
+      }
+
+      if (cryptonote::is_valid_transaction_input_type(txin, tx.version)) {
+        auto k_image_opt = boost::apply_visitor(key_image_visitor(), txin);
         CHECK_AND_ASSERT_MES(k_image_opt, false, "key image available in input is not valid");
         auto i_res = k_images.insert(*k_image_opt);
         CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: key images pool cache - inserted duplicate image in set: " << *k_image_opt);
       } else {
-        LOG_ERROR("wrong input variant type: " << tx.vin[i].type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
+        LOG_ERROR("wrong input variant type: " << txin.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
         return false;
       }
     }
