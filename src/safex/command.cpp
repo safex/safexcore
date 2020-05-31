@@ -561,7 +561,7 @@ namespace safex
       execution_status result{cmd->validate(blokchainDB, txin)};
       if (result != execution_status::ok)
       {
-        LOG_ERROR("Validation of safex command failed, status:" << static_cast<int>(result));
+        LOG_PRINT_L1("Validation of safex command failed, status:" << static_cast<int>(result));
         return false;
       }
     }
