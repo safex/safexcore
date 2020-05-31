@@ -683,7 +683,7 @@ namespace cryptonote
           break;
         default:
           if(get_tx_out_type(it.target) >= tx_out_type::out_advanced && get_tx_out_type(it.target) < tx_out_type::out_invalid
-                && ((tx_type < get_tx_out_type(it.target) && tx_type != tx_out_type::out_safex_purchase)
+                && ((tx_type < get_tx_out_type(it.target) && tx_type != tx_out_type::out_safex_purchase) || get_tx_out_type(it.target) == tx_out_type::out_safex_purchase
                      || tx_type == tx_out_type::out_invalid)){
             tx_type = get_tx_out_type(it.target);
             advanced_seen = true;
