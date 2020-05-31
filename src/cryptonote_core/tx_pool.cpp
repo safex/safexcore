@@ -696,7 +696,8 @@ namespace cryptonote
       uint64_t tx_age = time(nullptr) - meta.receive_time;
 
       if((tx_age > CRYPTONOTE_MEMPOOL_TX_LIVETIME && !meta.kept_by_block) ||
-         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) )
+         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) ||
+          meta.safex_failed)
       {
         LOG_PRINT_L1("Tx " << txid << " removed from tx pool due to outdated, age: " << tx_age );
         auto sorted_it = find_tx_in_sorted_container(txid);
@@ -1075,6 +1076,53 @@ namespace cryptonote
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::on_blockchain_inc(uint64_t new_block_height, const crypto::hash& top_block_id)
   {
+
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      CRITICAL_REGION_LOCAL1(m_blockchain);
+
+      LockedTXN lock(m_blockchain);
+
+      for(auto& sorted_it : m_txs_by_fee_and_receive_time)
+      {
+          txpool_tx_meta_t meta;
+
+          if (!m_blockchain.get_txpool_tx_meta(sorted_it.second, meta))
+          {
+              MERROR("  failed to find tx meta");
+              continue;
+          }
+
+          cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(sorted_it.second);
+          cryptonote::transaction tx;
+          if (!parse_and_validate_tx_from_blob(txblob, tx))
+          {
+              MERROR("Failed to parse tx from txpool");
+              continue;
+          }
+
+          // Skip transactions that are not ready to be
+          // included into the blockchain or that are
+          // missing key images
+          const cryptonote::txpool_tx_meta_t original_meta = meta;
+          tx_verification_context tvc;
+          if(!m_blockchain.check_tx_inputs(tx, meta.max_used_block_height, meta.max_used_block_id, tvc))
+          {
+              meta.safex_failed = tvc.m_safex_invalid_input || tvc.m_safex_invalid_command || tvc.m_safex_verification_failed ||
+                                  tvc.m_safex_invalid_command_params || tvc.m_safex_command_execution_failed;
+          }
+          if (memcmp(&original_meta, &meta, sizeof(meta)))
+          {
+              try
+              {
+                  m_blockchain.update_txpool_tx(sorted_it.second, meta);
+              }
+              catch (const std::exception &e)
+              {
+                  MERROR("Failed to update tx meta: " << e.what());
+                  // continue, not fatal
+              }
+          }
+      }
     return true;
   }
   //---------------------------------------------------------------------------------
