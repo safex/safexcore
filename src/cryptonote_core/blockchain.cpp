@@ -3024,7 +3024,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   if (tx.version == 1) return true;
 
   std::vector<txin_to_script> input_commands_to_execute;
-  std::set<safex::command_t> input_commands_to_check;
+  safex::command_t input_command_to_check;
 
   bool only_donate_seen = true;
   bool only_stake_seen = true;
@@ -3042,7 +3042,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         only_stake_seen = false;
 
       input_commands_to_execute.push_back(txin_script);
-      input_commands_to_check.insert(txin_script.command_type);
+      input_command_to_check = txin_script.command_type;
     }
   }
 
@@ -3055,6 +3055,38 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       return false;
   }
 
+
+  std::vector<tx_out_type> advanced_outputs;
+  bool network_fee_out = false;
+  bool purchase_out = false;
+  bool feedback_token_out = false;
+
+  for (auto txout: tx.vout)
+  {
+      if ((txout.target.type() == typeid(txout_to_script)))
+      {
+          auto txout_type = get_tx_out_type(txout.target);
+          advanced_outputs.push_back(txout_type);
+          if(txout_type == cryptonote::tx_out_type::out_safex_purchase)
+              purchase_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_safex_feedback_token)
+              feedback_token_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_network_fee)
+              network_fee_out = true;
+      }
+  }
+
+  // Per TX there can be :
+  // * 1  advanced output for all types
+  // * 3 outputs if tx is safex_purchase
+  // * 0 outputs if tx is token_unstake
+  if (!(advanced_outputs.size() == 1
+        || (advanced_outputs.size() == 3 && network_fee_out && purchase_out && feedback_token_out)
+        || (advanced_outputs.size() == 0 && input_command_to_check== safex::command_t::token_unstake))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
+  }
+
   //validate all command logic
   for (const txin_to_script cmd: input_commands_to_execute)
       if (!safex::validate_safex_command(*m_db, cmd)) {
@@ -3063,12 +3095,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       }
 
   //check all commands tx restrictions
-  for (const safex::command_t cmd_type: input_commands_to_check){
-    if (!check_safex_tx_command(tx, cmd_type)){
-        tvc.m_safex_invalid_input = true;
-        return false;
-    }
-
+  if (!check_safex_tx_command(tx, input_command_to_check)){
+      tvc.m_safex_invalid_input = true;
+      return false;
   }
 
   return true;
