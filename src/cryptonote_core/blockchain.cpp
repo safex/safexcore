@@ -6627,7 +6627,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
     {
       const txin_token_to_key &in = boost::get<txin_token_to_key>(txin);
       if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
-        return true;
+        continue;
       const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
 
       // Now we search the offsets and find their txs
@@ -6644,7 +6644,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
         {
             const txin_to_script &in = boost::get<txin_to_script>(txin);
             if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
-                return true;
+                continue;
             const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
 
             // Now we search the offsets and find their txs
