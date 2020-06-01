@@ -1360,7 +1360,8 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
 
     auto it = m_key_images.find(k_image);
-    if(it != m_key_images.end())
+    if (it != m_key_images.end() &&
+        (in.type() != typeid(txin_to_script) || safex::is_safex_key_image_verification_needed(boost::get<txin_to_script>(in).command_type)))
     {
       transfer_details& td = m_transfers[it->second];
       uint64_t value_amount = *boost::apply_visitor(amount_visitor(), in);
@@ -11592,7 +11593,8 @@ uint64_t wallet::import_key_images(const std::vector<std::pair<crypto::key_image
           continue;
 
         auto it = m_key_images.find(*k_image_opt);
-        if (it != m_key_images.end())
+        if (it != m_key_images.end() &&
+            (in.type() != typeid(txin_to_script) || safex::is_safex_key_image_verification_needed(boost::get<txin_to_script>(in).command_type)))
         {
           const transfer_details& td = m_transfers[it->second];
           uint64_t value_amount = *boost::apply_visitor(amount_visitor(), in);

@@ -351,7 +351,6 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
       output_type = tx_out_type::out_safex_offer;
       break;
     case safex::command_t::simple_purchase:
-      //TODO: Check and set correct value
       output_type = tx_out_type::out_cash;
       break;
     case safex::command_t::create_feedback:
@@ -371,6 +370,11 @@ bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor
 
   if (!txin.key_offsets.size())
     return false;
+
+  if(!safex::is_safex_key_image_verification_needed(txin.command_type) && txin.key_offsets.size() != 1){
+      MERROR_VER("Commands that don't have key image verification must have only 1 key offset");
+      return false;
+  }
 
 
   std::vector<uint64_t> absolute_offsets;
@@ -3020,7 +3024,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   if (tx.version == 1) return true;
 
   std::vector<txin_to_script> input_commands_to_execute;
-  std::set<safex::command_t> input_commands_to_check;
+  safex::command_t input_command_to_check;
 
   bool only_donate_seen = true;
   bool only_stake_seen = true;
@@ -3038,7 +3042,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
         only_stake_seen = false;
 
       input_commands_to_execute.push_back(txin_script);
-      input_commands_to_check.insert(txin_script.command_type);
+      input_command_to_check = txin_script.command_type;
     }
   }
 
@@ -3051,6 +3055,38 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       return false;
   }
 
+
+  std::vector<tx_out_type> advanced_outputs;
+  bool network_fee_out = false;
+  bool purchase_out = false;
+  bool feedback_token_out = false;
+
+  for (auto txout: tx.vout)
+  {
+      if ((txout.target.type() == typeid(txout_to_script)))
+      {
+          auto txout_type = get_tx_out_type(txout.target);
+          advanced_outputs.push_back(txout_type);
+          if(txout_type == cryptonote::tx_out_type::out_safex_purchase)
+              purchase_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_safex_feedback_token)
+              feedback_token_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_network_fee)
+              network_fee_out = true;
+      }
+  }
+
+  // Per TX there can be :
+  // * 1  advanced output for all types
+  // * 3 outputs if tx is safex_purchase
+  // * 0 outputs if tx is token_unstake
+  if (!(advanced_outputs.size() == 1
+        || (advanced_outputs.size() == 3 && network_fee_out && purchase_out && feedback_token_out)
+        || (advanced_outputs.size() == 0 && input_command_to_check== safex::command_t::token_unstake))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
+  }
+
   //validate all command logic
   for (const txin_to_script cmd: input_commands_to_execute)
       if (!safex::validate_safex_command(*m_db, cmd)) {
@@ -3059,12 +3095,9 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
       }
 
   //check all commands tx restrictions
-  for (const safex::command_t cmd_type: input_commands_to_check){
-    if (!check_safex_tx_command(tx, cmd_type)){
-        tvc.m_safex_invalid_input = true;
-        return false;
-    }
-
+  if (!check_safex_tx_command(tx, input_command_to_check)){
+      tvc.m_safex_invalid_input = true;
+      return false;
   }
 
   return true;
@@ -3167,7 +3200,7 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         }
 
         /* Check if donated cash amount matches */
-        if (outputs_donated_cash_amount >= input_cash_amount)
+        if (outputs_donated_cash_amount >= input_cash_amount || outputs_donated_cash_amount == 0)
         {
             MERROR("Invalid safex cash input amount");
             return false;
@@ -3249,6 +3282,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
 
         }
 
+        if(!create_account_seen){
+            MERROR("Create account output not found");
+            return false;
+        }
+
         if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
             MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
             return false;
@@ -3318,6 +3356,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+
+        if(!edit_account_seen){
+            MERROR("Edit account output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::create_offer)
     {
@@ -3384,6 +3427,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+
+        if(!create_offer_seen){
+            MERROR("Create offer output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::edit_offer)
     {
@@ -3447,6 +3495,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
             }
+        }
+        if(!edit_offer_seen){
+            MERROR("Edit offer output not found");
+            return false;
         }
     }
     else if (command_type == safex::command_t::simple_purchase)
@@ -3580,6 +3632,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+        if(!feedback_seen){
+            MERROR("Create feedback output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::create_price_peg)
     {
@@ -3652,6 +3708,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+        if(!create_price_peg_seen){
+            MERROR("Create price peg output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::update_price_peg)
     {
@@ -3692,6 +3752,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
 
             }
+        }
+        if(!update_price_peg_seen){
+            MERROR("Update price peg output not found");
+            return false;
         }
     }
     else
@@ -4231,6 +4295,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   {
     MERROR_VER("Transaction of version " << tx.version<<" not yet supported");
     return false;
+  }
+
+  if(!check_safex_tx(tx,tvc)){
+      tvc.m_verifivation_failed = true;
+      tvc.m_safex_verification_failed = true;
+      return false;
   }
 
   return true;
@@ -5094,13 +5164,12 @@ leave:
     }
     catch (const SAFEX_TX_CONFLICT& e){
 
+        m_db->revert_transaction(bl.miner_tx.hash);
         for(auto tx: txs){
             cryptonote::transaction tmp;
             if(m_db->get_tx(tx.hash,tmp))
                 m_db->revert_transaction(tx.hash);
         }
-        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
-        txs.erase(it);
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
         bvc.m_verifivation_failed = true;
         return_tx_to_pool(txs);
@@ -5109,6 +5178,7 @@ leave:
     catch (const std::exception& e)
     {
 
+      m_db->revert_transaction(bl.miner_tx.hash);
       for(auto tx: txs){
         cryptonote::transaction tmp;
         if(m_db->get_tx(tx.hash,tmp))
@@ -6557,7 +6627,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
     {
       const txin_token_to_key &in = boost::get<txin_token_to_key>(txin);
       if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
-        return true;
+        continue;
       const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
 
       // Now we search the offsets and find their txs
@@ -6574,7 +6644,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
         {
             const txin_to_script &in = boost::get<txin_to_script>(txin);
             if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
-                return true;
+                continue;
             const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
 
             // Now we search the offsets and find their txs

@@ -1411,7 +1411,7 @@ namespace cryptonote
 
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(cryptonote::tx_out_type::out_staked_token);
-        txs.keys.push_back(out_eph_public_key);
+        txs.key = out_eph_public_key;
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create token stake output", safex::command_t::token_stake);
@@ -1428,7 +1428,7 @@ namespace cryptonote
 
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_network_fee);
-        txs.keys.push_back(out_eph_public_key);
+        txs.key = out_eph_public_key;
         //find matching script input
         const std::vector<const txin_to_script*> matched_inputs = match_inputs(dst_entr, sources, tx.vin);
         SAFEX_COMMAND_CHECK_AND_ASSERT_THROW_MES(matched_inputs.size() > 0, "Missing command on inputs to create network fee output", safex::command_t::donate_network_fee);
@@ -1446,7 +1446,7 @@ namespace cryptonote
 
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_account);
-        txs.keys.push_back(sfx_acc_keys.get_public_key());
+        txs.key = sfx_acc_keys.m_public_key;
         txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
         //find matching script input
@@ -1460,7 +1460,7 @@ namespace cryptonote
       {
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_account_update);
-        txs.keys.push_back(sfx_acc_keys.m_public_key);
+        txs.key = sfx_acc_keys.m_public_key;
         txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
         //find matching script input
@@ -1474,7 +1474,7 @@ namespace cryptonote
       {
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_offer);
-          txs.keys.push_back(sfx_acc_keys.m_public_key);
+          txs.key = sfx_acc_keys.m_public_key;
           txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
           //find matching script input
@@ -1488,7 +1488,7 @@ namespace cryptonote
       {
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_offer_update);
-          txs.keys.push_back(sfx_acc_keys.m_public_key);
+          txs.key = sfx_acc_keys.m_public_key;
           txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
           //find matching script input
@@ -1503,7 +1503,7 @@ namespace cryptonote
           out.token_amount = 0;
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_purchase);
-          txs.keys.push_back(out_eph_public_key);
+          txs.key = out_eph_public_key;
           txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
           //find matching script input
@@ -1518,7 +1518,7 @@ namespace cryptonote
           out.token_amount = 0;
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_feedback_token);
-          txs.keys.push_back(out_eph_public_key);
+          txs.key = out_eph_public_key;
           txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
           //find matching script input
@@ -1533,7 +1533,7 @@ namespace cryptonote
           out.token_amount = 0;
           txout_to_script txs = AUTO_VAL_INIT(txs);
           txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_feedback);
-          txs.keys.push_back(out_eph_public_key);
+          txs.key = out_eph_public_key;
           txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
           //find matching script input
@@ -1547,7 +1547,7 @@ namespace cryptonote
       {
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_price_peg);
-        txs.keys.push_back(sfx_acc_keys.m_public_key);
+        txs.key = sfx_acc_keys.m_public_key;
         txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
         //find matching script input
@@ -1561,7 +1561,7 @@ namespace cryptonote
       {
         txout_to_script txs = AUTO_VAL_INIT(txs);
         txs.output_type = static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update);
-        txs.keys.push_back(sfx_acc_keys.m_public_key);
+        txs.key = sfx_acc_keys.m_public_key;
         txs.data = std::vector<uint8_t>(std::begin(dst_entr.output_data), std::end(dst_entr.output_data));
 
         //find matching script input

@@ -680,10 +680,17 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_script)) || (in.type() == typeid(txin_to_key))
-      || (in.type() == typeid(txin_token_migration)) || (in.type() == typeid(txin_token_to_key)),
-      false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", in transaction id=" << get_transaction_hash(tx));
-
+      if (tx.version == 1) {
+          CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_key))
+              || (in.type() == typeid(txin_token_migration)) || (in.type() == typeid(txin_token_to_key)),
+              false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", in transaction id=" << get_transaction_hash(tx));
+      } else if (tx.version == 2) {
+          CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_script)) || (in.type() == typeid(txin_to_key))
+                                   || (in.type() == typeid(txin_token_migration)) || (in.type() == typeid(txin_token_to_key)),
+                               false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name()
+                                        << " or " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name()
+                                        << " or " << typeid(txin_to_script).name() << ", in transaction id=" << get_transaction_hash(tx));
+      }
     }
     return true;
   }

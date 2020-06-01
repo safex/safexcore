@@ -194,13 +194,6 @@ namespace cryptonote
         return false;
       }
 
-      //Here check for tx related safex logic
-      if ( !kept_by_block && (tx.version > HF_VERSION_MIN_SUPPORTED_TX_VERSION) && !m_blockchain.check_safex_tx(tx, tvc))
-      {
-        tvc.m_verifivation_failed = true;
-        tvc.m_safex_verification_failed = true;
-        return false;
-      }
     }
     else
     {
@@ -703,7 +696,8 @@ namespace cryptonote
       uint64_t tx_age = time(nullptr) - meta.receive_time;
 
       if((tx_age > CRYPTONOTE_MEMPOOL_TX_LIVETIME && !meta.kept_by_block) ||
-         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) )
+         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) ||
+          meta.safex_failed)
       {
         LOG_PRINT_L1("Tx " << txid << " removed from tx pool due to outdated, age: " << tx_age );
         auto sorted_it = find_tx_in_sorted_container(txid);
@@ -1082,6 +1076,52 @@ namespace cryptonote
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::on_blockchain_inc(uint64_t new_block_height, const crypto::hash& top_block_id)
   {
+
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      CRITICAL_REGION_LOCAL1(m_blockchain);
+
+      for(auto& sorted_it : m_txs_by_fee_and_receive_time)
+      {
+          txpool_tx_meta_t meta;
+
+          if (!m_blockchain.get_txpool_tx_meta(sorted_it.second, meta))
+          {
+              MERROR("  failed to find tx meta");
+              continue;
+          }
+
+          cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(sorted_it.second);
+          cryptonote::transaction tx;
+          if (!parse_and_validate_tx_from_blob(txblob, tx))
+          {
+              MERROR("Failed to parse tx from txpool");
+              continue;
+          }
+
+          // Skip transactions that are not ready to be
+          // included into the blockchain or that are
+          // missing key images
+          const cryptonote::txpool_tx_meta_t original_meta = meta;
+          tx_verification_context tvc;
+          if(!m_blockchain.check_tx_inputs(tx, meta.max_used_block_height, meta.max_used_block_id, tvc))
+          {
+              meta.safex_failed = tvc.m_safex_invalid_input || tvc.m_safex_invalid_command || tvc.m_safex_verification_failed ||
+                                  tvc.m_safex_invalid_command_params || tvc.m_safex_command_execution_failed;
+          }
+          if (memcmp(&original_meta, &meta, sizeof(meta)))
+          {
+              LockedTXN lock(m_blockchain);
+              try
+              {
+                  m_blockchain.update_txpool_tx(sorted_it.second, meta);
+              }
+              catch (const std::exception &e)
+              {
+                  MERROR("Failed to update tx meta: " << e.what());
+                  // continue, not fatal
+              }
+          }
+      }
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -1249,7 +1289,7 @@ namespace cryptonote
       if(true)
       {
         //if we already failed on this height and id, skip actual ring signature check
-        if(txd.last_failed_id == m_blockchain.get_block_id_by_height(txd.last_failed_height))
+        if(txd.last_failed_id == m_blockchain.get_block_id_by_height(m_blockchain.get_current_blockchain_height()-1))
           return false;
         //check ring signature again, it is possible (with very small chance) that this transaction become again valid
         tx_verification_context tvc;
@@ -1272,6 +1312,42 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
+  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left) const
+  {
+      if(get_tx_type(tx.vout) != tx_out_type::out_safex_purchase)
+          return true;
+
+      for (auto vout: tx.vout)
+      {
+          if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+
+              if(offer_quantity_left.count(purchase.offer_id) == 0){
+                  uint64_t quantity;
+                  auto res = m_blockchain.get_safex_offer_quantity(purchase.offer_id, quantity);
+                  if(!res){
+                      txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                      txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                      return false;
+                  }
+                  offer_quantity_left[purchase.offer_id] = quantity;
+              }
+              if(offer_quantity_left[purchase.offer_id] < purchase.quantity){
+                  txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                  txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                  return false;
+              }
+              offer_quantity_left[purchase.offer_id] -= purchase.quantity;
+          }
+      }
+
+      return true;
+  }
+  //---------------------------------------------------------------------------------
   bool tx_memory_pool::have_key_images(const std::unordered_set<crypto::key_image>& k_images, const transaction& tx)
   {
     for(size_t i = 0; i!= tx.vin.size(); i++)
@@ -1292,15 +1368,22 @@ namespace cryptonote
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::append_key_images(std::unordered_set<crypto::key_image>& k_images, const transaction& tx)
   {
-    for(size_t i = 0; i!= tx.vin.size(); i++)
+    for(auto& txin: tx.vin)
     {
-      if (cryptonote::is_valid_transaction_input_type(tx.vin[i], tx.version)) {
-        auto k_image_opt = boost::apply_visitor(key_image_visitor(), tx.vin[i]);
+      if (txin.type() == typeid(txin_to_script))
+      {
+        const txin_to_script& in_to_script = boost::get<txin_to_script>(txin);
+        if(!safex::is_safex_key_image_verification_needed(in_to_script.command_type))
+            continue;
+      }
+
+      if (cryptonote::is_valid_transaction_input_type(txin, tx.version)) {
+        auto k_image_opt = boost::apply_visitor(key_image_visitor(), txin);
         CHECK_AND_ASSERT_MES(k_image_opt, false, "key image available in input is not valid");
         auto i_res = k_images.insert(*k_image_opt);
         CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: key images pool cache - inserted duplicate image in set: " << *k_image_opt);
       } else {
-        LOG_ERROR("wrong input variant type: " << tx.vin[i].type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
+        LOG_ERROR("wrong input variant type: " << txin.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name());
         return false;
       }
     }
@@ -1416,6 +1499,8 @@ namespace cryptonote
 
     LockedTXN lock(m_blockchain);
 
+    std::unordered_map<crypto::hash, uint64_t> offer_quantity_left;
+
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
     {
@@ -1479,18 +1564,18 @@ namespace cryptonote
       // included into the blockchain or that are
       // missing key images
       const cryptonote::txpool_tx_meta_t original_meta = meta;
-      bool ready = is_transaction_ready_to_go(meta, tx);
+      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left);
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try
-	{
-	  m_blockchain.update_txpool_tx(sorted_it->second, meta);
-	}
-        catch (const std::exception &e)
-	{
-	  MERROR("Failed to update tx meta: " << e.what());
-	  // continue, not fatal
-	}
+        {
+          m_blockchain.update_txpool_tx(sorted_it->second, meta);
+        }
+            catch (const std::exception &e)
+        {
+          MERROR("Failed to update tx meta: " << e.what());
+          // continue, not fatal
+        }
       }
       if (!ready)
       {

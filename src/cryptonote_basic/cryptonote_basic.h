@@ -63,14 +63,14 @@ namespace cryptonote
 
   struct txout_to_script
   {
-    std::vector<crypto::public_key> keys;
+    crypto::public_key key;
     std::vector<uint8_t> data; //Local output data and state
     uint8_t output_type{0};
 
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(output_type)
-      FIELD(keys)
+      FIELD(key)
       FIELD(data)
     END_SERIALIZE()
   };
@@ -115,7 +115,7 @@ namespace cryptonote
 
       boost::optional<const crypto::public_key &> operator()(const cryptonote::txout_to_script &txout) const
       {
-        return txout.keys[0];
+        return txout.key;
       }
   };
 
@@ -670,7 +670,8 @@ namespace cryptonote
     bool token_seen = false;
     bool advanced_seen = false;
     for(auto it: vout){
-      switch(get_tx_out_type(it.target)){
+      auto curr_tx_out_type = get_tx_out_type(it.target);
+      switch(curr_tx_out_type){
         case tx_out_type::out_cash:
           if(!token_seen && !advanced_seen)
             tx_type = tx_out_type::out_cash;
@@ -682,8 +683,9 @@ namespace cryptonote
           }
           break;
         default:
-          if(get_tx_out_type(it.target) >= tx_out_type::out_advanced && get_tx_out_type(it.target) < tx_out_type::out_invalid
-             && (tx_type < get_tx_out_type(it.target) || tx_type == tx_out_type::out_invalid)){
+          if(curr_tx_out_type >= tx_out_type::out_advanced && curr_tx_out_type < tx_out_type::out_invalid
+                && ((tx_type < curr_tx_out_type && tx_type != tx_out_type::out_safex_purchase) || curr_tx_out_type == tx_out_type::out_safex_purchase
+                     || tx_type == tx_out_type::out_invalid)){
             tx_type = get_tx_out_type(it.target);
             advanced_seen = true;
           }
