@@ -1080,8 +1080,6 @@ namespace cryptonote
       CRITICAL_REGION_LOCAL(m_transactions_lock);
       CRITICAL_REGION_LOCAL1(m_blockchain);
 
-      LockedTXN lock(m_blockchain);
-
       for(auto& sorted_it : m_txs_by_fee_and_receive_time)
       {
           txpool_tx_meta_t meta;
@@ -1112,6 +1110,7 @@ namespace cryptonote
           }
           if (memcmp(&original_meta, &meta, sizeof(meta)))
           {
+              LockedTXN lock(m_blockchain);
               try
               {
                   m_blockchain.update_txpool_tx(sorted_it.second, meta);
