@@ -3200,7 +3200,7 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
         }
 
         /* Check if donated cash amount matches */
-        if (outputs_donated_cash_amount >= input_cash_amount)
+        if (outputs_donated_cash_amount >= input_cash_amount || outputs_donated_cash_amount == 0)
         {
             MERROR("Invalid safex cash input amount");
             return false;
@@ -3282,6 +3282,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
 
         }
 
+        if(!create_account_seen){
+            MERROR("Create account output not found");
+            return false;
+        }
+
         if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
             MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
             return false;
@@ -3351,6 +3356,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+
+        if(!edit_account_seen){
+            MERROR("Edit account output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::create_offer)
     {
@@ -3417,6 +3427,11 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+
+        if(!create_offer_seen){
+            MERROR("Create offer output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::edit_offer)
     {
@@ -3480,6 +3495,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
             }
+        }
+        if(!edit_offer_seen){
+            MERROR("Edit offer output not found");
+            return false;
         }
     }
     else if (command_type == safex::command_t::simple_purchase)
@@ -3613,6 +3632,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+        if(!feedback_seen){
+            MERROR("Create feedback output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::create_price_peg)
     {
@@ -3685,6 +3708,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
             }
         }
+        if(!create_price_peg_seen){
+            MERROR("Create price peg output not found");
+            return false;
+        }
     }
     else if (command_type == safex::command_t::update_price_peg)
     {
@@ -3725,6 +3752,10 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                 }
 
             }
+        }
+        if(!update_price_peg_seen){
+            MERROR("Update price peg output not found");
+            return false;
         }
     }
     else
