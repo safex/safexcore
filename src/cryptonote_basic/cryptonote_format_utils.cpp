@@ -688,8 +688,8 @@ namespace cryptonote
           CHECK_AND_ASSERT_MES((in.type() == typeid(txin_to_script)) || (in.type() == typeid(txin_to_key))
                                    || (in.type() == typeid(txin_token_migration)) || (in.type() == typeid(txin_token_to_key)),
                                false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name()
-                                       << " or " << typeid(txin_token_to_key) << " or " << typeid(txin_token_migration)
-                                       << " or " << typeid(txin_to_script) << ", in transaction id=" << get_transaction_hash(tx));
+                                        << " or " << typeid(txin_token_to_key).name() << " or " << typeid(txin_token_migration).name()
+                                        << " or " << typeid(txin_to_script).name() << ", in transaction id=" << get_transaction_hash(tx));
       }
     }
     return true;
