@@ -49,6 +49,10 @@ libwallet-build:
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
                          		../.. && $(MAKE) wallet_merged epee easylogging lmdb unbound VERBOSE=1
 
+depends:
+	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
+	cd build/$(target)/release && cmake -DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/$(target)/share/toolchain.cmake ../../.. && $(MAKE)
+
 debug: cmake-debug
 	cd build/debug && $(MAKE)
 
