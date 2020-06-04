@@ -134,9 +134,9 @@ namespace safex
   {
 
     if (nettype == cryptonote::network_type::FAKECHAIN)
-      return SAFEX_DEFAULT_INTERVAL_PERIOD/100;
+      return SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN;
     else if (nettype == cryptonote::network_type::TESTNET)
-      return SAFEX_DEFAULT_INTERVAL_PERIOD/100;
+      return SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET;
     else
       return SAFEX_DEFAULT_INTERVAL_PERIOD;
   }
@@ -217,9 +217,9 @@ namespace safex
   {
 
     if (nettype == cryptonote::network_type::FAKECHAIN)
-      return get_safex_interval_period(cryptonote::network_type::FAKECHAIN) * 3;
+      return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_FAKECHAIN;
     else if (nettype == cryptonote::network_type::TESTNET)
-      return get_safex_interval_period(cryptonote::network_type::TESTNET) * 1;
+      return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_TESTNET;
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD;
   }

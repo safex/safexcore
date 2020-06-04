@@ -172,10 +172,14 @@
 constexpr uint64_t SAFEX_COMMAND_PROTOCOL_VERSION                   = 1;
 
 //Safex token stake constants
-constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                 = 10000 * SAFEX_TOKEN;
-constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD          = 500000;
-constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD                    = 1000; //blocks
-constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD         = SAFEX_DEFAULT_INTERVAL_PERIOD*10; //blocks
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                      = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD               = 500000;
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN               = 10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET                 = 10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD                         = 1000; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_FAKECHAIN    = SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN*3; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_TESTNET      = SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET*1; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD              = SAFEX_DEFAULT_INTERVAL_PERIOD*10; //blocks
 
 //Safex network fee constants
 constexpr uint64_t SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE             = 5;
