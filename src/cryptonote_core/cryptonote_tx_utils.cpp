@@ -793,10 +793,11 @@ namespace cryptonote
   }
 
   //Based on advanced inputs, create additional outputs
-  tx_destination_entry adjust_advanced_outputs(const std::vector<tx_source_entry>& sources, const tx_source_entry &src_entr, const txin_to_script& input_txin_to_script,
+   std::vector<tx_destination_entry> adjust_advanced_outputs(const std::vector<tx_source_entry>& sources, const tx_source_entry &src_entr, const txin_to_script& input_txin_to_script,
           const std::vector<tx_destination_entry>& destinations)
   {
     tx_destination_entry dst_entr{};
+    std::vector<tx_destination_entry> splitted_dsts;
 
     //add interest output for fee distribution
     if (input_txin_to_script.command_type == safex::command_t::token_unstake) {
@@ -810,7 +811,7 @@ namespace cryptonote
       if (input_token_staked_amount == 0)
       {
         LOG_ERROR("Could not match staked token input with calculated interest input");
-        return tx_destination_entry{};
+        return  std::vector<tx_destination_entry>{};
       }
 
 
@@ -823,9 +824,14 @@ namespace cryptonote
           dst_entr = create_interest_destination(dt, input_txin_to_script.amount);
         }
       }
+      cryptonote::decompose_amount_into_digits(dst_entr.amount, ::config::DEFAULT_DUST_THRESHOLD,
+          [&](uint64_t chunk)
+          { splitted_dsts.push_back(cryptonote::tx_destination_entry(chunk, dst_entr.addr, dst_entr.is_subaddress, cryptonote::tx_out_type::out_cash)); },
+          [&](uint64_t a_dust)
+          { splitted_dsts.push_back(cryptonote::tx_destination_entry(a_dust, dst_entr.addr, dst_entr.is_subaddress, cryptonote::tx_out_type::out_cash)); });
     }
 
-    return dst_entr;
+    return splitted_dsts;
   }
 
   /**
@@ -1250,9 +1256,10 @@ namespace cryptonote
 
         //adhoc add destination for interest based on input distribute newtork fee command
         if (input_txin_to_script.command_type == safex::command_t::token_unstake) {
-          tx_destination_entry dst_interest = adjust_advanced_outputs(sources, src_entr, input_txin_to_script, destinations);
-          if(dst_interest.amount > 0)
-            destinations.push_back(dst_interest);
+            std::vector<tx_destination_entry> dsts_interest = adjust_advanced_outputs(sources, src_entr, input_txin_to_script, destinations);
+            for(auto dst: dsts_interest)
+                if(dst.amount > 0)
+                    destinations.push_back(dst);
         }
 
       }
