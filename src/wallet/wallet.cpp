@@ -6637,7 +6637,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     THROW_WALLET_EXCEPTION_IF(subaddr_account != m_transfers[*i].m_subaddr_index.major, error::wallet_internal_error, "the tx uses funds from multiple accounts");
 
   if (outs.empty()) {
-    //TODO: Grki check this out_types
     if ((command_type == safex::command_t::token_stake || command_type == safex::command_t::create_account))
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_token); // may throw
     else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)
