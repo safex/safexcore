@@ -4147,7 +4147,7 @@ bool wallet::is_token_transfer_unlocked(const transfer_details& td) const
   auto block_height = td.m_block_height;
 
   if(td.token_amount()== SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE && is_create_account_token_fee(td)){
-      block_height += safex::get_safex_minumum_account_create_period(m_nettype);
+      block_height += safex::get_safex_minumum_account_create_token_lock_period(m_nettype);
     }
 
   return is_token_transfer_unlocked(td.m_tx.unlock_time, block_height);
@@ -6637,7 +6637,6 @@ void wallet::transfer_advanced(safex::command_t command_type, const std::vector<
     THROW_WALLET_EXCEPTION_IF(subaddr_account != m_transfers[*i].m_subaddr_index.major, error::wallet_internal_error, "the tx uses funds from multiple accounts");
 
   if (outs.empty()) {
-    //TODO: Grki check this out_types
     if ((command_type == safex::command_t::token_stake || command_type == safex::command_t::create_account))
       get_outs(outs, selected_transfers, fake_outputs_count, tx_out_type::out_token); // may throw
     else if (command_type == safex::command_t::donate_network_fee || command_type == safex::command_t::simple_purchase)

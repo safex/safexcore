@@ -35,6 +35,8 @@ using namespace epee;
 using namespace cryptonote;
 
 #ifdef WIN32
+  #include <boost/locale.hpp>
+  #include <boost/filesystem.hpp>
   // Translate from CP850 to UTF-8;
   // std::getline for a Windows console returns a string in CP437 or CP850; as simplewallet,
   // like all of Safex, is assumed to work internally with UTF-8 throughout, even on Windows

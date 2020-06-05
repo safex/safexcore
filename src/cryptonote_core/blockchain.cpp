@@ -2388,7 +2388,7 @@ bool Blockchain::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMA
     if(req.out_type == cryptonote::tx_out_type::out_token){
       cryptonote::transaction tx = m_db->get_tx(toi.first);
       if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
-        unlocked &= od.height + safex::get_safex_minumum_account_create_period(m_nettype) <= m_db->height();
+        unlocked &= od.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) <= m_db->height();
    }
 
     res.outs.push_back({od.pubkey, od.commitment, unlocked, od.height, toi.first});
@@ -2414,7 +2414,7 @@ bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request&
       if(out_type == cryptonote::tx_out_type::out_token){
         cryptonote::transaction tx = m_db->get_tx(toi.first);
         if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
-          unlocked &= od.height + safex::get_safex_minumum_account_create_period(m_nettype) <= m_db->height();
+          unlocked &= od.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) <= m_db->height();
      }
 
       proto.add_out_entry(od.pubkey, unlocked, od.height, toi.first);
@@ -6637,7 +6637,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
         cryptonote::transaction tx = m_db->get_tx(toi.first);
         //Now we search for script input
         if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
-           output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+           output_token_fee.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) > m_db->height())
           return false;
       }
     } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_account))
@@ -6654,7 +6654,7 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
                 cryptonote::transaction tx = m_db->get_tx(toi.first);
                 //Now we search for script input
                 if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
-                    output_token_fee.height + safex::get_safex_minumum_account_create_period(m_nettype) > m_db->height())
+                    output_token_fee.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) > m_db->height())
                     return false;
             }
         }
