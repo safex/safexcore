@@ -4890,7 +4890,10 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
 
       uint64_t  interest = 0;
       for (uint64_t i=starting_interval;i<=end_interval;++i) {
-          interest += interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
+          uint64_t add_interest = interest_map[i]*(txin.token_amount/SAFEX_TOKEN);
+          if(interest > interest + add_interest)
+              return 0;
+          interest += add_interest;
       }
 
       return interest;
