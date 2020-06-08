@@ -5168,6 +5168,8 @@ leave:
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
         m_batch_success = false;
         bvc.m_verifivation_failed = true;
+        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+        txs.erase(it);
         return_tx_to_pool(txs);
         return false;
     }
