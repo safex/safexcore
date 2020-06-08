@@ -147,7 +147,7 @@ static const struct {
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0), m_current_block_cumul_sz_median(0),
   m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false),
-  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0)
+  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0), m_batch_success(true)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -5158,34 +5158,24 @@ leave:
     catch (const KEY_IMAGE_EXISTS& e)
     {
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
     }
-    catch (const SAFEX_TX_CONFLICT& e){
-
-        m_db->revert_transaction(bl.miner_tx.hash);
-        for(auto tx: txs){
-            cryptonote::transaction tmp;
-            if(m_db->get_tx(tx.hash,tmp))
-                m_db->revert_transaction(tx.hash);
-        }
+    catch (const SAFEX_TX_CONFLICT& e)
+    {
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+        m_batch_success = false;
         bvc.m_verifivation_failed = true;
         return_tx_to_pool(txs);
         return false;
     }
     catch (const std::exception& e)
     {
-
-      m_db->revert_transaction(bl.miner_tx.hash);
-      for(auto tx: txs){
-        cryptonote::transaction tmp;
-        if(m_db->get_tx(tx.hash,tmp))
-          m_db->revert_transaction(tx.hash);
-      }
       //TODO: figure out the best way to deal with this failure
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
@@ -5380,7 +5370,10 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
 
   try
   {
-    m_db->batch_stop();
+    if (m_batch_success)
+        m_db->batch_stop();
+    else
+        m_db->batch_abort();
     success = true;
   }
   catch (const std::exception &e)
@@ -5613,6 +5606,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
     m_tx_pool.lock();
     m_blockchain_lock.lock();
   }
+  m_batch_success = true;
 
   if ((m_db->height() + blocks_entry.size()) < m_blocks_hash_check.size())
     return true;

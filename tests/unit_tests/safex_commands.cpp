@@ -80,6 +80,9 @@ class TestBlockchainDB : public cryptonote::BlockchainDB
     virtual void batch_stop()
     {}
 
+    virtual void batch_abort()
+    {}
+
     virtual void set_batch_transactions(bool)
     {}
 

@@ -1166,6 +1166,8 @@ namespace cryptonote
 
     std::atomic<bool> m_cancel;
 
+    bool m_batch_success;
+
     // for prepare_handle_incoming_blocks
     uint64_t m_prepare_height;
     uint64_t m_prepare_nblocks;
