@@ -186,10 +186,15 @@ namespace cryptonote
       uint64_t outputs_token_amount = get_outs_token_amount(tx);
       if(outputs_token_amount != inputs_token_amount)
       {
-        LOG_PRINT_L1("Transaction must use same amount of tokens on input and output - output: " << print_money(outputs_token_amount) << ", input " << print_money(inputs_token_amount));
-        tvc.m_verifivation_failed = true;
-        tvc.m_overspend = true;
-        return false;
+        crypto::hash problematic_tx;
+        if (!epee::string_tools::hex_to_pod("1153c9354147a1b4f6199501be6b338f5407c1ecd26e87c537437c166f22f268", problematic_tx))
+              return false;
+        if (tx.hash != problematic_tx){
+            LOG_PRINT_L1("Transaction must use same amount of tokens on input and output - output: " << print_money(outputs_token_amount) << ", input " << print_money(inputs_token_amount));
+            tvc.m_verifivation_failed = true;
+            tvc.m_overspend = true;
+            return false;
+        }
       }
 
       if(!m_blockchain.are_safex_tokens_unlocked(tx.vin)){
