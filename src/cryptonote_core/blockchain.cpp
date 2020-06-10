@@ -140,7 +140,8 @@ static const struct {
   { 3, 200, 0, 1562283500},
   { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
   //TODO: Update when preapring HF5 for stagenet
-  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  { 6, 120000, 0, 1565972165}
 };
 
 //------------------------------------------------------------------
@@ -4004,14 +4005,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     }
 
     // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = HF_VERSION_MAX_SUPPORTED_TX_VERSION;
+    const size_t max_tx_version = get_maximum_tx_version_supported();
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
       tvc.m_verifivation_failed = true;
       return false;
     }
-    const size_t min_tx_version = HF_VERSION_MIN_SUPPORTED_TX_VERSION;
+    const size_t min_tx_version = MIN_SUPPORTED_TX_VERSION;
     if (tx.version < min_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
@@ -4151,7 +4152,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version >=HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <=HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
     {
       if (threads > 1)
       {
@@ -4265,10 +4266,10 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     sig_index++;
   }
 
-  if ((tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION) && threads > 1)
+  if ((tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported()) && threads > 1)
     waiter.wait();
 
-  if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+  if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
   {
     if (threads > 1)
     {
@@ -6658,3 +6659,21 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
   }
   return true;
 }
+
+uint8_t Blockchain::get_maximum_tx_version_supported() const
+{
+    auto hf_version = get_current_hard_fork_version();
+
+    switch (m_nettype) {
+    case cryptonote::network_type::FAKECHAIN:
+    case cryptonote::network_type::TESTNET:
+        return MAX_SUPPORTED_TX_VERSION;
+    case cryptonote::network_type::STAGENET:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    default:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    }
+
+    return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+}
+
