@@ -111,7 +111,7 @@ namespace safex
 *
 * @return true if it needs key_image verification, false otherwise
 */
-  inline uint64_t is_safex_key_image_verification_needed(const safex::command_t& command_type)
+  inline bool is_safex_key_image_verification_needed(const safex::command_t& command_type)
 {
 
     if(command_type == safex::command_t::edit_account
