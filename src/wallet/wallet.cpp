@@ -1364,7 +1364,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         (in.type() != typeid(txin_to_script) || safex::is_safex_key_image_verification_needed(boost::get<txin_to_script>(in).command_type)))
     {
       transfer_details& td = m_transfers[it->second];
-      uint64_t value_amount = *boost::apply_visitor(amount_visitor(), in);
+      uint64_t value_amount = td.m_token_transfer ? *boost::apply_visitor(token_amount_visitor(), in) : *boost::apply_visitor(amount_visitor(), in);
 
       if (td.m_token_transfer) {
         if (value_amount > 0)
