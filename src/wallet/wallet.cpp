@@ -936,7 +936,7 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
 
   outs.push_back(i);
 
-  if (tx_scan_info.token_transfer && tx_scan_info.output_type == tx_out_type::out_token)
+  if (tx_scan_info.token_transfered > 0)
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
     tx_scan_info.token_amount = tx_scan_info.token_transfered;
