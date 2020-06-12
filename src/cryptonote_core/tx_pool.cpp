@@ -1328,8 +1328,45 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left) const
+  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left, std::vector<crypto::hash>& offers_edited, std::vector<crypto::hash>& price_pegs_edited) const
   {
+      if(get_tx_type(tx.vout) == tx_out_type::out_safex_offer_update)
+      {
+          for (auto vout: tx.vout)
+          {
+              if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+              {
+                  const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                  safex::edit_offer_data offer_data;
+                  const cryptonote::blobdata offereblob(std::begin(out.data), std::end(out.data));
+                  cryptonote::parse_and_validate_from_blob(offereblob, offer_data);
+
+                  offers_edited.push_back(offer_data.offer_id);
+                  return true;
+              }
+          }
+          return true;
+      }
+
+      if(get_tx_type(tx.vout) == tx_out_type::out_safex_price_peg_update)
+      {
+          for (auto vout: tx.vout)
+          {
+              if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+              {
+                  const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                  safex::update_price_peg_data price_peg_data;
+                  const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+                  cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg_data);
+
+                  price_pegs_edited.push_back(price_peg_data.price_peg_id);
+                  return true;
+              }
+          }
+          return true;
+      }
+
+
       if(get_tx_type(tx.vout) != tx_out_type::out_safex_purchase)
           return true;
 
@@ -1341,18 +1378,23 @@ namespace cryptonote
               safex::create_purchase_data purchase;
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              safex::safex_offer offer_to_purchase;
+              auto res = m_blockchain.get_safex_offer(purchase.offer_id, offer_to_purchase);
+              if(!res){
+                  txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                  txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                  return false;
+              }
 
               if(offer_quantity_left.count(purchase.offer_id) == 0){
-                  uint64_t quantity;
-                  auto res = m_blockchain.get_safex_offer_quantity(purchase.offer_id, quantity);
-                  if(!res){
-                      txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
-                      txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
-                      return false;
-                  }
-                  offer_quantity_left[purchase.offer_id] = quantity;
+                  offer_quantity_left[purchase.offer_id] = offer_to_purchase.quantity;
               }
-              if(offer_quantity_left[purchase.offer_id] < purchase.quantity){
+
+              bool offer_edit_inside = std::find(offers_edited.begin(),offers_edited.end(), purchase.offer_id) != offers_edited.end();
+              bool price_peg_update_inside = offer_to_purchase.price_peg_used ? std::find(price_pegs_edited.begin(), price_pegs_edited.end(), offer_to_purchase.price_peg_id) != price_pegs_edited.end()
+                                                                              : false;
+
+              if(offer_quantity_left[purchase.offer_id] < purchase.quantity || offer_edit_inside || price_peg_update_inside){
                   txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
                   txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
                   return false;
@@ -1516,7 +1558,10 @@ namespace cryptonote
 
     LockedTXN lock(m_blockchain);
 
+    //Safex related collections needed for cleaner selection of purchase txs to include in the block
     std::unordered_map<crypto::hash, uint64_t> offer_quantity_left;
+    std::vector<crypto::hash> offers_edited;
+    std::vector<crypto::hash> price_pegs_edited;
 
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
@@ -1581,7 +1626,7 @@ namespace cryptonote
       // included into the blockchain or that are
       // missing key images
       const cryptonote::txpool_tx_meta_t original_meta = meta;
-      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left);
+      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left, offers_edited, price_pegs_edited);
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try
