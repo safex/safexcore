@@ -137,6 +137,8 @@ namespace safex
       return SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN;
     else if (nettype == cryptonote::network_type::TESTNET)
       return SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET;
+    else if (nettype == cryptonote::network_type::STAGENET)
+        return SAFEX_DEFAULT_INTERVAL_PERIOD_STAGENET;
     else
       return SAFEX_DEFAULT_INTERVAL_PERIOD;
   }
@@ -221,6 +223,8 @@ namespace safex
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_FAKECHAIN;
     else if (nettype == cryptonote::network_type::TESTNET)
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_TESTNET;
+    else if(nettype == cryptonote::network_type::STAGENET)
+      return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_STAGENET;
     else
       return SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD;
   }
@@ -236,6 +240,8 @@ namespace safex
       return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN;
     else if (nettype == cryptonote::network_type::TESTNET)
       return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET;
+    else if(nettype == cryptonote::network_type::STAGENET)
+      return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_STAGENET;
     else
       return SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD;
   }
