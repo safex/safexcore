@@ -4878,7 +4878,6 @@ bool BlockchainLMDB::is_valid_transaction_output_type(const txout_target_v &txou
       uint64_t end_interval = safex::calculate_interval_for_height(unlock_height, m_nettype) - 1;
 
       if (starting_interval > end_interval) {
-          MERROR("Calculating interest for invalid intervals");
           return 0;
       }
 
