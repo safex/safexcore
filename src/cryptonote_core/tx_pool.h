@@ -570,10 +570,12 @@ namespace cryptonote
      * @param txd the transaction to check (and info about it)
      * @param tx  the transaction to check
      * @param offer_quantity_left quantity of offers after commiting purchases before this tx
+     * @param offers_edited Offers that are edited and are selected for the next block to be mined
+     * @param price_pegs_edited Price pegs that are updated and are selected for the next block to be mined
      *
      * @return true if the transaction is good to go, otherwise false
      */
-    bool is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left) const;
+    bool is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left, std::vector<crypto::hash>& offers_edited, std::vector<crypto::hash>& price_pegs_edited) const;
     /**
      * @brief mark all transactions double spending the one passed
      */

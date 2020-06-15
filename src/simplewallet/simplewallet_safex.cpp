@@ -1113,7 +1113,7 @@ namespace cryptonote
     auto price_pegs = m_wallet->get_safex_price_pegs(currency);
     if (price_pegs.empty()) {
       fail_msg_writer() << tr("No price peg for given currency found!");
-      return true;
+      return false;
     }
 
     print_price_pegs(price_pegs);

@@ -636,6 +636,13 @@ namespace cryptonote
     bool are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin);
 
     /**
+   * @brief Get maximum tx version in the blockchain
+   *
+   * @return return max tx_version that is supported for current hardfork
+   */
+    uint8_t get_maximum_tx_version_supported() const;
+
+    /**
      * @brief get dynamic per kB fee for a given block size
      *
      * The dynamic fee is based on the block size in a past window, and
@@ -1165,6 +1172,8 @@ namespace cryptonote
     bool m_offline;
 
     std::atomic<bool> m_cancel;
+
+    bool m_batch_success;
 
     // for prepare_handle_incoming_blocks
     uint64_t m_prepare_height;

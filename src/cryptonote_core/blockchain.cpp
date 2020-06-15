@@ -139,15 +139,16 @@ static const struct {
   { 2, 100, 0, 1561283500},
   { 3, 200, 0, 1562283500},
   { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
-  //TODO: Update when preapring HF5 for stagenet
-  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT + 1, 0, 1565962166},
+  { 6, config::stagenet::HARDFORK_V4_START_HEIGHT + 2, 0, 1592478292},
+  { 7, 89400, 0, 1565972167}
 };
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0), m_current_block_cumul_sz_median(0),
   m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false),
-  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0)
+  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0), m_batch_success(true)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -4004,14 +4005,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     }
 
     // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = HF_VERSION_MAX_SUPPORTED_TX_VERSION;
+    const size_t max_tx_version = get_maximum_tx_version_supported();
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
       tvc.m_verifivation_failed = true;
       return false;
     }
-    const size_t min_tx_version = HF_VERSION_MIN_SUPPORTED_TX_VERSION;
+    const size_t min_tx_version = MIN_SUPPORTED_TX_VERSION;
     if (tx.version < min_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
@@ -4151,7 +4152,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version >=HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <=HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
     {
       if (threads > 1)
       {
@@ -4265,10 +4266,10 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     sig_index++;
   }
 
-  if ((tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION) && threads > 1)
+  if ((tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported()) && threads > 1)
     waiter.wait();
 
-  if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+  if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
   {
     if (threads > 1)
     {
@@ -5158,34 +5159,26 @@ leave:
     catch (const KEY_IMAGE_EXISTS& e)
     {
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
     }
-    catch (const SAFEX_TX_CONFLICT& e){
-
-        m_db->revert_transaction(bl.miner_tx.hash);
-        for(auto tx: txs){
-            cryptonote::transaction tmp;
-            if(m_db->get_tx(tx.hash,tmp))
-                m_db->revert_transaction(tx.hash);
-        }
+    catch (const SAFEX_TX_CONFLICT& e)
+    {
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+        m_batch_success = false;
         bvc.m_verifivation_failed = true;
+        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+        txs.erase(it);
         return_tx_to_pool(txs);
         return false;
     }
     catch (const std::exception& e)
     {
-
-      m_db->revert_transaction(bl.miner_tx.hash);
-      for(auto tx: txs){
-        cryptonote::transaction tmp;
-        if(m_db->get_tx(tx.hash,tmp))
-          m_db->revert_transaction(tx.hash);
-      }
       //TODO: figure out the best way to deal with this failure
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
@@ -5380,7 +5373,10 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
 
   try
   {
-    m_db->batch_stop();
+    if (m_batch_success)
+        m_db->batch_stop();
+    else
+        m_db->batch_abort();
     success = true;
   }
   catch (const std::exception &e)
@@ -5613,6 +5609,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
     m_tx_pool.lock();
     m_blockchain_lock.lock();
   }
+  m_batch_success = true;
 
   if ((m_db->height() + blocks_entry.size()) < m_blocks_hash_check.size())
     return true;
@@ -6662,3 +6659,21 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
   }
   return true;
 }
+
+uint8_t Blockchain::get_maximum_tx_version_supported() const
+{
+    auto hf_version = get_current_hard_fork_version();
+
+    switch (m_nettype) {
+    case cryptonote::network_type::FAKECHAIN:
+    case cryptonote::network_type::TESTNET:
+        return MAX_SUPPORTED_TX_VERSION;
+    case cryptonote::network_type::STAGENET:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    default:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    }
+
+    return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+}
+

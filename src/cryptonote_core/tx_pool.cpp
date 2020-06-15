@@ -93,13 +93,17 @@ namespace cryptonote
     // the whole prepare/handle/cleanup incoming block sequence.
     class LockedTXN {
     public:
-      LockedTXN(Blockchain &b): m_blockchain(b), m_batch(false) {
+      LockedTXN(Blockchain &b): m_blockchain(b), m_batch(false), m_active(false) {
         m_batch = m_blockchain.get_db().batch_start();
+        m_active = true;
       }
-      ~LockedTXN() { try { if (m_batch) { m_blockchain.get_db().batch_stop(); } } catch (const std::exception &e) { MWARNING("LockedTXN dtor filtering exception: " << e.what()); } }
+      void commit() { try { if (m_batch && m_active) { m_blockchain.get_db().batch_stop(); m_active = false; } } catch (const std::exception &e) { MWARNING("LockedTXN::commit filtering exception: " << e.what()); } }
+      void abort() { try { if (m_batch && m_active) { m_blockchain.get_db().batch_abort(); m_active = false; } } catch (const std::exception &e) { MWARNING("LockedTXN::abort filtering exception: " << e.what()); } }
+      ~LockedTXN() { abort(); }
     private:
       Blockchain &m_blockchain;
       bool m_batch;
+      bool m_active;
     };
   }
   //---------------------------------------------------------------------------------
@@ -145,7 +149,7 @@ namespace cryptonote
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= m_blockchain.get_maximum_tx_version_supported())
     {
       uint64_t inputs_amount = 0;
       if(!get_inputs_cash_amount(tx, inputs_amount))
@@ -182,10 +186,15 @@ namespace cryptonote
       uint64_t outputs_token_amount = get_outs_token_amount(tx);
       if(outputs_token_amount != inputs_token_amount)
       {
-        LOG_PRINT_L1("Transaction must use same amount of tokens on input and output - output: " << print_money(outputs_token_amount) << ", input " << print_money(inputs_token_amount));
-        tvc.m_verifivation_failed = true;
-        tvc.m_overspend = true;
-        return false;
+        crypto::hash problematic_tx;
+        if (!epee::string_tools::hex_to_pod("1153c9354147a1b4f6199501be6b338f5407c1ecd26e87c537437c166f22f268", problematic_tx))
+              return false;
+        if (tx.hash != problematic_tx){
+            LOG_PRINT_L1("Transaction must use same amount of tokens on input and output - output: " << print_money(outputs_token_amount) << ", input " << print_money(inputs_token_amount));
+            tvc.m_verifivation_failed = true;
+            tvc.m_overspend = true;
+            return false;
+        }
       }
 
       if(!m_blockchain.are_safex_tokens_unlocked(tx.vin)){
@@ -287,6 +296,7 @@ namespace cryptonote
           if (!insert_safex_restrictions(tx, kept_by_block))
               return false;
           m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)blob_size, receive_time), id);
+          lock.commit();
         }
         catch (const std::exception &e)
         {
@@ -331,6 +341,7 @@ namespace cryptonote
         if (!insert_safex_restrictions(tx, kept_by_block))
             return false;
         m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)blob_size, receive_time), id);
+        lock.commit();
       }
       catch (const std::exception &e)
       {
@@ -425,6 +436,7 @@ namespace cryptonote
         return;
       }
     }
+    lock.commit();
     if (m_txpool_size > bytes)
       MINFO("Pool size after pruning is larger than limit: " << m_txpool_size << "/" << bytes);
   }
@@ -661,6 +673,7 @@ namespace cryptonote
       m_txpool_size -= blob_size;
       remove_transaction_keyimages(tx);
       remove_safex_restrictions(tx);
+      lock.commit();
     }
     catch (const std::exception &e)
     {
@@ -744,6 +757,7 @@ namespace cryptonote
           // ignore error
         }
       }
+      lock.commit();
     }
     return true;
   }
@@ -805,6 +819,7 @@ namespace cryptonote
         // continue
       }
     }
+    lock.commit();
   }
   //---------------------------------------------------------------------------------
   size_t tx_memory_pool::get_transactions_count(bool include_unrelayed_txes) const
@@ -1120,6 +1135,7 @@ namespace cryptonote
                   MERROR("Failed to update tx meta: " << e.what());
                   // continue, not fatal
               }
+              lock.commit();
           }
       }
     return true;
@@ -1312,8 +1328,45 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left) const
+  bool tx_memory_pool::is_purchase_possible(txpool_tx_meta_t& txd, transaction &tx, std::unordered_map<crypto::hash, uint64_t>& offer_quantity_left, std::vector<crypto::hash>& offers_edited, std::vector<crypto::hash>& price_pegs_edited) const
   {
+      if(get_tx_type(tx.vout) == tx_out_type::out_safex_offer_update)
+      {
+          for (auto vout: tx.vout)
+          {
+              if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+              {
+                  const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                  safex::edit_offer_data offer_data;
+                  const cryptonote::blobdata offereblob(std::begin(out.data), std::end(out.data));
+                  cryptonote::parse_and_validate_from_blob(offereblob, offer_data);
+
+                  offers_edited.push_back(offer_data.offer_id);
+                  return true;
+              }
+          }
+          return true;
+      }
+
+      if(get_tx_type(tx.vout) == tx_out_type::out_safex_price_peg_update)
+      {
+          for (auto vout: tx.vout)
+          {
+              if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+              {
+                  const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                  safex::update_price_peg_data price_peg_data;
+                  const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
+                  cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg_data);
+
+                  price_pegs_edited.push_back(price_peg_data.price_peg_id);
+                  return true;
+              }
+          }
+          return true;
+      }
+
+
       if(get_tx_type(tx.vout) != tx_out_type::out_safex_purchase)
           return true;
 
@@ -1325,18 +1378,23 @@ namespace cryptonote
               safex::create_purchase_data purchase;
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              safex::safex_offer offer_to_purchase;
+              auto res = m_blockchain.get_safex_offer(purchase.offer_id, offer_to_purchase);
+              if(!res){
+                  txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
+                  txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
+                  return false;
+              }
 
               if(offer_quantity_left.count(purchase.offer_id) == 0){
-                  uint64_t quantity;
-                  auto res = m_blockchain.get_safex_offer_quantity(purchase.offer_id, quantity);
-                  if(!res){
-                      txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
-                      txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
-                      return false;
-                  }
-                  offer_quantity_left[purchase.offer_id] = quantity;
+                  offer_quantity_left[purchase.offer_id] = offer_to_purchase.quantity;
               }
-              if(offer_quantity_left[purchase.offer_id] < purchase.quantity){
+
+              bool offer_edit_inside = std::find(offers_edited.begin(),offers_edited.end(), purchase.offer_id) != offers_edited.end();
+              bool price_peg_update_inside = offer_to_purchase.price_peg_used ? std::find(price_pegs_edited.begin(), price_pegs_edited.end(), offer_to_purchase.price_peg_id) != price_pegs_edited.end()
+                                                                              : false;
+
+              if(offer_quantity_left[purchase.offer_id] < purchase.quantity || offer_edit_inside || price_peg_update_inside){
                   txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
                   txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
                   return false;
@@ -1435,6 +1493,7 @@ namespace cryptonote
         return void();
       }
     }
+    lock.commit();
   }
   //---------------------------------------------------------------------------------
   std::string tx_memory_pool::print_pool(bool short_format) const
@@ -1499,7 +1558,10 @@ namespace cryptonote
 
     LockedTXN lock(m_blockchain);
 
+    //Safex related collections needed for cleaner selection of purchase txs to include in the block
     std::unordered_map<crypto::hash, uint64_t> offer_quantity_left;
+    std::vector<crypto::hash> offers_edited;
+    std::vector<crypto::hash> price_pegs_edited;
 
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
@@ -1564,7 +1626,7 @@ namespace cryptonote
       // included into the blockchain or that are
       // missing key images
       const cryptonote::txpool_tx_meta_t original_meta = meta;
-      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left);
+      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left, offers_edited, price_pegs_edited);
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try
@@ -1598,6 +1660,7 @@ namespace cryptonote
       sorted_it++;
       LOG_PRINT_L2("  added, new block size " << total_size << "/" << max_total_size << ", coinbase " << print_money(best_coinbase));
     }
+    lock.commit();
 
     expected_reward = best_coinbase;
     LOG_PRINT_L2("Block template filled with " << bl.tx_hashes.size() << " txes, size "
@@ -1664,6 +1727,7 @@ namespace cryptonote
           // continue
         }
       }
+      lock.commit();
     }
     return n_removed;
   }
@@ -1727,6 +1791,7 @@ namespace cryptonote
           // ignore error
         }
       }
+      lock.commit();
     }
     return true;
   }

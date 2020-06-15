@@ -675,9 +675,9 @@ namespace cryptonote
     }
     bad_semantics_txes_lock.unlock();
 
-    if (tx.version == 0 || tx.version > HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+    if (tx.version == 0 || tx.version > m_blockchain_storage.get_maximum_tx_version_supported())
     {
-      // HF_VERSION_MAX_SUPPORTED_TX_VERSION is the latest transaction version
+      // MAX_SUPPORTED_TX_VERSION is the latest transaction version
       // we know in the current protocol version
       tvc.m_verifivation_failed = true;
       return false;
@@ -875,7 +875,7 @@ namespace cryptonote
         }
     }
 
-    if (tx.version >= HF_VERSION_MIN_SUPPORTED_TX_VERSION && tx.version <= HF_VERSION_MAX_SUPPORTED_TX_VERSION)
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= m_blockchain_storage.get_maximum_tx_version_supported())
     {
       uint64_t amount_in = 0;
       get_inputs_cash_amount(tx, amount_in);

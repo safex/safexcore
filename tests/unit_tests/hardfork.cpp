@@ -56,6 +56,7 @@ public:
   virtual void unlock() { }
   virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0) { return true; }
   virtual void batch_stop() {}
+  virtual void batch_abort() {}
   virtual void set_batch_transactions(bool) {}
   virtual void block_txn_start(bool readonly=false) {}
   virtual void block_txn_stop() {}

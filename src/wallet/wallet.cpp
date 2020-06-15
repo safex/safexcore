@@ -936,7 +936,7 @@ void wallet::scan_output(const cryptonote::transaction &tx, const crypto::public
 
   outs.push_back(i);
 
-  if (tx_scan_info.token_transfer && tx_scan_info.output_type == tx_out_type::out_token)
+  if (tx_scan_info.token_transfered > 0)
   {
     tx_tokens_got_in_outs[tx_scan_info.received->index] += tx_scan_info.token_transfered;
     tx_scan_info.token_amount = tx_scan_info.token_transfered;
@@ -1364,7 +1364,7 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
         (in.type() != typeid(txin_to_script) || safex::is_safex_key_image_verification_needed(boost::get<txin_to_script>(in).command_type)))
     {
       transfer_details& td = m_transfers[it->second];
-      uint64_t value_amount = *boost::apply_visitor(amount_visitor(), in);
+      uint64_t value_amount = td.m_token_transfer ? *boost::apply_visitor(token_amount_visitor(), in) : *boost::apply_visitor(amount_visitor(), in);
 
       if (td.m_token_transfer) {
         if (value_amount > 0)
