@@ -153,8 +153,9 @@ namespace safex
  */
   inline uint64_t calculate_interval_for_height(const uint64_t height, const cryptonote::network_type nettype)
   {
-    if (height == 0) return 0; //zero height is zero interval
-    uint64_t interval = height > 0 ? ((height - 1) / get_safex_interval_period(nettype)) + 1 : 0; //blocks 1-1000 first interval, 1001-2000 second etc.
+    if (height == 0)
+        return 0; //zero height is zero interval
+    uint64_t interval = (height - 1) / get_safex_interval_period(nettype) + 1; //blocks 1-1000 first interval, 1001-2000 second etc.
     return interval; //returns interval number
   }
 
