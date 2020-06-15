@@ -139,9 +139,9 @@ static const struct {
   { 2, 100, 0, 1561283500},
   { 3, 200, 0, 1562283500},
   { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
-  //TODO: Update when preapring HF5 for stagenet
-  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
-  { 6, 120000, 0, 1565972165}
+  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT + 1, 0, 1565962166},
+  { 6, config::stagenet::HARDFORK_V4_START_HEIGHT + 2, 0, 1592478292},
+  { 7, 89400, 0, 1565972167}
 };
 
 //------------------------------------------------------------------
