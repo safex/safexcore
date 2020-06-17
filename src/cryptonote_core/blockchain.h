@@ -640,7 +640,7 @@ namespace cryptonote
    *
    * @return return max tx_version that is supported for current hardfork
    */
-    uint8_t get_maximum_tx_version_supported() const;
+    uint8_t get_maximum_tx_version_supported(uint8_t hf_version) const;
 
     /**
      * @brief get dynamic per kB fee for a given block size

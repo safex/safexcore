@@ -4003,22 +4003,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         return false;
       }
     }
-
-    // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = get_maximum_tx_version_supported();
-    if (tx.version > max_tx_version)
-    {
-      MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
-      tvc.m_verifivation_failed = true;
-      return false;
-    }
-    const size_t min_tx_version = MIN_SUPPORTED_TX_VERSION;
-    if (tx.version < min_tx_version)
-    {
-      MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
-      tvc.m_verifivation_failed = true;
-      return false;
-    }
   }
 
   //sorted ins
@@ -4152,8 +4136,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
-    {
       if (threads > 1)
       {
         // ND: Speedup
@@ -4261,18 +4243,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         }
         it->second[k_image] = true;
       }
-    }
 
     sig_index++;
   }
 
-  if ((tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported()) && threads > 1)
-    waiter.wait();
-
-  if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= get_maximum_tx_version_supported())
-  {
     if (threads > 1)
     {
+       waiter.wait();
       // save results to table, passed or otherwise
       bool failed = false;
       for (size_t i = 0; i < tx.vin.size(); i++)
@@ -4291,12 +4268,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         return false;
       }
     }
-  }
-  else
-  {
-    MERROR_VER("Transaction of version " << tx.version<<" not yet supported");
-    return false;
-  }
 
   if(!check_safex_tx(tx,tvc)){
       tvc.m_verifivation_failed = true;
@@ -6660,9 +6631,8 @@ bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
   return true;
 }
 
-uint8_t Blockchain::get_maximum_tx_version_supported() const
+uint8_t Blockchain::get_maximum_tx_version_supported(uint8_t hf_version) const
 {
-    auto hf_version = get_current_hard_fork_version();
 
     switch (m_nettype) {
     case cryptonote::network_type::FAKECHAIN:

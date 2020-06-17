@@ -149,7 +149,7 @@ namespace cryptonote
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= m_blockchain.get_maximum_tx_version_supported())
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= m_blockchain.get_maximum_tx_version_supported(version))
     {
       uint64_t inputs_amount = 0;
       if(!get_inputs_cash_amount(tx, inputs_amount))
