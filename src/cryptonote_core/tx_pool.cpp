@@ -285,6 +285,7 @@ namespace cryptonote
         meta.relayed = relayed;
         meta.do_not_relay = do_not_relay;
         meta.double_spend_seen = have_tx_keyimges_as_spent(tx);
+        meta.safex_tx = tx.version >=2;
         memset(meta.padding, 0, sizeof(meta.padding));
         try
         {
@@ -328,6 +329,7 @@ namespace cryptonote
       meta.relayed = relayed;
       meta.do_not_relay = do_not_relay;
       meta.double_spend_seen = false;
+      meta.safex_tx = tx.version >=2;
       memset(meta.padding, 0, sizeof(meta.padding));
 
       try
@@ -519,6 +521,18 @@ namespace cryptonote
               const cryptonote::blobdata pricepegblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(pricepegblob, price_peg);
               m_safex_price_peg_update_in_progress.push_back(price_peg.price_peg_id);
+          } else if(vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              auto it = std::find_if(m_safex_offers_to_purchase.begin(),m_safex_offers_to_purchase.end(), [&purchase](const std::pair<crypto::hash, uint64_t>& item){ return purchase.offer_id == item.first;});
+              if( it != m_safex_offers_to_purchase.end()){
+                  it->second += purchase.quantity;
+              }
+              else
+                  m_safex_offers_to_purchase.push_back(std::make_pair(purchase.offer_id, purchase.quantity));
           }
       }
       return true;
@@ -633,6 +647,20 @@ namespace cryptonote
               auto it = std::find(m_safex_price_peg_update_in_progress.begin(), m_safex_price_peg_update_in_progress.end(), price_peg.price_peg_id);
               CHECK_AND_ASSERT_MES(it != m_safex_price_peg_update_in_progress.end(), false, "failed to find safex restriction for type out_safex_price_peg_update" << ENDL << "transaction id = " << get_transaction_hash(tx));
               m_safex_price_peg_update_in_progress.erase(it);
+          } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+          {
+              const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+              safex::create_purchase_data purchase;
+              const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+              cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              auto it = std::find_if(m_safex_offers_to_purchase.begin(),m_safex_offers_to_purchase.end(), [&purchase](const std::pair<crypto::hash, uint64_t>& item){ return purchase.offer_id == item.first;});
+              CHECK_AND_ASSERT_MES(it != m_safex_offers_to_purchase.end(), false, "failed to find safex restriction for type out_safex_purchase" << ENDL << "transaction id = " << get_transaction_hash(tx));
+              if(it->second < purchase.quantity){
+                  LOG_ERROR("This should not happen! As tx_pool internal calculation is wrong");
+                  it->second = 0;
+              } else
+                  it->second -= purchase.quantity;
+
           }
       }
       return true;
@@ -709,8 +737,7 @@ namespace cryptonote
       uint64_t tx_age = time(nullptr) - meta.receive_time;
 
       if((tx_age > CRYPTONOTE_MEMPOOL_TX_LIVETIME && !meta.kept_by_block) ||
-         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) ||
-          meta.safex_failed)
+         (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block))
       {
         LOG_PRINT_L1("Tx " << txid << " removed from tx pool due to outdated, age: " << tx_age );
         auto sorted_it = find_tx_in_sorted_container(txid);
@@ -724,6 +751,31 @@ namespace cryptonote
         }
         m_timed_out_transactions.insert(txid);
         remove.insert(txid);
+      } else if (tx_age > CRYPTONOTE_MEMPOOL_SAFEX_TX_LIVETIME && meta.safex_tx)
+      {
+        cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(txid);
+        cryptonote::transaction tx;
+        if (!parse_and_validate_tx_from_blob(txblob, tx))
+        {
+          MERROR("Failed to parse tx from txpool");
+          return true;
+        }
+        tx_verification_context tvc;
+        if(!m_blockchain.check_safex_tx(tx, tvc))
+        {
+          LOG_PRINT_L1("Tx " << txid << " removed from tx pool due to outdated, age: " << tx_age );
+          auto sorted_it = find_tx_in_sorted_container(txid);
+          if (sorted_it == m_txs_by_fee_and_receive_time.end())
+          {
+            LOG_PRINT_L1("Removing tx " << txid << " from tx pool, but it was not found in the sorted txs container!");
+          }
+          else
+          {
+            m_txs_by_fee_and_receive_time.erase(sorted_it);
+          }
+          m_timed_out_transactions.insert(txid);
+          remove.insert(txid);
+        }
       }
       return true;
     }, false);
@@ -1091,53 +1143,6 @@ namespace cryptonote
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::on_blockchain_inc(uint64_t new_block_height, const crypto::hash& top_block_id)
   {
-
-      CRITICAL_REGION_LOCAL(m_transactions_lock);
-      CRITICAL_REGION_LOCAL1(m_blockchain);
-
-      for(auto& sorted_it : m_txs_by_fee_and_receive_time)
-      {
-          txpool_tx_meta_t meta;
-
-          if (!m_blockchain.get_txpool_tx_meta(sorted_it.second, meta))
-          {
-              MERROR("  failed to find tx meta");
-              continue;
-          }
-
-          cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(sorted_it.second);
-          cryptonote::transaction tx;
-          if (!parse_and_validate_tx_from_blob(txblob, tx))
-          {
-              MERROR("Failed to parse tx from txpool");
-              continue;
-          }
-
-          // Skip transactions that are not ready to be
-          // included into the blockchain or that are
-          // missing key images
-          const cryptonote::txpool_tx_meta_t original_meta = meta;
-          tx_verification_context tvc;
-          if(!m_blockchain.check_tx_inputs(tx, meta.max_used_block_height, meta.max_used_block_id, tvc))
-          {
-              meta.safex_failed = tvc.m_safex_invalid_input || tvc.m_safex_invalid_command || tvc.m_safex_verification_failed ||
-                                  tvc.m_safex_invalid_command_params || tvc.m_safex_command_execution_failed;
-          }
-          if (memcmp(&original_meta, &meta, sizeof(meta)))
-          {
-              LockedTXN lock(m_blockchain);
-              try
-              {
-                  m_blockchain.update_txpool_tx(sorted_it.second, meta);
-              }
-              catch (const std::exception &e)
-              {
-                  MERROR("Failed to update tx meta: " << e.what());
-                  // continue, not fatal
-              }
-              lock.commit();
-          }
-      }
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -1240,8 +1245,19 @@ namespace cryptonote
               safex::create_purchase_data purchase;
               const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
               cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+              uint64_t purchased_quantity = have_tx_safex_purchase_in_use(purchase.offer_id);
               if(have_tx_safex_offer_in_use(purchase.offer_id))
                   return true;
+              if(purchased_quantity != 0){
+                  uint64_t quantity;
+                  bool res = m_blockchain.get_safex_offer_quantity(purchase.offer_id, quantity);
+                  if(!res){
+                    LOG_ERROR("Error getin offer quantity from blockchain");
+                    return true;
+                  }
+                  if(quantity < purchased_quantity + purchase.quantity)
+                    return true;
+              }
           }
       }
       return false;
@@ -1269,6 +1285,13 @@ namespace cryptonote
   {
       CRITICAL_REGION_LOCAL(m_transactions_lock);
       return m_safex_price_peg_update_in_progress.end() != std::find(m_safex_price_peg_update_in_progress.begin(), m_safex_price_peg_update_in_progress.end(), price_peg_id);
+  }
+  //---------------------------------------------------------------------------------
+  uint64_t tx_memory_pool::have_tx_safex_purchase_in_use(const crypto::hash &offer_id) const
+  {
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      auto it = std::find_if(m_safex_offers_to_purchase.begin(),m_safex_offers_to_purchase.end(), [&offer_id](const std::pair<crypto::hash, uint64_t>& item){ return offer_id == item.first;});
+      return it != m_safex_offers_to_purchase.end() ? it->second : 0;
   }
   //---------------------------------------------------------------------------------
   void tx_memory_pool::lock() const
@@ -1539,7 +1562,7 @@ namespace cryptonote
     uint64_t best_coinbase = 0, coinbase = 0;
     total_size = 0;
     fee = 0;
-    
+
     //baseline empty block
     get_block_reward(median_size, total_size, already_generated_coins, best_coinbase, version, height);
 
@@ -1742,6 +1765,7 @@ namespace cryptonote
     m_spent_key_images.clear();
     m_safex_accounts_in_use.clear();
     m_safex_offers_in_use.clear();
+    m_safex_offers_to_purchase.clear();
     m_txpool_size = 0;
     std::vector<crypto::hash> remove;
 

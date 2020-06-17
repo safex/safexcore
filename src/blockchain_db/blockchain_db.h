@@ -172,7 +172,7 @@ namespace cryptonote
     uint8_t relayed;
     uint8_t do_not_relay;
     uint8_t double_spend_seen: 1;
-    uint8_t safex_failed{0};
+    uint8_t safex_tx{0};
 
     uint8_t padding[75]; // till 192 bytes
   };
