@@ -1095,6 +1095,11 @@ skip:
             if (tvc.size() != block_entry.txs.size())
             {
               LOG_ERROR_CCONTEXT("Internal error: tvc.size() != block_entry.txs.size()");
+              if (!m_core.cleanup_handle_incoming_blocks())
+              {
+                  LOG_PRINT_CCONTEXT_L0("Failure in cleanup_handle_incoming_blocks");
+                  return 1;
+              }
               return 1;
             }
             std::list<blobdata>::const_iterator it = block_entry.txs.begin();
