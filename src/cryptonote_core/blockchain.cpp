@@ -141,7 +141,7 @@ static const struct {
   { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
   { 5, config::stagenet::HARDFORK_V4_START_HEIGHT + 1, 0, 1565962166},
   { 6, config::stagenet::HARDFORK_V4_START_HEIGHT + 2, 0, 1592478292},
-  { 7, 89400, 0, 1565972167}
+  { 7, 90150, 0, 1592578800}
 };
 
 //------------------------------------------------------------------
