@@ -112,6 +112,7 @@
 
 #define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    (86400*3) //seconds, three days
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
+#define CRYPTONOTE_MEMPOOL_SAFEX_TX_LIVETIME              3600 //seconds, 1 hour
 
 #define COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT           1000
 
