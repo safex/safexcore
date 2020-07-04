@@ -9128,6 +9128,9 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         {
           pop_if_present(*unused_token_transfers_indices, idx);
         }
+        else if (dsts[0].output_type == tx_out_type::out_safex_purchase) {
+          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
+        }
         else if (needed_cash > 0)
         {
           pop_if_present(*unused_cash_transfers_indices, idx);
@@ -9228,7 +9231,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           if(purchase_init)
             continue;
           purchase_init = true;
-          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true, tx_out_type::out_cash);
+          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
         }
       }
 
