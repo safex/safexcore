@@ -1650,7 +1650,7 @@ namespace cryptonote
                                                   tr("Height ") << height << ", " <<
                                                   tr("txid ") << txid << ", " <<
                                                   tr("Feedback sent received for offer: ") << feedback.offer_id << " received, " <<
-                                                  tr("Stars given: ") << feedback.stars_given << ", " <<
+                                                  tr("Stars given: ") << (uint64_t)feedback.stars_given << ", " <<
                                                   tr("Comment given: ") << comment << ", " <<
                                                   tr("idx ") << subaddr_index;
 
