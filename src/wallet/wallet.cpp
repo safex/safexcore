@@ -10067,7 +10067,7 @@ std::vector<wallet::pending_tx> wallet::create_unmixable_sweep_transactions(bool
   std::vector<size_t> unmixable_transfer_outputs, unmixable_dust_outputs;
   for (auto n: unmixable_outputs)
   {
-    if (!m_transfers[n].m_token_transfer)
+    if (m_transfers[n].get_out_type() == cryptonote::tx_out_type::out_cash)
     {
       if (m_transfers[n].amount() < fee_per_kb)
         unmixable_dust_outputs.push_back(n);
@@ -10090,7 +10090,7 @@ std::vector<wallet::pending_tx> wallet::create_unmixable_sweep_transactions(bool
 
     for (auto n: unmixable_token_outputs)
     {
-      if (m_transfers[n].m_token_transfer)
+      if (m_transfers[n].get_out_type() == cryptonote::tx_out_type::out_token)
       {
         if (m_transfers[n].token_amount() < fee_per_kb)
           unmixable_token_dust_outputs.push_back(n);
@@ -10115,7 +10115,7 @@ std::vector<wallet::pending_tx> wallet::create_unmixable_sweep_transactions(bool
       std::vector<size_t> mixable_transfer_outputs, mixable_dust_outputs;
       for (auto n: mixable_outputs)
       {
-        if (!m_transfers[n].m_token_transfer)
+        if (m_transfers[n].get_out_type() == cryptonote::tx_out_type::out_cash)
         {
           if (m_transfers[n].amount() < fee_per_kb)
             mixable_dust_outputs.push_back(n);
