@@ -9187,6 +9187,10 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         {
           idx = pop_best_value(*unused_token_transfers_indices, tx.selected_transfers, true, tx_out_type::out_token);
         }
+        else if(command_type == safex::command_t::simple_purchase && !purchase_init) {
+            purchase_init = true;
+            idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
+        }
         else if (needed_cash > 0)
         {
           idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, true, tx_out_type::out_cash);
@@ -9226,12 +9230,6 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
           //find price peg output
           idx = pop_advanced_output(tx.selected_transfers, price_peg.price_peg_id, tx_out_type::out_safex_price_peg);
-        }
-        else if(command_type == safex::command_t::simple_purchase && needed_cash == 0) {
-          if(purchase_init)
-            continue;
-          purchase_init = true;
-          idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
         }
       }
 
