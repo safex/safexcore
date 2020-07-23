@@ -734,8 +734,37 @@ namespace cryptonote
      *
      * @return false if an unexpected exception occurs, else true
      */
+    //------------------------------------------------------------------
+    //TODO: return type should be void, throw on exception
+    //       alternatively, return true only if no blocks missed
     template<class t_ids_container, class t_blocks_container, class t_missed_container>
-    bool get_blocks(const t_ids_container& block_ids, t_blocks_container& blocks, t_missed_container& missed_bs) const;
+    bool get_blocks(const t_ids_container& block_ids, t_blocks_container& blocks, t_missed_container& missed_bs) const
+    {
+        LOG_PRINT_L3("Blockchain::" << __func__);
+        CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+        for (const auto& block_hash : block_ids)
+        {
+            try
+            {
+                blocks.push_back(std::make_pair(m_db->get_block_blob(block_hash), block()));
+                if (!parse_and_validate_block_from_blob(blocks.back().first, blocks.back().second))
+                {
+                    LOG_ERROR("Invalid block");
+                    return false;
+                }
+            }
+            catch (const BLOCK_DNE& e)
+            {
+                missed_bs.push_back(block_hash);
+            }
+            catch (const std::exception& e)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * @brief gets transactions based on a list of transaction hashes
@@ -749,10 +778,62 @@ namespace cryptonote
      *
      * @return false if an unexpected exception occurs, else true
      */
+    //TODO: return type should be void, throw on exception
+    //       alternatively, return true only if no transactions missed
     template<class t_ids_container, class t_tx_container, class t_missed_container>
-    bool get_transactions_blobs(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const;
+    bool get_transactions_blobs(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const
+    {
+        LOG_PRINT_L3("Blockchain::" << __func__);
+        CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+        for (const auto& tx_hash : txs_ids)
+        {
+            try
+            {
+                cryptonote::blobdata tx = AUTO_VAL_INIT(tx);
+                if (m_db->get_tx_blob(tx_hash, tx))
+                    txs.push_back(std::move(tx));
+                else
+                    missed_txs.push_back(tx_hash);
+            }
+            catch (const std::exception& e)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    //------------------------------------------------------------------
     template<class t_ids_container, class t_tx_container, class t_missed_container>
-    bool get_transactions(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const;
+    bool get_transactions(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const
+    {
+        LOG_PRINT_L3("Blockchain::" << __func__);
+        CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+        for (const auto& tx_hash : txs_ids)
+        {
+            try
+            {
+                cryptonote::blobdata tx = AUTO_VAL_INIT(tx);
+                if (m_db->get_tx_blob(tx_hash, tx))
+                {
+                    txs.push_back(transaction());
+                    if (!parse_and_validate_tx_from_blob(tx, txs.back()))
+                    {
+                        LOG_ERROR("Invalid transaction");
+                        return false;
+                    }
+                }
+                else
+                    missed_txs.push_back(tx_hash);
+            }
+            catch (const std::exception& e)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     //debug functions
 
