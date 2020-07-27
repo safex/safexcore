@@ -64,10 +64,7 @@ safex_add_library(safex_core
 
 target_link_libraries(safex_core
         PUBLIC
-        blockchain_db
-        cryptonote_core
         cncrypto
         common
-        cryptonote_protocol
         PRIVATE
         ${EXTRA_LIBRARIES})
