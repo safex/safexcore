@@ -61,10 +61,22 @@ set(wallet_api_private_headers
 
 safex_private_headers(wallet_api
   ${wallet_api_private_headers})
-safex_add_library(wallet_api
+
+
+if(DEPENDS AND MINGW)
+  add_library(wallet_api SHARED
+    ${wallet_api_sources}
+    ${wallet_api_headers}
+    ${wallet_api_private_headers})
+
+  set_target_properties(wallet_api PROPERTIES LINK_FLAGS "-Wl,--export-all-symbols")
+else()
+  safex_add_library(wallet_api
   ${wallet_api_sources}
   ${wallet_api_headers}
   ${wallet_api_private_headers})
+endif()
+
 target_link_libraries(wallet_api
   PUBLIC
     wallet
@@ -82,8 +94,11 @@ target_link_libraries(wallet_api
   PRIVATE
     ${EXTRA_LIBRARIES})
 
-set_property(TARGET wallet_api PROPERTY EXCLUDE_FROM_ALL TRUE)
-set_property(TARGET obj_wallet_api PROPERTY EXCLUDE_FROM_ALL TRUE)
+
+if(NOT DEPENDS)
+  set_property(TARGET wallet_api PROPERTY EXCLUDE_FROM_ALL TRUE)
+  set_property(TARGET obj_wallet_api PROPERTY EXCLUDE_FROM_ALL TRUE)
+endif()
 
 if(IOS)
     set(lib_folder lib-${ARCH})
@@ -94,4 +109,7 @@ endif()
 install(FILES ${wallet_api_headers}
     DESTINATION include/wallet/api)
 
-add_subdirectory(win_wrapper)
+if(DEPENDS AND MINGW)
+  install(TARGETS wallet_api
+    ARCHIVE DESTINATION ${lib_folder})
+endif()
