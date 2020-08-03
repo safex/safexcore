@@ -39,15 +39,32 @@ libwallet-build:
 	mkdir -p build/libwallet
 	cd build/libwallet && cmake -DBUILD_SHARED_LIBS=OFF -DBUILD_GUI_DEPS=ON \
                          		-DBUILD_TESTS=OFF -DSTATIC=ON -DBOOST_ROOT=${PWD}/boost \
-                         		-DProtobuf_USE_STATIC_LIBS=ON \
-                         		-DBUILD_SAFEX_PROTOBUF_RPC=ON \
+                         		-DSTATIC=ON \
+                         		-DProtobuf_USE_STATIC_LIBS=OFF \
+                         		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
                          		-DARCH="x86-64" -D \
                          		-DBUILD_64=ON -D \
                          		-DCMAKE_BUILD_TYPE=release \
-                         		-DCMAKE_BUILD_TYPE=${SAFEX_BUILD_TYPE} \
                          		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
                          		../.. && $(MAKE) wallet_merged epee easylogging lmdb unbound VERBOSE=1
+
+libwallet-build-windows:
+	cd contrib/depends && $(MAKE) HOST=x86_64-w64-mingw32
+	mkdir -p build/libwallet-win
+	cd build/libwallet-win && cmake -DBUILD_SHARED_LIBS=OFF -DBUILD_GUI_DEPS=OFF \
+                         		-DBUILD_TESTS=OFF -DSTATIC=ON -DBOOST_ROOT=${PWD}/boost \
+                         		-DSTATIC=ON \
+                         		-DProtobuf_USE_STATIC_LIBS=OFF \
+                         		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
+                         		-DARCH="x86-64" -D \
+                         		-DBUILD_64=ON -D \
+                         		-DCMAKE_BUILD_TYPE=release \
+                         		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+                         		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
+                         		-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE \
+                         		-DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/x86_64-w64-mingw32/share/toolchain.cmake \
+                         		../.. && $(MAKE) wallet_api VERBOSE=1
 
 depends:
 	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
