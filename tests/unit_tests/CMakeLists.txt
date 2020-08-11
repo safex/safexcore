@@ -70,14 +70,16 @@ set(unit_tests_sources
   ringct.cpp
   output_selection.cpp
   vercmp.cpp
-  safex_commands.cpp
   safex_blockchain_db.cpp
-  safex_test_common.cpp
-  safex_blockchain_fee.cpp
-  safex_account.cpp
-  safex_offer.cpp
-  simple_purchase.cpp
-  safex_price_peg.cpp
+  # Safex command tests
+  safex_command/safex_commands.cpp
+  # Safex db tests
+  safex_db/safex_test_common.cpp
+  safex_db/safex_blockchain_fee.cpp
+  safex_db/safex_account.cpp
+  safex_db/safex_offer.cpp
+  safex_db/simple_purchase.cpp
+  safex_db/safex_price_peg.cpp
   )
 
 

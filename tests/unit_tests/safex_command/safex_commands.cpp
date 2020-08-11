@@ -36,7 +36,7 @@
 #include "blockchain_db/blockchain_db.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_basic/hardfork.h"
-#include "safex_test_common.h"
+#include "../safex_test_common.h"
 
 
 using namespace safex;
@@ -266,6 +266,11 @@ TEST_F(SafexCommandExecution, TokenUnlockExecuteWrongType)
   {
     FAIL() << "Unexpected exception";
   }
+}
+
+TEST_F(SafexCommandExecution, CreateSafexAccountExceptions)
+{
+
 }
 
 

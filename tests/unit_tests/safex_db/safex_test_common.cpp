@@ -21,7 +21,7 @@
 #include "safex/safex_offer.h"
 #include "safex/safex_purchase.h"
 
-#include "safex_test_common.h"
+#include "../safex_test_common.h"
 
 using namespace cryptonote;
 using epee::string_tools::pod_to_hex;

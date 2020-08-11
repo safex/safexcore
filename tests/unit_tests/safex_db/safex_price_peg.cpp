@@ -40,7 +40,8 @@
 #include "blockchain_db/lmdb/db_lmdb.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "safex/safex_account.h"
-#include "safex_test_common.h"
+#include "safex/safex_price_peg.h"
+#include "../safex_test_common.h"
 
 
 using namespace cryptonote;
@@ -51,19 +52,20 @@ using epee::string_tools::pod_to_hex;
 namespace
 {  // anonymous namespace
 
-  const int NUMBER_OF_BLOCKS = 20;
-  const int NUMBER_OF_BLOCKS1 = 10;
+  const int NUMBER_OF_BLOCKS = 30;
+  const int NUMBER_OF_BLOCKS1 = 15;
   const int NUMBER_OF_BLOCKS2 = 20;
+  const int NUMBER_OF_BLOCKS3 = 30;
   const uint64_t default_miner_fee = ((uint64_t) 500000000);
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
 
   template<typename T>
-  class SafexAccountTest : public testing::Test
+  class SafexPricePegTest : public testing::Test
   {
     protected:
-      SafexAccountTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
+      SafexPricePegTest() : m_db(new T(false, cryptonote::network_type::FAKECHAIN)), m_hardfork(*m_db, 1, 0)
       {
         m_test_sizes = std::vector<size_t>(NUMBER_OF_BLOCKS, 0);
         m_test_coins = std::vector<uint64_t>(NUMBER_OF_BLOCKS, 60);
@@ -81,17 +83,14 @@ namespace
 
         m_safex_account1_keys.generate();
         m_safex_account2_keys.generate();
-        m_safex_account3_keys.generate();
+
+
 
         m_safex_account1.username = "user1";
         m_safex_account1.pkey = m_safex_account1_keys.get_keys().m_public_key;
         m_safex_account1.account_data = {'s','m','o','r'};
         m_safex_account2.username = "user2";
         m_safex_account2.pkey = m_safex_account2_keys.get_keys().m_public_key;
-        m_safex_account3.username = "user3";
-        m_safex_account3.pkey = m_safex_account3_keys.get_keys().m_public_key;
-        std::string data3 = "This is some data for test";
-        m_safex_account3.account_data = std::vector<uint8_t>(data3.begin(), data3.end());
 
         std::cout << "Alice public key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_public_key) << std::endl;
         std::cout << "Alice private key: " << epee::string_tools::pod_to_hex(m_safex_account1_keys.get_keys().m_secret_key) << std::endl;
@@ -99,9 +98,14 @@ namespace
         const std::string data1_new_str = "Another data tesst for edit";
         data1_new = std::vector<uint8_t>(data1_new_str.begin(), data1_new_str.end());
 
+       m_safex_price_pegs.emplace_back("USD price peg",m_safex_account1.username, "USD", "xcalibra USD price peg", 30);
+       m_safex_price_pegs.emplace_back("RSD price peg",m_safex_account2.username, "RSD", "xcalibra RSD price peg", 100);
 
+       m_edited_safex_price_peg = m_safex_price_pegs[1];
 
-        for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
+       m_edited_safex_price_peg.rate = 40;
+
+       for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
         {
           block blk;
           std::list<cryptonote::transaction> tx_list; // fill tx list with transactions for that block
@@ -147,24 +151,30 @@ namespace
 
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx2 = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account1_keys.get_keys());
+            construct_create_account_transaction(m_txmap, m_blocks, tx2, m_users_acc[1], default_miner_fee, 0, m_safex_account2.username, m_safex_account2.pkey, m_safex_account2.account_data, m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx2)] = tx2;
           }
           else if (i == 7)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account3.username, m_safex_account3.pkey, m_safex_account3.account_data, m_safex_account1_keys.get_keys());
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_pegs[0], m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-          else if (i == 14)
+          else if (i == 8)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_edit_account_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.username, data1_new, m_safex_account1_keys.get_keys());
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_pegs[1], m_safex_account1_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
-
+          else if (i == 15)
+          {
+            tx_list.resize(tx_list.size() + 1);
+            cryptonote::transaction &tx = tx_list.back();                                                           \
+            construct_update_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_edited_safex_price_peg, m_safex_account1_keys.get_keys());
+            m_txmap[get_transaction_hash(tx)] = tx;
+          }
 
           construct_block(blk, i, prev_hash, m_miner_acc, 0, m_test_sizes[i], tx_list);
 
@@ -174,7 +184,7 @@ namespace
       }
 
 
-      ~SafexAccountTest()
+      ~SafexPricePegTest()
       {
         delete m_db;
         remove_files(m_filenames, m_prefix);
@@ -199,10 +209,11 @@ namespace
 
       safex::safex_account_key_handler m_safex_account1_keys{};
       safex::safex_account_key_handler m_safex_account2_keys{};
-      safex::safex_account_key_handler m_safex_account3_keys{};
       safex::safex_account m_safex_account1;
       safex::safex_account m_safex_account2;
-      safex::safex_account m_safex_account3;
+
+      std::vector<safex::safex_price_peg> m_safex_price_pegs;
+      safex::safex_price_peg m_edited_safex_price_peg;
 
       std::vector<uint8_t> data1_new;
 
@@ -233,145 +244,71 @@ namespace
 
   typedef Types<BlockchainLMDB> implementations;
 
-  TYPED_TEST_CASE(SafexAccountTest, implementations);
-
-
-#if 1
-  TYPED_TEST(SafexAccountTest, AccountSignature)
-  {
-    safex::safex_account_key_handler account1;
-    safex::safex_account_key_handler account2;
-    account1.generate();
-    account2.generate();
-
-    const blobdata test_data01 = std::string("Some test data that should be signed");
-    const blobdata test_data02 = std::string("Some test data that should be signed2");
-    const blobdata test_data03 = std::string("Some test data that should be signed, here is also some addition 123241");
-
-    //calculate hash of signature
-    crypto::hash message_hash01 =  get_blob_hash(test_data01);
-    crypto::hash message_hash02 =  get_blob_hash(test_data02);
-    crypto::hash message_hash03 =  get_blob_hash(test_data03);
-
-    crypto::signature message_sig01{};
-    crypto::signature message_sig02{};
-
-    crypto::generate_signature(message_hash01, account1.get_keys().m_public_key, account1.get_keys().m_secret_key, message_sig01);
-    crypto::generate_signature(message_hash02, account2.get_keys().m_public_key, account2.get_keys().m_secret_key, message_sig02);
-
-
-    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig01), true);
-    ASSERT_EQ(crypto::check_signature(message_hash01, account1.get_keys().m_public_key, message_sig02), false);
-    ASSERT_EQ(crypto::check_signature(message_hash02, account1.get_keys().m_public_key, message_sig02), false);
-    ASSERT_EQ(crypto::check_signature(message_hash02, account2.get_keys().m_public_key, message_sig02), true);
-    ASSERT_EQ(crypto::check_signature(message_hash01, account2.get_keys().m_public_key, message_sig02), false);
-
-    //check create from keys
-    crypto::secret_key skey;
-    crypto::public_key pkey;
-    crypto::signature message_sig03{};
-    char skeydata[32]{6, -13, -3, 101, 39, 96, -33, 20, -25, -59, -42, 91, 108, -120, 39, -120, -93, 21, -7, 87, 6, -115, 60, 75, 29, 125, -87, -26, 16, -18, 37, 14};
-    memcpy(skey.data, skeydata, 32);
-    safex::safex_account_key_handler account3{};
-    account3.create_from_keys(skey);
-    crypto::generate_signature(message_hash03, account3.get_keys().m_public_key, account3.get_keys().m_secret_key, message_sig03);
-    crypto::hash message_hash04 =  message_hash03;
-    message_hash04.data[12] = 0x35;
-
-    char pkeydata[32]{30, 55, 2, -52, 116, 83, -100, 86, -70, 87, 28, 44, 120, -16, 18, 100, -100, -68, 67, -74, -94, -52, -91, -29, 123, 22, 79, 64, 69, -15, 92, 15};
-    memcpy(pkey.data, pkeydata, 32);
-
-    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig03), true);
-    ASSERT_EQ(crypto::check_signature(message_hash04, pkey, message_sig03), false);
-    ASSERT_EQ(crypto::check_signature(message_hash03, pkey, message_sig02), false);
-
-  }
-
-
-  TYPED_TEST(SafexAccountTest, CreateAccountCommand)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
-
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
-
-    for (int i = 0; i < NUMBER_OF_BLOCKS1 - 1; i++)
-    {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-    }
-
-    crypto::public_key pkey{};
-    const safex::account_username username01{this->m_safex_account1.username};
-    this->m_db->get_account_key(username01, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
-
-
-    memset((void *)&pkey, 0, sizeof(pkey));
-    const safex::account_username username02{this->m_safex_account2.username};
-    this->m_db->get_account_key(username02, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account2.pkey, sizeof(pkey)), 0);
-
-    memset((void *)&pkey, 0, sizeof(pkey));
-    const safex::account_username username03{this->m_safex_account3.username};
-    this->m_db->get_account_key(username03, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account3.pkey, sizeof(pkey)), 0);
-
-    std::vector<uint8_t> accdata01;
-    this->m_db->get_account_data(username01, accdata01);
-    ASSERT_TRUE(std::equal(this->m_safex_account1.account_data.begin(), this->m_safex_account1.account_data.end(), accdata01.begin()));
-
-    std::vector<uint8_t> accdata03;
-    this->m_db->get_account_data(username03, accdata03);
-    ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
-
-
-    ASSERT_NO_THROW(this->m_db->close());
-
-  }
-#endif
+  TYPED_TEST_CASE(SafexPricePegTest, implementations);
 
 #if 1
 
-  TYPED_TEST(SafexAccountTest, EditAccount)
-  {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
+  TYPED_TEST(SafexPricePegTest, CreatePricePegCommand) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
 
-    this->set_prefix(dirPath);
+        bool result;
 
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
+        this->set_prefix(dirPath);
 
-    for (int i = 0; i < NUMBER_OF_BLOCKS2 - 1; i++)
-    {
-      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
-    }
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
 
-    crypto::public_key pkey{};
-    const safex::account_username username01{this->m_safex_account1.username};
-    this->m_db->get_account_key(username01, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account1.pkey, sizeof(pkey)), 0);
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+        //Checking created price pegs
+        for (auto safex_price_peg: this->m_safex_price_pegs) {
+
+            std::vector<safex::safex_price_peg> saved_price_pegs;
+            result = this->m_db->get_safex_price_pegs(saved_price_pegs,safex_price_peg.currency);
+            ASSERT_TRUE(result);
+
+            safex::safex_price_peg saved_price_peg = saved_price_pegs[0];
+
+            ASSERT_TRUE(std::equal(safex_price_peg.description.begin(), safex_price_peg.description.end(),
+                                   saved_price_peg.description.begin()));
+            ASSERT_EQ(safex_price_peg.title,saved_price_peg.title);
+            ASSERT_EQ(safex_price_peg.currency,saved_price_peg.currency);
+            ASSERT_EQ(safex_price_peg.creator,saved_price_peg.creator);
+            ASSERT_EQ(safex_price_peg.rate,saved_price_peg.rate);
+            ASSERT_EQ(safex_price_peg.price_peg_id,saved_price_peg.price_peg_id);
+
+        }
+
+        for (int i = NUMBER_OF_BLOCKS1; i < NUMBER_OF_BLOCKS2; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        //Checking edited price peg
+
+        safex::safex_price_peg saved_price_peg;
+        result = this->m_db->get_safex_price_peg(this->m_edited_safex_price_peg.price_peg_id,saved_price_peg);
+        ASSERT_TRUE(result);
+
+        ASSERT_TRUE(std::equal(this->m_edited_safex_price_peg.description.begin(), this->m_edited_safex_price_peg.description.end(),
+                               saved_price_peg.description.begin()));
+        ASSERT_EQ(this->m_edited_safex_price_peg.title,saved_price_peg.title);
+        ASSERT_EQ(this->m_edited_safex_price_peg.currency,saved_price_peg.currency);
+        ASSERT_EQ(this->m_edited_safex_price_peg.creator,saved_price_peg.creator);
+        ASSERT_EQ(this->m_edited_safex_price_peg.rate,saved_price_peg.rate);
+        ASSERT_EQ(this->m_edited_safex_price_peg.price_peg_id,saved_price_peg.price_peg_id);
 
 
-    std::vector<uint8_t> accdata01;
-    this->m_db->get_account_data(username01, accdata01);
-    ASSERT_TRUE(std::equal(accdata01.begin(), accdata01.end(), this->data1_new.begin()));
 
-    memset((void *)&pkey, 0, sizeof(pkey));
-    const safex::account_username username03{this->m_safex_account3.username};
-    this->m_db->get_account_key(username03, pkey);
-    ASSERT_EQ(memcmp((void *)&pkey, (void *)&this->m_safex_account3.pkey, sizeof(pkey)), 0);
-
-    std::vector<uint8_t> accdata03;
-    this->m_db->get_account_data(username03, accdata03);
-    ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
+        for (int i = NUMBER_OF_BLOCKS2; i < NUMBER_OF_BLOCKS3; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
 
 
     ASSERT_NO_THROW(this->m_db->close());
