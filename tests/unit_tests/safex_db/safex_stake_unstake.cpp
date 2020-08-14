@@ -348,9 +348,6 @@ namespace
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
       std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
 
-
-
-
       std::cout << "Token amount: " << static_cast<safex::token_stake_result *>(result.get())->token_amount << " status:" << static_cast<int>(result->status)
       << " block number:" << static_cast<safex::token_stake_result*>(result.get())->block_number << std::endl;
     }
@@ -372,6 +369,7 @@ namespace
   TEST_F(SafexStakeUnstakeCommand, TokenLockExceptions)
   {
 
+    // Token amount not whole
     try
     {
 
@@ -383,8 +381,11 @@ namespace
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
 
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_stake_token_not_whole_amount);
+
       std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
-      FAIL() << "Should throw exception with minimum amount of tokens to lock";
+      FAIL() << "Should throw exception with token amount not whole";
 
     }
     catch (safex::command_exception &exception)
@@ -401,6 +402,7 @@ namespace
     }
 
 
+    // Token amount not matching
     try
     {
 
@@ -411,6 +413,9 @@ namespace
       safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_stake_token_amount_not_matching);
 
       std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
       FAIL() << "Should throw exception with input amount differs from token stake command amount";
