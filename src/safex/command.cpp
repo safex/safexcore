@@ -43,9 +43,9 @@ namespace safex
 
     //per input execution, one input could be less than SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT, all inputs must be SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT
     if(!tools::is_whole_token_amount(this->get_staked_token_amount()))
-        result = execution_status::error_wrong_input_params;
+        result = execution_status::error_stake_token_not_whole_amount;
     if(!(txin.token_amount == this->get_staked_token_amount()))
-        result = execution_status::error_wrong_input_params;
+        result = execution_status::error_stake_token_amount_not_matching;
 
     return result;
   }
@@ -77,10 +77,10 @@ namespace safex
     execution_status result = execution_status::ok;
 
     if(!(txin.key_offsets.size() == 1))
-        result = execution_status::error_wrong_input_params;
+        result = execution_status::error_unstake_token_offset_not_one;
 
     if(!(txin.key_offsets[0] == this->get_staked_token_output_index()))
-        result = execution_status::error_wrong_input_params;
+        result = execution_status::error_unstake_token_output_not_matching;
 
     uint64_t staked_token_index = this->get_staked_token_output_index();
     const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
@@ -203,7 +203,7 @@ namespace safex
         return execution_status::error_purchase_out_of_stock;
 
     if(cmd->quantity==0)
-      return execution_status::error_wrong_input_params;
+      return execution_status::error_purchase_quantity_zero;
 
     uint64_t sfx_price = sfx_offer.min_sfx_price;
 
@@ -251,7 +251,7 @@ namespace safex
   execution_status create_account::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
     if(txin.token_amount == 0)
-        return execution_status::error_wrong_input_params;
+        return execution_status::error_account_no_tokens;
 
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
