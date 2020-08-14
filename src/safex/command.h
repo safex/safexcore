@@ -40,16 +40,21 @@ namespace safex
     ok = 0,
     invalid = 1,
     error_wrong_input_params = 1,
+    // Safex stake token
+    error_stake_token_amount_not_matching = 2,
+    error_stake_token_not_whole_amount = 3,
     // Safex account
     error_account_data_too_big = 10,
     error_account_already_exists = 11,
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
+    error_account_no_tokens = 14,
     // Safex purchase
     error_offer_non_existant = 20,
     error_purchase_out_of_stock = 21,
     error_purchase_not_enough_funds = 23,
     error_purchase_offer_not_active = 24,
+    error_purchase_quantity_zero = 25,
     // Safex offer
     error_offer_price_too_big = 30,
     error_offer_price_too_small = 31,
@@ -66,7 +71,9 @@ namespace safex
     // Safex unstake token
     error_unstake_token_output_not_found = 60,
     error_unstake_token_minimum_period = 61,
-    error_unstake_token_network_fee_not_matching = 62
+    error_unstake_token_network_fee_not_matching = 62,
+    error_unstake_token_offset_not_one = 63,
+    error_unstake_token_output_not_matching = 64
   };
 
   struct execution_result
