@@ -71,8 +71,6 @@ set(unit_tests_sources
   output_selection.cpp
   vercmp.cpp
   safex_blockchain_db.cpp
-  # Safex command tests
-  safex_command/safex_commands.cpp
   # Safex db tests
   safex_db/safex_test_common.cpp
   safex_db/safex_stake_unstake.cpp

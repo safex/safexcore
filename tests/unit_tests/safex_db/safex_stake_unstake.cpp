@@ -270,6 +270,199 @@ namespace
 
 #if 1
 
+  TYPED_TEST(SafexBlockchainFeeTest, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::token_stake), safex::command_exception);
+
+  }
+
+  TYPED_TEST(SafexBlockchainFeeTest, HandlesUnknownProtocolVersion)
+  {
+
+    try
+    {
+      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, 2000};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TYPED_TEST(SafexBlockchainFeeTest, HandlesCommandParsing)
+  {
+
+    safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 2000};
+
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::token_stake) << "Token stake command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::token_stake);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_staked_token_amount(), dynamic_cast<safex::token_stake*>(command2.get())->get_staked_token_amount()) << "Original and deserialized command must have same locked amount";
+
+  }
+
+
+
+  TYPED_TEST(SafexBlockchainFeeTest, TokenLockExecute)
+  {
+    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    std::string dirPath = tempPath.string();
+
+    this->set_prefix(dirPath);
+
+    // make sure open does not throw
+    ASSERT_NO_THROW(this->m_db->open(dirPath));
+    this->get_filenames();
+    this->init_hard_fork();
+
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::token_stake;
+      txinput.token_amount = 10000*SAFEX_TOKEN;
+      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 10000*SAFEX_TOKEN};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+
+
+
+
+      std::cout << "Token amount: " << static_cast<safex::token_stake_result *>(result.get())->token_amount << " status:" << static_cast<int>(result->status)
+      << " block number:" << static_cast<safex::token_stake_result*>(result.get())->block_number << std::endl;
+    }
+    catch (safex::command_exception &exception)
+    {
+      FAIL() << exception.what();
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
+  TYPED_TEST(SafexBlockchainFeeTest, TokenLockExceptions)
+  {
+
+    try
+    {
+
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.token_amount = 8000;
+      txinput.command_type = safex::command_t::token_stake;
+      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 8000};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      FAIL() << "Should throw exception with minimum amount of tokens to lock";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+
+    try
+    {
+
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.token_amount = 19000;
+      txinput.command_type = safex::command_t::token_stake;
+      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      FAIL() << "Should throw exception with input amount differs from token stake command amount";
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+
+  }
+
+
+  TYPED_TEST(SafexBlockchainFeeTest, TokenUnlockExecuteWrongType)
+  {
+
+    try
+    {
+
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.token_amount = 10000; //unlock 10k tokens
+      txinput.command_type = safex::command_t::token_unstake;
+      txinput.key_offsets.push_back(23);
+      uint64_t locked_token_output_index = 23;
+      safex::token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ("Could not create command, wrong command type", std::string(exception.what()).c_str());
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
   TYPED_TEST(SafexBlockchainFeeTest, RetrieveCollectedFee)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
@@ -360,6 +553,60 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+
+//  TYPED_TEST(SafexBlockchainFeeTest, TokenUnlockExecute)
+//  {
+//    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+//    std::string dirPath = tempPath.string();
+
+//    this->set_prefix(dirPath);
+
+//    // make sure open does not throw
+//    ASSERT_NO_THROW(this->m_db->open(dirPath));
+//    this->get_filenames();
+//    this->init_hard_fork();
+
+//    for (int i = 0; i < NUMBER_OF_BLOCKS - 1; i++)
+//    {
+//      try
+//      {
+//        this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]);
+//      }
+//      catch (std::exception &e)
+//      {
+//        std::cout << "Error: " << e.what() << std::endl;
+//      }
+//    }
+
+//    try
+//    {
+
+//      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+//      txinput.token_amount = 120000; //unlock 120k tokens
+//      txinput.command_type = safex::command_t::token_unstake;
+//      txinput.key_offsets.push_back(23);
+//      uint64_t locked_token_output_index = 23;
+//      safex::token_unstake command1{SAFEX_COMMAND_PROTOCOL_VERSION, locked_token_output_index};
+//      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+//      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_unstake);
+//      std::unique_ptr<safex::execution_result> rslt{command2->execute(*(this->m_db), txinput)};
+//      safex::token_unstake_result* result = static_cast<safex::token_unstake_result *>(rslt.get());
+
+//      std::cout << "Token amount: " << result->token_amount << " valid:" << result->valid << " block number:" << result->block_number << " interest: " << result->interest << std::endl;
+//    }
+//    catch (std::exception &exception)
+//    {
+//      FAIL() << "Exception happened " << exception.what();
+//    }
+//    catch (...)
+//    {
+//      FAIL() << "Unexpected exception";
+//    }
+
+//    ASSERT_NO_THROW(this->m_db->close());
+
+//  }
 
 #endif
 
