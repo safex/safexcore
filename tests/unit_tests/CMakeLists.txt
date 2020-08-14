@@ -75,7 +75,7 @@ set(unit_tests_sources
   safex_command/safex_commands.cpp
   # Safex db tests
   safex_db/safex_test_common.cpp
-  safex_db/safex_blockchain_fee.cpp
+  safex_db/safex_stake_unstake.cpp
   safex_db/safex_account.cpp
   safex_db/safex_offer.cpp
   safex_db/simple_purchase.cpp
