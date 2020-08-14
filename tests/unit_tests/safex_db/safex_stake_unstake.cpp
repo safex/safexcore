@@ -58,6 +58,19 @@ namespace
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182",
                                                 "80220aec436a2298bae6b35c920017d36646cda874a0516e121e658a888d2b55", "361074a34cf1723c7f797f2764b4c34a8e1584475c28503867778ca90bebbc0a"};
 
+    class SafexStakeUnstakeCommand : public ::testing::Test
+    {
+     public:
+        SafexStakeUnstakeCommand() {
+          crypto::public_key pubKey;
+         epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+
+       }
+     protected:
+       std::vector<crypto::public_key> keys;
+       TestDB m_db;
+   };
 
   template<typename T>
   class SafexBlockchainFeeTest : public testing::Test
@@ -270,7 +283,7 @@ namespace
 
 #if 1
 
-  TYPED_TEST(SafexBlockchainFeeTest, HandlesCorruptedArrayOfBytes)
+  TEST_F(SafexStakeUnstakeCommand, HandlesCorruptedArrayOfBytes)
   {
 
     std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
@@ -280,7 +293,7 @@ namespace
 
   }
 
-  TYPED_TEST(SafexBlockchainFeeTest, HandlesUnknownProtocolVersion)
+  TEST_F(SafexStakeUnstakeCommand, HandlesUnknownProtocolVersion)
   {
 
     try
@@ -298,7 +311,7 @@ namespace
     }
   }
 
-  TYPED_TEST(SafexBlockchainFeeTest, HandlesCommandParsing)
+  TEST_F(SafexStakeUnstakeCommand, HandlesCommandParsing)
   {
 
     safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 2000};
@@ -321,17 +334,8 @@ namespace
 
 
 
-  TYPED_TEST(SafexBlockchainFeeTest, TokenLockExecute)
+  TEST_F(SafexStakeUnstakeCommand, TokenLockExecute)
   {
-    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    std::string dirPath = tempPath.string();
-
-    this->set_prefix(dirPath);
-
-    // make sure open does not throw
-    ASSERT_NO_THROW(this->m_db->open(dirPath));
-    this->get_filenames();
-    this->init_hard_fork();
 
     try
     {
@@ -342,7 +346,7 @@ namespace
       safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
-      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
 
 
 
@@ -363,11 +367,9 @@ namespace
       FAIL() << "Unexpected exception";
     }
 
-    ASSERT_NO_THROW(this->m_db->close());
-
   }
 
-  TYPED_TEST(SafexBlockchainFeeTest, TokenLockExceptions)
+  TEST_F(SafexStakeUnstakeCommand, TokenLockExceptions)
   {
 
     try
@@ -381,7 +383,7 @@ namespace
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
 
-      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
       FAIL() << "Should throw exception with minimum amount of tokens to lock";
 
     }
@@ -410,7 +412,7 @@ namespace
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
 
-      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
       FAIL() << "Should throw exception with input amount differs from token stake command amount";
     }
     catch (safex::command_exception &exception)
@@ -430,7 +432,7 @@ namespace
   }
 
 
-  TYPED_TEST(SafexBlockchainFeeTest, TokenUnlockExecuteWrongType)
+  TEST_F(SafexStakeUnstakeCommand, TokenUnlockExecuteWrongType)
   {
 
     try
@@ -445,7 +447,7 @@ namespace
       safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
-      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
 
     }
     catch (safex::command_exception &exception)
