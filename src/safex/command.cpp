@@ -76,13 +76,10 @@ namespace safex
 
     execution_status result = execution_status::ok;
 
-    if(!(txin.key_offsets.size() == 1))
+    if(txin.key_offsets.size() != 1)
         result = execution_status::error_unstake_token_offset_not_one;
 
-    if(!(txin.key_offsets[0] == this->get_staked_token_output_index()))
-        result = execution_status::error_unstake_token_output_not_matching;
-
-    uint64_t staked_token_index = this->get_staked_token_output_index();
+    uint64_t staked_token_index = txin.key_offsets[0];
     const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
 
 
