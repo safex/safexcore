@@ -799,6 +799,9 @@ struct create_price_peg_result : public execution_result
       create_account(const uint32_t _version, std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data) :
       command(_version, command_t::create_account), username(_username), pkey{_pkey}, account_data{_account_data} {}
 
+      create_account(const uint32_t _version, const std::string &_username, const crypto::public_key &_pkey, const std::string &_account_data) :
+      command(_version, command_t::create_account), username(_username.begin(), _username.end()), pkey{_pkey}, account_data(_account_data.begin(), _account_data.end()) {}
+
       create_account() : command(0, command_t::create_account), username{}, pkey{}, account_data{} {}
 
       std::string get_username() const { return std::string(std::begin(username), std::end(username)); }
