@@ -58,6 +58,18 @@ namespace
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
+  class SafexAccountCommand : public ::testing::Test
+  {
+   public:
+      SafexAccountCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
 
   template<typename T>
   class SafexAccountTest : public testing::Test
@@ -287,6 +299,281 @@ namespace
 
   }
 
+  TEST_F(SafexAccountCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_account), safex::command_exception);
+
+  }
+
+  TEST_F(SafexAccountCommand, HandlesUnknownProtocolVersion)
+  {
+
+    std::string username = "test01";
+    safex::safex_account_key_handler safex_keys{};
+    safex_keys.generate();
+    std::string description = "Some test data inserted";
+    try
+    {
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, username, safex_keys.get_keys().get_public_key(), description};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexAccountCommand, HandlesCommandParsing)
+  {
+
+    std::string username = "test01";
+    safex::safex_account_key_handler safex_keys{};
+    safex_keys.generate();
+    std::string description = "Some test data inserted";
+
+    safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::create_account) << "Safex create account command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_account);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_username(), dynamic_cast<safex::create_account*>(command2.get())->get_username()) << "Original and deserialized command must have same username";
+    ASSERT_EQ(command1.get_account_key(), dynamic_cast<safex::create_account*>(command2.get())->get_account_key()) << "Original and deserialized command must have same account key";
+    ASSERT_EQ(command1.get_account_data(), dynamic_cast<safex::create_account*>(command2.get())->get_account_data()) << "Original and deserialized command must have same description";
+
+  }
+
+  TEST_F(SafexAccountCommand, CreateAccountExecute)
+  {
+
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = "test_0-1";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+
+    }
+    catch (safex::command_exception &exception)
+    {
+      FAIL() << exception.what();
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+  }
+
+  TEST_F(SafexAccountCommand, CreateAccountExceptions)
+  {
+
+    // No tokens in the input
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 0;
+      std::string username = "test01";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_account_no_tokens);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+      FAIL() << "Should throw exception with token amount zero";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    // Invalid username
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = "Test01";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_invalid_account_name);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+      FAIL() << "Should throw exception with invalid account name";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    // Invalid username
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = "test/01";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_invalid_account_name);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+      FAIL() << "Should throw exception with invalid account name";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    // Username too big
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = "012345678901234567890123456789azb";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_account_data_too_big);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+      FAIL() << "Should throw exception with username too big";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    // Account data too big
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = "test0";
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "";
+      for(int i=0; i < SAFEX_ACCOUNT_DATA_MAX_SIZE + 1; i++)
+        description += "x";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(this->m_db, txinput);
+      ASSERT_EQ(status, safex::execution_status::error_account_data_too_big);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(this->m_db, txinput)};
+      FAIL() << "Should throw exception with username too big";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+  }
 
   TYPED_TEST(SafexAccountTest, CreateAccountCommand)
   {
