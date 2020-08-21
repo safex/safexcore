@@ -92,7 +92,7 @@ public:
   virtual bool remove_staked_token_for_interval(const uint64_t interval){return true;};
   virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
   virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
-  virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return true;}
+  virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return false;}
   virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const { return true;}
   virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true; };
   virtual bool get_offer_price(const crypto::hash offer_id, uint64_t &price) const { return true; };
