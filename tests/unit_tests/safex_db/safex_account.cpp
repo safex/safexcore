@@ -620,9 +620,6 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
-#endif
-
-#if 1
 
   TYPED_TEST(SafexAccountTest, EditAccount)
   {
@@ -660,6 +657,62 @@ namespace
     this->m_db->get_account_data(username03, accdata03);
     ASSERT_TRUE(std::equal(this->m_safex_account3.account_data.begin(), this->m_safex_account3.account_data.end(), accdata03.begin()));
 
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
+  TYPED_TEST(SafexAccountTest, SafexAccountExceptions)
+  {
+    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    std::string dirPath = tempPath.string();
+
+    this->set_prefix(dirPath);
+
+    // make sure open does not throw
+    ASSERT_NO_THROW(this->m_db->open(dirPath));
+    this->get_filenames();
+    this->init_hard_fork();
+
+    for (int i = 0; i < NUMBER_OF_BLOCKS2 - 1; i++)
+    {
+      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+    }
+
+    // Safex account exists
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::create_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = this->m_safex_account1.username;
+      safex::safex_account_key_handler safex_keys{};
+      safex_keys.generate();
+      std::string description = "Some test data inserted";
+      safex::create_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, safex_keys.get_keys().get_public_key(), description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_account);
+
+      safex::execution_status status = command2->validate(*(this->m_db), txinput);
+      ASSERT_EQ(status, safex::execution_status::error_account_already_exists);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+      FAIL() << "Should throw exception with Safex account already exists";
+
+    }
+    catch (safex::command_exception &exception)
+    {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
 
     ASSERT_NO_THROW(this->m_db->close());
 
