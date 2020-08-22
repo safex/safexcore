@@ -58,10 +58,23 @@ namespace
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
-  class SafexAccountCommand : public ::testing::Test
+  class SafexCreateAccountCommand : public ::testing::Test
   {
    public:
-      SafexAccountCommand() {
+      SafexCreateAccountCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
+
+  class SafexEditAccountCommand : public ::testing::Test
+  {
+   public:
+      SafexEditAccountCommand() {
         crypto::public_key pubKey;
         epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
         keys.push_back(pubKey);
@@ -299,7 +312,7 @@ namespace
 
   }
 
-  TEST_F(SafexAccountCommand, HandlesCorruptedArrayOfBytes)
+  TEST_F(SafexCreateAccountCommand, HandlesCorruptedArrayOfBytes)
   {
 
     std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
@@ -309,7 +322,17 @@ namespace
 
   }
 
-  TEST_F(SafexAccountCommand, HandlesUnknownProtocolVersion)
+  TEST_F(SafexEditAccountCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::edit_account), safex::command_exception);
+
+  }
+
+  TEST_F(SafexCreateAccountCommand, HandlesUnknownProtocolVersion)
   {
 
     std::string username = "test01";
@@ -331,7 +354,29 @@ namespace
     }
   }
 
-  TEST_F(SafexAccountCommand, HandlesCommandParsing)
+  TEST_F(SafexEditAccountCommand, HandlesUnknownProtocolVersion)
+  {
+
+    std::string username = "test01";
+    safex::safex_account_key_handler safex_keys{};
+    safex_keys.generate();
+    std::string description = "Some test data inserted";
+    try
+    {
+      safex::edit_account command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, username, description};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexCreateAccountCommand, HandlesCommandParsing)
   {
 
     std::string username = "test01";
@@ -359,7 +404,32 @@ namespace
 
   }
 
-  TEST_F(SafexAccountCommand, CreateAccountExecute)
+  TEST_F(SafexEditAccountCommand, HandlesCommandParsing)
+  {
+
+    std::string username = "test01";
+    std::string description = "Some newtest data inserted";
+
+    safex::edit_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, description};
+
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::edit_account) << "Safex edit account command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::edit_account);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_username(), dynamic_cast<safex::edit_account*>(command2.get())->get_username()) << "Original and deserialized command must have same username";
+    ASSERT_EQ(command1.get_new_account_data(), dynamic_cast<safex::edit_account*>(command2.get())->get_new_account_data()) << "Original and deserialized command must have same description";
+
+  }
+
+  TEST_F(SafexCreateAccountCommand, CreateAccountExecute)
   {
 
     try
@@ -393,7 +463,7 @@ namespace
 
   }
 
-  TEST_F(SafexAccountCommand, CreateAccountExceptions)
+  TEST_F(SafexCreateAccountCommand, CreateAccountExceptions)
   {
 
     // No tokens in the input
@@ -662,7 +732,7 @@ namespace
 
   }
 
-  TYPED_TEST(SafexAccountTest, SafexAccountExceptions)
+  TYPED_TEST(SafexAccountTest, CreateSafexAccountExceptions)
   {
     boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     std::string dirPath = tempPath.string();
@@ -703,6 +773,56 @@ namespace
     }
     catch (safex::command_exception &exception)
     {
+
+    }
+    catch (std::exception &exception)
+    {
+      FAIL() << "Exception happened " << exception.what();
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
+  TYPED_TEST(SafexAccountTest, EditSafexAccountExecute)
+  {
+    boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    std::string dirPath = tempPath.string();
+
+    this->set_prefix(dirPath);
+
+    // make sure open does not throw
+    ASSERT_NO_THROW(this->m_db->open(dirPath));
+    this->get_filenames();
+    this->init_hard_fork();
+
+    for (int i = 0; i < NUMBER_OF_BLOCKS2 - 1; i++)
+    {
+      ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i], this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+    }
+
+    try
+    {
+      cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+      txinput.command_type = safex::command_t::edit_account;
+      txinput.token_amount = 100*SAFEX_TOKEN;
+      std::string username = this->m_safex_account1.username;
+      std::string description = "Some test data inserted";
+      safex::edit_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, description};
+      safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+      std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::edit_account);
+
+      std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+
+    }
+    catch (safex::command_exception &exception)
+    {
+      FAIL() << exception.what();
 
     }
     catch (std::exception &exception)
