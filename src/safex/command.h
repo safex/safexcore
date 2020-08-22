@@ -839,6 +839,10 @@ struct create_price_peg_result : public execution_result
       edit_account(const uint32_t _version, const std::vector<uint8_t> _username, const std::vector<uint8_t> _new_account_data) :
               command(_version, command_t::edit_account), username(_username), new_account_data{_new_account_data} {}
 
+      edit_account(const uint32_t _version, const std::string &_username, const std::string &_new_account_data) :
+      command(_version, command_t::edit_account), username(_username.begin(), _username.end()), new_account_data(_new_account_data.begin(), _new_account_data.end()) {}
+
+
       edit_account() : command(0, command_t::edit_account), username{}, new_account_data{} {}
 
       std::string get_username() const { return std::string(username.begin(), username.end()); }
