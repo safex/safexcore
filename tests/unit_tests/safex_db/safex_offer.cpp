@@ -61,6 +61,19 @@ namespace
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
 
+  class SafexCreateOfferCommand : public ::testing::Test
+  {
+   public:
+      SafexCreateOfferCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
+
   template<typename T>
   class SafexOfferTest : public testing::Test
   {
@@ -278,6 +291,77 @@ namespace
   TYPED_TEST_CASE(SafexOfferTest, implementations);
 
 #if 1
+
+  TEST_F(SafexCreateOfferCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_offer), safex::command_exception);
+
+  }
+
+  TEST_F(SafexCreateOfferCommand, HandlesUnknownProtocolVersion)
+  {
+
+    safex::create_offer_data offer_data{};
+    try
+    {
+      safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, offer_data};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexCreateOfferCommand, HandlesCommandParsing)
+  {
+
+     cryptonote::account_base acc_base;
+     acc_base.generate();
+
+     safex::safex_account_key_handler m_safex_account_keys;
+     m_safex_account_keys.generate();
+
+     safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                       "username",acc_base.get_keys().m_view_secret_key,
+                                                       acc_base.get_keys().m_account_address);
+
+    safex::create_offer_data offer_data{sfx_offer};
+
+    safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::create_offer) << "Safex create offer command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_offer);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_offerid(), dynamic_cast<safex::create_offer*>(command2.get())->get_offerid()) << "Original and deserialized command must have same offer ID";
+    ASSERT_EQ(command1.get_price_peg_id(), dynamic_cast<safex::create_offer*>(command2.get())->get_price_peg_id()) << "Original and deserialized command must have same price peg ID";
+    ASSERT_EQ(command1.get_seller(), dynamic_cast<safex::create_offer*>(command2.get())->get_seller()) << "Original and deserialized command must have same seller";
+    ASSERT_EQ(command1.get_title(), dynamic_cast<safex::create_offer*>(command2.get())->get_title()) << "Original and deserialized command must have same title";
+    ASSERT_EQ(command1.get_price(), dynamic_cast<safex::create_offer*>(command2.get())->get_price()) << "Original and deserialized command must have same price";
+    ASSERT_EQ(command1.get_min_sfx_price(), dynamic_cast<safex::create_offer*>(command2.get())->get_min_sfx_price()) << "Original and deserialized command must have same minimal Safex price";
+    ASSERT_EQ(command1.get_active(), dynamic_cast<safex::create_offer*>(command2.get())->get_active()) << "Original and deserialized command must have same active status";
+    ASSERT_EQ(command1.get_price_peg_used(), dynamic_cast<safex::create_offer*>(command2.get())->get_price_peg_used()) << "Original and deserialized command must have same price peg used field";
+    ASSERT_EQ(command1.get_description(), dynamic_cast<safex::create_offer*>(command2.get())->get_description()) << "Original and deserialized command must have same description";
+    ASSERT_EQ(command1.get_seller_address(), dynamic_cast<safex::create_offer*>(command2.get())->get_seller_address()) << "Original and deserialized command must have same seller address";
+    ASSERT_EQ(command1.get_seller_private_view_key(), dynamic_cast<safex::create_offer*>(command2.get())->get_seller_private_view_key()) << "Original and deserialized command must have same sellers private key";
+
+  }
 
   TYPED_TEST(SafexOfferTest, CreateOfferCommand) {
         boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
