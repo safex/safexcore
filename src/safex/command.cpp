@@ -402,8 +402,12 @@ namespace safex
             return execution_status::error_offer_price_too_small;
         }
 
-        if(cmd->get_price() > MONEY_SUPPLY) {
-          return execution_status::error_offer_price_too_big;
+        if(cmd->get_min_sfx_price() > MONEY_SUPPLY){
+            return execution_status::error_offer_price_too_big;
+        }
+
+        if(!cmd->get_price_peg_used() && cmd->get_min_sfx_price() > cmd->get_price()){
+            return execution_status::error_offer_price_mismatch;
         }
 
         if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
