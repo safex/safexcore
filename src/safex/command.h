@@ -61,6 +61,7 @@ namespace safex
     error_offer_data_too_big = 32,
     error_offer_price_peg_not_existant = 33,
     error_offer_price_mismatch = 34,
+    error_offer_already_exists = 35,
     // Safex feedback
     error_feedback_invalid_rating = 40,
     error_feedback_data_too_big = 41,

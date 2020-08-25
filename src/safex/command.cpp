@@ -345,6 +345,15 @@ namespace safex
             result = execution_status::error_account_non_existant;
         }
 
+        safex::safex_offer sfx_offer{};
+        if (blokchainDB.get_offer(cmd->get_offerid(),sfx_offer)) {
+            return execution_status::error_offer_already_exists;
+        }
+
+        if(cmd->get_active() == false || cmd->get_quantity() == 0) {
+            return execution_status::error_wrong_input_params;
+        }
+
         if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
             result = execution_status::error_offer_price_too_small;
         }
