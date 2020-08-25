@@ -465,6 +465,304 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+
+  TYPED_TEST(SafexOfferTest, CreateOfferExceptions) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
+
+        this->set_prefix(dirPath);
+
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
+
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        // Safex account doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            "usernamenothere",this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+         safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_account_non_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex account doesn't exist";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer price too small
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+         sfx_offer.min_sfx_price = SAFEX_OFFER_MINIMUM_PRICE - 1;
+         safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_price_too_small);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer min price too small";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer price too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+         sfx_offer.min_sfx_price = MONEY_SUPPLY + 1;
+         sfx_offer.price = sfx_offer.min_sfx_price;
+         safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_price_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer min price too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer price mismatch
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+         sfx_offer.min_sfx_price = sfx_offer.price + 1;
+         safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_price_mismatch);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer price mismatch";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer title too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+          sfx_offer.title = "";
+          for(int i = 0; i<=SAFEX_OFFER_NAME_MAX_SIZE+1; i++)
+            sfx_offer.title+='x';
+          safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer title too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer description too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+          sfx_offer.description.clear();
+          for(int i = 0; i<=SAFEX_OFFER_DATA_MAX_SIZE+1; i++)
+            sfx_offer.description.push_back('x');
+          safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer description too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer price peg doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_offer;
+          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
+                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
+                                                            this->m_users_acc[0].get_keys().m_account_address);
+
+          sfx_offer.set_price_peg(sfx_offer.offer_id,100,100);
+
+          safex::create_offer_data offer_data{sfx_offer};
+
+         safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_price_peg_not_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer price peg doesn't exist";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
 #endif
 
 }  // anonymous namespace
