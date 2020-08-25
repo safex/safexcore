@@ -468,9 +468,9 @@ namespace
     {
 
       cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-      txinput.token_amount = 19000;
+      txinput.token_amount = 19000*SAFEX_TOKEN;
       txinput.command_type = safex::command_t::token_stake;
-      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000};
+      safex::token_stake command1{SAFEX_COMMAND_PROTOCOL_VERSION, 11000*SAFEX_TOKEN};
       safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
 
       std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::token_stake);
