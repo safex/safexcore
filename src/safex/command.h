@@ -70,6 +70,7 @@ namespace safex
     error_price_peg_data_too_big = 52,
     error_price_peg_not_existant = 53,
     error_price_peg_rate_zero = 54,
+    error_price_peg_already_exists = 55,
     // Safex unstake token
     error_unstake_token_output_not_found = 60,
     error_unstake_token_minimum_period = 61,

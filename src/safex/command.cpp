@@ -485,6 +485,17 @@ namespace safex
 
       std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
 
+      std::vector<uint8_t>  dummy{};
+      if (!blokchainDB.get_account_data(cmd->get_creator(), dummy)) {
+          return execution_status::error_account_non_existant;
+      }
+
+      safex::safex_price_peg dummy_price_peg{};
+      if(blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),dummy_price_peg))
+      {
+        return execution_status::error_price_peg_already_exists;
+      }
+
       if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
       {
         return execution_status::error_price_peg_data_too_big;
@@ -492,7 +503,7 @@ namespace safex
 
       if (cmd->get_currency().size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
       {
-        return execution_status::error_price_peg_bad_currency_format;
+        return execution_status::error_price_peg_data_too_big;
       }
 
       for (auto ch: cmd->get_currency()) {
