@@ -463,6 +463,389 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+
+  TYPED_TEST(SafexPricePegTest, CreatePricePegExceptions) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
+
+        this->set_prefix(dirPath);
+
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
+
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        // Safex account doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_account_non_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex account doesn't exist";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg ID already exists
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+
+          safex::create_price_peg_data price_peg_data{this->m_safex_price_pegs[0]};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_already_exists);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg ID already in the DB";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg name too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
+
+          sfx_price_peg.title = "";
+          for (int i=0; i < SAFEX_PRICE_PEG_NAME_MAX_SIZE + 2 ; i++) {
+              sfx_price_peg.title += "x";
+          }
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg title too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg curreny name too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
+
+          sfx_price_peg.currency = "";
+          for (int i=0; i < SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE + 2 ; i++) {
+              sfx_price_peg.currency += "x";
+          }
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg currency name too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg description too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
+
+          sfx_price_peg.description.clear();
+          for (int i=0; i < SAFEX_PRICE_PEG_DATA_MAX_SIZE + 2 ; i++) {
+              sfx_price_peg.description.push_back('x');
+          }
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg currency description too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg curreny name invalid
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"US-D","Some description", 1828);
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_bad_currency_format);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg currency name invalid";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg rate zero
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
+
+          sfx_price_peg.rate = 0;
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_rate_zero);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg rate is zero";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
+  TYPED_TEST(SafexPricePegTest, UpdatePricePegExceptions) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
+
+        this->set_prefix(dirPath);
+
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
+
+        for (int i = 0; i < NUMBER_OF_BLOCKS1; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        // Safex price peg doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::update_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::update_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_not_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg already exists";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex price peg rate zero
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::update_price_peg;
+          safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
+
+          sfx_price_peg.rate = 0;
+
+          safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+          safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::update_price_peg);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_price_peg_rate_zero);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex price peg rate zero";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
 #endif
 
 }  // anonymous namespace
