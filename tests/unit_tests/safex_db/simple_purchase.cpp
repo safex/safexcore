@@ -62,6 +62,18 @@ namespace
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
+  class SafexPurchaseCommand : public ::testing::Test
+  {
+   public:
+      SafexPurchaseCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
 
   template<typename T>
   class SimplePurchaseTest : public testing::Test
@@ -114,8 +126,9 @@ namespace
 
         std::string new_str_desc{"Now without worms!!"};
         std::vector<uint8_t> new_desc{new_str_desc.begin(),new_str_desc.end()};
-        m_edited_safex_offer = m_safex_offer[0];
+        m_edited_safex_offer = m_safex_offer[1];
         m_edited_safex_offer.description = new_desc;
+        m_edited_safex_offer.active = false;
 
 
          for (int i = 0; i < NUMBER_OF_BLOCKS; i++)
@@ -191,8 +204,13 @@ namespace
           {
               tx_list.resize(tx_list.size() + 1);
               cryptonote::transaction &tx = tx_list.back();                                                           \
-              construct_create_purchase_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_purchase,m_users_acc[1].get_keys().m_account_address);
+              construct_edit_offer_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_edited_safex_offer, m_safex_account2_keys.get_keys());
               m_txmap[get_transaction_hash(tx)] = tx;
+
+              tx_list.resize(tx_list.size() + 1);
+              cryptonote::transaction &tx2 = tx_list.back();                                                           \
+              construct_create_purchase_transaction(m_txmap, m_blocks, tx2, m_users_acc[0], default_miner_fee, 0, m_safex_purchase,m_users_acc[1].get_keys().m_account_address);
+              m_txmap[get_transaction_hash(tx2)] = tx2;
           }
           else if (i == 25)
           {
@@ -282,6 +300,64 @@ namespace
 
 #if 1
 
+  TEST_F(SafexPurchaseCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::simple_purchase), safex::command_exception);
+
+  }
+
+  TEST_F(SafexPurchaseCommand, HandlesUnknownProtocolVersion)
+  {
+
+    safex::create_purchase_data purchase_data{};
+    try
+    {
+      safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, purchase_data};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexPurchaseCommand, HandlesCommandParsing)
+  {
+
+    crypto::hash offer_id;
+
+    safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, false);
+
+    safex::create_purchase_data purchase_data{sfx_purchase};
+
+    safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::simple_purchase) << "Safex purchase command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::simple_purchase);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_offerid(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_offerid()) << "Original and deserialized command must have same offer ID";
+    ASSERT_EQ(command1.get_quantity(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_quantity()) << "Original and deserialized command must have same quantity";
+    ASSERT_EQ(command1.get_price(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_price()) << "Original and deserialized command must have same price";
+    ASSERT_EQ(command1.get_shipping(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_shipping()) << "Original and deserialized command must have same shipping";
+
+  }
+
   TYPED_TEST(SimplePurchaseTest, CreatePurchaseCommand) {
         boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
         std::string dirPath = tempPath.string();
@@ -363,6 +439,214 @@ namespace
     ASSERT_NO_THROW(this->m_db->close());
 
   }
+
+  TYPED_TEST(SimplePurchaseTest, CreatePurchaseExceptions) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
+
+        this->set_prefix(dirPath);
+
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
+
+        for (int i = 0; i < NUMBER_OF_BLOCKS2; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        // Safex offer doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          crypto::hash offer_id{};
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_non_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer doesn't exist";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer isn't active
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, this->m_edited_safex_offer.offer_id, false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_offer_not_active);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer isn't active";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex offer doesn't have enough in stock
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(this->m_safex_offer[0].quantity + 1, 100, this->m_safex_offer[0].offer_id, false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_out_of_stock);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer doesn't have enough";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex purchase quantity cannot be zero
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(0, 100, this->m_safex_offer[0].offer_id, false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_quantity_zero);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex purchase quantity is zero";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex purchase not enough funds registred
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, this->m_safex_offer[0].price-1, this->m_safex_offer[0].offer_id, false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_not_enough_funds);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex purchase given not enough funds";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
 #endif
 
 }  // anonymous namespace
