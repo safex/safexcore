@@ -60,6 +60,31 @@ namespace
   const std::string bitcoin_tx_hashes_str[6] = {"3b7ac2a66eded32dcdc61f0fec7e9ddb30ccb3c6f5f06c0743c786e979130c5f", "3c904e67190d2d8c5cc93147c1a3ead133c61fc3fa578915e9bf95544705e63c",
                                                 "2d825e690c4cb904556285b74a6ce565f16ba9d2f09784a7e5be5f7cdb05ae1d", "89352ec1749c872146eabddd56cd0d1492a3be6d2f9df98f6fbbc0d560120182"};
 
+  class SafexCreatePricePegCommand : public ::testing::Test
+  {
+   public:
+      SafexCreatePricePegCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
+
+  class SafexUpdatePricePegCommand : public ::testing::Test
+  {
+   public:
+      SafexUpdatePricePegCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
 
   template<typename T>
   class SafexPricePegTest : public testing::Test
@@ -247,6 +272,130 @@ namespace
   TYPED_TEST_CASE(SafexPricePegTest, implementations);
 
 #if 1
+
+  TEST_F(SafexCreatePricePegCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_price_peg), safex::command_exception);
+
+  }
+
+  TEST_F(SafexUpdatePricePegCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::update_price_peg), safex::command_exception);
+
+  }
+
+  TEST_F(SafexCreatePricePegCommand, HandlesUnknownProtocolVersion)
+  {
+
+    safex::create_price_peg_data price_peg_data{};
+    try
+    {
+      safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, price_peg_data};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexUpdatePricePegCommand, HandlesUnknownProtocolVersion)
+  {
+
+    safex::update_price_peg_data price_peg_data{};
+    try
+    {
+      safex::update_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, price_peg_data};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexCreatePricePegCommand, HandlesCommandParsing)
+  {
+
+     cryptonote::account_base acc_base;
+     acc_base.generate();
+
+     safex::safex_account_key_handler m_safex_account_keys;
+     m_safex_account_keys.generate();
+
+     safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
+
+    safex::create_price_peg_data price_peg_data{sfx_price_peg};
+
+    safex::create_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::create_price_peg) << "Safex create price peg command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_price_peg);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_price_peg_id(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_price_peg_id()) << "Original and deserialized command must have same price peg ID";
+    ASSERT_EQ(command1.get_creator(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_creator()) << "Original and deserialized command must have same creator";
+    ASSERT_EQ(command1.get_title(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_title()) << "Original and deserialized command must have same title";
+    ASSERT_EQ(command1.get_description(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_description()) << "Original and deserialized command must have same description";
+    ASSERT_EQ(command1.get_currency(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_currency()) << "Original and deserialized command must have same currency";
+    ASSERT_EQ(command1.get_rate(), dynamic_cast<safex::create_price_peg*>(command2.get())->get_rate()) << "Original and deserialized command must have same rate";
+
+  }
+
+  TEST_F(SafexUpdatePricePegCommand, HandlesCommandParsing)
+  {
+
+     cryptonote::account_base acc_base;
+     acc_base.generate();
+
+     safex::safex_account_key_handler m_safex_account_keys;
+     m_safex_account_keys.generate();
+
+     safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
+
+     safex::update_price_peg_data price_peg_data{sfx_price_peg};
+
+     safex::update_price_peg command1{SAFEX_COMMAND_PROTOCOL_VERSION , price_peg_data};
+     //serialize
+     std::vector<uint8_t> serialized_command;
+     safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+     safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+     ASSERT_EQ(command_type, safex::command_t::update_price_peg) << "Safex create price peg command type not properly parsed from binary blob";
+
+     //deserialize
+     std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::update_price_peg);
+
+     ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+     ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+     ASSERT_EQ(command1.get_price_peg_id(), dynamic_cast<safex::update_price_peg*>(command2.get())->get_price_peg_id()) << "Original and deserialized command must have same price peg ID";
+     ASSERT_EQ(command1.get_rate(), dynamic_cast<safex::update_price_peg*>(command2.get())->get_rate()) << "Original and deserialized command must have same rate";
+
+  }
 
   TYPED_TEST(SafexPricePegTest, CreatePricePegCommand) {
         boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
