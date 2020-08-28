@@ -75,6 +75,19 @@ namespace
      TestDB m_db;
  };
 
+  class SafexFeedbackCommand : public ::testing::Test
+  {
+   public:
+      SafexFeedbackCommand() {
+        crypto::public_key pubKey;
+        epee::string_tools::hex_to_pod("229d8c9229ba7aaadcd575cc825ac2bd0301fff46cc05bd01110535ce43a15d1", pubKey);
+        keys.push_back(pubKey);
+     }
+   protected:
+     std::vector<crypto::public_key> keys;
+     TestDB m_db;
+ };
+
   template<typename T>
   class SimplePurchaseTest : public testing::Test
   {
@@ -310,6 +323,16 @@ namespace
 
   }
 
+  TEST_F(SafexFeedbackCommand, HandlesCorruptedArrayOfBytes)
+  {
+
+    std::vector<uint8_t> serialized_command = {0x32, 0x32, 0x13, 0x43, 0x12, 0x3, 0x4, 0x5, 0x5, 0x6, 0x32, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16};
+
+    //deserialize
+    EXPECT_THROW(safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_feedback), safex::command_exception);
+
+  }
+
   TEST_F(SafexPurchaseCommand, HandlesUnknownProtocolVersion)
   {
 
@@ -317,6 +340,25 @@ namespace
     try
     {
       safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, purchase_data};
+      FAIL() << "Should throw exception with message invalid command";
+    }
+    catch (safex::command_exception &exception)
+    {
+      ASSERT_STREQ(std::string(("Unsupported command protocol version " + std::to_string(SAFEX_COMMAND_PROTOCOL_VERSION + 1))).c_str(), std::string(exception.what()).c_str());
+    }
+    catch (...)
+    {
+      FAIL() << "Unexpected exception";
+    }
+  }
+
+  TEST_F(SafexFeedbackCommand, HandlesUnknownProtocolVersion)
+  {
+
+    safex::create_feedback_data feedback_data{};
+    try
+    {
+      safex::create_feedback command1{SAFEX_COMMAND_PROTOCOL_VERSION + 1, feedback_data};
       FAIL() << "Should throw exception with message invalid command";
     }
     catch (safex::command_exception &exception)
@@ -355,6 +397,34 @@ namespace
     ASSERT_EQ(command1.get_quantity(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_quantity()) << "Original and deserialized command must have same quantity";
     ASSERT_EQ(command1.get_price(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_price()) << "Original and deserialized command must have same price";
     ASSERT_EQ(command1.get_shipping(), dynamic_cast<safex::simple_purchase*>(command2.get())->get_shipping()) << "Original and deserialized command must have same shipping";
+
+  }
+
+  TEST_F(SafexFeedbackCommand, HandlesCommandParsing)
+  {
+
+    crypto::hash offer_id;
+
+    safex::safex_feedback sfx_feedback = safex::safex_feedback(1, "100", offer_id);
+
+    safex::create_feedback_data feedback_data{sfx_feedback};
+
+    safex::create_feedback command1{SAFEX_COMMAND_PROTOCOL_VERSION , feedback_data};
+    //serialize
+    std::vector<uint8_t> serialized_command;
+    safex::safex_command_serializer::serialize_safex_object(command1, serialized_command);
+
+    safex::command_t command_type = safex::safex_command_serializer::get_command_type(serialized_command);
+    ASSERT_EQ(command_type, safex::command_t::create_feedback) << "Safex feedback command type not properly parsed from binary blob";
+
+    //deserialize
+    std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(serialized_command, safex::command_t::create_feedback);
+
+    ASSERT_EQ(command1.get_version(), command2->get_version()) << "Original and deserialized command must have same version";
+    ASSERT_EQ(command1.get_command_type(), command2->get_command_type()) << "Original and deserialized command must have same command type";
+    ASSERT_EQ(command1.get_offerid(), dynamic_cast<safex::create_feedback*>(command2.get())->get_offerid()) << "Original and deserialized command must have same offer ID";
+    ASSERT_EQ(command1.get_stars_given(), dynamic_cast<safex::create_feedback*>(command2.get())->get_stars_given()) << "Original and deserialized command must have same rating";
+    ASSERT_EQ(command1.get_comment(), dynamic_cast<safex::create_feedback*>(command2.get())->get_comment()) << "Original and deserialized command must have same comment";
 
   }
 
