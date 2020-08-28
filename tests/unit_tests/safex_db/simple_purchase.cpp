@@ -717,6 +717,142 @@ namespace
 
   }
 
+  TYPED_TEST(SimplePurchaseTest, CreateFeedbackExceptions) {
+        boost::filesystem::path tempPath = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+        std::string dirPath = tempPath.string();
+
+        this->set_prefix(dirPath);
+
+        // make sure open does not throw
+        ASSERT_NO_THROW(this->m_db->open(dirPath));
+        this->get_filenames();
+        this->init_hard_fork();
+
+        for (int i = 0; i < NUMBER_OF_BLOCKS2; i++) {
+            ASSERT_NO_THROW(this->m_db->add_block(this->m_blocks[i], this->m_test_sizes[i], this->m_test_diffs[i],
+                                                  this->m_test_coins[i], this->m_test_tokens[i], this->m_txs[i]));
+        }
+
+        // Safex offer doesn't exist
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_feedback;
+
+          crypto::hash offer_id{};
+
+          safex::safex_feedback sfx_feedback = safex::safex_feedback(1, "100", offer_id);
+
+          safex::create_feedback_data feedback_data{sfx_feedback};
+
+          safex::create_feedback command1{SAFEX_COMMAND_PROTOCOL_VERSION , feedback_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_feedback);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_offer_non_existant);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex offer doesn't exist";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Given rating is higher than valid
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_feedback;
+
+          safex::safex_feedback sfx_feedback = safex::safex_feedback(4, "100", this->m_edited_safex_offer.offer_id);
+
+          safex::create_feedback_data feedback_data{sfx_feedback};
+
+          safex::create_feedback command1{SAFEX_COMMAND_PROTOCOL_VERSION , feedback_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_feedback);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_feedback_invalid_rating);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex feedback ratign higher than valid";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex feedback comment is too big
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::create_feedback;
+
+          safex::safex_feedback sfx_feedback = safex::safex_feedback(3, "100", this->m_edited_safex_offer.offer_id);
+
+          sfx_feedback.comment = "";
+          for(int i=0; i<SAFEX_FEEDBACK_DATA_MAX_SIZE + 2; i++)
+            sfx_feedback.comment += "x";
+          safex::create_feedback_data feedback_data{sfx_feedback};
+
+          safex::create_feedback command1{SAFEX_COMMAND_PROTOCOL_VERSION , feedback_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_feedback);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_feedback_data_too_big);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex feedback comment is too big";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+    ASSERT_NO_THROW(this->m_db->close());
+
+  }
+
 #endif
 
 }  // anonymous namespace
