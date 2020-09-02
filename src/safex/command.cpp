@@ -39,15 +39,14 @@ namespace safex
 
   execution_status token_stake::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
-    execution_status result = execution_status::ok;
 
     //per input execution, one input could be less than SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT, all inputs must be SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT
     if(!tools::is_whole_token_amount(this->get_staked_token_amount()))
-        result = execution_status::error_wrong_input_params;
+        return execution_status::error_stake_token_not_whole_amount;
     if(!(txin.token_amount == this->get_staked_token_amount()))
-        result = execution_status::error_wrong_input_params;
+        return execution_status::error_stake_token_amount_not_matching;
 
-    return result;
+    return execution_status::ok;
   }
 
   token_unstake_result* token_unstake::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -74,15 +73,10 @@ namespace safex
   execution_status token_unstake::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
-    execution_status result = execution_status::ok;
+    if(txin.key_offsets.size() != 1)
+        return execution_status::error_unstake_token_offset_not_one;
 
-    if(!(txin.key_offsets.size() == 1))
-        result = execution_status::error_wrong_input_params;
-
-    if(!(txin.key_offsets[0] == this->get_staked_token_output_index()))
-        result = execution_status::error_wrong_input_params;
-
-    uint64_t staked_token_index = this->get_staked_token_output_index();
+    uint64_t staked_token_index = txin.key_offsets[0];
     const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
 
 
@@ -97,14 +91,14 @@ namespace safex
     uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
 
     if(txin.amount > expected_interest)
-        result = execution_status::error_unstake_token_network_fee_not_matching;
+        return execution_status::error_unstake_token_network_fee_not_matching;
 
     if(!output_found)
-        result = execution_status::error_unstake_token_output_not_found;
+        return execution_status::error_unstake_token_output_not_found;
     if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
-        result = execution_status::error_unstake_token_minimum_period;
+        return execution_status::error_unstake_token_minimum_period;
 
-    return result;
+    return execution_status::ok;
   }
 
 
@@ -131,13 +125,12 @@ namespace safex
   {
 
     //TODO: GRKI Do not allow token_collect for now
-    execution_status result = execution_status::invalid;
 
     //todo Get data about locked token output from database using its index
     //todo check if db output amount is same as txin amount
     //todo check if minimum amount of time is fulfilled
 
-    return result;
+    return execution_status::invalid;
   }
 
 
@@ -158,14 +151,12 @@ namespace safex
   execution_status donate_fee::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
 
-    execution_status result = execution_status::ok;
-
     if(!(txin.amount > 0))
         return execution_status::error_wrong_input_params;
     if(txin.token_amount != 0)
         return execution_status::error_wrong_input_params;
 
-    return result;
+    return execution_status::ok;
   };
 
   simple_purchase_result* simple_purchase::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -189,8 +180,6 @@ namespace safex
   {
     std::unique_ptr<safex::simple_purchase> cmd = safex::safex_command_serializer::parse_safex_command<safex::simple_purchase>(txin.script);
 
-    execution_status result = execution_status::ok;
-
     safex::safex_offer sfx_offer{};
     if (!blokchainDB.get_offer(cmd->offer_id,sfx_offer)) {
         return execution_status::error_offer_non_existant;
@@ -203,7 +192,7 @@ namespace safex
         return execution_status::error_purchase_out_of_stock;
 
     if(cmd->quantity==0)
-      return execution_status::error_wrong_input_params;
+      return execution_status::error_purchase_quantity_zero;
 
     uint64_t sfx_price = sfx_offer.min_sfx_price;
 
@@ -232,7 +221,7 @@ namespace safex
     if(txin.token_amount != 0)
         return execution_status::error_wrong_input_params;
 
-    return result;
+    return execution_status::ok;
   };
 
   create_account_result* create_account::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -251,7 +240,7 @@ namespace safex
   execution_status create_account::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
   {
     if(txin.token_amount == 0)
-        return execution_status::error_wrong_input_params;
+        return execution_status::error_account_no_tokens;
 
     std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(txin.script);
 
@@ -295,19 +284,18 @@ namespace safex
     execution_status edit_account::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-        execution_status result = execution_status::ok;
         std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
 
 
         for (auto ch: cmd->get_username()) {
           if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-                result = execution_status::error_invalid_account_name;
+                return execution_status::error_invalid_account_name;
             }
         }
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_username(), dummy)) {
-            result = execution_status::error_account_non_existant;
+            return execution_status::error_account_non_existant;
         }
 
         if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
@@ -320,7 +308,7 @@ namespace safex
           return execution_status::error_account_data_too_big;
         }
 
-        return result;
+        return execution_status::ok;
     };
 
 
@@ -340,40 +328,52 @@ namespace safex
     execution_status create_offer::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-        execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
-            result = execution_status::error_account_non_existant;
+            return execution_status::error_account_non_existant;
+        }
+
+        safex::safex_offer sfx_offer{};
+        if (blokchainDB.get_offer(cmd->get_offerid(),sfx_offer)) {
+            return execution_status::error_offer_already_exists;
+        }
+
+        if(cmd->get_active() == false || cmd->get_quantity() == 0) {
+            return execution_status::error_wrong_input_params;
         }
 
         if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
-            result = execution_status::error_offer_price_too_small;
+            return execution_status::error_offer_price_too_small;
         }
 
-        if(cmd->get_price() > MONEY_SUPPLY) {
-          result = execution_status::error_offer_price_too_big;
+        if(cmd->get_min_sfx_price() > MONEY_SUPPLY){
+            return execution_status::error_offer_price_too_big;
+        }
+
+        if(!cmd->get_price_peg_used() && cmd->get_min_sfx_price() > cmd->get_price()){
+            return execution_status::error_offer_price_mismatch;
         }
 
         if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
         {
           MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-          result = execution_status::error_offer_data_too_big;
+          return execution_status::error_offer_data_too_big;
         }
 
         if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
         {
           MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-          result = execution_status::error_offer_data_too_big;
+          return execution_status::error_offer_data_too_big;
         }
 
         safex::safex_price_peg sfx_price_peg{};
         if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
-          result = execution_status::error_offer_price_peg_not_existant;
+          return execution_status::error_offer_price_peg_not_existant;
         }
 
-        return result;
+        return execution_status::ok;
     };
 
     edit_offer_result* edit_offer::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -391,44 +391,47 @@ namespace safex
     execution_status edit_offer::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-        execution_status result = execution_status::ok;
         std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
-            result = execution_status::error_account_non_existant;
+            return execution_status::error_account_non_existant;
         }
 
         if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
-            result = execution_status::error_offer_price_too_small;
+            return execution_status::error_offer_price_too_small;
         }
 
-        if(cmd->get_price() > MONEY_SUPPLY) {
-          result = execution_status::error_offer_price_too_big;
+        if(cmd->get_min_sfx_price() > MONEY_SUPPLY){
+            return execution_status::error_offer_price_too_big;
+        }
+
+        if(!cmd->get_price_peg_used() && cmd->get_min_sfx_price() > cmd->get_price()){
+            return execution_status::error_offer_price_mismatch;
         }
 
         if (cmd->get_title().size() > SAFEX_OFFER_NAME_MAX_SIZE)
         {
           MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-          result = execution_status::error_offer_data_too_big;
+          return execution_status::error_offer_data_too_big;
         }
 
         if (cmd->get_description().size() > SAFEX_OFFER_DATA_MAX_SIZE)
         {
           MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-          result = execution_status::error_offer_data_too_big;
+          return execution_status::error_offer_data_too_big;
         }
 
         safex::safex_price_peg sfx_price_peg{};
         if(cmd->get_price_peg_used() && !blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg)){
-          result = execution_status::error_offer_price_peg_not_existant;
+          return execution_status::error_offer_price_peg_not_existant;
         }
 
         safex::safex_offer sfx_dummy{};
         if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
-            result = execution_status::error_offer_non_existant;
+            return execution_status::error_offer_non_existant;
         }
-        return result;
+        return execution_status::ok;
     };
 
     create_feedback_result* create_feedback::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -446,23 +449,22 @@ namespace safex
     execution_status create_feedback::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-        execution_status result = execution_status::ok;
         std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(txin.script);
 
         safex::safex_offer sfx_dummy{};
         if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
-            result = execution_status::error_offer_non_existant;
+            return execution_status::error_offer_non_existant;
         }
 
         uint64_t rating_given = cmd->get_stars_given();
 
         if(rating_given > 3 )
-          result = execution_status::error_feedback_invalid_rating;
+          return execution_status::error_feedback_invalid_rating;
 
         if(cmd->get_comment().size() > SAFEX_FEEDBACK_DATA_MAX_SIZE)
-          result = execution_status::error_feedback_data_too_big;
+          return execution_status::error_feedback_data_too_big;
 
-        return result;
+        return execution_status::ok;
     };
 
     create_price_peg_result* create_price_peg::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -481,37 +483,47 @@ namespace safex
     execution_status create_price_peg::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-      execution_status result = execution_status::ok;
       std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(txin.script);
+
+      std::vector<uint8_t>  dummy{};
+      if (!blokchainDB.get_account_data(cmd->get_creator(), dummy)) {
+          return execution_status::error_account_non_existant;
+      }
+
+      safex::safex_price_peg dummy_price_peg{};
+      if(blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(),dummy_price_peg))
+      {
+        return execution_status::error_price_peg_already_exists;
+      }
 
       if (cmd->get_title().size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
       {
-        result = execution_status::error_price_peg_data_too_big;
+        return execution_status::error_price_peg_data_too_big;
       }
 
       if (cmd->get_currency().size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
       {
-        result = execution_status::error_price_peg_bad_currency_format;
+        return execution_status::error_price_peg_data_too_big;
       }
 
       for (auto ch: cmd->get_currency()) {
         if (!std::isupper(ch)) {
-          result = execution_status::error_price_peg_bad_currency_format;
+          return execution_status::error_price_peg_bad_currency_format;
         }
       }
 
       if(cmd->get_rate() == 0)
       {
-          result = execution_status::error_price_peg_rate_zero;
+          return execution_status::error_price_peg_rate_zero;
       }
 
       //check price peg data size
       if (cmd->get_description().size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
       {
-        result = execution_status::error_price_peg_data_too_big;
+        return execution_status::error_price_peg_data_too_big;
       }
 
-      return result;
+      return execution_status::ok;
     };
 
     update_price_peg_result* update_price_peg::execute(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
@@ -530,21 +542,20 @@ namespace safex
     execution_status update_price_peg::validate(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)
     {
 
-      execution_status result = execution_status::ok;
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
 
 
       if(cmd->get_rate() == 0)
       {
-          result = execution_status::error_price_peg_rate_zero;
+          return execution_status::error_price_peg_rate_zero;
       }
 
       safex::safex_price_peg sfx_dummy{};
       if (!blokchainDB.get_safex_price_peg(cmd->get_price_peg_id(), sfx_dummy)) {
-        result = execution_status::error_price_peg_not_existant;
+        return execution_status::error_price_peg_not_existant;
       }
 
-      return result;
+      return execution_status::ok;
     };
 
   bool validate_safex_command(const cryptonote::BlockchainDB &blokchainDB, const cryptonote::txin_to_script &txin)

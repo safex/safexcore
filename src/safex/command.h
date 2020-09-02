@@ -40,21 +40,28 @@ namespace safex
     ok = 0,
     invalid = 1,
     error_wrong_input_params = 1,
+    // Safex stake token
+    error_stake_token_amount_not_matching = 2,
+    error_stake_token_not_whole_amount = 3,
     // Safex account
     error_account_data_too_big = 10,
     error_account_already_exists = 11,
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
+    error_account_no_tokens = 14,
     // Safex purchase
     error_offer_non_existant = 20,
     error_purchase_out_of_stock = 21,
     error_purchase_not_enough_funds = 23,
     error_purchase_offer_not_active = 24,
+    error_purchase_quantity_zero = 25,
     // Safex offer
     error_offer_price_too_big = 30,
     error_offer_price_too_small = 31,
     error_offer_data_too_big = 32,
     error_offer_price_peg_not_existant = 33,
+    error_offer_price_mismatch = 34,
+    error_offer_already_exists = 35,
     // Safex feedback
     error_feedback_invalid_rating = 40,
     error_feedback_data_too_big = 41,
@@ -63,10 +70,13 @@ namespace safex
     error_price_peg_data_too_big = 52,
     error_price_peg_not_existant = 53,
     error_price_peg_rate_zero = 54,
+    error_price_peg_already_exists = 55,
     // Safex unstake token
     error_unstake_token_output_not_found = 60,
     error_unstake_token_minimum_period = 61,
-    error_unstake_token_network_fee_not_matching = 62
+    error_unstake_token_network_fee_not_matching = 62,
+    error_unstake_token_offset_not_one = 63,
+    error_unstake_token_output_not_matching = 64
   };
 
   struct execution_result
@@ -792,6 +802,9 @@ struct create_price_peg_result : public execution_result
       create_account(const uint32_t _version, std::vector<uint8_t> &_username, const crypto::public_key &_pkey, const std::vector<uint8_t> &_account_data) :
       command(_version, command_t::create_account), username(_username), pkey{_pkey}, account_data{_account_data} {}
 
+      create_account(const uint32_t _version, const std::string &_username, const crypto::public_key &_pkey, const std::string &_account_data) :
+      command(_version, command_t::create_account), username(_username.begin(), _username.end()), pkey{_pkey}, account_data(_account_data.begin(), _account_data.end()) {}
+
       create_account() : command(0, command_t::create_account), username{}, pkey{}, account_data{} {}
 
       std::string get_username() const { return std::string(std::begin(username), std::end(username)); }
@@ -828,6 +841,10 @@ struct create_price_peg_result : public execution_result
       * */
       edit_account(const uint32_t _version, const std::vector<uint8_t> _username, const std::vector<uint8_t> _new_account_data) :
               command(_version, command_t::edit_account), username(_username), new_account_data{_new_account_data} {}
+
+      edit_account(const uint32_t _version, const std::string &_username, const std::string &_new_account_data) :
+      command(_version, command_t::edit_account), username(_username.begin(), _username.end()), new_account_data(_new_account_data.begin(), _new_account_data.end()) {}
+
 
       edit_account() : command(0, command_t::edit_account), username{}, new_account_data{} {}
 
