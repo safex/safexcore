@@ -77,26 +77,28 @@ namespace safex
         return execution_status::error_unstake_token_offset_not_one;
 
     uint64_t staked_token_index = txin.key_offsets[0];
-    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
 
+    try
+    {
+      const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
+      uint64_t token_amount = 0;
+      epee::string_tools::get_xtype_from_string(token_amount, od.data);
 
-    auto toi = blokchainDB.get_output_tx_and_index_from_global(od.output_id);
-    auto tx = blokchainDB.get_tx(toi.first);
-    bool output_found = false;
-    for(auto out: tx.vout)
-      if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)
-        if(out.token_amount == txin.token_amount)
-          output_found = true;
-
-    uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
-
-    if(txin.amount > expected_interest)
-        return execution_status::error_unstake_token_network_fee_not_matching;
-
-    if(!output_found)
+      if(token_amount != txin.token_amount)
         return execution_status::error_unstake_token_output_not_found;
-    if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
-        return execution_status::error_unstake_token_minimum_period;
+
+      uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
+
+      if(txin.amount > expected_interest)
+          return execution_status::error_unstake_token_network_fee_not_matching;
+
+      if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
+          return execution_status::error_unstake_token_minimum_period;
+    }
+    catch (...)
+    {
+      return execution_status::error_unstake_token_output_not_found;
+    }
 
     return execution_status::ok;
   }
