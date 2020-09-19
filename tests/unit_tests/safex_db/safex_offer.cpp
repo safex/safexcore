@@ -570,6 +570,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             "usernamenothere",this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -608,6 +609,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -647,6 +649,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -687,6 +690,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -726,6 +730,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -767,6 +772,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -808,6 +814,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -848,6 +855,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
 
          safex::create_offer_data offer_data{this->m_safex_offer[0]};
 
@@ -883,6 +891,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -923,6 +932,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -982,6 +992,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
+          txinput.key_offsets.push_back(0);
           safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
                                                             "usernamenothere",this->m_users_acc[0].get_keys().m_view_secret_key,
                                                             this->m_users_acc[0].get_keys().m_account_address);
@@ -1020,9 +1031,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
          sfx_offer.min_sfx_price = SAFEX_OFFER_MINIMUM_PRICE - 1;
          safex::edit_offer_data offer_data{sfx_offer};
@@ -1059,9 +1069,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
          sfx_offer.min_sfx_price = MONEY_SUPPLY + 1;
          sfx_offer.price = sfx_offer.min_sfx_price;
@@ -1099,9 +1108,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
          sfx_offer.min_sfx_price = sfx_offer.price + 1;
          safex::edit_offer_data offer_data{sfx_offer};
@@ -1138,9 +1146,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
           sfx_offer.title = "";
           for(int i = 0; i<=SAFEX_OFFER_NAME_MAX_SIZE+1; i++)
@@ -1179,9 +1186,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
           sfx_offer.description.clear();
           for(int i = 0; i<=SAFEX_OFFER_DATA_MAX_SIZE+1; i++)
@@ -1220,9 +1226,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
+          txinput.key_offsets.push_back(0);
+          safex::safex_offer sfx_offer = this->m_safex_offer[0];
 
           sfx_offer.set_price_peg(sfx_offer.offer_id,100,100*COIN);
 
@@ -1260,6 +1265,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::edit_offer;
+          txinput.key_offsets.push_back(0);
 
           safex::edit_offer_data offer_data{this->m_safex_offer[0]};
           offer_data.offer_id.data[0] +=1;
@@ -1290,85 +1296,7 @@ namespace
           FAIL() << "Unexpected exception";
         }
 
-        // Safex offer quantity zero
-        try
-        {
-          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-          txinput.command_type = safex::command_t::create_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
 
-          sfx_offer.quantity = 0;
-
-          safex::create_offer_data offer_data{sfx_offer};
-
-          safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
-
-
-          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
-
-          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
-
-          safex::execution_status status = command2->validate(*(this->m_db), txinput);
-          ASSERT_EQ(status, safex::execution_status::error_wrong_input_params);
-
-          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
-          FAIL() << "Should throw exception with Safex offer price peg doesn't exist";
-
-        }
-        catch (safex::command_exception &exception)
-        {
-
-        }
-        catch (std::exception &exception)
-        {
-          FAIL() << "Exception happened " << exception.what();
-        }
-        catch (...)
-        {
-          FAIL() << "Unexpected exception";
-        }
-
-        // Safex offer inactive
-        try
-        {
-          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
-          txinput.command_type = safex::command_t::create_offer;
-          safex::safex_offer sfx_offer = safex::safex_offer("Apple",10,100*COIN,"This is an apple",
-                                                            this->m_safex_account1.username,this->m_users_acc[0].get_keys().m_view_secret_key,
-                                                            this->m_users_acc[0].get_keys().m_account_address);
-
-          sfx_offer.active = false;
-
-          safex::create_offer_data offer_data{sfx_offer};
-
-          safex::create_offer command1{SAFEX_COMMAND_PROTOCOL_VERSION , offer_data};
-
-
-          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
-
-          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::create_offer);
-
-          safex::execution_status status = command2->validate(*(this->m_db), txinput);
-          ASSERT_EQ(status, safex::execution_status::error_wrong_input_params);
-
-          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
-          FAIL() << "Should throw exception with Safex offer price peg doesn't exist";
-
-        }
-        catch (safex::command_exception &exception)
-        {
-
-        }
-        catch (std::exception &exception)
-        {
-          FAIL() << "Exception happened " << exception.what();
-        }
-        catch (...)
-        {
-          FAIL() << "Unexpected exception";
-        }
     ASSERT_NO_THROW(this->m_db->close());
 
   }

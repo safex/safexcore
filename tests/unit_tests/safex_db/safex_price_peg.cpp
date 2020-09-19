@@ -190,14 +190,14 @@ namespace
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_safex_price_pegs[1], m_safex_account1_keys.get_keys());
+            construct_create_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_safex_price_pegs[1], m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
           else if (i == 15)
           {
             tx_list.resize(tx_list.size() + 1);
             cryptonote::transaction &tx = tx_list.back();                                                           \
-            construct_update_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[0], default_miner_fee, 0, m_safex_account1.pkey, m_edited_safex_price_peg, m_safex_account1_keys.get_keys());
+            construct_update_price_peg_transaction(m_txmap, m_blocks, tx, m_users_acc[1], default_miner_fee, 0, m_safex_account2.pkey, m_edited_safex_price_peg, m_safex_account2_keys.get_keys());
             m_txmap[get_transaction_hash(tx)] = tx;
           }
 
@@ -485,6 +485,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
 
           safex::create_price_peg_data price_peg_data{sfx_price_peg};
@@ -521,6 +522,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
 
           safex::create_price_peg_data price_peg_data{this->m_safex_price_pegs[0]};
 
@@ -556,6 +558,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
 
           sfx_price_peg.title = "";
@@ -597,6 +601,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
 
           sfx_price_peg.currency = "";
@@ -638,6 +644,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
 
           sfx_price_peg.description.clear();
@@ -679,6 +687,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"US-D","Some description", 1828);
 
           safex::create_price_peg_data price_peg_data{sfx_price_peg};
@@ -715,6 +725,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
 
           sfx_price_peg.rate = 0;
@@ -773,6 +785,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::update_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", "username","USD","Some description", 1828);
 
           safex::create_price_peg_data price_peg_data{sfx_price_peg};
@@ -809,6 +823,8 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::update_price_peg;
+          txinput.key_offsets.push_back(0);
+
           safex::safex_price_peg sfx_price_peg = safex::safex_price_peg("Apple", this->m_safex_account1.username,"USD","Some description", 1828);
 
           sfx_price_peg.rate = 0;

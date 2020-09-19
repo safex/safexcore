@@ -738,6 +738,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_feedback;
+          txinput.key_offsets.push_back(0);
 
           crypto::hash offer_id{};
 
@@ -777,6 +778,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_feedback;
+          txinput.key_offsets.push_back(0);
 
           safex::safex_feedback sfx_feedback = safex::safex_feedback(4, "100", this->m_edited_safex_offer.offer_id);
 
@@ -814,6 +816,7 @@ namespace
         {
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::create_feedback;
+          txinput.key_offsets.push_back(0);
 
           safex::safex_feedback sfx_feedback = safex::safex_feedback(3, "100", this->m_edited_safex_offer.offer_id);
 
