@@ -77,26 +77,28 @@ namespace safex
         return execution_status::error_unstake_token_offset_not_one;
 
     uint64_t staked_token_index = txin.key_offsets[0];
-    const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
 
+    try
+    {
+      const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_staked_token, staked_token_index);
+      uint64_t token_amount = 0;
+      epee::string_tools::get_xtype_from_string(token_amount, od.data);
 
-    auto toi = blokchainDB.get_output_tx_and_index_from_global(od.output_id);
-    auto tx = blokchainDB.get_tx(toi.first);
-    bool output_found = false;
-    for(auto out: tx.vout)
-      if(out.target.type() == typeid(cryptonote::txout_to_script) && get_tx_out_type(out.target) == cryptonote::tx_out_type::out_staked_token)
-        if(out.token_amount == txin.token_amount)
-          output_found = true;
-
-    uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
-
-    if(txin.amount > expected_interest)
-        return execution_status::error_unstake_token_network_fee_not_matching;
-
-    if(!output_found)
+      if(token_amount != txin.token_amount)
         return execution_status::error_unstake_token_output_not_found;
-    if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
-        return execution_status::error_unstake_token_minimum_period;
+
+      uint64_t expected_interest = blokchainDB.calculate_staked_token_interest_for_output(txin, blokchainDB.height());
+
+      if(txin.amount > expected_interest)
+          return execution_status::error_unstake_token_network_fee_not_matching;
+
+      if(od.height + get_safex_minumum_token_lock_period(blokchainDB.get_net_type()) > blokchainDB.height())
+          return execution_status::error_unstake_token_minimum_period;
+    }
+    catch (...)
+    {
+      return execution_status::error_unstake_token_output_not_found;
+    }
 
     return execution_status::ok;
   }
@@ -287,15 +289,37 @@ namespace safex
         std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(txin.script);
 
 
-        for (auto ch: cmd->get_username()) {
-          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-                return execution_status::error_invalid_account_name;
-            }
-        }
+        if(txin.key_offsets.size() != 1)
+            return execution_status::error_account_offset_not_one;
+
+        uint64_t safex_account_index = txin.key_offsets[0];
 
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_username(), dummy)) {
             return execution_status::error_account_non_existant;
+        }
+
+        try
+        {
+          const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_account, safex_account_index);
+
+          safex::create_account_data account;
+          const cryptonote::blobdata accblob(std::begin(od.data), std::end(od.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+          std::string accusername(begin(account.username), end(account.username));
+
+          if(accusername != cmd->get_username())
+              return execution_status::error_invalid_account_name;
+        }
+        catch (...)
+        {
+          return execution_status::error_account_non_existant;
+        }
+
+        for (auto ch: cmd->get_username()) {
+          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
+                return execution_status::error_invalid_account_name;
+            }
         }
 
         if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
@@ -330,18 +354,36 @@ namespace safex
 
         std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(txin.script);
 
+        if(txin.key_offsets.size() != 1)
+            return execution_status::error_offer_offset_not_one;
+
+        uint64_t safex_account_index = txin.key_offsets[0];
+
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             return execution_status::error_account_non_existant;
         }
 
+        try
+        {
+          const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_account, safex_account_index);
+
+          safex::create_account_data account;
+          const cryptonote::blobdata accblob(std::begin(od.data), std::end(od.data));
+          cryptonote::parse_and_validate_from_blob(accblob, account);
+
+          if(account.username != cmd->get_seller())
+              return execution_status::error_invalid_account_name;
+        }
+        catch (...)
+        {
+          return execution_status::error_account_non_existant;
+        }
+
+
         safex::safex_offer sfx_offer{};
         if (blokchainDB.get_offer(cmd->get_offerid(),sfx_offer)) {
             return execution_status::error_offer_already_exists;
-        }
-
-        if(cmd->get_active() == false || cmd->get_quantity() == 0) {
-            return execution_status::error_wrong_input_params;
         }
 
         if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
@@ -393,9 +435,35 @@ namespace safex
 
         std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(txin.script);
 
+        if(txin.key_offsets.size() != 1)
+            return execution_status::error_offer_offset_not_one;
+
+        uint64_t safex_offer_index = txin.key_offsets[0];
+
         std::vector<uint8_t>  dummy{};
         if (!blokchainDB.get_account_data(cmd->get_seller(), dummy)) {
             return execution_status::error_account_non_existant;
+        }
+
+        safex::safex_offer sfx_dummy{};
+        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
+            return execution_status::error_offer_non_existant;
+        }
+
+        try
+        {
+          const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_offer, safex_offer_index);
+
+          safex::create_offer_data offer;
+          const cryptonote::blobdata offerblob(std::begin(od.data), std::end(od.data));
+          cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+          if(offer.offer_id != cmd->get_offerid())
+              return execution_status::error_offer_invalid_offer_id;
+        }
+        catch (...)
+        {
+          return execution_status::error_account_non_existant;
         }
 
         if(cmd->get_min_sfx_price() < SAFEX_OFFER_MINIMUM_PRICE){
@@ -427,10 +495,6 @@ namespace safex
           return execution_status::error_offer_price_peg_not_existant;
         }
 
-        safex::safex_offer sfx_dummy{};
-        if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
-            return execution_status::error_offer_non_existant;
-        }
         return execution_status::ok;
     };
 
@@ -450,6 +514,22 @@ namespace safex
     {
 
         std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(txin.script);
+
+        if(txin.key_offsets.size() != 1)
+            return execution_status::error_feedback_offset_not_one;
+
+        uint64_t safex_feedback_token_index = txin.key_offsets[0];
+
+        try
+        {
+          const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_feedback_token, safex_feedback_token_index);
+
+        }
+        catch (...)
+        {
+          return execution_status::error_feedback_token_non_existant;
+        }
+
 
         safex::safex_offer sfx_dummy{};
         if (!blokchainDB.get_offer(cmd->get_offerid(), sfx_dummy)) {
@@ -488,6 +568,27 @@ namespace safex
       std::vector<uint8_t>  dummy{};
       if (!blokchainDB.get_account_data(cmd->get_creator(), dummy)) {
           return execution_status::error_account_non_existant;
+      }
+
+      if(txin.key_offsets.size() != 1)
+          return execution_status::error_price_peg_offset_not_one;
+
+      uint64_t safex_account_index = txin.key_offsets[0];
+
+      try
+      {
+        const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_account, safex_account_index);
+
+        safex::create_account_data account;
+        const cryptonote::blobdata accblob(std::begin(od.data), std::end(od.data));
+        cryptonote::parse_and_validate_from_blob(accblob, account);
+
+        if(account.username != cmd->get_creator())
+            return execution_status::error_invalid_account_name;
+      }
+      catch (...)
+      {
+        return execution_status::error_account_non_existant;
       }
 
       safex::safex_price_peg dummy_price_peg{};
@@ -544,6 +645,26 @@ namespace safex
 
       std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(txin.script);
 
+      if(txin.key_offsets.size() != 1)
+          return execution_status::error_price_peg_offset_not_one;
+
+      uint64_t safex_price_peg_index = txin.key_offsets[0];
+
+      try
+      {
+        const cryptonote::output_advanced_data_t od = blokchainDB.get_output_advanced_data(cryptonote::tx_out_type::out_safex_price_peg, safex_price_peg_index);
+
+        safex::create_price_peg_data price_peg;
+        const cryptonote::blobdata price_pegblob(std::begin(od.data), std::end(od.data));
+        cryptonote::parse_and_validate_from_blob(price_pegblob, price_peg);
+
+        if(price_peg.price_peg_id != cmd->get_price_peg_id())
+            return execution_status::error_price_peg_invalid_price_peg_id;
+      }
+      catch (...)
+      {
+        return execution_status::error_account_non_existant;
+      }
 
       if(cmd->get_rate() == 0)
       {

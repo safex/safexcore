@@ -1251,7 +1251,11 @@ uint64_t BlockchainLMDB::add_advanced_output(const tx_out& tx_output, const uint
   okadv.unlock_time = unlock_time;
   okadv.output_id = output_id;
   okadv.pubkey = txout.key; //todo if there are multiple keys, rest will go to data
-  okadv.data = blobdata(txout.data.begin(),txout.data.end()); //no need to serialize vector to blob. Just copy it.
+
+  if(out_type == tx_out_type::out_staked_token)
+    okadv.data = std::to_string(tx_output.token_amount);
+  else
+    okadv.data = blobdata(txout.data.begin(),txout.data.end()); //no need to serialize vector to blob. Just copy it.
 
   MDB_val_copy<cryptonote::output_advanced_data_t> adv_value(okadv);
 

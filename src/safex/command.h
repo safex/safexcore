@@ -49,6 +49,7 @@ namespace safex
     error_invalid_account_name = 12,
     error_account_non_existant = 13,
     error_account_no_tokens = 14,
+    error_account_offset_not_one = 15,
     // Safex purchase
     error_offer_non_existant = 20,
     error_purchase_out_of_stock = 21,
@@ -62,15 +63,21 @@ namespace safex
     error_offer_price_peg_not_existant = 33,
     error_offer_price_mismatch = 34,
     error_offer_already_exists = 35,
+    error_offer_invalid_offer_id = 36,
+    error_offer_offset_not_one = 37,
     // Safex feedback
     error_feedback_invalid_rating = 40,
     error_feedback_data_too_big = 41,
+    error_feedback_offset_not_one = 42,
+    error_feedback_token_non_existant = 43,
     // Safex price peg
     error_price_peg_bad_currency_format = 51,
     error_price_peg_data_too_big = 52,
     error_price_peg_not_existant = 53,
     error_price_peg_rate_zero = 54,
     error_price_peg_already_exists = 55,
+    error_price_peg_offset_not_one = 56,
+    error_price_peg_invalid_price_peg_id = 57,
     // Safex unstake token
     error_unstake_token_output_not_found = 60,
     error_unstake_token_minimum_period = 61,

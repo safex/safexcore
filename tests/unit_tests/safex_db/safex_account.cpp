@@ -810,6 +810,7 @@ namespace
       cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
       txinput.command_type = safex::command_t::edit_account;
       txinput.token_amount = 100*SAFEX_TOKEN;
+      txinput.key_offsets.push_back(0);
       std::string username = this->m_safex_account1.username;
       std::string description = "Some test data inserted";
       safex::edit_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, description};
@@ -861,6 +862,7 @@ namespace
       cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
       txinput.command_type = safex::command_t::edit_account;
       txinput.token_amount = 100*SAFEX_TOKEN;
+      txinput.key_offsets.push_back(0);
       std::string username = "not_here";
       std::string description = "Some test data inserted";
       safex::edit_account command1{SAFEX_COMMAND_PROTOCOL_VERSION, username, description};
@@ -894,6 +896,7 @@ namespace
       cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
       txinput.command_type = safex::command_t::edit_account;
       txinput.token_amount = 100*SAFEX_TOKEN;
+      txinput.key_offsets.push_back(0);
       std::string username = this->m_safex_account1.username;
       std::string description = "";
       for(int i=0; i < SAFEX_ACCOUNT_DATA_MAX_SIZE + 1; i++)
