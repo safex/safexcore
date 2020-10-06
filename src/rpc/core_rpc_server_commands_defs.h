@@ -44,6 +44,7 @@ namespace cryptonote
 
 // Safex related status
 #define CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST  "SAFEX ACC NOT EXISTS"
+#define CORE_RPC_STATUS_SAFEX_INVALID_TYPE "SAFEX INVALID TYPE"
 
 // When making *any* change here, bump minor
 // If the change is incompatible, then bump major and set minor to 0
@@ -2706,6 +2707,44 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_DECODE_SAFEX_OUTPUT
+  {
+      struct request_t
+      {
+          std::vector<uint8_t> data;
+          uint8_t output_type;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(output_type)
+          KV_SERIALIZE(data)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct parsed_field
+      {
+          std::string field;
+          std::string value;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(field)
+          KV_SERIALIZE(value)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response_t
+      {
+          std::string status;
+          std::vector<parsed_field> parsed_fields;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(status)
+          KV_SERIALIZE(parsed_fields)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
   };
 
   struct COMMAND_RPC_GET_OUTPUTS_PROTOBUF
