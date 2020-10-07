@@ -1478,7 +1478,7 @@ void BlockchainLMDB::remove_output(const uint64_t amount, const uint64_t& out_in
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
   mdb_txn_cursors *m_cursors = &m_wcursors;
-  MDB_cursor *cur_output_amount;
+  MDB_cursor *cur_output_amount = nullptr;
 
   switch (output_type)
   {
@@ -2993,7 +2993,7 @@ uint64_t BlockchainLMDB::get_num_outputs(const uint64_t& amount, const tx_out_ty
 
   TXN_PREFIX_RDONLY();
 
-  MDB_cursor *cur_output_amount;
+  MDB_cursor *cur_output_amount = nullptr;
 
   switch (output_type)
   {
@@ -3070,7 +3070,7 @@ output_data_t BlockchainLMDB::get_output_key(const uint64_t& amount, const uint6
 
   TXN_PREFIX_RDONLY();
 
-  MDB_cursor *cur_output_amount;
+  MDB_cursor *cur_output_amount = nullptr;
   switch (output_type)
   {
     case tx_out_type::out_cash:
@@ -3419,7 +3419,7 @@ bool BlockchainLMDB::for_all_outputs(std::function<bool(uint64_t amount, const c
   check_open();
 
   TXN_PREFIX_RDONLY();
-  MDB_cursor *cur_output;
+  MDB_cursor *cur_output = nullptr;
   switch (output_type)
   {
     case tx_out_type::out_cash:
@@ -3521,7 +3521,7 @@ bool BlockchainLMDB::for_all_outputs(uint64_t amount, const std::function<bool(u
 
   TXN_PREFIX_RDONLY();
 
-  MDB_cursor *cur_output_amount;
+  MDB_cursor *cur_output_amount = nullptr;
   switch (output_type)
   {
     case tx_out_type::out_cash:
