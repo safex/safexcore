@@ -9069,7 +9069,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
       // get a random unspent cash, token or advanced output and use it to pay part (or all) of the current destination (and maybe next one, etc)
       // This could be more clever, but maybe at the cost of making probabilistic inferences easier
-      size_t idx;
+      size_t idx = 0;
       if ((dsts.empty() || ((needed_tokens > 0 && dsts[0].token_amount == 0) || (needed_cash > 0 && dsts[0].amount == 0) || (needed_staked_tokens > 0 && dsts[0].token_amount == 0)))
           && !adding_fee && !advanced_output_reference)
       {
@@ -9230,6 +9230,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           cryptonote::parse_and_validate_from_blob(dsts[0].output_data, price_peg);
           //find price peg output
           idx = pop_advanced_output(tx.selected_transfers, price_peg.price_peg_id, tx_out_type::out_safex_price_peg);
+        } else {
+          THROW_WALLET_EXCEPTION(error::wallet_internal_error, std::string("Cannot find idx"));
         }
       }
 

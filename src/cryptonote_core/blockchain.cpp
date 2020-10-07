@@ -3001,7 +3001,7 @@ bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &
   }
 
   //validate all command logic
-  for (const txin_to_script cmd: input_commands_to_execute)
+  for (const txin_to_script& cmd: input_commands_to_execute)
       if (!safex::validate_safex_command(*m_db, cmd)) {
         tvc.m_safex_command_execution_failed = true;
         return false;
@@ -5709,7 +5709,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       amounts.erase(last, amounts.end());
 
       // add amount to the offset_map and tx_map
-      for (const std::pair<const tx_out_type, uint64_t> &amount : amounts)
+      for (const std::pair<tx_out_type, uint64_t> &amount : amounts)
       {
         if (offset_map.find(amount) == offset_map.end())
           offset_map.emplace(amount, std::vector<uint64_t>());
