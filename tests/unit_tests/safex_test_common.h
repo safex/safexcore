@@ -19,121 +19,121 @@ using namespace cryptonote;
 class TestDB: public BlockchainDB {
 public:
   TestDB() {};
-  virtual void open(const std::string& filename, const int db_flags = 0) { }
-  virtual void close() {}
-  virtual void sync() {}
-  virtual void safesyncmode(const bool onoff) {}
-  virtual void reset() {}
-  virtual std::vector<std::string> get_filenames() const { return std::vector<std::string>(); }
-  virtual std::string get_db_name() const { return std::string(); }
-  virtual bool lock() { return true; }
-  virtual void unlock() { }
-  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0) { return true; }
-  virtual void batch_stop() {}
-  virtual void batch_abort() {}
-  virtual void set_batch_transactions(bool) {}
-  virtual void block_txn_start(bool readonly=false) {}
-  virtual void block_txn_stop() {}
-  virtual void block_txn_abort() {}
-  virtual void drop_hard_fork_info() {}
-  virtual bool block_exists(const crypto::hash& h, uint64_t *height) const { return false; }
-  virtual blobdata get_block_blob_from_height(const uint64_t& height) const { return cryptonote::t_serializable_object_to_blob(get_block_from_height(height)); }
-  virtual blobdata get_block_blob(const crypto::hash& h) const { return blobdata(); }
-  virtual bool get_tx_blob(const crypto::hash& h, cryptonote::blobdata &tx) const { return false; }
-  virtual uint64_t get_block_height(const crypto::hash& h) const { return 0; }
-  virtual block_header get_block_header(const crypto::hash& h) const { return block_header(); }
-  virtual uint64_t get_block_timestamp(const uint64_t& height) const { return 0; }
-  virtual uint64_t get_top_block_timestamp() const { return 0; }
-  virtual size_t get_block_size(const uint64_t& height) const { return 128; }
-  virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const { return 10; }
-  virtual difficulty_type get_block_difficulty(const uint64_t& height) const { return 0; }
-  virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const { return 10000000000; }
-  virtual uint64_t get_block_already_migrated_tokens(const uint64_t& height) const { return 10000000000; }
-  virtual crypto::hash get_block_hash_from_height(const uint64_t& height) const { return crypto::hash(); }
-  virtual std::vector<block> get_blocks_range(const uint64_t& h1, const uint64_t& h2) const { return std::vector<block>(); }
-  virtual std::vector<crypto::hash> get_hashes_range(const uint64_t& h1, const uint64_t& h2) const { return std::vector<crypto::hash>(); }
-  virtual crypto::hash top_block_hash() const { return crypto::hash(); }
-  virtual block get_top_block() const { return block(); }
-  virtual uint64_t height() const { return blocks.size(); }
-  virtual bool tx_exists(const crypto::hash& h) const { return false; }
-  virtual bool tx_exists(const crypto::hash& h, uint64_t& tx_index) const { return false; }
-  virtual uint64_t get_tx_unlock_time(const crypto::hash& h) const { return 0; }
-  virtual transaction get_tx(const crypto::hash& h) const { return transaction(); }
-  virtual bool get_tx(const crypto::hash& h, transaction &tx) const { return false; }
-  virtual uint64_t get_tx_count() const { return 0; }
-  virtual std::vector<transaction> get_tx_list(const std::vector<crypto::hash>& hlist) const { return std::vector<transaction>(); }
-  virtual uint64_t get_tx_block_height(const crypto::hash& h) const { return 0; }
-  virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const { return 1; }
-  virtual uint64_t get_num_outputs(const tx_out_type output_type) const {return 1;}
-  virtual uint64_t get_indexing_base() const { return 0; }
-  virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return output_data_t(); }
-  virtual output_advanced_data_t  get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const  { return output_advanced_data_t{}; }
-  virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const { return 0; }
-  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const { return tx_out_index(); }
-  virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const { return tx_out_index(); }
-  virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const {}
-  virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) const {}
-  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes, std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) const {}
-  virtual bool can_thread_bulk_indices() const { return false; }
+  virtual void open(const std::string& filename, const int db_flags = 0) override{ }
+  virtual void close() override{}
+  virtual void sync() override{}
+  virtual void safesyncmode(const bool onoff) override{}
+  virtual void reset() override{}
+  virtual std::vector<std::string> get_filenames() const override{ return std::vector<std::string>(); }
+  virtual std::string get_db_name() const  override{ return std::string(); }
+  virtual bool lock()  override{ return true; }
+  virtual void unlock()  override{ }
+  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0)  override{ return true; }
+  virtual void batch_stop()  override{}
+  virtual void batch_abort()  override{}
+  virtual void set_batch_transactions(bool)  override{}
+  virtual void block_txn_start(bool readonly=false)  override{}
+  virtual void block_txn_stop()  override{}
+  virtual void block_txn_abort()  override{}
+  virtual void drop_hard_fork_info()  override{}
+  virtual bool block_exists(const crypto::hash& h, uint64_t *height) const  override{ return false; }
+  virtual blobdata get_block_blob_from_height(const uint64_t& height) const  override{ return cryptonote::t_serializable_object_to_blob(get_block_from_height(height)); }
+  virtual blobdata get_block_blob(const crypto::hash& h) const  override{ return blobdata(); }
+  virtual bool get_tx_blob(const crypto::hash& h, cryptonote::blobdata &tx) const  override{ return false; }
+  virtual uint64_t get_block_height(const crypto::hash& h) const  override{ return 0; }
+  virtual block_header get_block_header(const crypto::hash& h) const  override{ return block_header(); }
+  virtual uint64_t get_block_timestamp(const uint64_t& height) const  override{ return 0; }
+  virtual uint64_t get_top_block_timestamp() const  override{ return 0; }
+  virtual size_t get_block_size(const uint64_t& height) const  override{ return 128; }
+  virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const  override{ return 10; }
+  virtual difficulty_type get_block_difficulty(const uint64_t& height) const  override{ return 0; }
+  virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const  override{ return 10000000000; }
+  virtual uint64_t get_block_already_migrated_tokens(const uint64_t& height) const  override{ return 10000000000; }
+  virtual crypto::hash get_block_hash_from_height(const uint64_t& height) const  override{ return crypto::hash(); }
+  virtual std::vector<block> get_blocks_range(const uint64_t& h1, const uint64_t& h2) const  override{ return std::vector<block>(); }
+  virtual std::vector<crypto::hash> get_hashes_range(const uint64_t& h1, const uint64_t& h2) const  override{ return std::vector<crypto::hash>(); }
+  virtual crypto::hash top_block_hash() const  override{ return crypto::hash(); }
+  virtual block get_top_block() const  override{ return block(); }
+  virtual uint64_t height() const  override{ return blocks.size(); }
+  virtual bool tx_exists(const crypto::hash& h) const  override{ return false; }
+  virtual bool tx_exists(const crypto::hash& h, uint64_t& tx_index) const  override{ return false; }
+  virtual uint64_t get_tx_unlock_time(const crypto::hash& h) const  override{ return 0; }
+  virtual transaction get_tx(const crypto::hash& h) const  override{ return transaction(); }
+  virtual bool get_tx(const crypto::hash& h, transaction &tx) const  override{ return false; }
+  virtual uint64_t get_tx_count() const  override{ return 0; }
+  virtual std::vector<transaction> get_tx_list(const std::vector<crypto::hash>& hlist) const  override{ return std::vector<transaction>(); }
+  virtual uint64_t get_tx_block_height(const crypto::hash& h) const  override{ return 0; }
+  virtual uint64_t get_num_outputs(const uint64_t& amount, const tx_out_type output_type) const  override{ return 1; }
+  virtual uint64_t get_num_outputs(const tx_out_type output_type) const  override{return 1;}
+  virtual uint64_t get_indexing_base() const  override{ return 0; }
+  virtual output_data_t get_output_key(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const  override{ return output_data_t(); }
+  virtual output_advanced_data_t  get_output_advanced_data(const tx_out_type output_type, const uint64_t output_index) const   override{ return output_advanced_data_t{}; }
+  virtual bool get_output_id(const tx_out_type output_type, const uint64_t output_index, uint64_t& output_id) const  override{ return 0; }
+  virtual tx_out_index get_output_tx_and_index_from_global(const uint64_t& index) const  override{ return tx_out_index(); }
+  virtual tx_out_index get_output_tx_and_index(const uint64_t& amount, const uint64_t& index, const tx_out_type output_type) const  override{ return tx_out_index(); }
+  virtual void get_output_tx_and_index(const uint64_t& amount, const std::vector<uint64_t> &offsets, std::vector<tx_out_index> &indices, const tx_out_type output_type) const  override{}
+  virtual void get_amount_output_key(const uint64_t &amount, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) const  override{}
+  virtual void get_advanced_output_key(const std::vector<uint64_t> &output_indexes, std::vector<output_advanced_data_t> &outputs, const tx_out_type output_type, bool allow_partial = false) const  override{}
+  virtual bool can_thread_bulk_indices() const  override{ return false; }
   virtual std::vector<uint64_t> get_tx_output_indices(const crypto::hash& h) const { return std::vector<uint64_t>(); }
-  virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_index) const { return std::vector<uint64_t>(); }
-  virtual bool has_key_image(const crypto::key_image& img) const { return false; }
-  virtual void remove_block() { blocks.pop_back(); }
-  virtual uint64_t add_transaction_data(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash& tx_hash) {return 0;}
-  virtual void remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx) {}
-  virtual void remove_unstake_token(const crypto::hash& tx_hash, const transaction& tx) {}
-  virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment) {return 0;}
-  virtual void add_tx_amount_output_indices(const uint64_t tx_index, const std::vector<uint64_t>& amount_output_indices) {}
-  virtual void add_spent_key(const crypto::key_image& k_image) {}
-  virtual void remove_spent_key(const crypto::key_image& k_image) {}
-  virtual void process_command_input(const cryptonote::txin_to_script &txin) {}
-  virtual uint64_t update_staked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta){return 0;}
-  virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval) { return 0;}
-  virtual bool remove_staked_token_for_interval(const uint64_t interval){return true;};
-  virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee){return 0;}
-  virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const { return true;}
-  virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const { return false;}
-  virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const { return true;}
-  virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const { return true; };
-  virtual bool get_offer_price(const crypto::hash offer_id, uint64_t &price) const { return true; };
-  virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const { return true; };
-  virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const { return true; };
-  virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const { return true; };
-  virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const { return true; };
-  virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const { return true; };
-  virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const { return true; };
-  virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const { return true; };
-  virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const { return true; };
-  virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const { return true; };
+  virtual std::vector<uint64_t> get_tx_amount_output_indices(const uint64_t tx_index) const  override{ return std::vector<uint64_t>(); }
+  virtual bool has_key_image(const crypto::key_image& img) const  override{ return false; }
+  virtual void remove_block()  override{ blocks.pop_back(); }
+  virtual uint64_t add_transaction_data(const crypto::hash& blk_hash, const transaction& tx, const crypto::hash& tx_hash)  override{return 0;}
+  virtual void remove_transaction_data(const crypto::hash& tx_hash, const transaction& tx)  override{}
+  virtual void remove_unstake_token(const crypto::hash& tx_hash, const transaction& tx)  override{}
+  virtual uint64_t add_output(const crypto::hash& tx_hash, const tx_out& tx_output, const uint64_t& local_index, const uint64_t unlock_time, const rct::key *commitment)  override{return 0;}
+  virtual void add_tx_amount_output_indices(const uint64_t tx_index, const std::vector<uint64_t>& amount_output_indices)  override{}
+  virtual void add_spent_key(const crypto::key_image& k_image)  override{}
+  virtual void remove_spent_key(const crypto::key_image& k_image)  override{}
+  virtual void process_command_input(const cryptonote::txin_to_script &txin)  override{}
+  virtual uint64_t update_staked_token_sum_for_interval(const uint64_t interval_starting_block, const int64_t delta) {return 0;}
+  virtual uint64_t update_staked_token_for_interval(const uint64_t interval, const uint64_t new_staked_tokens_in_interval)  override{ return 0;}
+  virtual bool remove_staked_token_for_interval(const uint64_t interval) override{return true;};
+  virtual uint64_t update_network_fee_sum_for_interval(const uint64_t interval_starting_block, const uint64_t collected_fee) override{return 0;}
+  virtual bool get_account_key(const safex::account_username &username, crypto::public_key &pkey) const  override{ return true;}
+  virtual bool get_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const  override{ return false;}
+  virtual bool get_offer(const crypto::hash offer_id, safex::safex_offer &offer) const  override{ return true;}
+  virtual bool get_offer_seller(const crypto::hash offer_id, std::string &username) const  override{ return true; };
+  virtual bool get_offer_price(const crypto::hash offer_id, uint64_t &price) const  override{ return true; };
+  virtual bool get_offer_quantity(const crypto::hash offer_id, uint64_t &quantity) const  override{ return true; };
+  virtual bool get_offer_active_status(const crypto::hash offer_id, bool &active) const  override{ return true; };
+  virtual bool get_safex_accounts(std::vector<std::pair<std::string,std::string>> &accounts) const  override{ return true; };
+  virtual bool get_safex_offers(std::vector<safex::safex_offer> &offers) const  override{ return true; };
+  virtual bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const  override{ return true; };
+  virtual bool get_offer_stars_given(const crypto::hash offer_id, uint64_t &stars_received) const  override{ return true; };
+  virtual bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const  override{ return true; };
+  virtual bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const  override{ return true; };
+  virtual bool get_safex_price_peg( const crypto::hash& price_peg_id,safex::safex_price_peg &safex_price_peg) const  override{ return true; };
 
-  virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const { return true; };
+  virtual bool get_table_sizes( std::vector<uint64_t> &table_sizes) const  override{ return true; };
 
 
-    virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const { return true; }
-  virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const { return true; }
-  virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const { return true; }
-  virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const { return true; }
-  virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const { return true; }
-  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout)> f, const tx_out_type output_type) const { return true;}
-  virtual bool is_read_only() const { return false; }
-  virtual std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> get_output_histogram(const std::vector<uint64_t> &amounts, bool unlocked, uint64_t recent_cutoff, const tx_out_type output_type) const { return std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>>(); }
+    virtual bool for_all_key_images(std::function<bool(const crypto::key_image&)>) const  override{ return true; }
+  virtual bool for_blocks_range(const uint64_t&, const uint64_t&, std::function<bool(uint64_t, const crypto::hash&, const cryptonote::block&)>) const  override{ return true; }
+  virtual bool for_all_transactions(std::function<bool(const crypto::hash&, const cryptonote::transaction&)>) const  override{ return true; }
+  virtual bool for_all_outputs(std::function<bool(uint64_t amount, const crypto::hash &tx_hash, uint64_t height, size_t tx_idx)> f, const tx_out_type output_type) const  override{ return true; }
+  virtual bool for_all_outputs(uint64_t amount, const std::function<bool(uint64_t height)> &f, const tx_out_type output_type) const  override{ return true; }
+  virtual bool for_all_advanced_outputs(std::function<bool(const crypto::hash &tx_hash, uint64_t height, uint64_t output_id, const txout_to_script& txout)> f, const tx_out_type output_type) const  override{ return true;}
+  virtual bool is_read_only() const  override{ return false; }
+  virtual std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> get_output_histogram(const std::vector<uint64_t> &amounts, bool unlocked, uint64_t recent_cutoff, const tx_out_type output_type) const  override{ return std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>>(); }
 
-  virtual void add_txpool_tx(const transaction &tx, const txpool_tx_meta_t& details) {}
-  virtual void update_txpool_tx(const crypto::hash &txid, const txpool_tx_meta_t& details) {}
-  virtual uint64_t get_txpool_tx_count(bool include_unrelayed_txes = true) const { return 0; }
-  virtual bool txpool_has_tx(const crypto::hash &txid) const { return false; }
-  virtual void remove_txpool_tx(const crypto::hash& txid) {}
-  virtual bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const { return false; }
-  virtual bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const { return false; }
-  virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
-  virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const { return false; }
+  virtual void add_txpool_tx(const transaction &tx, const txpool_tx_meta_t& details)  override{}
+  virtual void update_txpool_tx(const crypto::hash &txid, const txpool_tx_meta_t& details)  override{}
+  virtual uint64_t get_txpool_tx_count(bool include_unrelayed_txes = true) const  override{ return 0; }
+  virtual bool txpool_has_tx(const crypto::hash &txid) const  override{ return false; }
+  virtual void remove_txpool_tx(const crypto::hash& txid)  override{}
+  virtual bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const  override{ return false; }
+  virtual bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const  override{ return false; }
+  virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const  override{ return ""; }
+  virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = false) const  override{ return false; }
 
-  virtual uint64_t get_current_staked_token_sum() const { return 0;}
-  virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval_starting_block) const override { return 0;};
-  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override {return 0;}
-  virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override {return std::vector<uint64_t>{};}
-  virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override {return true;}
-  virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const override { return 0; }
+  virtual uint64_t get_current_staked_token_sum() const  override{ return 0;}
+  virtual uint64_t get_staked_token_sum_for_interval(const uint64_t interval_starting_block) const override{ return 0;};
+  virtual uint64_t get_network_fee_sum_for_interval(const uint64_t interval) const override{return 0;}
+  virtual std::vector<uint64_t> get_token_stake_expiry_outputs(const uint64_t block_height) const override{return std::vector<uint64_t>{};}
+  virtual bool get_interval_interest_map(const uint64_t start_height, const uint64_t  end_height, safex::map_interval_interest &map) const override{return true;}
+  virtual uint64_t calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const override{ return 0; }
 
   virtual void add_block( const block& blk
                         , const size_t& block_size
@@ -141,21 +141,21 @@ public:
                         , const uint64_t& coins_generated
                         , const uint64_t& tokens_migrated
                         , const crypto::hash& blk_hash
-                        ) {
+                        )  override{
     blocks.push_back(blk);
   }
-  virtual block get_block_from_height(const uint64_t& height) const {
+  virtual block get_block_from_height(const uint64_t& height) const  override{
     return blocks.at(height);
   }
-  virtual void set_hard_fork_version(uint64_t height, uint8_t version) {
+  virtual void set_hard_fork_version(uint64_t height, uint8_t version)  override{
     if (versions.size() <= height)
       versions.resize(height+1);
     versions[height] = version;
   }
-  virtual uint8_t get_hard_fork_version(uint64_t height) const {
+  virtual uint8_t get_hard_fork_version(uint64_t height) const  override{
     return versions.at(height);
   }
-  virtual void check_hard_fork_info() {}
+  virtual void check_hard_fork_info()  override{}
 
 private:
   std::vector<block> blocks;
