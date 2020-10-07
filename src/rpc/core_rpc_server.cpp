@@ -54,6 +54,7 @@ using namespace epee;
 #include "core_rpc_server_error_codes.h"
 #include "p2p/net_node.h"
 #include "version.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "daemon.rpc"
@@ -2396,6 +2397,310 @@ namespace cryptonote
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
+  }
+
+
+  bool core_rpc_server::on_decode_safex_output(const COMMAND_RPC_DECODE_SAFEX_OUTPUT::request& req, COMMAND_RPC_DECODE_SAFEX_OUTPUT::response& res, epee::json_rpc::error& error_resp)
+  {
+      PERF_TIMER(on_decode_safex_output);
+
+      res.parsed_fields.clear();
+      COMMAND_RPC_DECODE_SAFEX_OUTPUT::parsed_field p;
+
+      tx_out_type output_type = tx_out_type(req.output_type);
+
+      res.status = CORE_RPC_STATUS_OK;
+
+      if(output_type == tx_out_type::out_safex_account)
+      {
+
+          safex::create_account_data account{};
+          const cryptonote::blobdata accblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(accblob, account))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string username(account.username.begin(), account.username.end());
+          std::string data(account.account_data.begin(), account.account_data.end());
+          std::string pkey_str = epee::string_tools::pod_to_hex(account.pkey);
+
+          p.field="username";
+          p.value=username;
+          res.parsed_fields.push_back(p);
+          p.field="account_data";
+          p.value=data;
+          res.parsed_fields.push_back(p);
+          p.field="pkey";
+          p.value=pkey_str;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_account_update)
+      {
+
+          safex::edit_account_data account{};
+          const cryptonote::blobdata accblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(accblob, account))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string username(account.username.begin(), account.username.end());
+          std::string data(account.account_data.begin(), account.account_data.end());
+
+          p.field="username";
+          p.value=username;
+          res.parsed_fields.push_back(p);
+          p.field="account_data";
+          p.value=data;
+          res.parsed_fields.push_back(p);
+
+      } else if (output_type == tx_out_type::out_safex_offer)
+      {
+
+          safex::create_offer_data offer{};
+          const cryptonote::blobdata offerblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(offerblob, offer))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string seller(offer.seller.begin(), offer.seller.end());
+          std::string title(offer.title.begin(), offer.title.end());
+          std::string description(offer.description.begin(), offer.description.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(offer.offer_id);
+          std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
+          std::string quantity = std::to_string(offer.quantity);
+          std::string price = std::to_string(offer.price);
+          std::string active = epee::string_tools::pod_to_hex(offer.active);
+          std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
+          std::string seller_address = epee::string_tools::pod_to_hex(offer.seller_address);
+          std::string seller_private_view_key = epee::string_tools::pod_to_hex(offer.seller_private_view_key);
+
+          p.field="seller";
+          p.value=seller;
+          res.parsed_fields.push_back(p);
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="active";
+          p.value=active;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_used";
+          p.value=price_peg_used;
+          res.parsed_fields.push_back(p);
+          p.field="seller_address";
+          p.value=seller_address;
+          res.parsed_fields.push_back(p);
+          p.field="seller_private_view_key";
+          p.value=seller_private_view_key;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_offer_update)
+      {
+
+          safex::edit_offer_data offer{};
+          const cryptonote::blobdata offerblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(offerblob, offer))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string seller(offer.seller.begin(), offer.seller.end());
+          std::string title(offer.title.begin(), offer.title.end());
+          std::string description(offer.description.begin(), offer.description.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(offer.offer_id);
+          std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
+          std::string quantity = std::to_string(offer.quantity);
+          std::string price = std::to_string(offer.price);
+          std::string active = epee::string_tools::pod_to_hex(offer.active);
+          std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
+
+          p.field="seller";
+          p.value=seller;
+          res.parsed_fields.push_back(p);
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="active";
+          p.value=active;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_used";
+          p.value=price_peg_used;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_purchase)
+      {
+
+          safex::create_purchase_data purchase{};
+          const cryptonote::blobdata purchaseblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(purchaseblob, purchase))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string offer_id = epee::string_tools::pod_to_hex(purchase.offer_id);
+          std::string quantity = std::to_string(purchase.quantity);
+          std::string price = std::to_string(purchase.price);
+          std::string shipping = epee::string_tools::pod_to_hex(purchase.shipping);
+
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="shipping";
+          p.value=shipping;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+
+
+      } else if(output_type == tx_out_type::out_safex_feedback_token)
+      {
+
+          safex::create_feedback_token_data feedback_token{};
+          const cryptonote::blobdata feedback_tokenblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(feedback_tokenblob, feedback_token))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string offer_id = epee::string_tools::pod_to_hex(feedback_token.offer_id);
+
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_feedback)
+      {
+
+          safex::create_feedback_data feedback{};
+          const cryptonote::blobdata feedbackblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(feedbackblob, feedback))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string comment(feedback.comment.begin(), feedback.comment.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(feedback.offer_id);
+          std::string stars_given = std::to_string(feedback.stars_given);
+
+          p.field="comment";
+          p.value=comment;
+          res.parsed_fields.push_back(p);
+          p.field="stars_given";
+          p.value=stars_given;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_price_peg)
+      {
+
+          safex::create_price_peg_data price_peg{};
+          const cryptonote::blobdata price_pegblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(price_pegblob, price_peg))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string title(price_peg.title.begin(), price_peg.title.end());
+          std::string price_peg_id = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          std::string creator(price_peg.creator.begin(), price_peg.creator.end());
+          std::string description(price_peg.description.begin(), price_peg.description.end());
+          std::string currency(price_peg.currency.begin(), price_peg.currency.end());
+          std::string rate = std::to_string(price_peg.rate);
+
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="creator";
+          p.value=creator;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="currency";
+          p.value=currency;
+          res.parsed_fields.push_back(p);
+          p.field="rate";
+          p.value=rate;
+          res.parsed_fields.push_back(p);
+
+
+      } else if(output_type == tx_out_type::out_safex_price_peg_update)
+      {
+
+          safex::update_price_peg_data price_peg{};
+          const cryptonote::blobdata price_pegblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(price_pegblob, price_peg))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string price_peg_id = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          std::string rate = std::to_string(price_peg.rate);
+
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="rate";
+          p.value=rate;
+          res.parsed_fields.push_back(p);
+
+      } else
+      {
+          res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+          return false;
+      }
+
+      return true;
   }
 
   bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
