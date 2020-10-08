@@ -9270,8 +9270,11 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       // clear any fake outs we'd already gathered, since we'll need a new set
       outs.clear();
 
-      const size_t additional_distribute_inputs = (command_type == safex::command_t::token_unstake) ? 1 : 0; //count into estimation safex network fee distribution inputs
-      const size_t additional_distribute_outputs = (command_type == safex::command_t::token_unstake) ? 1 : 0; //count into estimation safex network fee distribution outputs
+      const size_t input_with_0_mixin = (command_type == safex::command_t::token_unstake || command_type == safex::command_t::create_feedback ||
+                                         command_type == safex::command_t::create_offer || command_type == safex::command_t::create_price_peg ||
+                                         command_type == safex::command_t::edit_account || command_type == safex::command_t::edit_offer ||
+                                         command_type == safex::command_t::update_price_peg || command_type == safex::command_t::simple_purchase) ? 1 : 0; //count into estimation safex network fee distribution inputs
+
 
       if (adding_fee)
       {
@@ -9282,7 +9285,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       {
         while (!dsts.empty() && (((dsts[0].token_amount <= available_token_amount) || ( command_type == safex::command_t::token_unstake && dsts[0].token_amount <= available_staked_token_amount))
         && (dsts[0].amount <= available_cash_amount)) &&
-               estimate_tx_size(tx.selected_transfers.size() + additional_distribute_inputs, fake_outs_count, tx.dsts.size() + additional_distribute_outputs, extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
+               estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count, tx.dsts.size(), extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can fully pay that destination
           LOG_PRINT_L2("We can fully pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
@@ -9303,7 +9306,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         }
 
         if ((needed_staked_tokens > 0 && available_staked_token_amount > 0) && !dsts.empty()  && dsts[0].token_amount == available_staked_token_amount
-        && estimate_tx_size(tx.selected_transfers.size() + additional_distribute_inputs, fake_outs_count, tx.dsts.size() + additional_distribute_outputs, extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
+        && estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count, tx.dsts.size(), extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
@@ -9313,8 +9316,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           available_staked_token_amount = 0;
         }
 
-        if ((needed_tokens > 0 && available_token_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size()+additional_distribute_inputs, fake_outs_count,
-                tx.dsts.size() + additional_distribute_outputs, extra.size())
+        if ((needed_tokens > 0 && available_token_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count,
+                tx.dsts.size(), extra.size())
                 < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can partially fill that destination
@@ -9325,8 +9328,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           available_token_amount = 0;
         }
 
-        if ((needed_cash > 0 && available_cash_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size() + additional_distribute_inputs, fake_outs_count,
-                tx.dsts.size() + additional_distribute_outputs, extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
+        if ((needed_cash > 0 && available_cash_amount > 0) && !dsts.empty() && estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count,
+                tx.dsts.size(), extra.size()) < TX_SIZE_TARGET(upper_transaction_size_limit))
         {
           // we can partially fill that destination
           LOG_PRINT_L2("We can partially pay " << get_account_address_as_str(m_nettype, dsts[0].is_subaddress, dsts[0].addr) <<
@@ -9348,8 +9351,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       }
       else
       {
-        const size_t estimated_tx_size = estimate_tx_size(tx.selected_transfers.size() + additional_distribute_inputs, fake_outs_count,
-                tx.dsts.size()+ additional_distribute_outputs, extra.size());
+        const size_t estimated_tx_size = estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count,
+                tx.dsts.size(), extra.size());
         try_tx = dsts.empty() || (estimated_tx_size >= TX_SIZE_TARGET(upper_transaction_size_limit));
       }
 
@@ -9361,8 +9364,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
 
         //Now, we can calculate fee, and go back one more round to select cash
         //inputs to pay that fee
-        const size_t estimated_tx_size = estimate_tx_size(tx.selected_transfers.size()+ additional_distribute_inputs, fake_outs_count,
-                tx.dsts.size() + additional_distribute_outputs, extra.size());
+        const size_t estimated_tx_size = estimate_tx_size(tx.selected_transfers.size() - input_with_0_mixin, fake_outs_count,
+                tx.dsts.size(), extra.size());
         needed_fee = calculate_fee(fee_per_kb, estimated_tx_size, fee_multiplier);
 
         uint64_t inputs = 0, outputs = needed_fee;
