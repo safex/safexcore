@@ -4271,14 +4271,17 @@ float wallet::get_output_relatedness(const transfer_details &td0, const transfer
   return 0.0f;
 }
 //----------------------------------------------------------------------------------------------------
-size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
+size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type, const uint64_t needed_cash_for_purchase) const
 {
   std::vector<size_t> candidates;
   float best_relatedness = 1.0f;
+
+  bool largest = false;
+
   for (size_t n = 0; n < unused_indices.size(); ++n)
   {
     const transfer_details &candidate = transfers[unused_indices[n]];
-    if (candidate.get_out_type() != out_type) continue;
+    if (candidate.get_out_type() != out_type || (needed_cash_for_purchase > 0 && needed_cash_for_purchase > candidate.amount())) continue;
     float relatedness = 0.0f;
     for (std::vector<size_t>::const_iterator i = selected_transfers.begin(); i != selected_transfers.end(); ++i)
     {
@@ -4300,6 +4303,42 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
     if (relatedness == best_relatedness)
       candidates.push_back(n);
   }
+
+  if(!candidates.empty() && needed_cash_for_purchase > 0)
+      smallest = true;
+
+  if(candidates.empty() && needed_cash_for_purchase > 0)
+      largest = true;
+
+  if(candidates.empty()){
+      float best_relatedness = 1.0f;
+      for (size_t n = 0; n < unused_indices.size(); ++n)
+      {
+          const transfer_details &candidate = transfers[unused_indices[n]];
+          if (candidate.get_out_type() != out_type) continue;
+          float relatedness = 0.0f;
+          for (std::vector<size_t>::const_iterator i = selected_transfers.begin(); i != selected_transfers.end(); ++i)
+          {
+            float r = get_output_relatedness(candidate, transfers[*i]);
+            if (r > relatedness)
+            {
+              relatedness = r;
+              if (relatedness == 1.0f)
+                break;
+            }
+          }
+
+      if (relatedness < best_relatedness)
+      {
+          best_relatedness = relatedness;
+          candidates.clear();
+      }
+
+      if (relatedness == best_relatedness)
+          candidates.push_back(n);
+      }
+  }
+
 
   THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
   // we have all the least related outputs in candidates, so we can pick either
@@ -4327,6 +4366,17 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
           idx = n;
       }
     }
+  }
+  else if (largest)
+  {
+     idx = 0;
+     for (size_t n = 0; n < candidates.size(); ++n)
+     {
+       const transfer_details &td = transfers[unused_indices[candidates[n]]];
+
+       if (td.amount() > transfers[unused_indices[candidates[idx]]].amount())
+         idx = n;
+      }
   }
   else
   {
@@ -4475,9 +4525,9 @@ size_t wallet::pop_best_value_from(const transfer_container &transfers, std::vec
         return candidates[idx];
     }
 //----------------------------------------------------------------------------------------------------
-size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type) const
+size_t wallet::pop_best_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, bool smallest, const cryptonote::tx_out_type out_type, const uint64_t needed_cash_for_purchase) const
 {
-  return pop_best_value_from(m_transfers, unused_indices, selected_transfers, smallest, out_type);
+  return pop_best_value_from(m_transfers, unused_indices, selected_transfers, smallest, out_type, needed_cash_for_purchase);
 }
 //----------------------------------------------------------------------------------------------------
 size_t wallet::pop_ideal_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const
@@ -9202,7 +9252,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         }
         else if(command_type == safex::command_t::simple_purchase && !purchase_init) {
             purchase_init = true;
-            idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash);
+            idx = pop_best_value(unused_cash_transfers_indices->empty() ? *unused_cash_dust_indices : *unused_cash_transfers_indices, tx.selected_transfers, false, tx_out_type::out_cash, needed_cash_for_purchase);
         }
         else if (needed_cash > 0)
         {
