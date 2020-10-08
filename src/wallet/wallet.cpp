@@ -9434,10 +9434,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           adding_fee = false;
           if (!dsts.empty())
           {
-            LOG_PRINT_L2("We have more to pay, starting another tx");
-            txes.push_back(ADVANCED_TX());
-            original_output_index = 0;
-            needed_fee = 0;
+            THROW_WALLET_EXCEPTION(error::wallet_internal_error, std::string("Advanced tx too big. Create bigger input."));
           }
         }
       }
