@@ -8710,6 +8710,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
     uint64_t needed_cash = 0;
     uint64_t needed_tokens = 0;
     uint64_t needed_staked_tokens = 0;
+    uint64_t needed_cash_for_purchase = 0;
     for (auto &dt: dsts)
     {
       if ((command_type == safex::command_t::token_stake) || (command_type == safex::command_t::token_unstake))
@@ -8734,9 +8735,21 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       else if (command_type == safex::command_t::simple_purchase) {
           if (dt.script_output == false || dt.output_type == tx_out_type::out_network_fee || dt.output_type == tx_out_type::out_safex_feedback_token) {
               needed_cash += dt.amount;
+              THROW_WALLET_EXCEPTION_IF(needed_cash < dt.amount, error::tx_sum_overflow, dsts, 0, m_nettype);
           } else {
               THROW_WALLET_EXCEPTION_IF(dt.output_type != tx_out_type::out_safex_purchase, error::safex_invalid_output_error);
           }
+
+        if(dt.output_type == tx_out_type::out_safex_purchase){
+               safex::create_purchase_data purchase{};
+
+            if (!cryptonote::parse_and_validate_from_blob(dt.output_data, purchase))
+            {
+                THROW_WALLET_EXCEPTION(error::wallet_internal_error, "Error parsing purchase output");
+            }
+            needed_cash_for_purchase = purchase.price;
+        }
+
       }
       else if (command_type == safex::command_t::create_account)
       {
