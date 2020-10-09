@@ -3471,6 +3471,20 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
 
                 secret_seller_view_key = offer_to_purchase.seller_private_view_key;
                 public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
+
+            } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback_token)
+            {
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_feedback_token_data feedback_token;
+                const cryptonote::blobdata feedbacktokenblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(feedbacktokenblob, feedback_token);
+
+
+                if(cmd->get_offerid() != feedback_token.offer_id){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
             }
         }
 
