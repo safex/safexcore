@@ -3269,27 +3269,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-                {
-                    std::string username(std::begin(offer.seller), std::end(offer.seller));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-                {
-                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check offer data size
-                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-                {
-                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-                    return false;
-                }
             }
         }
 
@@ -3335,28 +3314,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
                     || cmd->get_description() != offer.description){
                     MERROR("Output data not matching input command data");
-                    return false;
-                }
-
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-                {
-                    std::string username(std::begin(offer.seller), std::end(offer.seller));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-                {
-                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check offer data size
-                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-                {
-                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
                     return false;
                 }
             }
