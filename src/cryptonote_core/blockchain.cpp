@@ -3160,33 +3160,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
-                {
-                    std::string username(std::begin(account.username), std::end(account.username));
-                    MERROR("Account with username "+username+" already exists");
-                    return false;
-                }
-
-                //check if account pkey is valid
-                if (!crypto::check_key(account.pkey))
-                {
-                    MERROR("Account public key not valid");
-                    return false;
-                }
-
-                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-                {
-                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-                    return false;
-                }
-
-                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-                {
-                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-                    return false;
-                }
             }
             if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token && vout.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
             {

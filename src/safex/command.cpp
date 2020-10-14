@@ -257,6 +257,10 @@ namespace safex
       return execution_status::error_account_already_exists;
     }
 
+    if (!crypto::check_key(cmd->get_account_key())) {
+        return execution_status::error_account_pkey_invalid;
+    }
+
     if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
     {
       return execution_status::error_account_data_too_big;
