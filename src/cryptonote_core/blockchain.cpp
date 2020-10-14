@@ -3054,43 +3054,7 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::token_unstake)
     {
-        uint64_t distributed_cash_amount = 0;
-        uint64_t unstaked_token_amount = 0;
-        uint64_t expected_interest = 0;
-        for (const auto &txin: tx.vin)
-        {
-            if (txin.type() == typeid(txin_to_script))
-            {
-                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
-                if (stxin.command_type == safex::command_t::token_unstake)
-                {
-                    // Find cash and token amount that is distributed, check if they match
-                    unstaked_token_amount += stxin.token_amount;
-                    expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
-                    distributed_cash_amount += stxin.amount;
 
-                    if (stxin.key_offsets.size() != 1)
-                    {
-                        MERROR("Interest should be distributed for particular token stake output");
-                        return false;
-                    }
-                    // Check if tokens are staked long enough
-                    for (auto index: stxin.key_offsets) {
-                        output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
-                        if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
-                            MERROR("Safex token stake period not expired at height"<<m_db->height());
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        /* Check if donated cash amount matches */
-        if (distributed_cash_amount > expected_interest)
-        {
-            MERROR("Token unstake interest too high");
-            return false;
-        }
     }
     else if (command_type == safex::command_t::donate_network_fee)
     {
