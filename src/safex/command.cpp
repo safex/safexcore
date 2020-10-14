@@ -320,17 +320,6 @@ namespace safex
           return execution_status::error_account_non_existant;
         }
 
-        for (auto ch: cmd->get_username()) {
-          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-                return execution_status::error_invalid_account_name;
-            }
-        }
-
-        if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-        {
-          return execution_status::error_account_data_too_big;
-        }
-
         if (cmd->get_new_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
         {
           return execution_status::error_account_data_too_big;

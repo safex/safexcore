@@ -3219,27 +3219,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
-                {
-                    std::string username(std::begin(account.username), std::end(account.username));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-                {
-                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check account new data size
-                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-                {
-                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-                    return false;
-                }
             }
         }
 
