@@ -218,11 +218,6 @@ namespace safex
     if(sfx_price * cmd->quantity > cmd->price)
         return execution_status::error_purchase_not_enough_funds;
 
-    if(!(txin.amount > 0))
-        return execution_status::error_wrong_input_params;
-    if(txin.token_amount != 0)
-        return execution_status::error_wrong_input_params;
-
     return execution_status::ok;
   };
 
@@ -531,7 +526,7 @@ namespace safex
 
         uint64_t rating_given = cmd->get_stars_given();
 
-        if(rating_given > 3 )
+        if(rating_given > SAFEX_FEEDBACK_MAX_RATING )
           return execution_status::error_feedback_invalid_rating;
 
         if(cmd->get_comment().size() > SAFEX_FEEDBACK_DATA_MAX_SIZE)
