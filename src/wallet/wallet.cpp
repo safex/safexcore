@@ -10162,9 +10162,10 @@ std::vector<wallet::pending_tx> wallet::create_unmixable_sweep_transactions(bool
       }
     }
 
-    if (num_dust_outputs == 0)
+
     {
-      //in case of sweeping tokens, we will need some mixable cash outputs (if there are no unmixable) for fee
+      //in case of sweeping tokens, we will need mixable cash outputs for fee
+      //TODO: Add logic to use full ring size for mixable cash outputs
       std::vector<size_t> mixable_outputs;
 
       mixable_outputs = select_available_mixable_outputs(trusted_daemon, cryptonote::tx_out_type::out_cash);
@@ -10189,11 +10190,7 @@ std::vector<wallet::pending_tx> wallet::create_unmixable_sweep_transactions(bool
       return create_transactions_token_from(m_account_public_address, false, unmixable_token_transfer_outputs, unmixable_token_dust_outputs,
                                             mixable_transfer_outputs, mixable_dust_outputs, 0 /*fake_outs_count */, 0 /* unlock_time */, 1 /*priority */, std::vector<uint8_t>(), trusted_daemon);
     }
-    else
-    {
-      return create_transactions_token_from(m_account_public_address, false, unmixable_token_transfer_outputs, unmixable_token_dust_outputs,
-                                            unmixable_transfer_outputs, unmixable_dust_outputs, 0 /*fake_outs_count */, 0 /* unlock_time */, 1 /*priority */, std::vector<uint8_t>(), trusted_daemon);
-    }
+
 
 
   }
