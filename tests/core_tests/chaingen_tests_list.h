@@ -37,6 +37,7 @@
 #include "chain_split_1.h"
 #include "chain_switch_1.h"
 #include "double_spend.h"
+#include "double_spend_token.h"
 #include "integer_overflow.h"
 #include "ring_signature_1.h"
 #include "tx_validation.h"

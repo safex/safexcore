@@ -167,6 +167,20 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<false>);
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<true>);
 
+    // Token double spend
+    GENERATE_AND_PLAY(gen_double_spend_token_in_tx<false>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_tx<true>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_the_same_block<false>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_the_same_block<true>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_different_blocks<false>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_different_blocks<true>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_different_chains);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_the_same_block<false>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_the_same_block<true>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_different_blocks<false>);
+    GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_different_blocks<true>);
+
+
     GENERATE_AND_PLAY(gen_uint_cash_overflow_1);
     GENERATE_AND_PLAY(gen_uint_cash_overflow_2);
     GENERATE_AND_PLAY(gen_uint_token_overflow_1);
@@ -203,7 +217,6 @@ int main(int argc, char* argv[])
 
 #else
 
-    GENERATE_AND_PLAY(gen_simple_chain_split_safex);
 
 
 #endif
