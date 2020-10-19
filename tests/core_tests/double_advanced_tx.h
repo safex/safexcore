@@ -65,9 +65,9 @@ struct gen_double_advanced_tx_in_the_same_block : public gen_double_advanced_tx_
   static const uint64_t send_amount = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - TESTS_DEFAULT_FEE;
   static const bool has_invalid_tx = !txs_keeped_by_block;
   static const size_t expected_pool_txs_count = has_invalid_tx ? 1 : 2;
-  static const uint64_t expected_bob_balance = 0;
-  static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount;
-  static const uint64_t expected_bob_token_balance = 0;
+  static const uint64_t expected_bob_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+  static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount - 2*TESTS_DEFAULT_FEE;
+  static const uint64_t expected_bob_token_balance = MK_TOKENS(10000);
   static const uint64_t expected_alice_token_balance = MK_TOKENS(10000);
 
   bool generate(std::vector<test_event_entry>& events) const;
@@ -152,6 +152,7 @@ public:
   MAKE_GENESIS_BLOCK(events, blk_0, miner_account, ts_start);              \
   MAKE_ACCOUNT(events, bob_account);                                       \
   MAKE_ACCOUNT(events, alice_account);                                     \
+  auto safex_offer_alice = safex::safex_offer("Black Sabbath T-shirt", 1, MK_COINS(10), "Quality 100% cotton t-shirt with the heaviest band in the universe", safex_account_alice.username,alice_account.get_keys().m_view_secret_key,alice_account.get_keys().m_account_address); \
   MAKE_NEXT_BLOCK(events, blk_1s, blk_0, miner_account); \
   MAKE_NEXT_BLOCK(events, blk_2z, blk_1s, miner_account); \
   REWIND_BLOCKS(events, blk_2r, blk_2z, miner_account);                     \
@@ -161,8 +162,13 @@ public:
   REWIND_BLOCKS(events, blk_4z, blk_3z, miner_account); \
   MAKE_TX_CREATE_SAFEX_ACCOUNT_LIST_START(events, txlist_1, alice_account, safex_account_alice.username, safex_account_alice.pkey, safex_account_alice.account_data, m_safex_account1_keys.get_keys(), events.size() + SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN, blk_4z); \
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_5z, blk_4z, miner_account, txlist_1); \
-  REWIND_BLOCKS(events, blk_1, blk_5z, miner_account); \
-  REWIND_BLOCKS(events, blk_1r, blk_1, miner_account);
+  MAKE_TX(events, tx_fund, miner_account, alice_account, send_amount, blk_5z);   \
+  MAKE_NEXT_BLOCK_TX1(events, blk_6z, blk_5z, miner_account, tx_fund);         \
+  REWIND_BLOCKS(events, blk_1, blk_6z, miner_account); \
+  MAKE_TX_CREATE_SAFEX_OFFER_LIST_START(events, txlist_2, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1); \
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_br, blk_1, miner_account, txlist_2); \
+  REWIND_BLOCKS(events, blk_br2, blk_br, miner_account); \
+  REWIND_BLOCKS(events, blk_1r, blk_br2, miner_account);
 
 
 #include "double_advanced_tx.inl"
