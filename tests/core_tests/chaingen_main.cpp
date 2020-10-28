@@ -222,11 +222,11 @@ int main(int argc, char* argv[])
 #else
 
       // Advanced double spend
-      GENERATE_AND_PLAY(gen_double_advanced_tx_in_the_same_block<false>);
-      GENERATE_AND_PLAY(gen_double_advanced_tx_in_the_same_block<true>);
-//      GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_blocks<false>);
-//      GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_blocks<true>);
-//      GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_chains);
+//      GENERATE_AND_PLAY(gen_double_advanced_tx_in_the_same_block<false>);
+//      GENERATE_AND_PLAY(gen_double_advanced_tx_in_the_same_block<true>);
+
+
+      GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_chains);
 //      GENERATE_AND_PLAY(gen_double_advanced_tx_in_alt_chain_in_the_same_block<false>);
 //      GENERATE_AND_PLAY(gen_double_advanced_tx_in_alt_chain_in_the_same_block<true>);
 //      GENERATE_AND_PLAY(gen_double_advanced_tx_in_alt_chain_in_different_blocks<false>);

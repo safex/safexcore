@@ -123,11 +123,11 @@ class gen_double_advanced_tx_in_different_chains : public test_chain_unit_base
 {
 public:
   static const uint64_t send_amount = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - TESTS_DEFAULT_FEE;
-  static const size_t expected_blockchain_height = 5 + 3 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
-  static const uint64_t expected_bob_balance = 0;
-  static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount - TESTS_DEFAULT_FEE;
+  static const size_t expected_blockchain_height = 7 + 5 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW + 2;
+  static const uint64_t expected_bob_balance =  MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - MK_COINS(10) - TESTS_DEFAULT_FEE;
+  static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount + (95*(MK_COINS(10)/100)) - 2*TESTS_DEFAULT_FEE;
   static const uint64_t expected_bob_token_balance = MK_TOKENS(10000);
-  static const uint64_t expected_alice_token_balance = 0;
+  static const uint64_t expected_alice_token_balance = MK_TOKENS(10000);
 
   gen_double_advanced_tx_in_different_chains();
 
