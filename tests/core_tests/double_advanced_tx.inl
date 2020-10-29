@@ -123,7 +123,7 @@ bool gen_double_advanced_tx_base<concrete_test>::check_double_advanced_tx(crypto
 //======================================================================================================================
 
 template<bool txs_keeped_by_block>
-bool gen_double_advanced_tx_in_the_same_block<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
+bool gen_double_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
 {
   INIT_DOUBLE_ADVANCED_TX_TEST();
 

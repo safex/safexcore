@@ -60,7 +60,7 @@ private:
 
 
 template<bool txs_keeped_by_block>
-struct gen_double_advanced_tx_in_the_same_block : public gen_double_advanced_tx_base< gen_double_advanced_tx_in_the_same_block<txs_keeped_by_block> >
+struct gen_double_purchase_tx_in_the_same_block : public gen_double_advanced_tx_base< gen_double_purchase_tx_in_the_same_block<txs_keeped_by_block> >
 {
   static const uint64_t send_amount = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - TESTS_DEFAULT_FEE;
   static const bool has_invalid_tx = !txs_keeped_by_block;
