@@ -150,201 +150,28 @@ bool gen_double_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate(std
 }
 
 template<bool txs_keeped_by_block>
-bool gen_double_advanced_tx_in_different_blocks<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
+bool gen_edit_offer_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
 {
   INIT_DOUBLE_ADVANCED_TX_TEST();
 
   DO_CALLBACK(events, "mark_last_valid_block");
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
 
-  // Create two identical transactions, but don't push it to events list
-  MAKE_TOKEN_TX(events, tx_blk_2, alice_account, bob_account, MK_TOKENS(10000), blk_1);
 
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
 
-
-
-
-  std::vector<cryptonote::tx_source_entry> sources;
-  std::vector<cryptonote::tx_destination_entry> destinations;
-
-  fill_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, send_amount - TESTS_DEFAULT_FEE, TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  auto src_cash = sources[0];
-
-  events.pop_back();
-
-  fill_token_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, MK_TOKENS(10000), TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  for(auto &se: sources){
-      if(se.amount > 0){
-          se = src_cash;
-          break;
-      }
-  }
-
-  for(auto &de: destinations){
-      if(de.amount > 0){
-          de.amount = send_amount - TESTS_DEFAULT_FEE;
-          break;
-      }
-  }
-
-
-  cryptonote::transaction tx_blk_3;
-  if (!construct_tx(alice_account.get_keys(), sources, destinations, alice_account.get_keys().m_account_address, std::vector<uint8_t>(), tx_blk_3, 0))
-      return false;
-
-  events.push_back(tx_blk_2);
-  MAKE_NEXT_BLOCK_TX1(events, blk_2, blk_1r, miner_account, tx_blk_2);
-  DO_CALLBACK(events, "mark_last_valid_block");
-
+  safex_offer_alice.price += MK_COINS(10);
+  safex_offer_alice.min_sfx_price += MK_COINS(10);
+  //edit offer
+  MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1r);
   if (has_invalid_tx)
   {
-    DO_CALLBACK(events, "mark_invalid_tx");
+      DO_CALLBACK(events, "mark_invalid_tx");
   }
-  events.push_back(tx_blk_3);
+  //create purchase, but the item is out of stock
+  MAKE_CREATE_SAFEX_PURCHASE_TX_LIST(events, txlist_3, bob_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address, blk_1r);
   DO_CALLBACK(events, "mark_invalid_block");
-  MAKE_NEXT_BLOCK_TX1(events, blk_3, blk_2, miner_account, tx_blk_3);
-
-  DO_CALLBACK(events, "check_double_advanced_tx");
-
-  return true;
-}
-
-template<bool txs_keeped_by_block>
-bool gen_double_advanced_tx_in_alt_chain_in_the_same_block<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
-{
-  INIT_DOUBLE_ADVANCED_TX_TEST();
-
-  SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
-
-  // Main chain
-  MAKE_NEXT_BLOCK(events, blk_2, blk_1r, miner_account);
-  DO_CALLBACK(events, "mark_last_valid_block");
-
-  // Alt chain
-  MAKE_TOKEN_TX_LIST_START(events, txs_1, alice_account, bob_account, MK_TOKENS(10000), blk_1);
-  cryptonote::transaction tx_1 = txs_1.front();
-  auto tx_1_idx = events.size() - 1;
-
-
-
-  std::vector<cryptonote::tx_source_entry> sources;
-  std::vector<cryptonote::tx_destination_entry> destinations;
-
-  fill_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, send_amount - TESTS_DEFAULT_FEE, TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  auto src_cash = sources[0];
-  // Remove tx_1, it is being inserted back a little later
-  events.pop_back();
-
-
-
-  fill_token_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, MK_TOKENS(10000), TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  for(auto &se: sources){
-      if(se.amount > 0){
-          se = src_cash;
-          break;
-      }
-  }
-
-  for(auto &de: destinations){
-      if(de.amount > 0){
-          de.amount = send_amount - TESTS_DEFAULT_FEE;
-          break;
-      }
-  }
-
-
-  cryptonote::transaction tx_2;
-  if (!construct_tx(alice_account.get_keys(), sources, destinations, alice_account.get_keys().m_account_address, std::vector<uint8_t>(), tx_2, 0))
-      return false;
-
-
-
-  events.push_back(tx_2);
-  txs_1.push_back(tx_2);
-
-
-  if (has_invalid_tx)
-  {
-    DO_CALLBACK(events, "mark_invalid_tx");
-  }
-
-  events.push_back( tx_1);
-  MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_1r, miner_account, txs_1);
-
-  // Try to switch to alternative chain
-  DO_CALLBACK(events, "mark_invalid_block");
-  MAKE_NEXT_BLOCK(events, blk_4, blk_3, miner_account);
-
-  DO_CALLBACK(events, "check_double_advanced_tx");
-
-  return true;
-}
-
-template<bool txs_keeped_by_block>
-bool gen_double_advanced_tx_in_alt_chain_in_different_blocks<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
-{
-  INIT_DOUBLE_ADVANCED_TX_TEST();
-
-  SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
-
-  // Main chain
-  MAKE_NEXT_BLOCK(events, blk_2, blk_1r, miner_account);
-  DO_CALLBACK(events, "mark_last_valid_block");
-
-  // Alternative chain
-  MAKE_TOKEN_TX(events, tx_1, alice_account, bob_account, MK_TOKENS(10000), blk_1);
-
-
-
-
-  std::vector<cryptonote::tx_source_entry> sources;
-  std::vector<cryptonote::tx_destination_entry> destinations;
-
-  fill_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, send_amount - TESTS_DEFAULT_FEE, TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  auto src_cash = sources[0];
-  // Remove tx_1, it is being inserted back a little later
-  events.pop_back();
-
-
-
-  fill_token_tx_sources_and_destinations(events, blk_1r, alice_account, bob_account, MK_TOKENS(10000), TESTS_DEFAULT_FEE, 0, sources, destinations);
-
-  for(auto &se: sources){
-      if(se.amount > 0){
-          se = src_cash;
-          break;
-      }
-  }
-
-  for(auto &de: destinations){
-      if(de.amount > 0){
-          de.amount = send_amount - TESTS_DEFAULT_FEE;
-          break;
-      }
-  }
-
-
-  cryptonote::transaction tx_2;
-  if (!construct_tx(alice_account.get_keys(), sources, destinations, alice_account.get_keys().m_account_address, std::vector<uint8_t>(), tx_2, 0))
-      return false;
-
-
-  events.push_back(tx_1);
-  MAKE_NEXT_BLOCK_TX1(events, blk_3, blk_1r, miner_account, tx_1);
-
-  // Try to switch to alternative chain
-  if (has_invalid_tx)
-  {
-    DO_CALLBACK(events, "mark_invalid_tx");
-  }
-  events.push_back(tx_2);
-  DO_CALLBACK(events, "mark_invalid_block");
-  MAKE_NEXT_BLOCK_TX1(events, blk_4, blk_3, miner_account, tx_2);
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_1r, miner_account, txlist_3);
 
   DO_CALLBACK(events, "check_double_advanced_tx");
 
