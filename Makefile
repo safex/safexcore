@@ -58,7 +58,7 @@ debug-static-all:
 
 cmake-release:
 	mkdir -p build/release
-	cd build/release && cmake -D CMAKE_BUILD_TYPE=Release ../..
+	cd build/release && cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_WALLET_RPC=ON  ../..
 
 release: cmake-release
 	cd build/release && $(MAKE)
@@ -73,15 +73,15 @@ release-test-win64-github:
 
 release-all:
 	mkdir -p build/release
-	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON  ../.. && $(MAKE)
 
 release-static:
 	mkdir -p build/release
-	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
+	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON  ../.. && $(MAKE)
 
 release-static-proto:
 	mkdir -p build/release
-	cd build/release && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
+	cd build/release && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON  ../.. && $(MAKE)
 
 dist-static:
 	mkdir -p build/dist
