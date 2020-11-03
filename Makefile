@@ -69,7 +69,7 @@ libwallet-build-windows:
 depends:
 	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
 	cd build/$(target)/release && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON \
-			-D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON \
+			-D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release \
 			-DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/$(target)/share/toolchain.cmake ../../.. && $(MAKE)
 
 debug: cmake-debug
@@ -83,7 +83,7 @@ debug-test:
 
 debug-all:
 	mkdir -p build/debug
-	cd build/debug && cmake -D BUILD_SAFEX_PROTOBUF_RPC=ON -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D BUILD_WALLET_RPC=ON  -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
+	cd build/debug && cmake -D BUILD_SAFEX_PROTOBUF_RPC=ON -D BUILD_TESTS=ON -D BUILD_SHARED_LIBS=OFF -D CMAKE_BUILD_TYPE=Debug ../.. && $(MAKE)
 
 debug-static-all:
 	mkdir -p build/debug
@@ -106,11 +106,11 @@ release-all:
 
 release-static:
 	mkdir -p build/release
-	cd build/release && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON ../.. && $(MAKE)
+	cd build/release && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
 
 dist-static:
 	mkdir -p build/dist
-	cd build/dist && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
+	cd build/dist && cmake -D STATIC=ON -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_ADVANCED_WALLET=ON ../.. && $(MAKE)
 
 
 coverage:
@@ -145,7 +145,7 @@ release-static-freebsd-x86_64:
 
 release-static-mac-x86_64:
 	mkdir -p build/release
-	cd build/release && cmake -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_TAG="mac-x64" -D BUILD_WALLET_RPC=ON ../.. && $(MAKE)
+	cd build/release && cmake -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_TAG="mac-x64" ../.. && $(MAKE)
 
 release-static-linux-i686:
 	mkdir -p build/release
@@ -153,7 +153,7 @@ release-static-linux-i686:
 
 release-static-win64:
 	mkdir -p build/release
-	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D BUILD_WALLET_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
+	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
 
 release-static-win32:
 	mkdir -p build/release

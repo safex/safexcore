@@ -927,9 +927,6 @@ option(BUILD_SAFEX_PROTOBUF_RPC "Build PROTOBUF RPC endpoints." OFF)
 # when ON - it will build safex-advanced-wallet-cli
 option(BUILD_ADVANCED_WALLET "Build Advanced CLI Wallet." OFF)
 
-#when ON - it will build safex-wallet-rpc
-option(BUILD_WALLET_RPC "Build cli rpc wallet server." OFF)
-
 #when ON - it will build multisignature tool
 #not yet supported for safex
 option(BUILD_GEN_MULTISIG "Build multisignature tool." OFF)

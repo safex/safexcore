@@ -81,7 +81,7 @@ set(wallet_rpc_private_headers
 safex_private_headers(wallet_rpc_server
   ${wallet_rpc_private_headers})
 
-if (BUILD_WALLET_RPC)
+if (NOT IOS)
     safex_add_executable(wallet_rpc_server
             ${wallet_rpc_sources}
             ${wallet_rpc_headers}
