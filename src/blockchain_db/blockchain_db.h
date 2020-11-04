@@ -2003,6 +2003,21 @@ namespace cryptonote
 
 
       /**
+       * @brief Add safex related data from the tx and check if new data is in conflict with other transactions
+       *
+       * @param tx Transaction that is being inserted
+       * @param safex_accounts_in_use vector of safex account usernames that are used in other transactions from the same block
+       * @param safex_offers_in_use vector of safex offer IDs that are used in other transactions from the same block
+       * @param safex_offers_purchase_in_progress vector of safex offer IDs that are being purchased in other transactions from the same block
+       * @param safex_price_peg_update_in_progress vector of safex price peg IDs that are used in other transactions from the same block
+       *
+       * @return true if tx is ok to be in the block, return false if tx is in conflict with some other tx
+       */
+      virtual bool insert_safex_restrictions(const transaction &tx, std::vector<std::string> &safex_accounts_in_use, std::vector<crypto::hash> &safex_offers_in_use,
+                                                            std::vector<crypto::hash> &safex_offers_purchase_in_progress, std::vector<crypto::hash> &safex_price_peg_update_in_progress);
+
+
+      /**
        * @brief set whether or not to automatically remove logs
        *
        * This function is only relevant for one implementation (BlockchainBDB), but
