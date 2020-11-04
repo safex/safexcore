@@ -162,14 +162,32 @@ bool gen_edit_offer_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate
 
   safex_offer_alice.price += MK_COINS(10);
   safex_offer_alice.min_sfx_price += MK_COINS(10);
+
+
+
+
+//  //edit offer
+//  MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1r);
+//  if (has_invalid_tx)
+//  {
+//      DO_CALLBACK(events, "mark_invalid_tx");
+//  }
+//  //create purchase, but the item is out of stock
+//  MAKE_CREATE_SAFEX_PURCHASE_TX_LIST(events, txlist_3, bob_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address, blk_1r);
+
+
+
   //edit offer
-  MAKE_TX_EDIT_SAFEX_OFFER_LIST_START(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1r);
+  MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_3, bob_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address, blk_1r);
+
   if (has_invalid_tx)
   {
       DO_CALLBACK(events, "mark_invalid_tx");
   }
   //create purchase, but the item is out of stock
-  MAKE_CREATE_SAFEX_PURCHASE_TX_LIST(events, txlist_3, bob_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address, blk_1r);
+  MAKE_EDIT_SAFEX_OFFER_TX_LIST(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1r);
+
+
   DO_CALLBACK(events, "mark_invalid_block");
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_1r, miner_account, txlist_3);
 
