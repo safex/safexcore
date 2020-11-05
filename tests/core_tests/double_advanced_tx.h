@@ -77,8 +77,22 @@ template<bool txs_keeped_by_block>
 struct gen_edit_offer_purchase_tx_in_the_same_block : public gen_double_advanced_tx_base< gen_edit_offer_purchase_tx_in_the_same_block<txs_keeped_by_block> >
 {
   static const uint64_t send_amount = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - TESTS_DEFAULT_FEE;
-  static const bool has_invalid_tx = false;
+  static const bool has_invalid_tx = !txs_keeped_by_block;
   static const size_t expected_pool_txs_count = has_invalid_tx ? 1 : 2;
+  static const uint64_t expected_bob_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+  static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount - 2*TESTS_DEFAULT_FEE;
+  static const uint64_t expected_bob_token_balance = MK_TOKENS(10000);
+  static const uint64_t expected_alice_token_balance = MK_TOKENS(10000);
+
+  bool generate(std::vector<test_event_entry>& events) const;
+};
+
+template<bool txs_keeped_by_block>
+struct gen_purchase_edit_offer_tx_in_the_same_block : public gen_double_advanced_tx_base< gen_purchase_edit_offer_tx_in_the_same_block<txs_keeped_by_block> >
+{
+  static const uint64_t send_amount = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE - TESTS_DEFAULT_FEE;
+  static const bool has_invalid_tx = false;
+  static const size_t expected_pool_txs_count = 2;
   static const uint64_t expected_bob_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
   static const uint64_t expected_alice_balance = MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE + send_amount - 2*TESTS_DEFAULT_FEE;
   static const uint64_t expected_bob_token_balance = MK_TOKENS(10000);
