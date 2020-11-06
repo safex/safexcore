@@ -7592,6 +7592,8 @@ std::vector<wallet::pending_tx> wallet::create_transactions_2(std::vector<crypto
   for (size_t i = 0; i < m_transfers.size(); ++i)
   {
     const transfer_details& td = m_transfers[i];
+    if(td.m_output_type != tx_out_type::out_cash) continue;
+
     if (!td.m_spent && !td.m_key_image_partial && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
     {
       const uint32_t index_minor = td.m_subaddr_index.minor;
