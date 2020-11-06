@@ -267,7 +267,7 @@ uint64_t BlockchainDB::add_block( const block& blk
       for (const transaction& tx : txs)
       {
 
-        bool res = insert_safex_restrictions(tx, safex_accounts_in_use, safex_offers_in_use, safex_offer_purchase_in_progress, safex_price_peg_update_in_progress);
+        bool res = insert_and_check_safex_restrictions(tx, safex_accounts_in_use, safex_offers_in_use, safex_offer_purchase_in_progress, safex_price_peg_update_in_progress);
 
         if(!res)
           throw SAFEX_TX_CONFLICT(tx_hash);
@@ -1033,7 +1033,7 @@ void BlockchainDB::fixup()
   batch_stop();
 }
 
-bool BlockchainDB::insert_safex_restrictions(const transaction &tx,  std::vector<std::string> &safex_accounts_in_use, std::vector<crypto::hash> &safex_offers_in_use,
+bool BlockchainDB::insert_and_check_safex_restrictions(const transaction &tx,  std::vector<std::string> &safex_accounts_in_use, std::vector<crypto::hash> &safex_offers_in_use,
                                              std::vector<crypto::hash> &safex_offers_purchase_in_progress, std::vector<crypto::hash> &safex_price_peg_update_in_progress)
 {
 
