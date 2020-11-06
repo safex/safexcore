@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   }
   else if (command_line::get_arg(vm, arg_generate_and_play_test_data))
   {
-#if 0
+#if 1
     GENERATE_AND_PLAY(gen_simple_chain_001);
     GENERATE_AND_PLAY(gen_simple_chain_split_1);
     GENERATE_AND_PLAY(one_block);
@@ -180,10 +180,14 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_different_blocks<false>);
     GENERATE_AND_PLAY(gen_double_spend_token_in_alt_chain_in_different_blocks<true>);
 
-    // Advanced TX conflict
+    // Advanced double spend
+    GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_chains);
     GENERATE_AND_PLAY(gen_double_purchase_tx_in_the_same_block<false>);
     GENERATE_AND_PLAY(gen_double_purchase_tx_in_the_same_block<true>);
-    GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_chains);
+    GENERATE_AND_PLAY(gen_edit_offer_purchase_tx_in_the_same_block<false>);
+    GENERATE_AND_PLAY(gen_edit_offer_purchase_tx_in_the_same_block<true>);
+    GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<false>);
+    GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<true>);
 
 
     GENERATE_AND_PLAY(gen_uint_cash_overflow_1);
@@ -223,6 +227,7 @@ int main(int argc, char* argv[])
 #else
 
       // Advanced double spend
+      GENERATE_AND_PLAY(gen_double_advanced_tx_in_different_chains);
       GENERATE_AND_PLAY(gen_double_purchase_tx_in_the_same_block<false>);
       GENERATE_AND_PLAY(gen_double_purchase_tx_in_the_same_block<true>);
       GENERATE_AND_PLAY(gen_edit_offer_purchase_tx_in_the_same_block<false>);
