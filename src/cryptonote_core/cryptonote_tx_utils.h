@@ -50,6 +50,9 @@ namespace cryptonote
 
   bool get_migration_verification_public_key(cryptonote::network_type nettype, crypto::public_key &public_key);
 
+  bool insert_and_check_safex_restrictions(const transaction &tx,  std::vector<std::string> &safex_accounts_in_use, std::vector<crypto::hash> &safex_offers_in_use,
+                                           std::vector<crypto::hash> &safex_offers_purchase_in_progress, std::vector<crypto::hash> &safex_price_peg_update_in_progress);
+
 
   struct tx_source_entry
   {
