@@ -669,7 +669,7 @@ namespace tools
 
     uint64_t staked_token_balance(uint32_t subaddr_index_major) const;
     std::map<uint32_t, uint64_t> staked_token_balance_per_subaddress(uint32_t subaddr_index_major) const;
-    
+
 
     uint64_t unlocked_staked_token_balance(uint32_t subaddr_index_major) const;
     std::map<uint32_t, uint64_t> unlocked_staked_token_balance_per_subaddress(uint32_t subaddr_index_major) const;
@@ -935,10 +935,10 @@ namespace tools
     std::vector<size_t> select_available_unmixable_outputs(bool trusted_daemon, cryptonote::tx_out_type out_type);
     std::vector<size_t> select_available_mixable_outputs(bool trusted_daemon, cryptonote::tx_out_type out_type);
 
-    size_t pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) const;
+    size_t pop_best_value_from(const transfer_container &transfers, std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash, const uint64_t needed_cash_for_purchase = 0) const;
     size_t pop_ideal_value_from(const transfer_container &transfers, std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const;
     size_t pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const std::string &acc_username,  const cryptonote::tx_out_type out_type) const;
-    size_t pop_best_value(std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash) const;
+    size_t pop_best_value(std::vector<size_t> &unused_dust_indices, const std::vector<size_t>& selected_transfers, bool smallest = false, const cryptonote::tx_out_type out_type = cryptonote::tx_out_type::out_cash, const uint64_t needed_cash_for_purchase = 0) const;
     size_t pop_ideal_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount) const;
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const;
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const crypto::hash& out_id, const cryptonote::tx_out_type out_type) const;
@@ -1182,7 +1182,7 @@ namespace tools
     uint64_t get_segregation_fork_height() const;
 
     /*************************** SAFEX MARKETPLACE FUNCTIONALITIES ******************************************/
-    
+
     std::vector<wallet::pending_tx> create_lock_transaction(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);     // pass subaddr_indices by value on purpose
     std::vector<wallet::pending_tx> create_unlock_transaction(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);     // pass subaddr_indices by value on purpose
     std::vector<wallet::pending_tx> create_donation_transaction(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon);     // pass subaddr_indices by value on purpose

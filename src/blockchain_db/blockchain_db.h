@@ -2001,7 +2001,6 @@ namespace cryptonote
        */
       virtual void fixup();
 
-
       /**
        * @brief set whether or not to automatically remove logs
        *

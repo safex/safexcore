@@ -253,10 +253,25 @@ uint64_t BlockchainDB::add_block( const block& blk
   add_transaction(blk_hash, blk.miner_tx);
   int tx_i = 0;
   crypto::hash tx_hash = crypto::null_hash;
+
+  // Safex related vectors
+  // We are denying blocks that have multiple txs with same account, offer, price_peg, of offer/pricepeg + purchase combination
+  std::vector<std::string> safex_accounts_in_use;
+  std::vector<crypto::hash> safex_offers_in_use;
+  std::vector<crypto::hash> safex_offer_purchase_in_progress;
+  std::vector<crypto::hash> safex_price_peg_update_in_progress;
+
   try
   {
+
       for (const transaction& tx : txs)
       {
+
+        bool res = insert_and_check_safex_restrictions(tx, safex_accounts_in_use, safex_offers_in_use, safex_offer_purchase_in_progress, safex_price_peg_update_in_progress);
+
+        if(!res)
+          throw SAFEX_TX_CONFLICT(tx_hash);
+
         tx_hash = blk.tx_hashes[tx_i];
         add_transaction(blk_hash, tx, &tx_hash);
         ++tx_i;

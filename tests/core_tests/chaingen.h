@@ -57,6 +57,9 @@
 #define SAFEX_DEFAULT_LOG_CATEGORY "tests.core"
 
 
+const size_t invalid_index_value = std::numeric_limits<size_t>::max();
+const uint64_t FIRST_BLOCK_REWARD = (10000000 * SAFEX_CASH_COIN);
+
 
 struct callback_entry
 {
@@ -740,6 +743,11 @@ inline bool do_replay_file(const std::string& filename)
     MAKE_TOKEN_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, TOKEN_AMOUNT, HEAD);
 
 
+
+#define MAKE_MIGRATON_TX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)                       \
+  cryptonote::transaction TX_NAME;                                                                      \
+ construct_migration_tx_to_key(VEC_EVENTS, t, HEAD, FROM, TO, AMOUNT, TESTS_DEFAULT_FEE, BITCOIN_HASH); \
+  VEC_EVENTS.push_back(TX_NAME);
 
 #define MAKE_MIGRATION_TX_LIST(VEC_EVENTS, SET_NAME, FROM, TO, AMOUNT, HEAD, BITCOIN_HASH)             \
   {                                                                                      \

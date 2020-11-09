@@ -2475,6 +2475,7 @@ namespace cryptonote
           std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
           std::string quantity = std::to_string(offer.quantity);
           std::string price = std::to_string(offer.price);
+          std::string min_sfx_price = std::to_string(offer.min_sfx_price);
           std::string active = epee::string_tools::pod_to_hex(offer.active);
           std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
           std::string seller_address = epee::string_tools::pod_to_hex(offer.seller_address);
@@ -2497,6 +2498,9 @@ namespace cryptonote
           res.parsed_fields.push_back(p);
           p.field="price";
           p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="min_sfx_price";
+          p.value=min_sfx_price;
           res.parsed_fields.push_back(p);
           p.field="active";
           p.value=active;
@@ -2532,6 +2536,7 @@ namespace cryptonote
           std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
           std::string quantity = std::to_string(offer.quantity);
           std::string price = std::to_string(offer.price);
+          std::string min_sfx_price = std::to_string(offer.min_sfx_price);
           std::string active = epee::string_tools::pod_to_hex(offer.active);
           std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
 
@@ -2552,6 +2557,9 @@ namespace cryptonote
           res.parsed_fields.push_back(p);
           p.field="price";
           p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="min_sfx_price";
+          p.value=min_sfx_price;
           res.parsed_fields.push_back(p);
           p.field="active";
           p.value=active;

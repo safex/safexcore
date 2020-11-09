@@ -50,6 +50,7 @@ namespace safex
     error_account_non_existant = 13,
     error_account_no_tokens = 14,
     error_account_offset_not_one = 15,
+    error_account_pkey_invalid = 16,
     // Safex purchase
     error_offer_non_existant = 20,
     error_purchase_out_of_stock = 21,

@@ -218,11 +218,6 @@ namespace safex
     if(sfx_price * cmd->quantity > cmd->price)
         return execution_status::error_purchase_not_enough_funds;
 
-    if(!(txin.amount > 0))
-        return execution_status::error_wrong_input_params;
-    if(txin.token_amount != 0)
-        return execution_status::error_wrong_input_params;
-
     return execution_status::ok;
   };
 
@@ -255,6 +250,10 @@ namespace safex
     std::vector<uint8_t>  dummy{};
     if (blokchainDB.get_account_data(cmd->get_username(), dummy)) {
       return execution_status::error_account_already_exists;
+    }
+
+    if (!crypto::check_key(cmd->get_account_key())) {
+        return execution_status::error_account_pkey_invalid;
     }
 
     if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
@@ -314,17 +313,6 @@ namespace safex
         catch (...)
         {
           return execution_status::error_account_non_existant;
-        }
-
-        for (auto ch: cmd->get_username()) {
-          if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
-                return execution_status::error_invalid_account_name;
-            }
-        }
-
-        if (cmd->get_username().length() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-        {
-          return execution_status::error_account_data_too_big;
         }
 
         if (cmd->get_new_account_data().size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
@@ -538,7 +526,7 @@ namespace safex
 
         uint64_t rating_given = cmd->get_stars_given();
 
-        if(rating_given > 3 )
+        if(rating_given > SAFEX_FEEDBACK_MAX_RATING )
           return execution_status::error_feedback_invalid_rating;
 
         if(cmd->get_comment().size() > SAFEX_FEEDBACK_DATA_MAX_SIZE)

@@ -3567,19 +3567,22 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
     {
       total_fee += ptx_vector[n].fee;
       for (auto i: ptx_vector[n].selected_transfers)
-        total_unmixable += m_wallet->get_transfer_details(i).amount();
+          total_unmixable += out_type == cryptonote::tx_out_type::out_token ? m_wallet->get_transfer_details(i).token_amount() :  m_wallet->get_transfer_details(i).amount();
     }
 
+    std::string type = out_type == cryptonote::tx_out_type::out_token ? "tokens" : "cash";
     std::string prompt_str = tr("Sweeping ") + print_money(total_unmixable);
     if (ptx_vector.size() > 1) {
-      prompt_str = (boost::format(tr("Sweeping %s in %llu transactions for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
+      prompt_str = (boost::format(tr("Sweeping %s %s in %llu transactions for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
         print_money(total_unmixable) %
+        type %
         ((unsigned long long)ptx_vector.size()) %
         print_money(total_fee)).str();
     }
     else {
-      prompt_str = (boost::format(tr("Sweeping %s for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
+      prompt_str = (boost::format(tr("Sweeping %s %s for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
         print_money(total_unmixable) %
+        type %
         print_money(total_fee)).str();
     }
     std::string accepted = input_line(prompt_str);

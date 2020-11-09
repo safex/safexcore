@@ -1586,6 +1586,11 @@ namespace cryptonote
     std::vector<crypto::hash> offers_edited;
     std::vector<crypto::hash> price_pegs_edited;
 
+    std::vector<std::string> safex_accounts_in_block;
+    std::vector<crypto::hash> safex_offer_in_block;
+    std::vector<crypto::hash> safex_offers_purchase_in_block;
+    std::vector<crypto::hash> safex_price_peg_in_block;
+
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
     {
@@ -1649,7 +1654,8 @@ namespace cryptonote
       // included into the blockchain or that are
       // missing key images
       const cryptonote::txpool_tx_meta_t original_meta = meta;
-      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left, offers_edited, price_pegs_edited);
+      bool ready = is_transaction_ready_to_go(meta, tx) && is_purchase_possible(meta, tx, offer_quantity_left, offers_edited, price_pegs_edited)
+                                                        && insert_and_check_safex_restrictions(tx, safex_accounts_in_block, safex_offer_in_block, safex_offers_purchase_in_block, safex_price_peg_in_block);
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try

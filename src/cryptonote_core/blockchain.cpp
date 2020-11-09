@@ -3054,43 +3054,7 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
     }
     else if (command_type == safex::command_t::token_unstake)
     {
-        uint64_t distributed_cash_amount = 0;
-        uint64_t unstaked_token_amount = 0;
-        uint64_t expected_interest = 0;
-        for (const auto &txin: tx.vin)
-        {
-            if (txin.type() == typeid(txin_to_script))
-            {
-                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
-                if (stxin.command_type == safex::command_t::token_unstake)
-                {
-                    // Find cash and token amount that is distributed, check if they match
-                    unstaked_token_amount += stxin.token_amount;
-                    expected_interest += calculate_staked_token_interest_for_output(stxin, m_db->height());
-                    distributed_cash_amount += stxin.amount;
 
-                    if (stxin.key_offsets.size() != 1)
-                    {
-                        MERROR("Interest should be distributed for particular token stake output");
-                        return false;
-                    }
-                    // Check if tokens are staked long enough
-                    for (auto index: stxin.key_offsets) {
-                        output_advanced_data_t out = this->m_db->get_output_advanced_data(tx_out_type::out_staked_token, index);
-                        if (out.height+safex::get_safex_minumum_token_lock_period(m_nettype) > m_db->height()) {
-                            MERROR("Safex token stake period not expired at height"<<m_db->height());
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        /* Check if donated cash amount matches */
-        if (distributed_cash_amount > expected_interest)
-        {
-            MERROR("Token unstake interest too high");
-            return false;
-        }
     }
     else if (command_type == safex::command_t::donate_network_fee)
     {
@@ -3160,33 +3124,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (get_safex_account_public_key(safex::account_username{account.username}, temppkey))
-                {
-                    std::string username(std::begin(account.username), std::end(account.username));
-                    MERROR("Account with username "+username+" already exists");
-                    return false;
-                }
-
-                //check if account pkey is valid
-                if (!crypto::check_key(account.pkey))
-                {
-                    MERROR("Account public key not valid");
-                    return false;
-                }
-
-                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-                {
-                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-                    return false;
-                }
-
-                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-                {
-                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-                    return false;
-                }
             }
             if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token && vout.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
             {
@@ -3246,27 +3183,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{account.username}, temppkey))
-                {
-                    std::string username(std::begin(account.username), std::end(account.username));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (account.username.size() > SAFEX_ACCOUNT_USERNAME_MAX_SIZE)
-                {
-                    MERROR("Account username is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_USERNAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check account new data size
-                if (account.account_data.size() > SAFEX_ACCOUNT_DATA_MAX_SIZE)
-                {
-                    MERROR("Account data is bigger than max allowed " + std::to_string(SAFEX_ACCOUNT_DATA_MAX_SIZE));
-                    return false;
-                }
             }
         }
 
@@ -3317,27 +3233,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     return false;
                 }
 
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-                {
-                    std::string username(std::begin(offer.seller), std::end(offer.seller));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-                {
-                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check offer data size
-                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-                {
-                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
-                    return false;
-                }
             }
         }
 
@@ -3383,28 +3278,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
                     || cmd->get_description() != offer.description){
                     MERROR("Output data not matching input command data");
-                    return false;
-                }
-
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{offer.seller}, temppkey))
-                {
-                    std::string username(std::begin(offer.seller), std::end(offer.seller));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (offer.title.size() > SAFEX_OFFER_NAME_MAX_SIZE)
-                {
-                    MERROR("Offer title is bigger than max allowed " + std::to_string(SAFEX_OFFER_NAME_MAX_SIZE));
-                    return false;
-                }
-
-                //check offer data size
-                if (offer.description.size() > SAFEX_OFFER_DATA_MAX_SIZE)
-                {
-                    MERROR("Offer data is bigger than max allowed " + std::to_string(SAFEX_OFFER_DATA_MAX_SIZE));
                     return false;
                 }
             }
@@ -3471,6 +3344,20 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
 
                 secret_seller_view_key = offer_to_purchase.seller_private_view_key;
                 public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
+
+            } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback_token)
+            {
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_feedback_token_data feedback_token;
+                const cryptonote::blobdata feedbacktokenblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(feedbacktokenblob, feedback_token);
+
+
+                if(cmd->get_offerid() != feedback_token.offer_id){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
             }
         }
 
@@ -3589,34 +3476,6 @@ bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::comm
                     || cmd->get_currency() != price_peg.currency
                     || cmd->get_rate() != price_peg.rate){
                     MERROR("Output data not matching input command data");
-                    return false;
-                }
-
-                //check username for uniqueness
-                crypto::public_key temppkey{};
-                if (!m_db->get_account_key(safex::account_username{price_peg.creator}, temppkey))
-                {
-                    std::string username(std::begin(price_peg.creator), std::end(price_peg.creator));
-                    MERROR("Account with username "+username+" does not exists");
-                    return false;
-                }
-
-                if (price_peg.title.size() > SAFEX_PRICE_PEG_NAME_MAX_SIZE)
-                {
-                    MERROR("Price peg title is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_NAME_MAX_SIZE));
-                    return false;
-                }
-
-                if (price_peg.currency.size() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE)
-                {
-                    MERROR("Price peg currency name is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE));
-                    return false;
-                }
-
-                //check price peg data size
-                if (price_peg.description.size() > SAFEX_PRICE_PEG_DATA_MAX_SIZE)
-                {
-                    MERROR("Price peg data is bigger than max allowed " + std::to_string(SAFEX_PRICE_PEG_DATA_MAX_SIZE));
                     return false;
                 }
             }
@@ -5052,8 +4911,8 @@ leave:
         LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
         m_batch_success = false;
         bvc.m_verifivation_failed = true;
-        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
-        txs.erase(it);
+//        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+//        txs.erase(it);
         return_tx_to_pool(txs);
         return false;
     }

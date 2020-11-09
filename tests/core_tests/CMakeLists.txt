@@ -42,6 +42,8 @@ set(core_tests_sources
   safex_offer.cpp
   safex_purchase.cpp
   double_spend.cpp
+  double_spend_token.cpp
+  double_advanced_tx.cpp
   integer_overflow.cpp
   ring_signature_1.cpp
   transaction_tests.cpp
@@ -61,6 +63,10 @@ set(core_tests_headers
   chaingen_tests_list.h
   double_spend.h
   double_spend.inl
+  double_spend_token.h
+  double_spend_token.inl
+  double_advanced_tx.h
+  double_advanced_tx.inl
   integer_overflow.h
   ring_signature_1.h
   transaction_tests.h

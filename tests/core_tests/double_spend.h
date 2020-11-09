@@ -32,9 +32,6 @@
 #pragma once 
 #include "chaingen.h"
 
-const size_t invalid_index_value = std::numeric_limits<size_t>::max();
-const uint64_t FIRST_BLOCK_REWARD = (10000000 * SAFEX_CASH_COIN);
-
 
 template<class concrete_test>
 class gen_double_spend_base : public test_chain_unit_base

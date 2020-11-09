@@ -212,6 +212,7 @@ constexpr uint64_t SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE                = 8;
 constexpr uint64_t SAFEX_PRICE_PEG_DATA_MAX_SIZE                    = 2048;
 
 //Safex feedback constants
+constexpr uint64_t SAFEX_FEEDBACK_MAX_RATING                        = 3;
 constexpr uint64_t SAFEX_FEEDBACK_DATA_MAX_SIZE                     = 2048;
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
