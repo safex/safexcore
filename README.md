@@ -94,10 +94,10 @@ to use all cores.
         docker build --build-arg NPROC=1 -t safex . > docker_build.log
 
         # either run in foreground
-        docker run -it -v /monero/chain:/root/.bitmonero -v /monero/wallet:/wallet -p 18080:18080 safex
+        docker run -it -v /safex/chain:/root/.safex -v /safex/wallet:/wallet -p 18080:18080 safex
 
         # or in background
-        docker run -it -d -v /monero/chain:/root/.bitmonero -v /monero/wallet:/wallet -p 18080:18080 safex
+        docker run -it -d -v /safex/chain:/root/.safex -v /safex/wallet:/wallet -p 18080:18080 safex
 
 
 ## Testing
