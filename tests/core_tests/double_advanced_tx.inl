@@ -131,7 +131,7 @@ bool gen_double_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate(std
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
   //create purchase
   MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_3, alice_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address,  blk_1r);
@@ -158,7 +158,7 @@ bool gen_edit_offer_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
 //  safex_offer_alice.price += MK_COINS(10);
 //  safex_offer_alice.min_sfx_price += MK_COINS(10);
@@ -192,7 +192,7 @@ bool gen_purchase_edit_offer_tx_in_the_same_block<txs_keeped_by_block>::generate
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, true);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
   safex_offer_alice.description[0] = 'N';
 
@@ -229,7 +229,7 @@ bool gen_purchase_update_price_peg_tx_in_the_same_block<txs_keeped_by_block>::ge
   uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
   safex_price_peg_alice.rate *= 2;
 

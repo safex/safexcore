@@ -1666,7 +1666,7 @@ void BlockchainLMDB::process_command_input(const cryptonote::txin_to_script &txi
           throw1(DB_ERROR("Error executing safex purchase command"));
       }
 
-      safex::safex_purchase sfx_purchase{result->quantity, result->price, result->offer_id, result->shipping};
+      safex::safex_purchase sfx_purchase{result->quantity, result->price, result->offer_id, result->offer_hash, result->shipping};
       create_safex_purchase(sfx_purchase);
 
   }

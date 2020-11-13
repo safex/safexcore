@@ -118,7 +118,7 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
 
   safex_price_peg_alice_edited.rate = 37;
 
-  safex_bob_purchase_from_alice = safex::safex_purchase{2, safex_offer_alice_edited.price*2, safex_offer_alice_edited.offer_id, false};;
+  safex_bob_purchase_from_alice = safex::safex_purchase{2, safex_offer_alice_edited.price*2, safex_offer_alice_edited.offer_id, safex_offer_alice_edited.get_hash(), false};
 
   safex_bob_feedback = safex::safex_feedback{3,"Perfect for my concert next week.",safex_offer_alice.offer_id};
 
