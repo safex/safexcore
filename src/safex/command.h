@@ -57,6 +57,7 @@ namespace safex
     error_purchase_not_enough_funds = 23,
     error_purchase_offer_not_active = 24,
     error_purchase_quantity_zero = 25,
+    error_purchase_wrong_hash = 26,
     // Safex offer
     error_offer_price_too_big = 30,
     error_offer_price_too_small = 31,

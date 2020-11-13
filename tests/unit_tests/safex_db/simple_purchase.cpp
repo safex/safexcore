@@ -715,6 +715,43 @@ namespace
           FAIL() << "Unexpected exception";
         }
 
+        // Safex purchase wrong offer hash
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, this->m_safex_offer[0].price, this->m_safex_offer[0].offer_id, this->m_safex_offer[1].get_hash(), false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_wrong_hash);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex purchase given not enough funds";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
     ASSERT_NO_THROW(this->m_db->close());
 
   }
