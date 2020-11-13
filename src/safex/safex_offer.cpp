@@ -36,6 +36,19 @@ namespace safex
         return id;
     }
 
+    crypto::hash safex_offer::get_hash(){
+
+      crypto::hash offer_hash{};
+
+      bool res = cryptonote::get_object_hash(description,offer_hash);
+
+      if(!res)
+        return {};
+
+      return offer_hash;
+
+    }
+
     void safex_offer::set_price_peg(crypto::hash& _price_peg_id, uint64_t _price, uint64_t _min_sfx_price){
       price_peg_used = true;
       price_peg_id = _price_peg_id;

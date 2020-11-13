@@ -54,6 +54,7 @@ namespace safex
       }
 
     void set_price_peg(crypto::hash& _price_peg_id, uint64_t _price, uint64_t _min_sfx_price);
+    crypto::hash get_hash();
 
     BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(title)
