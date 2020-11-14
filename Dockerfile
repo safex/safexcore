@@ -127,7 +127,7 @@ VOLUME /root/.safex
 # safex-wallet-cli
 VOLUME /wallet
 
-EXPOSE 18080
-EXPOSE 18081
+EXPOSE 17401
+EXPOSE 17402
 
-ENTRYPOINT ["safexd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
+ENTRYPOINT ["safexd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=17402", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=17402", "--non-interactive", "--confirm-external-bind"]
