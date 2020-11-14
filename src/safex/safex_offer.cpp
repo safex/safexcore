@@ -40,7 +40,15 @@ namespace safex
 
       crypto::hash offer_hash{};
 
-      bool res = cryptonote::get_object_hash(description,offer_hash);
+      std::vector<uint8_t> offer_scalar;
+
+      std::vector<uint8_t> title_vec{std::begin(title),std::end(title)};
+
+      offer_scalar.insert(offer_scalar.end(),std::begin(offer_id.data),std::end(offer_id.data));
+      offer_scalar.insert(offer_scalar.end(),title_vec.begin(),title_vec.end());
+      offer_scalar.insert(offer_scalar.end(),description.begin(),description.end());
+
+      bool res = cryptonote::get_object_hash(offer_scalar,offer_hash);
 
       if(!res)
         return {};
