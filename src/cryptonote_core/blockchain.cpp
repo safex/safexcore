@@ -120,11 +120,13 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
-  { 2, 33407, 0, 1541066055},
-  { 3, 78500, 0, 1546512073}, //184650
-  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  { 2, 1250, 0, 1541066055},
+  { 3, 1260, 0, 1605355986}, //184650
+  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605455986},
   //TODO: Update when preapring HF5 for testnet
-  { 5, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 5, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605555986},
+  { 6, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605655986},
+  { 7, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605755986}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
