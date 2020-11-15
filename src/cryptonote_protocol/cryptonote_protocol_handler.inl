@@ -354,7 +354,13 @@ namespace cryptonote
     m_core.pause_mine();
     std::list<block_complete_entry> blocks;
     blocks.push_back(arg.b);
-    m_core.prepare_handle_incoming_blocks(blocks);
+    if (!m_core.prepare_handle_incoming_blocks(blocks))
+    {
+      LOG_PRINT_CCONTEXT_L1("Block verification failed: prepare_handle_incoming_blocks failed, dropping connection");
+      drop_connection(context, false, false);
+      m_core.resume_mine();
+      return 1;
+    }
     for(auto tx_blob_it = arg.b.txs.begin(); tx_blob_it!=arg.b.txs.end();tx_blob_it++)
     {
       cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);
@@ -629,7 +635,12 @@ namespace cryptonote
 
         std::list<block_complete_entry> blocks;
         blocks.push_back(b);
-        m_core.prepare_handle_incoming_blocks(blocks);
+        if (!m_core.prepare_handle_incoming_blocks(blocks))
+        {
+          LOG_PRINT_CCONTEXT_L0("Failure in prepare_handle_incoming_blocks");
+          m_core.resume_mine();
+          return 1;
+        }
           
         block_verification_context bvc = boost::value_initialized<block_verification_context>();
         m_core.handle_incoming_block(arg.b.block, bvc); // got block from handle_notify_new_block
@@ -1075,7 +1086,11 @@ skip:
           const boost::posix_time::ptime start = boost::posix_time::microsec_clock::universal_time();
           context.m_last_request_time = start;
 
-          m_core.prepare_handle_incoming_blocks(blocks);
+          if (!m_core.prepare_handle_incoming_blocks(blocks))
+          {
+            LOG_ERROR_CCONTEXT("Failure in prepare_handle_incoming_blocks");
+            return 1;
+          }
 
           uint64_t block_process_time_full = 0, transactions_process_time_full = 0;
           size_t num_txs = 0;
@@ -1095,6 +1110,11 @@ skip:
             if (tvc.size() != block_entry.txs.size())
             {
               LOG_ERROR_CCONTEXT("Internal error: tvc.size() != block_entry.txs.size()");
+              if (!m_core.cleanup_handle_incoming_blocks())
+              {
+                  LOG_PRINT_CCONTEXT_L0("Failure in cleanup_handle_incoming_blocks");
+                  return 1;
+              }
               return 1;
             }
             std::list<blobdata>::const_iterator it = block_entry.txs.begin();

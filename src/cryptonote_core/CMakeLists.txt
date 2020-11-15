@@ -99,7 +99,7 @@ endif()
 
 safex_private_headers(cryptonote_core
   ${cryptonote_core_private_headers})
-  
+
 if(BUILD_SAFEX_PROTOBUF_RPC)
 
   safex_add_library(cryptonote_core
@@ -112,6 +112,7 @@ if(BUILD_SAFEX_PROTOBUF_RPC)
       common
       cncrypto
       blockchain_db
+      safex_core
       multisig
       ringct
       device
@@ -136,6 +137,7 @@ else()
       common
       cncrypto
       blockchain_db
+      safex_core
       multisig
       ringct
       device

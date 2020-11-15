@@ -62,6 +62,8 @@
 #if defined(PER_BLOCK_CHECKPOINT)
 #include "blocks/blocks.h"
 #endif
+#include "safex/command.h"
+#include "safex/safex_account.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "blockchain"
@@ -118,11 +120,13 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1514764801 },
-  { 2, 33407, 0, 1541066055},
-  { 3, 78500, 0, 1546512073}, //184650
-  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
+  { 2, 1250, 0, 1541066055},
+  { 3, 1260, 0, 1605355986}, //184650
+  { 4, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605455986},
   //TODO: Update when preapring HF5 for testnet
-  { 5, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 5, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605555986},
+  { 6, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605655986},
+  { 7, config::testnet::HARDFORK_V4_START_HEIGHT, 0, 1605755986}
 };
 static const uint64_t testnet_hard_fork_version_1_till = 33406;
 
@@ -137,15 +141,16 @@ static const struct {
   { 2, 100, 0, 1561283500},
   { 3, 200, 0, 1562283500},
   { 4, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165},
-  //TODO: Update when preapring HF5 for stagenet
-  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT, 0, 1565962165}
+  { 5, config::stagenet::HARDFORK_V4_START_HEIGHT + 1, 0, 1565962166},
+  { 6, config::stagenet::HARDFORK_V4_START_HEIGHT + 2, 0, 1592478292},
+  { 7, 90150, 0, 1592578800}
 };
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0), m_current_block_cumul_sz_median(0),
   m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false),
-  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0)
+  m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_prepare_height(0), m_batch_success(true)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -174,7 +179,8 @@ bool Blockchain::have_tx_keyimg_as_spent(const crypto::key_image &key_im) const
 // and collects the public key for each from the transaction it was included in
 // via the visitor passed to it.
 template <class visitor_t, class TxInput>
-bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& txin, visitor_t &vis, const crypto::hash &tx_prefix_hash, uint64_t* pmax_related_block_height) const
+bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& txin, visitor_t &vis,
+                                             const crypto::hash &tx_prefix_hash, uint64_t* pmax_related_block_height) const
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 
@@ -192,8 +198,7 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
   std::vector<uint64_t> absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
   std::vector<output_data_t> outputs;
 
-  uint64_t value_amount = get_tx_input_amount(txin); //token or cash amount depending of input type
-  //todo ATANA double check token vs cash amount differentiation
+  uint64_t value_amount = get_tx_input_value_amount(txin); //token or cash amount depending of input type
 
   bool found = false;
   auto it = m_scan_table.find(tx_prefix_hash);
@@ -211,8 +216,8 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
   {
     try
     {
-      tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
-      m_db->get_output_key(value_amount, absolute_offsets, outputs, txout_type, true);
+      tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
+      m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, txout_type, true);
       if (absolute_offsets.size() != outputs.size())
       {
         MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -237,8 +242,8 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
         add_offsets.push_back(absolute_offsets[i]);
       try
       {
-        tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
-        m_db->get_output_key(value_amount, add_offsets, add_outputs, txout_type, true);
+        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
+        m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, txout_type, true);
         if (add_offsets.size() != add_outputs.size())
         {
           MERROR_VER("Output does not exist! amount = " << value_amount);
@@ -262,7 +267,7 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
       output_data_t output_index;
       try
       {
-        tx_out_type txout_type = cryptonote::get_tx_out_type_from_input(txin);
+        tx_out_type txout_type = cryptonote::derive_tx_out_type_from_input(txin);
 
         // get tx hash and output index for output
         if (count < outputs.size())
@@ -306,6 +311,340 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const TxInput& t
       return false;
     }
 
+  }
+
+  return true;
+}
+//------------------------------------------------------------------
+//Template specialization for script inputs, where it depends which outputs we shold take
+template<>
+bool Blockchain::scan_outputkeys_for_indexes<Blockchain::outputs_generic_visitor, cryptonote::txin_to_script>
+        (size_t tx_version, const txin_to_script &txin, Blockchain::outputs_generic_visitor &vis,
+         const crypto::hash &tx_prefix_hash, uint64_t *pmax_related_block_height) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  // ND: Disable locking and make method private.
+  //CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+  tx_out_type output_type{tx_out_type::out_invalid}; //type which the input is referencing
+
+  //check command type
+  switch (txin.command_type)
+  {
+    case safex::command_t::token_stake:
+      output_type = tx_out_type::out_token;
+      break;
+    case safex::command_t::token_unstake:
+      output_type = tx_out_type::out_staked_token;
+      break;
+    case safex::command_t::donate_network_fee:
+      output_type = tx_out_type::out_cash;
+      break;
+    case safex::command_t::create_account:
+      output_type = tx_out_type::out_token;
+      break;
+    case safex::command_t::edit_account:
+      output_type = tx_out_type::out_safex_account;
+      break;
+    case safex::command_t::create_offer:
+      output_type = tx_out_type::out_safex_account;
+      break;
+    case safex::command_t::edit_offer:
+      output_type = tx_out_type::out_safex_offer;
+      break;
+    case safex::command_t::simple_purchase:
+      output_type = tx_out_type::out_cash;
+      break;
+    case safex::command_t::create_feedback:
+      output_type = tx_out_type::out_safex_feedback_token;
+      break;
+    case safex::command_t::create_price_peg:
+      output_type = tx_out_type::out_safex_account;
+      break;
+    case safex::command_t::update_price_peg:
+      output_type = tx_out_type::out_safex_price_peg;
+      break;
+    default:
+      MERROR_VER("Unknown command type");
+      return false;
+      break;
+  }
+
+  if (!txin.key_offsets.size())
+    return false;
+
+  if(!safex::is_safex_key_image_verification_needed(txin.command_type) && txin.key_offsets.size() != 1){
+      MERROR_VER("Commands that don't have key image verification must have only 1 key offset");
+      return false;
+  }
+
+
+  std::vector<uint64_t> absolute_offsets;
+  uint64_t value_amount = 0;
+  switch (output_type)
+  {
+    case tx_out_type::out_staked_token:
+    case tx_out_type::out_safex_account:
+    case tx_out_type::out_safex_feedback_token:
+    case tx_out_type::out_safex_offer:
+    case tx_out_type::out_safex_price_peg:
+    {
+      absolute_offsets = txin.key_offsets;
+      break;
+    }
+    case tx_out_type::out_token:
+    {
+      absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
+      value_amount = get_tx_input_token_amount(txin);
+      break;
+    }
+
+    case tx_out_type::out_cash:
+    case tx_out_type::out_network_fee:
+    {
+      absolute_offsets = relative_output_offsets_to_absolute(txin.key_offsets);
+      value_amount = get_tx_input_cash_amount(txin);
+      break;
+    }
+    default:
+      MERROR_VER("Unknown output type");
+      return false;
+  }
+
+  if (output_type == tx_out_type::out_token || output_type == tx_out_type::out_cash)
+  {
+    std::vector<output_data_t> outputs;
+    bool found = false;
+    auto it = m_scan_table.find(tx_prefix_hash);
+    if (it != m_scan_table.end())
+    {
+      auto its = it->second.find(txin.k_image);
+      if (its != it->second.end())
+      {
+        outputs = its->second;
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      try
+      {
+        m_db->get_amount_output_key(value_amount, absolute_offsets, outputs, output_type, true);
+        if (absolute_offsets.size() != outputs.size())
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount);
+          return false;
+        }
+      }
+      catch (...)
+      {
+        MERROR_VER("Output does not exist! amount = " << value_amount);
+        return false;
+      }
+    }
+    else
+    {
+      // check for partial results and add the rest if needed;
+      if (outputs.size() < absolute_offsets.size() && outputs.size() > 0)
+      {
+        MDEBUG("Additional outputs needed: " << absolute_offsets.size() - outputs.size());
+        std::vector<uint64_t> add_offsets;
+        std::vector<output_data_t> add_outputs;
+        for (size_t i = outputs.size(); i < absolute_offsets.size(); i++)
+          add_offsets.push_back(absolute_offsets[i]);
+        try
+        {
+          m_db->get_amount_output_key(value_amount, add_offsets, add_outputs, output_type, true);
+          if (add_offsets.size() != add_outputs.size())
+          {
+            MERROR_VER("Output does not exist! amount = " << value_amount);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount);
+          return false;
+        }
+        outputs.insert(outputs.end(), add_outputs.begin(), add_outputs.end());
+      }
+    }
+
+    size_t count = 0;
+    for (const uint64_t &i : absolute_offsets)
+    {
+      try
+      {
+        output_data_t output_index;
+        try
+        {
+          // get tx hash and output index for output
+          if (count < outputs.size())
+            output_index = outputs.at(count);
+          else
+            output_index = m_db->get_output_key(value_amount, i, output_type);
+
+          // call to the passed boost visitor to grab the public key for the output
+          if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment))
+          {
+            MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount << ", absolute_offset = " << i);
+          return false;
+        }
+
+        // if on last output and pmax_related_block_height not null pointer
+        if (++count == absolute_offsets.size() && pmax_related_block_height)
+        {
+          // set *pmax_related_block_height to tx block height for this output
+          auto h = output_index.height;
+          if (*pmax_related_block_height < h)
+          {
+            *pmax_related_block_height = h;
+          }
+        }
+      }
+      catch (const OUTPUT_DNE &e)
+      {
+        MERROR_VER("Output does not exist: " << e.what());
+        return false;
+      }
+      catch (const TX_DNE &e)
+      {
+        MERROR_VER("Transaction does not exist: " << e.what());
+        return false;
+      }
+
+    }
+  }
+/* Handle advanced outputs that should be spend in the transaction */
+  else if ((output_type == tx_out_type::out_staked_token)
+           || (output_type == tx_out_type::out_network_fee)
+           || (output_type == tx_out_type::out_safex_account)
+           || (output_type == tx_out_type::out_safex_feedback_token)
+           || (output_type ==  tx_out_type::out_safex_offer)
+           || (output_type == tx_out_type::out_safex_price_peg)) {
+
+    std::vector<output_advanced_data_t> outputs;
+    bool found = false;
+    auto it = m_scan_table_adv.find(tx_prefix_hash);
+    if (it != m_scan_table_adv.end())
+    {
+      auto its = it->second.find(txin.k_image);
+      if (its != it->second.end())
+      {
+        outputs = its->second;
+        found = true;
+      }
+    }
+
+    if (!found)
+    {
+      try
+      {
+        m_db->get_advanced_output_key(absolute_offsets, outputs, output_type, true);
+        if (absolute_offsets.size() != outputs.size())
+        {
+          MERROR_VER("Advanced outputs do not exist!");
+          return false;
+        }
+      }
+      catch (...)
+      {
+        MERROR_VER("Advanced outputs do not exist");
+        return false;
+      }
+    }
+    else
+    {
+      // check for partial results and add the rest if needed;
+      if (outputs.size() < absolute_offsets.size() && outputs.size() > 0)
+      {
+        MDEBUG("Additional advanced outputs needed: " << absolute_offsets.size() - outputs.size());
+        std::vector<uint64_t> add_offsets;
+        std::vector<output_advanced_data_t> add_outputs;
+        for (size_t i = outputs.size(); i < absolute_offsets.size(); i++)
+          add_offsets.push_back(absolute_offsets[i]);
+        try
+        {
+          m_db->get_advanced_output_key(add_offsets, add_outputs, output_type, true);
+          if (add_offsets.size() != add_outputs.size())
+          {
+            MERROR_VER("Advanced outputs do not exist");
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Advanced output does not exist!");
+          return false;
+        }
+        outputs.insert(outputs.end(), add_outputs.begin(), add_outputs.end());
+      }
+    }
+
+    size_t count = 0;
+    for (const uint64_t &i : absolute_offsets)
+    {
+      try
+      {
+        output_advanced_data_t output_data;
+        try
+        {
+          // get tx hash and output index for output
+          if (count < outputs.size())
+            output_data = outputs.at(count);
+          else
+            output_data = m_db->get_output_advanced_data(output_type, i);
+
+          // call to the passed boost visitor to grab the public key for the output
+          if (!vis.handle_output(output_data.unlock_time, output_data.pubkey, rct::key{0}))
+          {
+            MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
+            return false;
+          }
+        }
+        catch (...)
+        {
+          MERROR_VER("Output does not exist! amount = " << value_amount << ", absolute_offset = " << i);
+          return false;
+        }
+
+        // if on last output and pmax_related_block_height not null pointer
+        if (++count == absolute_offsets.size() && pmax_related_block_height)
+        {
+          // set *pmax_related_block_height to tx block height for this output
+          auto h = output_data.height;
+          if (*pmax_related_block_height < h)
+          {
+            *pmax_related_block_height = h;
+          }
+        }
+
+      }
+      catch (const OUTPUT_DNE &e)
+      {
+        MERROR_VER("Output does not exist: " << e.what());
+        return false;
+      }
+      catch (const TX_DNE &e)
+      {
+        MERROR_VER("Transaction does not exist: " << e.what());
+        return false;
+      }
+
+    }
+
+  }
+  else {
+    MERROR_VER("Unknown output type.");
+    return false;
   }
 
   return true;
@@ -611,16 +950,16 @@ block Blockchain::pop_block_from_blockchain()
       //
       // FIXME: HardFork
       // This is not quite correct, as we really want to add the txes
-      // to the pool based on the version determined after all blocks
+      // to the pool based on the hf_version determined after all blocks
       // are popped.
-      uint8_t version = get_current_hard_fork_version();
+      uint8_t hf_version = get_current_hard_fork_version();
 
       // We assume that if they were in a block, the transactions are already
       // known to the network as a whole. However, if we had mined that block,
       // that might not be always true. Unlikely though, and always relaying
       // these again might cause a spike of traffic as many nodes re-relay
       // all the transactions in a popped block when a reorg happens.
-      bool r = m_tx_pool.add_tx(tx, tvc, true, true, false, version);
+      bool r = m_tx_pool.add_tx(tx, tvc, true, true, false, hf_version);
       if (!r)
       {
         LOG_ERROR("Error returning transaction to tx_pool");
@@ -630,6 +969,7 @@ block Blockchain::pop_block_from_blockchain()
 
   m_blocks_longhash_table.clear();
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_blocks_txs_check.clear();
   m_check_txin_table.clear();
 
@@ -1161,7 +1501,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
 }
 //------------------------------------------------------------------
 // This function validates the miner transaction reward
-bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t version)
+bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t hf_version)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   //validate reward
@@ -1170,7 +1510,8 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     money_in_use += o.amount;
   partial_block_reward = false;
 
-  if (version == HF_VERSION_VALID_DECOMPOSED_MINER_TX_1 || version == HF_VERSION_VALID_DECOMPOSED_MINER_TX_2) {
+
+  if (hf_version == HF_VERSION_VALID_DECOMPOSED_MINER_TX_1 || hf_version == HF_VERSION_VALID_DECOMPOSED_MINER_TX_2) {
     for (auto &o: b.miner_tx.vout) {
       if (!is_valid_decomposed_amount(o.amount)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
@@ -1181,7 +1522,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<size_t> last_blocks_sizes;
   get_last_n_blocks_sizes(last_blocks_sizes, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_sizes), cumulative_block_size, already_generated_coins, base_reward, hf_version, m_db->height()))
   {
     MERROR_VER("block size " << cumulative_block_size << " is bigger than allowed for this blockchain");
     return false;
@@ -1324,10 +1665,8 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     }
     else
     {
-      if (cur_tx.fee != cur_tx.tx.rct_signatures.txnFee)
-      {
-        LOG_ERROR("Creating block template: error: invalid fee");
-      }
+        //todo ATANA implement tx version 2 checks
+        LOG_ERROR("Transacdtion version 2 not yet supported");
     }
   }
   if (txs_size != real_txs_size)
@@ -1352,7 +1691,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
    */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
   uint8_t hf_version = m_hardfork->get_current_version();
-  size_t max_outs = hf_version >= HF_VERSION_CHANGE_MINER_DUST_HANDLING ? 1 : HF_VERSION_MINER_TX_MAX_OUTS;
+  size_t max_outs = hf_version >= HF_VERSION_CHANGE_MINER_DUST_HANDLING && hf_version <= HF_VERSION_MINER_DUST_HANDLE_DIGIT ? 1 : HF_VERSION_MINER_TX_MAX_OUTS;
   bool r = construct_miner_tx(height, median_size, already_generated_coins, txs_size, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_size = txs_size + get_object_blobsize(b.miner_tx);
@@ -2049,6 +2388,11 @@ bool Blockchain::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMA
     const output_data_t od = m_db->get_output_key(i.amount, i.index, req.out_type);
     tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index, req.out_type);
     bool unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first));
+    if(req.out_type == cryptonote::tx_out_type::out_token){
+      cryptonote::transaction tx = m_db->get_tx(toi.first);
+      if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
+        unlocked &= od.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) <= m_db->height();
+   }
 
     res.outs.push_back({od.pubkey, od.commitment, unlocked, od.height, toi.first});
   }
@@ -2062,12 +2406,19 @@ bool Blockchain::get_outs_proto(const COMMAND_RPC_GET_OUTPUTS_PROTOBUF::request&
   #ifdef SAFEX_PROTOBUF_RPC
     CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
+    auto out_type = static_cast<cryptonote::tx_out_type>(req.out_type);
+
     for (const auto &i: req.outputs)
     {
       // get tx_hash, tx_out_index from DB
-      const output_data_t od = m_db->get_output_key(i.amount, i.index, static_cast<cryptonote::tx_out_type>(req.out_type));
-      tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index,  static_cast<cryptonote::tx_out_type>(req.out_type));
+      const output_data_t od = m_db->get_output_key(i.amount, i.index, out_type);
+      tx_out_index toi = m_db->get_output_tx_and_index(i.amount, i.index,  out_type);
       bool unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first));
+      if(out_type == cryptonote::tx_out_type::out_token){
+        cryptonote::transaction tx = m_db->get_tx(toi.first);
+        if(is_create_safex_account_token_fee(tx.vout, od.pubkey))
+          unlocked &= od.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) <= m_db->height();
+     }
 
       proto.add_out_entry(od.pubkey, unlocked, od.height, toi.first);
     }
@@ -2199,94 +2550,6 @@ uint64_t Blockchain::block_difficulty(uint64_t i) const
     MERROR("Attempted to get block difficulty for height above blockchain height");
   }
   return 0;
-}
-//------------------------------------------------------------------
-//TODO: return type should be void, throw on exception
-//       alternatively, return true only if no blocks missed
-template<class t_ids_container, class t_blocks_container, class t_missed_container>
-bool Blockchain::get_blocks(const t_ids_container& block_ids, t_blocks_container& blocks, t_missed_container& missed_bs) const
-{
-  LOG_PRINT_L3("Blockchain::" << __func__);
-  CRITICAL_REGION_LOCAL(m_blockchain_lock);
-
-  for (const auto& block_hash : block_ids)
-  {
-    try
-    {
-      blocks.push_back(std::make_pair(m_db->get_block_blob(block_hash), block()));
-      if (!parse_and_validate_block_from_blob(blocks.back().first, blocks.back().second))
-      {
-        LOG_ERROR("Invalid block");
-        return false;
-      }
-    }
-    catch (const BLOCK_DNE& e)
-    {
-      missed_bs.push_back(block_hash);
-    }
-    catch (const std::exception& e)
-    {
-      return false;
-    }
-  }
-  return true;
-}
-//------------------------------------------------------------------
-//TODO: return type should be void, throw on exception
-//       alternatively, return true only if no transactions missed
-template<class t_ids_container, class t_tx_container, class t_missed_container>
-bool Blockchain::get_transactions_blobs(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const
-{
-  LOG_PRINT_L3("Blockchain::" << __func__);
-  CRITICAL_REGION_LOCAL(m_blockchain_lock);
-
-  for (const auto& tx_hash : txs_ids)
-  {
-    try
-    {
-      cryptonote::blobdata tx = AUTO_VAL_INIT(tx);
-      if (m_db->get_tx_blob(tx_hash, tx))
-        txs.push_back(std::move(tx));
-      else
-        missed_txs.push_back(tx_hash);
-    }
-    catch (const std::exception& e)
-    {
-      return false;
-    }
-  }
-  return true;
-}
-//------------------------------------------------------------------
-template<class t_ids_container, class t_tx_container, class t_missed_container>
-bool Blockchain::get_transactions(const t_ids_container& txs_ids, t_tx_container& txs, t_missed_container& missed_txs) const
-{
-  LOG_PRINT_L3("Blockchain::" << __func__);
-  CRITICAL_REGION_LOCAL(m_blockchain_lock);
-
-  for (const auto& tx_hash : txs_ids)
-  {
-    try
-    {
-      cryptonote::blobdata tx = AUTO_VAL_INIT(tx);
-      if (m_db->get_tx_blob(tx_hash, tx))
-      {
-        txs.push_back(transaction());
-        if (!parse_and_validate_tx_from_blob(tx, txs.back()))
-        {
-          LOG_ERROR("Invalid transaction");
-          return false;
-        }
-      }
-      else
-        missed_txs.push_back(tx_hash);
-    }
-    catch (const std::exception& e)
-    {
-      return false;
-    }
-  }
-  return true;
 }
 //------------------------------------------------------------------
 // Find the split point between us and foreign blockchain and return
@@ -2621,38 +2884,23 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   {
     for (auto &o: tx.vout)
     {
-      if (tx.version == 1)
+      if (!is_valid_decomposed_amount(o.amount) && !is_valid_decomposed_amount(o.token_amount))
       {
-        if (!is_valid_decomposed_amount(o.amount) && !is_valid_decomposed_amount(o.token_amount))
-        {
-          tvc.m_invalid_output = true;
-          return false;
-        }
+        tvc.m_invalid_output = true;
+        return false;
       }
     }
   }
 
   // check that the outputs are whole amounts for token transfers
-  if (tx.version == 1) {
-    for (auto &o: tx.vout) {
-      if ((o.target.type() == typeid(txout_token_to_key))) {
-        if (!tools::is_whole_coin_amount(o.token_amount)) {
-          tvc.m_invalid_output = true;
-          return false;
-        }
-      }
-    }
-  }
-
-
-  // in a v2 tx, all outputs must have 0 amount
-  if (hf_version >= HF_VERSION_ENFORCE_RCT) {
-    if (tx.version >= 2) {
-      for (auto &o: tx.vout) {
-        if (o.amount != 0) {
-          tvc.m_invalid_output = true;
-          return false;
-        }
+  for (auto &o: tx.vout)
+  {
+    if ((o.target.type() == typeid(txout_token_to_key)))
+    {
+      if (!tools::is_whole_token_amount(o.token_amount))
+      {
+        tvc.m_invalid_output = true;
+        return false;
       }
     }
   }
@@ -2685,16 +2933,631 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   return true;
 }
 //------------------------------------------------------------------
+bool Blockchain::check_safex_tx(const transaction &tx, tx_verification_context &tvc)
+{
+
+  if (tx.version == 1) return true;
+
+  std::vector<txin_to_script> input_commands_to_execute;
+  safex::command_t input_command_to_check;
+
+  bool only_donate_seen = true;
+  bool only_stake_seen = true;
+
+  for (auto txin: tx.vin)
+  {
+    if ((txin.type() == typeid(txin_to_script)))
+    {
+      const txin_to_script &txin_script = boost::get<txin_to_script>(txin);
+
+      if(txin_script.command_type != safex::command_t::donate_network_fee)
+        only_donate_seen = false;
+
+      if(txin_script.command_type != safex::command_t::token_stake)
+        only_stake_seen = false;
+
+      input_commands_to_execute.push_back(txin_script);
+      input_command_to_check = txin_script.command_type;
+    }
+  }
+
+    // Per TX there can be :
+    // * 1  command for all types
+    // * >1 commands if they are all stake token or donate_network_fee
+    if (!(input_commands_to_execute.size() == 1
+            || (input_commands_to_execute.size() > 1 && (only_donate_seen || only_stake_seen)))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
+  }
+
+
+  std::vector<tx_out_type> advanced_outputs;
+  bool network_fee_out = false;
+  bool purchase_out = false;
+  bool feedback_token_out = false;
+
+  for (auto txout: tx.vout)
+  {
+      if ((txout.target.type() == typeid(txout_to_script)))
+      {
+          auto txout_type = get_tx_out_type(txout.target);
+          advanced_outputs.push_back(txout_type);
+          if(txout_type == cryptonote::tx_out_type::out_safex_purchase)
+              purchase_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_safex_feedback_token)
+              feedback_token_out = true;
+          if(txout_type == cryptonote::tx_out_type::out_network_fee)
+              network_fee_out = true;
+      }
+  }
+
+  // Per TX there can be :
+  // * 1  advanced output for all types
+  // * 3 outputs if tx is safex_purchase
+  // * 0 outputs if tx is token_unstake
+  if (!(advanced_outputs.size() == 1
+        || (advanced_outputs.size() == 3 && network_fee_out && purchase_out && feedback_token_out)
+        || (advanced_outputs.size() == 0 && input_command_to_check== safex::command_t::token_unstake))) {
+      tvc.m_safex_invalid_command = true;
+      return false;
+  }
+
+  //validate all command logic
+  for (const txin_to_script& cmd: input_commands_to_execute)
+      if (!safex::validate_safex_command(*m_db, cmd)) {
+        tvc.m_safex_command_execution_failed = true;
+        return false;
+      }
+
+  //check all commands tx restrictions
+  if (!check_safex_tx_command(tx, input_command_to_check)){
+      tvc.m_safex_invalid_input = true;
+      return false;
+  }
+
+  return true;
+}
+//------------------------------------------------------------------
+bool Blockchain::check_safex_tx_command(const transaction &tx, const safex::command_t &command_type){
+
+    if (command_type == safex::command_t::token_stake)
+    {
+        /* Find amount of input staked tokens */
+        uint64_t inputs_staked_token_amount = 0;
+        for(const auto &vin: tx.vin)
+            if ((vin.type() == typeid(txin_to_script))){
+                const txin_to_script &txin_script = boost::get<txin_to_script>(vin);
+                if(txin_script.command_type == safex::command_t::token_stake)
+                    inputs_staked_token_amount += txin_script.token_amount;
+            }
+
+        /* Find amount of output staked tokens */
+        uint64_t outputs_staked_token_amount = 0;
+        for (const auto &vout: tx.vout)
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_staked_token)
+            {
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                if (out.output_type == static_cast<uint8_t>(tx_out_type::out_staked_token))
+                    outputs_staked_token_amount += vout.token_amount;
+            }
+
+        /* Check if minumum amount of tokens is staked */
+        if (outputs_staked_token_amount < safex::get_minimum_token_stake_amount(m_nettype))
+        {
+            MERROR("Safex token stake amount too small, must be at least "<< cryptonote::print_money(safex::get_minimum_token_stake_amount(m_nettype)));
+            return false;
+        }
+        /* Check if amount of staked tokens in the output is less or equal to the amount in the input*/
+        if (inputs_staked_token_amount < outputs_staked_token_amount)
+        {
+            MERROR("Safex token stake output amount higher than input amount");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::token_unstake)
+    {
+
+    }
+    else if (command_type == safex::command_t::donate_network_fee)
+    {
+        /* Find cash amount on output that is donated */
+        uint64_t outputs_donated_cash_amount = 0;
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+            {
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                if (out.output_type == static_cast<uint8_t>(tx_out_type::out_network_fee))
+                    outputs_donated_cash_amount += vout.amount;
+            }
+        }
+
+        uint64_t input_cash_amount = 0;
+        for (const auto &txin: tx.vin)
+        {
+            input_cash_amount += get_tx_input_cash_amount(txin);
+        }
+
+        /* Check if donated cash amount matches */
+        if (outputs_donated_cash_amount >= input_cash_amount || outputs_donated_cash_amount == 0)
+        {
+            MERROR("Invalid safex cash input amount");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_account)
+    {
+
+        uint64_t total_locked_tokens = 0;
+        bool create_account_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_account)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_account>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account)
+            {
+                if(create_account_seen)
+                {
+                    MERROR("Multiple Safex account creation outputs");
+                    return false;
+                }
+                create_account_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_account_data account;
+                const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
+
+
+                if(cmd->get_username() != account_username || cmd->get_account_key() != account.pkey || cmd->get_account_data() != account.account_data){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+            }
+            if (vout.target.type() == typeid(txout_token_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_token && vout.token_amount == SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+            {
+                total_locked_tokens += vout.token_amount;
+            }
+
+        }
+
+        if(!create_account_seen){
+            MERROR("Create account output not found");
+            return false;
+        }
+
+        if(total_locked_tokens < SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE){
+            MERROR("Not enough tokens given as output. Needed: " + std::to_string(SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE) + ", actual sent: "+std::to_string(total_locked_tokens) );
+            return false;
+        }
+
+    }
+    else if (command_type == safex::command_t::edit_account)
+    {
+        bool edit_account_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::edit_account)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(command.script);
+
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_account_update)
+            {
+                if(edit_account_seen)
+                {
+                    MERROR("Multiple Safex account edit outputs");
+                    return false;
+                }
+                edit_account_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::edit_account_data account;
+                const cryptonote::blobdata accblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(accblob, account);
+                std::string account_username(std::begin(account.username), std::end(account.username));
+
+
+                if(cmd->get_username() != account_username || cmd->get_new_account_data() != account.account_data){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+            }
+        }
+
+        if(!edit_account_seen){
+            MERROR("Edit account output not found");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_offer)
+    {
+        bool create_offer_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_offer)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(command.script);
+
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer)
+            {
+                if(create_offer_seen)
+                {
+                    MERROR("Multiple Safex offer create outputs");
+                    return false;
+                }
+                create_offer_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_offer_data offer;
+                const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+                if(cmd->get_offerid() != offer.offer_id || cmd->get_price_peg_id() != offer.price_peg_id || cmd->get_seller() != offer.seller
+                    || cmd->get_title() != offer.title || cmd->get_price() != offer.price || cmd->get_min_sfx_price() != offer.min_sfx_price
+                    || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
+                    || cmd->get_description() != offer.description || cmd->get_seller_private_view_key() != offer.seller_private_view_key
+                    || cmd->get_seller_address() != offer.seller_address){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+            }
+        }
+
+        if(!create_offer_seen){
+            MERROR("Create offer output not found");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::edit_offer)
+    {
+        bool edit_offer_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::edit_offer)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_offer_update)
+            {
+                if(edit_offer_seen)
+                {
+                    MERROR("Multiple Safex offer edit outputs");
+                    return false;
+                }
+                edit_offer_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::edit_offer_data offer;
+                const cryptonote::blobdata offerblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(offerblob, offer);
+
+                if(cmd->get_offerid() != offer.offer_id || cmd->get_price_peg_id() != offer.price_peg_id || cmd->get_seller() != offer.seller
+                    || cmd->get_title() != offer.title || cmd->get_price() != offer.price || cmd->get_min_sfx_price() != offer.min_sfx_price
+                    || cmd->get_quantity() != offer.quantity || cmd->get_active() != offer.active || cmd->get_price_peg_used() != offer.price_peg_used
+                    || cmd->get_description() != offer.description){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+            }
+        }
+        if(!edit_offer_seen){
+            MERROR("Edit offer output not found");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::simple_purchase)
+    {
+        uint64_t network_fee = 0;
+        uint64_t product_payment = 0;
+        uint64_t total_payment = 0;
+        crypto::secret_key secret_seller_view_key;
+        crypto::public_key public_seller_spend_key;
+        bool purchase_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::simple_purchase)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::simple_purchase> cmd = safex::safex_command_serializer::parse_safex_command<safex::simple_purchase>(command.script);
+
+
+        if (tx.unlock_time > m_db->height())
+        {
+            MERROR("Purchase TX should not be locked");
+            return false;
+        }
+
+        for (const auto &vout: tx.vout) {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_purchase)
+            {
+                if(purchase_seen)
+                {
+                    MERROR("Multiple Safex purchase outputs");
+                    return false;
+                }
+                purchase_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::safex_offer offer_to_purchase;
+                safex::create_purchase_data purchase;
+                const cryptonote::blobdata purchaseblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(purchaseblob, purchase);
+
+                if(cmd->get_offerid() != purchase.offer_id
+                    || cmd->get_price() != purchase.price
+                    || cmd->get_quantity() != purchase.quantity
+                    || cmd->get_shipping() != purchase.shipping){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+                total_payment = purchase.price;
+                get_safex_offer(purchase.offer_id, offer_to_purchase);
+
+                secret_seller_view_key = offer_to_purchase.seller_private_view_key;
+                public_seller_spend_key = offer_to_purchase.seller_address.m_spend_public_key;
+
+            } else if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback_token)
+            {
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_feedback_token_data feedback_token;
+                const cryptonote::blobdata feedbacktokenblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(feedbacktokenblob, feedback_token);
+
+
+                if(cmd->get_offerid() != feedback_token.offer_id){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+            }
+        }
+
+        std::vector<crypto::public_key> seller_outs= is_safex_purchase_right_address(secret_seller_view_key, public_seller_spend_key, tx);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_network_fee)
+            {
+                network_fee += vout.amount;
+            }
+            else if (vout.target.type() == typeid(txout_to_key) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_cash)
+            {
+                const crypto::public_key &out = *boost::apply_visitor(destination_public_key_visitor(), vout.target);
+                auto it = std::find(seller_outs.begin(),seller_outs.end(),out);
+                if(it!=seller_outs.end())
+                    product_payment += vout.amount;
+            }
+        }
+
+        uint64_t calculated_network_fee = calculate_safex_network_fee(total_payment, m_nettype, command_type);
+        //check network fee payment
+        if (calculated_network_fee > network_fee)
+        {
+            MERROR("Not enough cash given for network fee");
+            return false;
+        }
+        //check purchase cash payment
+        if (total_payment - calculated_network_fee > product_payment)
+        {
+            MERROR("Not enough cash given for product payment");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_feedback)
+    {
+        bool feedback_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_feedback)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_feedback> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_feedback>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_feedback)
+            {
+                if(feedback_seen)
+                {
+                    MERROR("Multiple Safex feedback outputs");
+                    return false;
+                }
+                feedback_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_feedback_data feedback;
+                const cryptonote::blobdata feedbackblob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(feedbackblob, feedback);
+
+                if(cmd->get_offerid() != feedback.offer_id
+                    || cmd->get_stars_given() != feedback.stars_given
+                    || cmd->get_comment() != feedback.comment){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+            }
+        }
+        if(!feedback_seen){
+            MERROR("Create feedback output not found");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::create_price_peg)
+    {
+        bool create_price_peg_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::create_price_peg)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg)
+            {
+                if(create_price_peg_seen)
+                {
+                    MERROR("Multiple Safex create price peg outputs");
+                    return false;
+                }
+                create_price_peg_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::create_price_peg_data price_peg;
+                const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
+
+                if(cmd->get_title() != price_peg.title
+                    || cmd->get_price_peg_id() != price_peg.price_peg_id
+                    || cmd->get_creator() != price_peg.creator
+                    || cmd->get_description() != price_peg.description
+                    || cmd->get_currency() != price_peg.currency
+                    || cmd->get_rate() != price_peg.rate){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+            }
+        }
+        if(!create_price_peg_seen){
+            MERROR("Create price peg output not found");
+            return false;
+        }
+    }
+    else if (command_type == safex::command_t::update_price_peg)
+    {
+        bool update_price_peg_seen = false;
+        txin_to_script command;
+        for(auto txin: tx.vin){
+            if (txin.type() == typeid(txin_to_script))
+            {
+                const txin_to_script &stxin = boost::get<txin_to_script>(txin);
+                if (stxin.command_type == safex::command_t::update_price_peg)
+                {
+                    command = stxin;
+                }
+            }
+        }
+        std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(command.script);
+
+        for (const auto &vout: tx.vout)
+        {
+            if (vout.target.type() == typeid(txout_to_script) && get_tx_out_type(vout.target) == cryptonote::tx_out_type::out_safex_price_peg_update)
+            {
+                if(update_price_peg_seen)
+                {
+                    MERROR("Multiple Safex update price peg outputs");
+                    return false;
+                }
+                update_price_peg_seen = true;
+
+                const txout_to_script &out = boost::get<txout_to_script>(vout.target);
+                safex::update_price_peg_data price_peg;
+                const cryptonote::blobdata price_peg_blob(std::begin(out.data), std::end(out.data));
+                cryptonote::parse_and_validate_from_blob(price_peg_blob, price_peg);
+
+                if(cmd->get_price_peg_id() != price_peg.price_peg_id
+                    || cmd->get_rate() != price_peg.rate){
+                    MERROR("Output data not matching input command data");
+                    return false;
+                }
+
+            }
+        }
+        if(!update_price_peg_seen){
+            MERROR("Update price peg output not found");
+            return false;
+        }
+    }
+    else
+    {
+        MERROR("Unsupported safex command");
+        return false;
+    }
+
+    return true;
+}
+//------------------------------------------------------------------
 bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   for (const txin_v& in: tx.vin)
   {
     //CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
-    if (cryptonote::is_valid_transaction_input_type(in)) {
+    if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
       auto k_image_opt = boost::apply_visitor(key_image_visitor(), in);  //key image boost optional of currently checked input
       CHECK_AND_ASSERT_MES(k_image_opt, true, "key image is not available in input");
       const crypto::key_image &k_image = *k_image_opt;
+
+      if (in.type() == typeid(txin_to_script))
+      {
+          const txin_to_script& in_to_script = boost::get<txin_to_script>(in);
+          if(!safex::is_safex_key_image_verification_needed(in_to_script.command_type))
+              continue;
+      }
 
       if(have_tx_keyimg_as_spent(k_image))
         return true;
@@ -2709,7 +3572,7 @@ bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
 bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys)
 {
   PERF_TIMER(expand_transaction_2);
-  CHECK_AND_ASSERT_MES(tx.version == 2, false, "Transaction version is not 2");
+  CHECK_AND_ASSERT_MES(tx.version >= 2, false, "Transaction version is not 2");
 
   rct::rctSig &rv = tx.rct_signatures;
 
@@ -2776,7 +3639,76 @@ bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_pr
 
   return true;
 }
-//------------------------------------------------------------------
+//------------------------------------------------------------------.
+
+
+bool Blockchain::check_advanced_tx_input(const txin_to_script &txin, tx_verification_context &tvc)
+{
+
+  if (txin.command_type == safex::command_t::token_stake)
+  {
+    if (txin.amount > 0 || txin.token_amount == 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::token_unstake)
+  {
+    if (txin.token_amount == 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::donate_network_fee)
+  {
+    if (txin.amount == 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::create_account)
+  {
+    if (txin.amount != 0 || txin.token_amount == 0) //create account input references (spends some of token outputs), in total SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::edit_account)
+  {
+    if (txin.amount > 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::create_offer)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::edit_offer)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::simple_purchase)
+  {
+      if (txin.amount == 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::create_feedback)
+  {
+      if (txin.amount > 0 || txin.token_amount > 0)
+          return false;
+  }
+  else if (txin.command_type == safex::command_t::create_price_peg)
+  {
+    if (txin.amount > 0 || txin.token_amount > 0)
+      return false;
+  }
+  else if (txin.command_type == safex::command_t::update_price_peg)
+  {
+    if (txin.amount > 0 || txin.token_amount > 0)
+      return false;
+  }
+  else
+  {
+    MERROR_VER("Unknown input command type");
+    return false;
+  }
+
+  return true;
+}
+//------------------------------------------------------------------.
 // This function validates transaction inputs and their keys.
 // FIXME: consider moving functionality specific to one input into
 //        check_tx_input() rather than here, and use this function simply
@@ -2844,22 +3776,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         return false;
       }
     }
-
-    // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = (hf_version < HF_VERSION_ENFORCE_RCT) ? 1 : 2;
-    if (tx.version > max_tx_version)
-    {
-      MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
-      tvc.m_verifivation_failed = true;
-      return false;
-    }
-    const size_t min_tx_version = (n_unmixable > 0 ? 1 : (hf_version >= HF_VERSION_ENFORCE_RCT) ? 2 : 1);
-    if (tx.version < min_tx_version)
-    {
-      MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
-      tvc.m_verifivation_failed = true;
-      return false;
-    }
   }
 
   //sorted ins
@@ -2867,7 +3783,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   for (size_t n = 0; n < tx.vin.size(); ++n)
   {
     const txin_v &txin = tx.vin[n];
-    if (is_valid_transaction_input_type(txin))
+    if (is_valid_transaction_input_type(txin, tx.version))
     {
       const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
       if ((last_key_image != boost::value_initialized<crypto::key_image>()) && (memcmp(&k_image, &last_key_image, sizeof(last_key_image)) >= 0))
@@ -2899,73 +3815,89 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
   uint64_t already_migrated_tokens = m_db->height() ? m_db->get_block_already_migrated_tokens(m_db->height() - 1) : 0;  //whole number of tokens, without decimals
   CHECK_AND_ASSERT_MES((already_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "wrong number of migrated tokens, please purge and rebuild database");
-
   MDEBUG("already_migrated_tokens: " << already_migrated_tokens);
   uint64_t newly_migrated_tokens = 0;
-
-
-
-
 
   for (const auto& txin : tx.vin)
   {
 
     // make sure output being spent is of allow input type (txin_to_key,txin_token_to_key) ...
-    CHECK_AND_ASSERT_MES(is_valid_transaction_input_type(txin), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
+    CHECK_AND_ASSERT_MES(is_valid_transaction_input_type(txin, tx.version), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
 
     // make sure that the input amount is a while number
-    if (tx.version == 1 && ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration))))
+    if ((txin.type() == typeid(txin_token_to_key)) || (txin.type() == typeid(txin_token_migration)))
     {
-      auto amount = boost::apply_visitor(amount_visitor(), txin);
-      CHECK_AND_ASSERT_MES(tools::is_whole_coin_amount(*amount), false, "token amount not a whole number");
+      auto token_amount = boost::apply_visitor(token_amount_visitor(), txin);
+      CHECK_AND_ASSERT_MES(tools::is_whole_token_amount(*token_amount), false, "token amount not a whole number");
 
       //Check for maximum of migrated tokens
       if (txin.type() == typeid(txin_token_migration))
       {
-        newly_migrated_tokens += *amount/SAFEX_TOKEN; //don't keep decimals
+        newly_migrated_tokens += *token_amount/SAFEX_TOKEN; //don't keep decimals
         //note: we are duing calculations with whole number of tokens. Database keeps whole number of tokens
         CHECK_AND_ASSERT_MES((already_migrated_tokens+newly_migrated_tokens <= TOKEN_TOTAL_SUPPLY), false, "max number of migrated tokens exceeded");
-
       }
     }
+
+    /* Check advaced command intput validity */
+    if ((txin.type() == typeid(txin_to_script)) && !check_advanced_tx_input(boost::get<txin_to_script>(txin), tvc))
+    {
+      MERROR_VER("Error in advanced input");
+      tvc.m_safex_invalid_input = true;
+      return false;
+    }
+
 
     // make sure tx output has key offset(s) (is signed to be used)
     CHECK_AND_ASSERT_MES(is_valid_txin_key_offsets(txin), false, "empty in_to_key.key_offsets in transaction with id " << get_transaction_hash(tx));
 
     const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);  //key image of currently checked input
 
-    if (have_tx_keyimg_as_spent(k_image))
+    if (txin.type() == typeid(txin_to_script))
     {
-      MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
-      tvc.m_double_spend = true;
-      return false;
+        const txin_to_script& in_to_script = boost::get<txin_to_script>(txin);
+        if(safex::is_safex_key_image_verification_needed(in_to_script.command_type)){
+            if (have_tx_keyimg_as_spent(k_image))
+            {
+              MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+              tvc.m_double_spend = true;
+              return false;
+            }
+        }
+    } else {
+        if (have_tx_keyimg_as_spent(k_image))
+        {
+            MERROR_VER("Key image already spent in blockchain: " << epee::string_tools::pod_to_hex(k_image));
+            tvc.m_double_spend = true;
+            return false;
+        }
     }
 
-    if (tx.version == 1)
-    {
-      // basically, make sure number of inputs == number of signatures
-      CHECK_AND_ASSERT_MES(sig_index < tx.signatures.size(), false, "wrong transaction: not signature entry for input with index= " << sig_index);
+
+    // basically, make sure number of inputs == number of signatures
+    CHECK_AND_ASSERT_MES(sig_index < tx.signatures.size(), false, "wrong transaction: not signature entry for input with index= " << sig_index);
+
 
 #if defined(CACHE_VIN_RESULTS)
-      auto itk = it->second.find(k_image);
-      if(itk != it->second.end())
+    auto itk = it->second.find(k_image);
+    if(itk != it->second.end())
+    {
+      if(!itk->second)
       {
-        if(!itk->second)
-        {
-          MERROR_VER("Failed ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
-          return false;
-        }
-
-        // txin has been verified already, skip
-        sig_index++;
-        continue;
+        MERROR_VER("Failed ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
+        return false;
       }
-#endif
+
+      // txin has been verified already, skip
+      sig_index++;
+      continue;
     }
+#endif
+
 
     // make sure that output being spent matches up correctly with the
     // signature spending it.
-    if (!check_tx_input(tx.version, txin, tx_prefix_hash, tx.version == 1 ? tx.signatures[sig_index] : std::vector<crypto::signature>(), tx.rct_signatures, pubkeys[sig_index], pmax_used_block_height))
+    if (!check_tx_input(tx.version, txin, tx_prefix_hash, tx.signatures[sig_index], pubkeys[sig_index], pmax_used_block_height))
     {
       it->second[k_image] = false;
       MERROR_VER("Failed to check ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << k_image << "  sig_index: " << sig_index);
@@ -2977,15 +3909,56 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    if (tx.version == 1)
-    {
       if (threads > 1)
       {
         // ND: Speedup
         // 1. Thread ring signature verification if possible.
         if (txin.type() == typeid(txin_token_migration)) {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_migration_signature, this, std::cref(tx_prefix_hash), std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index])));
-        } else {
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
+          std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          get_safex_account_public_key(cmd->get_username(), account_pkey);
+          tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                            std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+          );
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_offer)) {
+            std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                              std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+            );
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_offer)) {
+            std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                              std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+            );
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_price_peg)) {
+          std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                            std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+          );
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
+          std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
+          tpool.submit(&waiter, boost::bind(&Blockchain::check_safex_account_signature, this, std::cref(tx_prefix_hash), std::cref(account_pkey),
+                                            std::cref(tx.signatures[sig_index][0]), std::ref(results[sig_index]))
+          );
+        }
+        else {
           tpool.submit(&waiter, boost::bind(&Blockchain::check_ring_signature, this, std::cref(tx_prefix_hash), std::cref(k_image), std::cref(pubkeys[sig_index]), std::cref(tx.signatures[sig_index]), std::ref(results[sig_index])));
         }
       }
@@ -2993,7 +3966,39 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         if (txin.type() == typeid(txin_token_migration)) {
           check_migration_signature(tx_prefix_hash, tx.signatures[sig_index][0], results[sig_index]);
-        } else {
+        } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_account)) {
+            std::unique_ptr<safex::edit_account> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_account>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_username(), account_pkey);
+            check_safex_account_signature(tx_prefix_hash,account_pkey,tx.signatures[sig_index][0],results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_offer)) {
+            std::unique_ptr<safex::create_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::edit_offer)) {
+            std::unique_ptr<safex::edit_offer> cmd = safex::safex_command_serializer::parse_safex_command<safex::edit_offer>(boost::get<txin_to_script>(txin).script);
+            crypto::public_key account_pkey{};
+            get_safex_account_public_key(cmd->get_seller(), account_pkey);
+            check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_price_peg)) {
+          std::unique_ptr<safex::create_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::create_price_peg>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          get_safex_account_public_key(cmd->get_creator(), account_pkey);
+          check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::update_price_peg)) {
+          std::unique_ptr<safex::update_price_peg> cmd = safex::safex_command_serializer::parse_safex_command<safex::update_price_peg>(boost::get<txin_to_script>(txin).script);
+          crypto::public_key account_pkey{};
+          safex::safex_price_peg sfx_price_peg;
+          get_safex_price_peg(cmd->get_price_peg_id(),sfx_price_peg);
+          get_safex_account_public_key(sfx_price_peg.creator, account_pkey);
+          check_safex_account_signature( tx_prefix_hash, account_pkey,tx.signatures[sig_index][0], results[sig_index]);
+        }
+        else {
           check_ring_signature(tx_prefix_hash, k_image, pubkeys[sig_index], tx.signatures[sig_index], results[sig_index]);
         }
 
@@ -3011,17 +4016,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         }
         it->second[k_image] = true;
       }
-    }
 
     sig_index++;
   }
-  if (tx.version == 1 && threads > 1)
-    waiter.wait();
 
-  if (tx.version == 1)
-  {
     if (threads > 1)
     {
+       waiter.wait();
       // save results to table, passed or otherwise
       bool failed = false;
       for (size_t i = 0; i < tx.vin.size(); i++)
@@ -3040,150 +4041,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         return false;
       }
     }
+
+  if(!check_safex_tx(tx,tvc)){
+      tvc.m_verifivation_failed = true;
+      tvc.m_safex_verification_failed = true;
+      return false;
   }
-  else
-  {
-    //for RingCT
-    if (!expand_transaction_2(tx, tx_prefix_hash, pubkeys))
-    {
-      MERROR_VER("Failed to expand rct signatures!");
-      return false;
-    }
 
-    // from version 2, check ringct signatures
-    // obviously, the original and simple rct APIs use a mixRing that's indexes
-    // in opposite orders, because it'd be too simple otherwise...
-    const rct::rctSig &rv = tx.rct_signatures;
-    switch (rv.type)
-    {
-    case rct::RCTTypeNull: {
-      // we only accept no signatures for coinbase txes
-      MERROR_VER("Null rct signature on non-coinbase tx");
-      return false;
-    }
-    case rct::RCTTypeSimple:
-    case rct::RCTTypeSimpleBulletproof:
-    {
-      // check all this, either reconstructed (so should really pass), or not
-      {
-        if (pubkeys.size() != rv.mixRing.size())
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-          return false;
-        }
-        for (size_t i = 0; i < pubkeys.size(); ++i)
-        {
-          if (pubkeys[i].size() != rv.mixRing[i].size())
-          {
-            MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-            return false;
-          }
-        }
-
-        for (size_t n = 0; n < pubkeys.size(); ++n)
-        {
-          for (size_t m = 0; m < pubkeys[n].size(); ++m)
-          {
-            if (pubkeys[n][m].dest != rct::rct2pk(rv.mixRing[n][m].dest))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched pubkey at vin " << n << ", index " << m);
-              return false;
-            }
-            if (pubkeys[n][m].mask != rct::rct2pk(rv.mixRing[n][m].mask))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched commitment at vin " << n << ", index " << m);
-              return false;
-            }
-          }
-        }
-      }
-
-      if (rv.p.MGs.size() != tx.vin.size())
-      {
-        MERROR_VER("Failed to check ringct signatures: mismatched MGs/vin sizes");
-        return false;
-      }
-      for (size_t n = 0; n < tx.vin.size(); ++n)
-      {
-        if (rv.p.MGs[n].II.empty() || memcmp(&boost::get<txin_to_key>(tx.vin[n]).k_image, &rv.p.MGs[n].II[0], 32))
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched key image");
-          return false;
-        }
-      }
-
-      if (!rct::verRctSimple(rv, false))
-      {
-        MERROR_VER("Failed to check ringct signatures!");
-        return false;
-      }
-      break;
-    }
-    case rct::RCTTypeFull:
-    case rct::RCTTypeFullBulletproof:
-    {
-      // check all this, either reconstructed (so should really pass), or not
-      {
-        bool size_matches = true;
-        for (size_t i = 0; i < pubkeys.size(); ++i)
-          size_matches &= pubkeys[i].size() == rv.mixRing.size();
-        for (size_t i = 0; i < rv.mixRing.size(); ++i)
-          size_matches &= pubkeys.size() == rv.mixRing[i].size();
-        if (!size_matches)
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched pubkeys/mixRing size");
-          return false;
-        }
-
-        for (size_t n = 0; n < pubkeys.size(); ++n)
-        {
-          for (size_t m = 0; m < pubkeys[n].size(); ++m)
-          {
-            if (pubkeys[n][m].dest != rct::rct2pk(rv.mixRing[m][n].dest))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched pubkey at vin " << n << ", index " << m);
-              return false;
-            }
-            if (pubkeys[n][m].mask != rct::rct2pk(rv.mixRing[m][n].mask))
-            {
-              MERROR_VER("Failed to check ringct signatures: mismatched commitment at vin " << n << ", index " << m);
-              return false;
-            }
-          }
-        }
-      }
-
-      if (rv.p.MGs.size() != 1)
-      {
-        MERROR_VER("Failed to check ringct signatures: Bad MGs size");
-        return false;
-      }
-      if (rv.p.MGs.empty() || rv.p.MGs[0].II.size() != tx.vin.size())
-      {
-        MERROR_VER("Failed to check ringct signatures: mismatched II/vin sizes");
-        return false;
-      }
-      for (size_t n = 0; n < tx.vin.size(); ++n)
-      {
-        if (memcmp(&boost::get<txin_to_key>(tx.vin[n]).k_image, &rv.p.MGs[0].II[n], 32))
-        {
-          MERROR_VER("Failed to check ringct signatures: mismatched II/vin sizes");
-          return false;
-        }
-      }
-
-      if (!rct::verRct(rv, false))
-      {
-        MERROR_VER("Failed to check ringct signatures!");
-        return false;
-      }
-      break;
-    }
-    default:
-      MERROR_VER("Unsupported rct type: " << rv.type);
-      return false;
-    }
-  }
   return true;
 }
 
@@ -3207,6 +4071,15 @@ void Blockchain::check_migration_signature(const crypto::hash &tx_prefix_hash,
     get_migration_verification_public_key(m_nettype, sender_public_key);
     result = crypto::check_signature(tx_prefix_hash, sender_public_key, signature) ? 1 : 0;
 }
+//------------------------------------------------------------------
+void Blockchain::check_safex_account_signature(const crypto::hash &tx_prefix_hash, const crypto::public_key &sender_safex_account_key,
+                                           const crypto::signature &signature, uint64_t &result)
+{
+
+  result = safex::check_safex_account_signature(tx_prefix_hash, sender_safex_account_key, signature) ? 1 : 0;
+}
+
+
 //------------------------------------------------------------------
 static uint64_t get_fee_quantization_mask()
 {
@@ -3250,10 +4123,10 @@ uint64_t Blockchain::get_dynamic_per_kb_fee(uint64_t block_reward, size_t median
 //------------------------------------------------------------------
 bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
 {
-  const uint8_t version = get_current_hard_fork_version();
+  const uint8_t hf_version = get_current_hard_fork_version();
 
   uint64_t fee_per_kb;
-  if (version < HF_VERSION_DYNAMIC_FEE)
+  if (hf_version < HF_VERSION_DYNAMIC_FEE)
   {
     fee_per_kb = FEE_PER_KB;
   }
@@ -3262,9 +4135,9 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
     uint64_t median = m_current_block_cumul_sz_limit / 2;
     uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
     uint64_t base_reward;
-    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+    if (!get_block_reward(median, 1, already_generated_coins, base_reward, hf_version, m_db->height()))
       return false;
-    fee_per_kb = get_dynamic_per_kb_fee(base_reward, median, version);
+    fee_per_kb = get_dynamic_per_kb_fee(base_reward, median, hf_version);
   }
   MDEBUG("Using " << print_money(fee_per_kb) << "/kB fee");
 
@@ -3283,15 +4156,15 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
 //------------------------------------------------------------------
 uint64_t Blockchain::get_dynamic_per_kb_fee_estimate(uint64_t grace_blocks) const
 {
-  const uint8_t version = get_current_hard_fork_version();
+  const uint8_t hf_version = get_current_hard_fork_version();
 
-  if (version < HF_VERSION_DYNAMIC_FEE)
+  if (hf_version < HF_VERSION_DYNAMIC_FEE)
     return FEE_PER_KB;
 
   if (grace_blocks >= CRYPTONOTE_REWARD_BLOCKS_WINDOW)
     grace_blocks = CRYPTONOTE_REWARD_BLOCKS_WINDOW - 1;
 
-  const uint64_t min_block_size = get_min_block_size(version);
+  const uint64_t min_block_size = get_min_block_size(hf_version);
   std::vector<size_t> sz;
   get_last_n_blocks_sizes(sz, CRYPTONOTE_REWARD_BLOCKS_WINDOW - grace_blocks);
   for (size_t i = 0; i < grace_blocks; ++i)
@@ -3303,13 +4176,13 @@ uint64_t Blockchain::get_dynamic_per_kb_fee_estimate(uint64_t grace_blocks) cons
 
   uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
   uint64_t base_reward;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, hf_version, m_db->height()))
   {
     MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;
   }
 
-  uint64_t fee = get_dynamic_per_kb_fee(base_reward, median, version);
+  uint64_t fee = get_dynamic_per_kb_fee(base_reward, median, hf_version);
   MDEBUG("Estimating " << grace_blocks << "-block fee at " << print_money(fee) << "/kB");
   return fee;
 }
@@ -3345,7 +4218,7 @@ bool Blockchain::is_tx_spendtime_unlocked(uint64_t unlock_time) const
 // and validates that they exist and are usable.  It also checks the ring
 // signature for each input.
 template <class T>
-bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
+bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 
@@ -3378,88 +4251,242 @@ bool Blockchain::check_tx_input_generic(size_t tx_version, const T& txin, const 
                   return true;
               }
 
-          }
-          return false;
-      }
-
-      bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
-    {
-      //check tx unlock time
-      if (!m_bch.is_tx_spendtime_unlocked(unlock_time))
-      {
-        MERROR_VER("One of outputs for one of inputs has wrong tx.unlock_time = " << unlock_time);
-        return false;
-      }
-
-
-
-      if(get_pwned(pubkey))
-      {
-          MERROR_VER("One of outputs has a problematic history:  " << pubkey);
-          return false;
-      }
-      // The original code includes a check for the output corresponding to this input
-      // to be a txout_to_key. This is removed, as the database does not store this info,
-      // but only txout_to_key outputs are stored in the DB in the first place, done in
-      // Blockchain*::add_output
-
-      m_output_keys.push_back(rct::ctkey({rct::pk2rct(pubkey), commitment}));
-      return true;
-    }
-  };
-
   output_keys.clear();
 
-  uint64_t value_amount = get_tx_input_amount(txin);
+  uint64_t cash_amount = get_tx_input_cash_amount(txin);
+  uint64_t token_amount = get_tx_input_token_amount(txin);
 
   // collect output keys
-  outputs_visitor vi(output_keys, *this);
+  Blockchain::outputs_generic_visitor vi(output_keys, *this);
   if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
   {
-    MERROR_VER("Failed to get output keys for tx with amount = " << print_money(value_amount) << " and count indexes " << txin.key_offsets.size());
+    MERROR_VER("Failed to get output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
     return false;
   }
 
   if(txin.key_offsets.size() != output_keys.size())
   {
-    MERROR_VER("Output keys for tx with amount = " << value_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
+    MERROR_VER("Output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
     return false;
   }
-  if (tx_version == 1) {
-    CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
+
+  CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
+    return true;
+}
+
+//
+//      bool get_pwned(const public_key &key)
+//      {
+//          uint8_t version = m_bch.get_current_hard_fork_version();
+//          if(version < HF_VERSION_STOP_COUNTERFEIT_TOKENS)
+//              return false;
+//
+//          std::vector<std::string> problems{
+//                  "194cb649cdb2bc6169a2f69da1de2eb85842ed1fbb5fc12c8f712f9e51dcaba2",
+//                  "60f5bfa4d87131176e94d4b12224d502a0ba389bf975a73cdd27476181019f6f",
+//                  "00f195e5aaa28abf95f7a7398ccd0e48138f607f318444658ed7390263c971a3",
+//                  "031a56087d76158ac6ddc19bfd352a69784f2053e98f9fd2a681bbbb34c8f831",
+//                  "4554113fb38691364bdcde8a413f4e4d3b5d3ce95bbe961b9a2f5d598a33fcff",
+//                  "952b973ccfba778db9622746dc837c1487ec05c94d2760b208c2609032155d6c",
+//                  "311f14601dca4171d6e9a6eff503b78be23a6ae771f3d7425797c1652e8b2972",
+//                  "3fd47702fc31cc99053dbd4a414e7ccc87409b1075250a062dcef242f7b290d3",
+//                  "c4c7121c2b30eb5203c5953035198990b655c6fcd5722beeeb5a8ff9fad12727",
+//                  "99cf9f822df020ad87e61275706cb896190e023aedab0b71842948007997df2c",
+//                  "d7221db6117620fc204312ff2fd8c36c23859e2e3bc334f6412cd00300de3a8f",
+//                  "617866e93e2036759c3723be0bfe42be9364a69ba4c6c1f61d6104ab9f43b6fe",
+//                  "76cb8eb947fcb86f86bf28d01d1ce791c1b09e7825893e6be3fafba19b1b3d0f",
+//                  "33f964dc91b96547fa1452f25cd39c797bcebc13a88c4a650af524be4974d03d",
+//                  "66588942f6c89d4e23d1abe7477b7e3a816aae81c726a326e0610aa95b56eb6b",
+//                  "c67aaf0ea197bc3b67d38050e36aed459726db93b4771550b92bb689b7149972",
+//                  "07023f89fe8af1191815408193b4bce7988ac084150b8c2172040b3be18192f4",
+//                  "ca7f01aed0054502f0c58ff6ef34b962e54df2dc3fbb26fb585c91d0253fb1ec",
+//                  "d0fe199544256a18ca4f5184c78778e9e9f196d0635865c26d7a38775c730337",
+//                  "b35742f195c750ece0fe71e9e4363d67488bae4dea6537188d6a0a49151ba062",
+//                  "43c25cc2f2da5f72c158165a680fb82159d25d5763a3ef1b2f1bd42b4d2dc10c",
+//                  "3d46bee4dd9f1f552ded018d950ae40bd41de6d33d7968a6be69bd7db4c6deef",
+//                  "ce92d179dc3e0879ce898a95b6ce1b2c2f3477e26e0ac13669c6594c36b8f92b",
+//                  "f343d19f0f68d5a62a46df78247fa090e7f56dc3424772251fe1a270987d1186",
+//                  "5791c42c721c73c0bc4cbacc2346824ed04a057cca7b7258266cf01e60d72325",
+//                  "c8306f361dbcc059a8311e209e850449d3facd2ff02d8b832ccadbb90f3bd44b",
+//                  "33510a8e9489e28f9ef8ead196b0c21a9e1b6ebcf2c07e081a0a10d951d6be29",
+//                  "dd4cab7f19fb878a5516e6258fb625dde94a66d0348dcfad283038d2e023ae42",
+//                  "cf1898cb85560d88b89643c0170f5914c957932faa275c0579db5748051c496c",
+//                  "f7bea78001ecaef799ca19d666eeeb03dcd1b0844486e93f17b0b568fef120d7",
+//                  "473c6fc94da767cc4a0d5f4fba2b8d47f9a99a193aa91a6acdd8036b8e3db123",
+//                  "7c1bfa95023730dfb8809b29b7ab77d34a4e3e5558e583d8b3d22415fd340f0a",
+//                  "cc48427de3319b35aa8e59cc25324f381a1ff7a83b2e46e2cb974d8714ae439b",
+//                  "df190c9ee522b7092683bc65307e4042391175103fb0fbe73cfc7abb1ead7b9e",
+//                  "be5cfd3a8d4ad05f795296478083c1249aa465e64c4ed15e1fc36a0e4828aa98",
+//                  "63af8e04bc4ee59c4f19cbaf7827fb93af4959f4919c4867c222dd715fe6d332",
+//                  "86b51317a3f93032255ccc4771021833213e8bff4ca9b3baba70f7ac11d6c3eb",
+//                  "2eca12889f7b6f03a91c1034378b899e612656b473c8d26ffba9585827ee484a",
+//                  "28a79e3ad3a054cd119623969b1c91f261f40c9e598e90cf06e7b7201db0f1b2",
+//                  "a9157e1c95caa9144b8a7028066e62b86e93e7742d789f59837151f053cafb0f",
+//                  "342e56e868d4ab9bf972ffd15826bbad8b0ebeb3cfbd985b4a2d0ac095772ca0",
+//                  "f5c75e6ae2301b313347bab69910f28b9a91d1afd58ccd71dd776e6c8850a41d",
+//                  "0e884397097c936bb1d14ef3bc5a0e9e0fe8def5b0ee287566545d0cb8332921",
+//                  "6d4e6cc2299871b505d9b12c7583194350e63c84798d2285e0735b32e7f4a4cb",
+//                  "cf059d36d318365af7ca592ae0439ddd18b8f26dfdb9e87ad35c611b9c7c90f8",
+//                  "db12dccbf946b3a83192fad4779e4506d3998091a798b16be1e70e76ef655d29",
+//                  "1af8122d204918d75c1818a74ee4fd1dfd56e78653e2f0d2978bb8c9e15a2661",
+//                  "e7d626f0a5308fd704439356c0891eafd934221a61073abb6735f1d807271d7f",
+//                  "4ac505f3e8112da00f7078e0dedd80b6d2159ad7e4504a195dbcab77c2b81d4d",
+//                  "200d2e46eab0a347c1af38c611e6349c3284d5edb84a276e569a075311298e88",
+//                  "2be0d30946c909f0f4c43a00f41711459e3723feee74ff3ba8ec75b01422f903",
+//                  "eacaac6c6b0ba344ba35ce55c779abe4c06bd6fcc00fd370cc287e8f83c1176d",
+//                  "dc67327222d179a781cfcdc6299f8b8260948c5b79438979e8469edff2fa05d0",
+//                  "40fb725d6f668d5713d075e2111727386b5adb1101fd7f2d7553a08070b66f10",
+//                  "97e003e3acefa5dfd109c0d12e1281cc24bbeb4e78f5a0f9fc897ed2bdaa76a8",
+//                  "40d980a7f574444817300b96abe75fec228887d3298afd0e0364cb067980d2e0",
+//                  "9421a5399ef81ee410c77e7ee90ab7f58fc1cc7e33b7c7964e7e083e5764d2a4",
+//                  "1481cca61c169f391a48e2859ea2d61634e87e02190481ea1aee7cf7f3cd60ae",
+//                  "4edb1f8c4fd8a00d4f2a409f2db0729f81ccc91b52fdb7b6455bc7df951eed0a",
+//                  "39d0e6886d74f7c8f0c9b47635fa3b79d99eee4663ea4c5e0a5ebeb5c67e1352",
+//                  "14a0a12e5c52787161dbf254b913573d840c355298d218c5f7864ce3d12c821f",
+//                  "12f5664e130752146c4cc96444e734e535c67a3058752b53679cd3c48f85d8c8",
+//                  "1dcb1c3b242fef3206ae2f6cda5708cb6f3001bda88f4947aa5fdd6d0e8c8e97",
+//                  "63ca4cfb821741d78f3386194b1c909881573783a5bebfe16ed4c0a7246e4174",
+//                  "582a6296a70b69f04d596668ebe8c1e1ad93e55ffb1d637cc124309ea3c6907c",
+//                  "cbcc1cf6fc22b38f726fd464faa62a2860c87382473efb81cc68ff50f43c3c08",
+//                  "ab2b8ea7805e69bb05f2af2768440e26a76525b91006f667d2a3a152269f3f9f",
+//                  "46f20f58f5a23c7ede0383ca4876e4fe9f246f0b3c8da7010be8b82953a001ff",
+//                  "a23947a583eaa7c71c83dcab4bbdde99f2108141a96f90b07da0b8e61d1d9a8e",
+//                  "6354d9115fb009f7eeb512659dbdee05c7b0f3aa90b13d6dd8d5c77c1bea506b",
+//                  "2c1d3ae50a69c450307f975d4924b0bafcaa388e7f7ec0b514788b06253d7579",
+//                  "5ffe1e4ac141b544f8b03d6af82c142ca5cfb4760544c90e784ec9d53be2d209",
+//                  "8114e26da6c5c2c949917081bbc3d29c7c5d9c751d265fd9e0828637a7985c40",
+//                  "6c1d762f646c492bbf7b69e25d0e7f93c08b748ef6968b00689acf6e02fbe407",
+//                  "2f5368d011ab94cfec5c57a476d1dcfa1b469664390ecb1e2f1cc780c4315500",
+//                  "c0ea9d2dc3d6ae166a2d279245fdb35d085273d31515f1532135d2410cb4655d",
+//                  "ef3380804b2cb5aed38e98ae322860593214470ac8dc3af51bb6a97543ddc3cc",
+//                  "559a2cc9f973d89fc24b805331f35707147efd0ad5c28d2404a8d3d65e9d7d21",
+//                  "46d5ae7c33520ef54f6ef127320fdda5971134a656bed93893a154bb504685ae",
+//                  "c77ef0fc1d6f928ca8cbbea7a07326a9bfcce95f739207d1e3374d7e1e5a8c8c",
+//                  "91578de322ee5d6b2e91eeac3f5a8127a75875dd89f5bd27df99c71e379e231b",
+//                  "72d43b7099b3bbec6e5b7d7c85b46ad907d9c82354227541b5a5642b3a6710ae",
+//                  "5e68c8e895bd2de86eb395f8854153797f37029e791ed9d67a427af96635c0b4",
+//                  "54ab7a01f552d6a4aa7310b1bb857b582b45eac2ca10f0e6f3bb03e2a2adb36f",
+//                  "c655fdb9f429b8217e0b2d3beaa9c1d0d8ef21aa10268a3fe7f539c8133bf340",
+//                  "835dbea0efb685e219318fdd4468a3c062474bc119594a692bfeaa50e3f6caf5",
+//                  "1f6d1827cbd11e2ddfc2776cf9d75d895b72bc6a6dbd5fffa1673ccea29eba9d",
+//                  "a77e65d77be85a933d485057169f0c7b60fd3cb012ec9d653f9a9e5a72967d6e",
+//                  "e47148d35a753f2d431ea48493affd59bca179d9daf0e3eddf16f0e7600f332d",
+//                  "293d2b82a7ab10571647ad76a9503416becef899d45fa1f9a226d558e54e339a",
+//                  "d0fd2898006c6c7dc31103dbc0c717bd11d80ba466bfef7a1b53ba33ef2892df",
+//                  "92e661bbc6f1e4a30517bcc98be937548ca29e63d965fc9fc086116bdab946ec",
+//                  "69b48fc49d042214466785e5f86c4e107411eb3eeed6001c49364f62d7c3ef15",
+//                  "deae6138d51ff99696762f22d0c4fc9f307b3c5b3715f2301fa099d255163d26",
+//                  "d89803d5bc869ef2315f9c7e7db0d15ffb77cb4e28bb8b8c30b46540c43af344",
+//                  "01cf792b750853bee28c7802b01372e92ed879e05d2ed49ff66565ebb4ea2b71",
+//                  "cd5dd5db3d60dacb0c6cd74dbd4997091542042929cebf26df9e294257fca862",
+//                  "ed6a5e59330ce9cdf33ecd38634440a68d19e2d15d71e13ae22cb9fb83ca19a9",
+//                  "89a57549da28f39eea78360bf1ffb929eda65e208b7437e3f1f9b75bdd3a6db5",
+//                  "0bd94b23ca2aa1551bd5beccb8ab781e2325aba9f733d76fea0d1c7d34006ce2",
+//                  "4f10ff7945b62d63815f5dd1e9c7840f4b9ac3eb25b29d530e78cc1afb455350",
+//                  "e4d8f374b6e45a83360d2553279ffbb9278e31e5131ee6c8f9455d0b5b7636e2",
+//                  "8195a03cd1698aca0779d6c8084f23cbe6345a85a72c42f16d80339ce1c7996e",
+//                  "6f91481ee3270569a7c08e828ca5b7bc828f4f53ba051137212c0a16390d3ac6",
+//                  "94e26eb5fc79331d97801b7ab5565d2c92480a359116b9592056e389b42f5912",
+//                  "6229cc4b183172eb640c46516e01682ea661f0ea4c3865d0192866a67ea76c5c",
+//                  "8a921eebf4aaedc2bd0ac6c45c6c1255686bc787a80ea50c22d787196de677f7",
+//                  "2aa7baa21d84eb7e18eb5ed39b703bba20cdfed0a68e13e71a2d4ba3e59983c3",
+//                  "6643ed1624917c74bbdc79537676281617bb513262e24200474d4a4fb6e076b5"};
+//
+//          for(const auto& it: problems) {
+//              crypto::public_key problematic_key;
+//
+//              epee::string_tools::hex_to_pod(it, problematic_key);
+//
+//              if(problematic_key==key){
+//                  LOG_ERROR("I'm sorry Dave, I'm afraid I can't do that.");
+//                  return true;
+//              }
+//
+//          }
+//          return false;
+//      }
+//
+//
+//
+//
+//      if(get_pwned(pubkey))
+//      {
+//          MERROR_VER("One of outputs has a problematic history:  " << pubkey);
+//          return false;
+//      }
+//      // The original code includes a check for the output corresponding to this input
+//      // to be a txout_to_key. This is removed, as the database does not store this info,
+//      // but only txout_to_key outputs are stored in the DB in the first place, done in
+//      // Blockchain*::add_output
+//
+//
+//  return true;
+//}
+//------------------------------------------------------------------
+// This function locates all outputs associated with a given input (mixins)
+// and validates that they exist and are usable for advanced inputs
+// with comamnds.  It also checks the ring
+// signature for each input.
+bool Blockchain::check_tx_input_script(size_t tx_version, const txin_to_script& txin, const crypto::hash& tx_prefix_hash,
+                                       const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys,
+                                       uint64_t* pmax_related_block_height)
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  //CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+  output_keys.clear();
+
+
+  uint64_t cash_amount = get_tx_input_cash_amount(txin);
+  uint64_t token_amount = get_tx_input_token_amount(txin);
+
+  // collect output keys
+  Blockchain::outputs_generic_visitor vi(output_keys, *this);
+  if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
+  {
+    MERROR_VER("Failed to get advanced output keys for tx with cash amount = " << print_money(cash_amount) << " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size());
+    return false;
   }
-  // rct_signatures will be expanded after this
+
+  if(txin.key_offsets.size() != output_keys.size())
+  {
+    MERROR_VER("Advanced output keys for tx with amount= " << cash_amount<< " token amount=" << token_amount << " and count indexes " << txin.key_offsets.size() << " returned wrong keys count " << output_keys.size());
+    return false;
+  }
+
+  CHECK_AND_ASSERT_MES(sig.size() == output_keys.size(), false, "internal error: tx signatures count=" << sig.size() << " mismatch with outputs keys count for inputs=" << output_keys.size());
+
   return true;
 }
 //------------------------------------------------------------------
 // Call particular specialized function to check various input types
-bool Blockchain::check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, const rct::rctSig &rct_signatures, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
+bool Blockchain::check_tx_input(size_t tx_version, const txin_v& txin, const crypto::hash& tx_prefix_hash, const std::vector<crypto::signature>& sig, std::vector<rct::ctkey> &output_keys, uint64_t* pmax_related_block_height)
 {
   struct txin_visitor : public boost::static_visitor<bool> {
       size_t tx_version;
       const crypto::hash& tx_prefix_hash;
       const std::vector<crypto::signature>& sig;
-      const rct::rctSig &rct_signatures;
       std::vector<rct::ctkey> &output_keys;
       uint64_t* pmax_related_block_height;
       Blockchain *const that;
 
       txin_visitor(Blockchain *const _that, size_t _tx_version, const crypto::hash& _tx_prefix_hash, const std::vector<crypto::signature>& _sig,
-          const rct::rctSig &_rct_signatures, std::vector<rct::ctkey> &_output_keys, uint64_t* _pmax_related_block_height):
-            that(_that), tx_version(_tx_version), tx_prefix_hash(_tx_prefix_hash), sig(_sig),rct_signatures(_rct_signatures),output_keys(_output_keys),
+              std::vector<rct::ctkey> &_output_keys, uint64_t* _pmax_related_block_height):
+            that(_that), tx_version(_tx_version), tx_prefix_hash(_tx_prefix_hash), sig(_sig), output_keys(_output_keys),
             pmax_related_block_height(_pmax_related_block_height)
       {}
 
       bool operator()(const cryptonote::txin_gen & _txin) const {return false;}
-      bool operator()(const txin_to_key & _txin) const {return that->check_tx_input_generic<txin_to_key>(tx_version, _txin, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height);}
-      bool operator()(const txin_token_to_key & _txin) const {return that->check_tx_input_generic<txin_token_to_key>(tx_version, _txin, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height);}
+      bool operator()(const txin_to_key & _txin) const {return that->check_tx_input_generic<txin_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
+      bool operator()(const txin_token_to_key & _txin) const {return that->check_tx_input_generic<txin_token_to_key>(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_token_migration & _txin) const {return that->check_tx_input_migration(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
-      bool operator()(const txin_to_script & _txin) const {return false;}
+      bool operator()(const txin_to_script & _txin) const {return that->check_tx_input_script(tx_version, _txin, tx_prefix_hash, sig, output_keys, pmax_related_block_height);}
       bool operator()(const txin_to_scripthash & _txin) const {return false;}
 
   };
 
-  return boost::apply_visitor(txin_visitor(this, tx_version, tx_prefix_hash, sig, rct_signatures, output_keys, pmax_related_block_height), txin);
+  return boost::apply_visitor(txin_visitor(this, tx_version, tx_prefix_hash, sig, output_keys, pmax_related_block_height), txin);
 }
 //------------------------------------------------------------------
 // Verify migration transaction
@@ -3551,7 +4578,7 @@ bool Blockchain::check_block_timestamp(const block& b, uint64_t& median_ts) cons
 //------------------------------------------------------------------
 void Blockchain::return_tx_to_pool(std::vector<transaction> &txs)
 {
-  uint8_t version = get_current_hard_fork_version();
+  uint8_t hf_version = get_current_hard_fork_version();
   for (auto& tx : txs)
   {
     cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);
@@ -3560,7 +4587,7 @@ void Blockchain::return_tx_to_pool(std::vector<transaction> &txs)
     // that might not be always true. Unlikely though, and always relaying
     // these again might cause a spike of traffic as many nodes re-relay
     // all the transactions in a popped block when a reorg happens.
-    if (!m_tx_pool.add_tx(tx, tvc, true, true, false, version))
+    if (!m_tx_pool.add_tx(tx, tvc, true, true, false, hf_version))
     {
       MERROR("Failed to return taken transaction with hash: " << get_transaction_hash(tx) << " to tx_pool");
     }
@@ -3901,14 +4928,27 @@ leave:
     catch (const KEY_IMAGE_EXISTS& e)
     {
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
       bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
+    }
+    catch (const SAFEX_TX_CONFLICT& e)
+    {
+        LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+        m_batch_success = false;
+        bvc.m_verifivation_failed = true;
+//        auto it = find_if(txs.begin(),txs.end(),[e](transaction& tx){ return tx.hash == e.tx_hash; });
+//        txs.erase(it);
+        return_tx_to_pool(txs);
+        return false;
     }
     catch (const std::exception& e)
     {
       //TODO: figure out the best way to deal with this failure
       LOG_ERROR("Error adding block with hash: " << id << " to blockchain, what = " << e.what());
+      m_batch_success = false;
+      bvc.m_verifivation_failed = true;
       return_tx_to_pool(txs);
       return false;
     }
@@ -4102,7 +5142,10 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
 
   try
   {
-    m_db->batch_stop();
+    if (m_batch_success)
+        m_db->batch_stop();
+    else
+        m_db->batch_abort();
     success = true;
   }
   catch (const std::exception &e)
@@ -4139,6 +5182,7 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
   TIME_MEASURE_FINISH(t1);
   m_blocks_longhash_table.clear();
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_blocks_txs_check.clear();
   m_check_txin_table.clear();
 
@@ -4157,12 +5201,27 @@ bool Blockchain::cleanup_handle_incoming_blocks(bool force_sync)
 }
 
 //------------------------------------------------------------------
-//FIXME: unused parameter txs
-void Blockchain::output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs, std::unordered_map<crypto::hash, cryptonote::transaction> &txs) const
+void Blockchain::output_scan_worker(const uint64_t amount, const tx_out_type output_type, const std::vector<uint64_t> &offsets, std::vector<output_data_t> &outputs) const
 {
   try
   {
-    m_db->get_output_key(amount, offsets, outputs, output_type, true);
+    m_db->get_amount_output_key(amount, offsets, outputs, output_type, true);
+  }
+  catch (const std::exception& e)
+  {
+    MERROR_VER("EXCEPTION: " << e.what());
+  }
+  catch (...)
+  {
+
+  }
+}
+//------------------------------------------------------------------
+void Blockchain::output_advanced_scan_worker(const tx_out_type output_type, const std::vector<uint64_t> &output_ids, std::vector<output_advanced_data_t> &outputs) const
+{
+  try
+  {
+    m_db->get_advanced_output_key(output_ids, outputs, output_type, true);
   }
   catch (const std::exception& e)
   {
@@ -4319,6 +5378,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
     m_tx_pool.lock();
     m_blockchain_lock.lock();
   }
+  m_batch_success = true;
 
   if ((m_db->height() + blocks_entry.size()) < m_blocks_hash_check.size())
     return true;
@@ -4437,6 +5497,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   m_fake_pow_calc_time = 0;
 
   m_scan_table.clear();
+  m_scan_table_adv.clear();
   m_check_txin_table.clear();
 
   TIME_MEASURE_FINISH(prepare);
@@ -4454,10 +5515,18 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
   // [output] stores all output_data_t for each absolute_offset
   std::map<std::pair<tx_out_type, uint64_t>, std::vector<output_data_t>> tx_map;
 
+  std::set<tx_out_type> types;
+
+  // [input] store all found  advanced output types and vector of their output ids
+  std::map<tx_out_type, std::vector<uint64_t>> advanced_output_ids_map;
+  // [output] stores all output_advanced_data_t for each tx_out_type
+  std::map<tx_out_type, std::vector<output_advanced_data_t>> tx_advanced_map;
+
 #define SCAN_TABLE_QUIT(m) \
         do { \
             MERROR_VER(m) ;\
             m_scan_table.clear(); \
+            m_scan_table_adv.clear(); \
             return false; \
         } while(0); \
 
@@ -4484,6 +5553,15 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       its = m_scan_table.find(tx_prefix_hash);
       assert(its != m_scan_table.end());
 
+      auto its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      if (its_advanced != m_scan_table_adv.end())
+        SCAN_TABLE_QUIT("Duplicate advanced tx found from incoming blocks.");
+
+      m_scan_table_adv.emplace(tx_prefix_hash, std::unordered_map<crypto::key_image, std::vector<output_advanced_data_t>>());
+      its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      assert(its_advanced != m_scan_table_adv.end());
+
+
       // get all amounts from tx.vin(s)
       for (const auto &txin : tx.vin)
       {
@@ -4494,9 +5572,21 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
         if (it != its->second.end())
           SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
 
+        auto it_advanced = its_advanced->second.find(k_image);
+        if (it_advanced != its_advanced->second.end())
+          SCAN_TABLE_QUIT("Duplicate advanced key_image found from incoming blocks.");
+
         const tx_out_type output_type = boost::apply_visitor(tx_output_type_visitor(), txin);
-        const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
-        amounts.push_back(std::pair<tx_out_type, uint64_t>{output_type, amount});
+        if (output_type == tx_out_type::out_cash || output_type == tx_out_type::out_token)
+        {
+          const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
+          amounts.push_back(std::pair<tx_out_type, uint64_t>{output_type, amount});
+        }
+        else
+        {
+          types.insert(output_type);
+
+        }
       }
 
       // sort and remove duplicate amounts from amounts list
@@ -4505,7 +5595,7 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       amounts.erase(last, amounts.end());
 
       // add amount to the offset_map and tx_map
-      for (const std::pair<const tx_out_type, uint64_t> &amount : amounts)
+      for (const std::pair<tx_out_type, uint64_t> &amount : amounts)
       {
         if (offset_map.find(amount) == offset_map.end())
           offset_map.emplace(amount, std::vector<uint64_t>());
@@ -4514,19 +5604,38 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
           tx_map.emplace(amount, std::vector<output_data_t>());
       }
 
+      for(auto type: types)
+      {
+        if(tx_advanced_map.find(type)== tx_advanced_map.end())
+          tx_advanced_map.emplace(type, std::vector<output_advanced_data_t>());
+      }
+
       // add new absolute_offsets to offset_map
       for (const auto &txin : tx.vin)
       {
-        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))) {
+        const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
+        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))
+            || (txin.type() == typeid(const txin_to_script) && (output_presumed_type == tx_out_type::out_cash || output_presumed_type == tx_out_type::out_token))
+                )
+        {
 
           // no need to check for duplicate here.
           const std::vector<uint64_t> &key_offsets = *boost::apply_visitor(key_offset_visitor(), txin);
           const uint64_t amount = *boost::apply_visitor(amount_visitor(), txin);
-          const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
 
           auto absolute_offsets = relative_output_offsets_to_absolute(key_offsets);
-          for (const auto & offset : absolute_offsets)
+          for (const auto &offset : absolute_offsets)
             offset_map[std::pair<tx_out_type, uint64_t>{output_presumed_type, amount}].push_back(offset);
+        }
+        else if (txin.type() == typeid(const txin_to_script))
+        {
+          const std::vector<uint64_t> &output_ids = *boost::apply_visitor(key_offset_visitor(), txin);
+
+          for (uint64_t output_id: output_ids)
+            advanced_output_ids_map[output_presumed_type].push_back(output_id);
+
         }
       }
     }
@@ -4539,9 +5648,6 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
     auto last = std::unique(offsets.second.begin(), offsets.second.end());
     offsets.second.erase(last, offsets.second.end());
   }
-
-  // [output] stores all transactions for each tx_out_index::hash found
-  std::vector<std::unordered_map<crypto::hash, cryptonote::transaction>> transactions(amounts.size());
 
   threads = tpool.get_max_concurrency();
   if (!m_db->can_thread_bulk_indices())
@@ -4559,8 +5665,13 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       }
       else
       {
-        tpool.submit(&waiter, boost::bind(&Blockchain::output_scan_worker, this, amount.second, amount.first, std::cref(offset_map[amount]), std::ref(tx_map[amount]), std::ref(transactions[i])));
+        tpool.submit(&waiter, boost::bind(&Blockchain::output_scan_worker, this, amount.second, amount.first, std::cref(offset_map[amount]), std::ref(tx_map[amount])));
       }
+    }
+
+    for (auto &adv_out : advanced_output_ids_map)
+    {
+        tpool.submit(&waiter, boost::bind(&Blockchain::output_advanced_scan_worker, this, adv_out.first, std::cref(adv_out.second), std::ref(tx_advanced_map[adv_out.first])));
     }
     waiter.wait();
   }
@@ -4575,8 +5686,13 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       }
       else
       {
-        output_scan_worker(amount.second /*value*/, amount.first /*cash or token*/, offset_map[amount], tx_map[amount], transactions[i]);
+        output_scan_worker(amount.second /*value*/, amount.first /*cash or token*/, offset_map[amount], tx_map[amount]);
       }
+    }
+
+    for (auto &adv_out : advanced_output_ids_map)
+    {
+      output_advanced_scan_worker(adv_out.first, adv_out.second, tx_advanced_map[adv_out.first]);
     }
   }
 
@@ -4602,13 +5718,20 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
       if (its == m_scan_table.end())
         SCAN_TABLE_QUIT("Tx not found on scan table from incoming blocks.");
 
+      auto its_advanced = m_scan_table_adv.find(tx_prefix_hash);
+      if (its_advanced == m_scan_table_adv.end())
+        SCAN_TABLE_QUIT("Tx not found on advanced scan table from incoming blocks.");
+
       for (const auto &txin : tx.vin)
       {
-        //todo ATANA double check/retest
-        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))) {
+        const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
+
+        if ((txin.type() == typeid(const txin_to_key)) || (txin.type() == typeid(const txin_token_to_key))
+            || (txin.type() == typeid(const txin_to_script) && (output_presumed_type == tx_out_type::out_cash || output_presumed_type == tx_out_type::out_token))
+            )
+        {
           const std::vector<uint64_t> &key_offsets = *boost::apply_visitor(key_offset_visitor(), txin);
           const uint64_t output_value_amount = *boost::apply_visitor(amount_visitor(), txin);
-          const tx_out_type output_presumed_type = boost::apply_visitor(tx_output_type_visitor(), txin);
 
           auto needed_offsets = relative_output_offsets_to_absolute(key_offsets);
 
@@ -4640,7 +5763,40 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::list<block_complete_e
           const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
           its->second.emplace(k_image, outputs);
 
-        } else if (txin.type() == typeid(txin_token_migration)) {
+        }
+        else if (txin.type() == typeid(const txin_to_script))
+        {
+          const std::vector<uint64_t> &needed_output_ids = *boost::apply_visitor(key_offset_visitor(), txin);
+
+
+          std::vector<output_advanced_data_t> advanced_outputs;
+          for (const uint64_t & needed_output_id : needed_output_ids)
+          {
+            size_t pos = 0;
+            bool found = false;
+
+            for (const output_advanced_data_t &output_found : tx_advanced_map[output_presumed_type])
+            {
+              if (needed_output_id == output_found.output_id)
+              {
+                found = true;
+                break;
+              }
+
+              ++pos;
+            }
+
+            if (found && pos < tx_advanced_map[output_presumed_type].size())
+              advanced_outputs.push_back(tx_advanced_map[output_presumed_type].at(pos));
+            else
+              break;
+          }
+
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), txin);
+          its_advanced->second.emplace(k_image, advanced_outputs);
+
+        }
+        else if (txin.type() == typeid(txin_token_migration)) {
           const txin_token_migration &in_token_migration = boost::get < txin_token_migration > (txin);
           std::vector<output_data_t> outputs;
 
@@ -4949,3 +6105,343 @@ uint64_t Blockchain::count_new_migration_tokens(const std::vector<transaction>& 
 
   return ret;
 }
+
+uint64_t Blockchain::get_current_staked_token_sum() const
+{
+  return m_db->get_current_staked_token_sum();
+}
+
+uint64_t Blockchain::get_staked_token_sum_for_interval(const uint64_t &interval) const
+{
+  return m_db->get_staked_token_sum_for_interval(interval);
+}
+
+uint64_t Blockchain::get_network_fee_sum_for_interval(const uint64_t& interval) const
+{
+  return m_db->get_network_fee_sum_for_interval(interval);
+}
+
+
+/* Returns token stake interest */
+uint64_t Blockchain::calculate_staked_token_interest(const uint64_t token_amount, const uint64_t start_block, const uint64_t end_block) const
+{
+  uint64_t ret = 0;
+
+
+  return ret;
+}
+
+uint64_t Blockchain::calculate_staked_token_interest_for_output(const txin_to_script &txin, const uint64_t unlock_height) const
+{
+    return m_db->calculate_staked_token_interest_for_output(txin, unlock_height);
+}
+
+std::map<uint64_t, uint64_t> Blockchain::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
+{
+  safex::map_interval_interest interest_map;
+  if (!m_db->get_interval_interest_map(begin_interval, end_interval, interest_map)) {
+    MERROR("Could not get interval map");
+    return interest_map;
+  }
+
+  return interest_map;
+}
+
+
+bool Blockchain::get_safex_account_public_key(const safex::account_username &username, crypto::public_key &pkey) const
+{
+
+  try {
+    bool result = m_db->get_account_key(username, pkey);
+    return result;
+  }
+  catch (std::exception &ex) {
+    //MERROR("Error fetching account public key: "+std::string(ex.what()));
+    return false;
+  }
+}
+
+bool Blockchain::get_safex_account_data(const safex::account_username &username, std::vector<uint8_t> &data) const
+{
+
+  try {
+    bool result = m_db->get_account_data(username, data);
+    return result;
+  }
+  catch (std::exception &ex) {
+    MERROR("Error fetching account data: "+std::string(ex.what()));
+    return false;
+  }
+}
+
+bool Blockchain::get_safex_offer_seller(const crypto::hash &offerID, std::string &seller) const
+{
+    try {
+        bool result = m_db->get_offer_seller(offerID, seller);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer seller username: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer(const crypto::hash &offerID, safex::safex_offer &offer) const
+{
+    try {
+        bool result = m_db->get_offer(offerID, offer);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_price(const crypto::hash &offerID, uint64_t &price) const
+{
+    try {
+        bool result = m_db->get_offer_price(offerID, price);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer price: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_quantity(const crypto::hash &offerID, uint64_t &quantity) const
+{
+    try {
+        bool result = m_db->get_offer_quantity(offerID, quantity);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer quantity: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_active_status(const crypto::hash &offerID, bool &active) const
+{
+    try {
+        bool result = m_db->get_offer_active_status(offerID, active);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer active status: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_offer_rating(const crypto::hash &offerID, uint64_t &rating) const
+{
+    try {
+        bool result = m_db->get_offer_stars_given(offerID, rating);
+        return result;
+    }
+    catch (std::exception &ex) {
+        MERROR("Error fetching offer active status: "+std::string(ex.what()));
+        return false;
+    }
+}
+
+bool Blockchain::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
+    return m_db->get_safex_accounts(safex_accounts);
+}
+
+bool Blockchain::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_table_sizes(table_sizes);
+}
+
+bool Blockchain::get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
+    return m_db->get_safex_offer_height(offer_id, height);
+}
+
+bool Blockchain::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
+    return m_db->get_safex_offers(safex_offers);
+}
+
+bool Blockchain::get_safex_feedbacks(std::vector<safex::safex_feedback>& safex_feedbacks, const crypto::hash& offer_id) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_feedbacks(safex_feedbacks, offer_id);
+}
+
+bool Blockchain::get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_price_pegs(safex_price_pegs, currency);
+}
+
+bool Blockchain::get_safex_price_peg( const crypto::hash& price_peg_id, safex::safex_price_peg& sfx_price_peg) const
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+
+  return m_db->get_safex_price_peg(price_peg_id,sfx_price_peg);
+}
+
+std::vector<crypto::public_key> Blockchain::is_safex_purchase_right_address(const crypto::secret_key& seller_secret_view_key, const crypto::public_key& public_seller_spend_key, const cryptonote::transaction& tx) {
+
+    crypto::public_key pkey;
+    if (!crypto::secret_key_to_public_key(seller_secret_view_key, pkey)) {
+        return {};
+    }
+
+    hw::device &hwdev = hw::get_device("default");
+
+    boost::unique_lock<hw::device> hwdev_lock (hwdev);
+    hw::reset_mode rst(hwdev);
+    hwdev_lock.unlock();
+
+
+    std::vector<crypto::public_key> seller_outputs{};
+
+    std::vector<tx_extra_field> tx_extra_fields;
+    if(!parse_tx_extra(tx.extra, tx_extra_fields))
+    {
+        return seller_outputs;
+    }
+    size_t pk_index = 0;
+    tx_extra_pub_key pub_key_field;
+    if(!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++))
+    {
+        if (pk_index > 1)
+            return seller_outputs;
+       return seller_outputs;
+    }
+
+    crypto::public_key tx_pub_key = pub_key_field.pub_key;
+    crypto::key_derivation derivation;
+    hwdev_lock.lock();
+    hwdev.set_mode(hw::device::TRANSACTION_PARSE);
+    if (!hwdev.generate_key_derivation(tx_pub_key, seller_secret_view_key, derivation))
+    {
+        MWARNING("Failed to generate key derivation from tx pubkey, skipping");
+        static_assert(sizeof(derivation) == sizeof(rct::key), "Mismatched sizes of key_derivation and rct::key");
+        memcpy(&derivation, rct::identity().bytes, sizeof(derivation));
+    }
+
+    // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
+    std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
+    std::vector<crypto::key_derivation> additional_derivations;
+    for (size_t i = 0; i < additional_tx_pub_keys.size(); ++i)
+    {
+        additional_derivations.push_back({});
+        if (!hwdev.generate_key_derivation(additional_tx_pub_keys[i], seller_secret_view_key, additional_derivations.back()))
+        {
+            MWARNING("Failed to generate key derivation from tx pubkey, skipping");
+            additional_derivations.pop_back();
+        }
+    }
+    hwdev_lock.unlock();
+
+
+
+    for (size_t i = 0; i < tx.vout.size(); ++i)
+    {
+
+        auto o = tx.vout[i];
+        boost::optional<cryptonote::subaddress_receive_info> received;
+
+        hwdev_lock.lock();
+        hwdev.set_mode(hw::device::TRANSACTION_PARSE);
+        if (!cryptonote::is_valid_transaction_output_type(o.target))
+        {
+            hwdev_lock.unlock();
+            continue;
+        }
+
+        const crypto::public_key &out_key = *boost::apply_visitor(destination_public_key_visitor(), o.target);
+
+        std::unordered_map<crypto::public_key, cryptonote::subaddress_index> m_subaddresses;
+        cryptonote::subaddress_index sub_index{};
+        m_subaddresses[public_seller_spend_key] = sub_index;
+
+        received = is_out_to_acc_precomp(m_subaddresses, out_key, derivation, additional_derivations, i, hwdev);
+
+        if(received)
+        {
+            seller_outputs.push_back(out_key);
+        }
+        hwdev_lock.unlock();
+    }
+
+    return seller_outputs;
+}
+
+bool Blockchain::are_safex_tokens_unlocked(const std::vector<txin_v> &tx_vin) {
+
+  //We search the inputs for tokens
+  for (const txin_v &txin: tx_vin)
+  {
+    if (txin.type() == typeid(txin_token_to_key))
+    {
+      const txin_token_to_key &in = boost::get<txin_token_to_key>(txin);
+      if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+        continue;
+      const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+      // Now we search the offsets and find their txs
+      for (auto index: absolute) {
+        tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+        auto output_token_fee = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
+        cryptonote::transaction tx = m_db->get_tx(toi.first);
+        //Now we search for script input
+        if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
+           output_token_fee.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) > m_db->height())
+          return false;
+      }
+    } else if ((txin.type() == typeid(txin_to_script)) && (boost::get<txin_to_script>(txin).command_type == safex::command_t::create_account))
+        {
+            const txin_to_script &in = boost::get<txin_to_script>(txin);
+            if(in.token_amount != SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE)
+                continue;
+            const std::vector<uint64_t> absolute = cryptonote::relative_output_offsets_to_absolute(in.key_offsets);
+
+            // Now we search the offsets and find their txs
+            for (auto index: absolute) {
+                tx_out_index toi = this->m_db->get_output_tx_and_index(in.token_amount, index, tx_out_type::out_token);
+                auto output_token_fee = this->m_db->get_output_key(in.token_amount, index, tx_out_type::out_token);
+                cryptonote::transaction tx = m_db->get_tx(toi.first);
+                //Now we search for script input
+                if(is_create_safex_account_token_fee(tx.vout,output_token_fee.pubkey) &&
+                    output_token_fee.height + safex::get_safex_minumum_account_create_token_lock_period(m_nettype) > m_db->height())
+                    return false;
+            }
+        }
+
+  }
+  return true;
+}
+
+uint8_t Blockchain::get_maximum_tx_version_supported(uint8_t hf_version) const
+{
+
+    switch (m_nettype) {
+    case cryptonote::network_type::FAKECHAIN:
+    case cryptonote::network_type::TESTNET:
+        return MAX_SUPPORTED_TX_VERSION;
+    case cryptonote::network_type::STAGENET:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    default:
+        return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+    }
+
+    return hf_version < HF_VERSION_ALLOW_TX_VERSION_2 ? MIN_SUPPORTED_TX_VERSION : MAX_SUPPORTED_TX_VERSION;
+}
+

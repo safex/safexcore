@@ -42,6 +42,10 @@ namespace cryptonote
 #define CORE_RPC_STATUS_BUSY   "BUSY"
 #define CORE_RPC_STATUS_NOT_MINING "NOT MINING"
 
+// Safex related status
+#define CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST  "SAFEX ACC NOT EXISTS"
+#define CORE_RPC_STATUS_SAFEX_INVALID_TYPE "SAFEX INVALID TYPE"
+
 // When making *any* change here, bump minor
 // If the change is incompatible, then bump major and set minor to 0
 // This ensures CORE_RPC_VERSION always increases, that every change
@@ -77,6 +81,183 @@ namespace cryptonote
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
+    struct COMMAND_RPC_GET_SAFEX_ACCOUNTS
+    {
+        struct request_t
+        {
+            BEGIN_KV_SERIALIZE_MAP()
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string username;
+            std::string description;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(username)
+                KV_SERIALIZE(description)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> accounts;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(accounts)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
+    struct COMMAND_RPC_GET_SAFEX_OFFERS
+    {
+        struct request_t
+        {
+            BEGIN_KV_SERIALIZE_MAP()
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string title;
+            uint64_t quantity;
+            uint64_t price;
+            uint64_t min_sfx_price;
+            std::vector<uint8_t> description;
+            bool active;
+            bool price_peg_used;
+            std::vector<uint8_t> shipping;
+            std::string offer_id;
+            std::string price_peg_id;
+            std::string seller;
+            cryptonote::account_public_address seller_address;
+            uint64_t height;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(title)
+                KV_SERIALIZE(quantity)
+                KV_SERIALIZE(price)
+                KV_SERIALIZE(min_sfx_price)
+                KV_SERIALIZE(description)
+                KV_SERIALIZE(active)
+                KV_SERIALIZE(price_peg_used)
+                KV_SERIALIZE(shipping)
+                KV_SERIALIZE(offer_id)
+                KV_SERIALIZE(price_peg_id)
+                KV_SERIALIZE(seller)
+                KV_SERIALIZE(seller_address)
+                KV_SERIALIZE(height)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> offers;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(offers)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
+    struct COMMAND_RPC_GET_SAFEX_PRICE_PEGS
+    {
+        struct request_t
+        {
+            std::string currency;
+
+            BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(currency)
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string title;
+            std::string price_peg_id;
+            std::string creator;
+            std::vector<uint8_t> description;
+            std::string currency;
+            uint64_t rate;
+
+        BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(title)
+              KV_SERIALIZE(price_peg_id)
+              KV_SERIALIZE(creator)
+              KV_SERIALIZE(description)
+              KV_SERIALIZE(currency)
+              KV_SERIALIZE(rate)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> price_pegs;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(price_pegs)
+              KV_SERIALIZE(status)
+              KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
+    struct COMMAND_RPC_GET_SAFEX_RATINGS
+    {
+        struct request_t
+        {
+            crypto::hash offer_id;
+
+          BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            uint64_t star_rating;
+            std::string comment;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(star_rating)
+                KV_SERIALIZE(comment)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            crypto::hash offer_id;
+            std::vector<entry> ratings;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE_VAL_POD_AS_BLOB(offer_id)
+                KV_SERIALIZE(ratings)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
 
   struct COMMAND_RPC_GET_BLOCKS_FAST
   {
@@ -1017,7 +1198,12 @@ namespace cryptonote
       bool too_big;
       bool overspend;
       bool fee_too_low;
-      bool not_rct;
+      bool non_supported_version;
+      bool safex_verification_failed;
+      bool safex_invalid_command;
+      bool safex_invalid_command_params;
+      bool safex_invalid_input;
+      bool safex_command_execution_failed;
       bool untrusted;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -1031,7 +1217,12 @@ namespace cryptonote
         KV_SERIALIZE(too_big)
         KV_SERIALIZE(overspend)
         KV_SERIALIZE(fee_too_low)
-        KV_SERIALIZE(not_rct)
+        KV_SERIALIZE(non_supported_version)
+        KV_SERIALIZE(safex_verification_failed)
+        KV_SERIALIZE(safex_invalid_command)
+        KV_SERIALIZE(safex_invalid_command_params)
+        KV_SERIALIZE(safex_invalid_input)
+        KV_SERIALIZE(safex_command_execution_failed)
         KV_SERIALIZE(untrusted)
       END_KV_SERIALIZE_MAP()
     };
@@ -2520,6 +2711,44 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_DECODE_SAFEX_OUTPUT
+  {
+      struct request_t
+      {
+          std::vector<uint8_t> data;
+          uint8_t output_type;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(output_type)
+          KV_SERIALIZE(data)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct parsed_field
+      {
+          std::string field;
+          std::string value;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(field)
+          KV_SERIALIZE(value)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response_t
+      {
+          std::string status;
+          std::vector<parsed_field> parsed_fields;
+
+          BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(status)
+          KV_SERIALIZE(parsed_fields)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
   struct COMMAND_RPC_GET_OUTPUTS_PROTOBUF
   {
     struct request
@@ -2533,67 +2762,191 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
 
-    struct response
-    {
-      std::string protobuf_content;
-      std::string status;
+      struct response
+      {
+          std::string protobuf_content;
+          std::string status;
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(protobuf_content)
-        KV_SERIALIZE(status)        
-      END_KV_SERIALIZE_MAP()
-    };
+              KV_SERIALIZE(protobuf_content)
+              KV_SERIALIZE(status)
+          END_KV_SERIALIZE_MAP()
+      };
   };
-  //-----------------------------------------------
+    //-----------------------------------------------
 
-   struct COMMAND_RPC_PROTO_SEND_RAW_TX
+    struct COMMAND_RPC_PROTO_SEND_RAW_TX
+    {
+        struct request
+        {
+            std::string proto_content;
+            bool do_not_relay;
+
+            request() {}
+            explicit request(const transaction &);
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(proto_content)
+                KV_SERIALIZE_OPT(do_not_relay, false)
+        END_KV_SERIALIZE_MAP()
+        };
+
+        struct response
+        {
+            std::string txid;
+            std::string status;
+            std::string reason;
+            bool not_relayed;
+            bool low_mixin;
+            bool double_spend;
+            bool invalid_input;
+            bool invalid_output;
+            bool too_big;
+            bool overspend;
+            bool fee_too_low;
+            bool not_rct;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(txid)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(reason)
+                KV_SERIALIZE(not_relayed)
+                KV_SERIALIZE(low_mixin)
+                KV_SERIALIZE(double_spend)
+                KV_SERIALIZE(invalid_input)
+                KV_SERIALIZE(invalid_output)
+                KV_SERIALIZE(too_big)
+                KV_SERIALIZE(overspend)
+                KV_SERIALIZE(fee_too_low)
+                KV_SERIALIZE(not_rct)
+                KV_SERIALIZE(untrusted)
+            END_KV_SERIALIZE_MAP()
+        };
+    };
+  struct COMMAND_RPC_TOKEN_STAKED
   {
     struct request
     {
-      std::string proto_content;
-      bool do_not_relay;
-
-      request() {}
-      explicit request(const transaction &);
-
+      uint64_t interval;
+      uint64_t end;
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(proto_content)
-        KV_SERIALIZE_OPT(do_not_relay, false)
+        KV_SERIALIZE(interval)
       END_KV_SERIALIZE_MAP()
     };
 
+    struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
 
     struct response
     {
-      std::string txid;
+      std::vector<result_t> pairs;
       std::string status;
-      std::string reason;
-      bool not_relayed;
-      bool low_mixin;
-      bool double_spend;
-      bool invalid_input;
-      bool invalid_output;
-      bool too_big;
-      bool overspend;
-      bool fee_too_low;
-      bool not_rct;
-      bool untrusted;
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(txid)
         KV_SERIALIZE(status)
-        KV_SERIALIZE(reason)
-        KV_SERIALIZE(not_relayed)
-        KV_SERIALIZE(low_mixin)
-        KV_SERIALIZE(double_spend)
-        KV_SERIALIZE(invalid_input)
-        KV_SERIALIZE(invalid_output)
-        KV_SERIALIZE(too_big)
-        KV_SERIALIZE(overspend)
-        KV_SERIALIZE(fee_too_low)
-        KV_SERIALIZE(not_rct)
-        KV_SERIALIZE(untrusted)
+        KV_SERIALIZE(pairs)
       END_KV_SERIALIZE_MAP()
     };
   };
+
+  struct COMMAND_RPC_NETWORK_FEE
+  {
+    struct request
+    {
+      uint64_t interval;
+      uint64_t end;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t amount;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(amount)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> pairs;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(pairs)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_SAFEX_ACCOUNT_INFO
+  {
+    struct request
+    {
+      std::string username;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(username)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::string pkey;
+      std::string account_data;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(pkey)
+        KV_SERIALIZE(account_data)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_GET_INTEREST_MAP
+  {
+    struct request
+    {
+      uint64_t begin_interval;
+      uint64_t end_interval;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(begin_interval)
+        KV_SERIALIZE(end_interval)
+      END_KV_SERIALIZE_MAP()
+    };
+
+  struct result_t {
+      uint64_t interval;
+      uint64_t cash_per_token;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interval)
+        KV_SERIALIZE(cash_per_token)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      std::vector<result_t> interest_per_interval;
+      std::string status;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(interest_per_interval)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }

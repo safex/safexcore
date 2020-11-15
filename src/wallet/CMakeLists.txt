@@ -34,6 +34,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(wallet_sources
   wallet.cpp
+  wallet_safex.cpp
   wallet_args.cpp
   ringdb.cpp
   node_rpc_proxy.cpp)
@@ -70,7 +71,7 @@ target_link_libraries(wallet
     ${EXTRA_LIBRARIES})
 
 set(wallet_rpc_sources
-  wallet_rpc_server.cpp)
+  wallet_rpc_server.cpp wallet_safex_rpc_server.cpp)
 
 set(wallet_rpc_headers)
 
@@ -80,7 +81,7 @@ set(wallet_rpc_private_headers
 safex_private_headers(wallet_rpc_server
   ${wallet_rpc_private_headers})
 
-if (BUILD_WALLET_RPC)
+if (NOT IOS)
     safex_add_executable(wallet_rpc_server
             ${wallet_rpc_sources}
             ${wallet_rpc_headers}
@@ -117,6 +118,7 @@ if (BUILD_GUI_DEPS)
             wallet_api
             wallet
             multisig
+            safex_core
             cryptonote_core
             cryptonote_basic
             mnemonics
