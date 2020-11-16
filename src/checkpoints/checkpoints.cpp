@@ -172,7 +172,8 @@ namespace cryptonote
 
     if (nettype == STAGENET)
     {
-      ADD_CHECKPOINT(1, "fb37e7df933669b58e3d946fd555c3dd3b830156b15ba25a6d8bc300c4ada10a");
+      ADD_CHECKPOINT(1,     "fb37e7df933669b58e3d946fd555c3dd3b830156b15ba25a6d8bc300c4ada10a");
+      ADD_CHECKPOINT(90000, "8252181f588b5760fbc5dee91eaeaf304878ae385413aa0eef600cd8210019e9");
       return true;
     }
 
