@@ -338,7 +338,6 @@ bool gen_block_miner_tx_has_2_in::generate(std::vector<test_event_entry>& events
   se.amount = blk_0.miner_tx.vout[0].amount;
   se.push_output(0, boost::get<txout_to_key>(blk_0.miner_tx.vout[0].target).key, se.amount);
   se.real_output = 0;
-  se.rct = false;
   se.real_out_tx_key = get_tx_pub_key_from_extra(blk_0.miner_tx);
   se.real_output_in_tx_index = 0;
   std::vector<tx_source_entry> sources;
@@ -381,7 +380,6 @@ bool gen_block_miner_tx_with_txin_to_key::generate(std::vector<test_event_entry>
   se.amount = blk_1.miner_tx.vout[0].amount;
   se.push_output(0, boost::get<txout_to_key>(blk_1.miner_tx.vout[0].target).key, se.amount);
   se.real_output = 0;
-  se.rct = false;
   se.real_out_tx_key = get_tx_pub_key_from_extra(blk_1.miner_tx);
   se.real_output_in_tx_index = 0;
   std::vector<tx_source_entry> sources;
@@ -509,7 +507,7 @@ bool gen_block_is_too_big::generate(std::vector<test_event_entry>& events) const
   // Creating a huge miner_tx, it will have a lot of outs
   MAKE_MINER_TX_MANUALLY(miner_tx, blk_0);
   static const size_t tx_out_count = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1 / 2;
-  uint64_t amount = get_outs_money_amount(miner_tx);
+  uint64_t amount = get_outs_cash_amount(miner_tx);
   uint64_t portion = amount / tx_out_count;
   uint64_t remainder = amount % tx_out_count;
   txout_target_v target = miner_tx.vout[0].target;

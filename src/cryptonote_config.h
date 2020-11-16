@@ -43,7 +43,6 @@
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
-#define CURRENT_TRANSACTION_VERSION                     1 //do not use ringct
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -114,6 +113,7 @@
 
 #define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    (86400*3) //seconds, three days
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
+#define CRYPTONOTE_MEMPOOL_SAFEX_TX_LIVETIME              3600 //seconds, 1 hour
 
 #define COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT           1000
 
@@ -160,13 +160,62 @@
 #define HF_VERSION_FORBID_DUST                  HF_VERSION_TBD //forbid dust and compound outputs
 #define HF_VERSION_ALLOW_BULLETPROOFS           HF_VERSION_TBD
 #define HF_VERSION_DIFFICULTY_V2                3
-#define HF_VERSION_MAX_SUPPORTED_TX_VERSION     1
 #define HF_VERSION_VALID_DECOMPOSED_MINER_TX_1  3
 #define HF_VERSION_VALID_DECOMPOSED_MINER_TX_2  4
 #define HF_VERSION_ALLOW_LESS_BLOCK_REWARD      2
 #define HF_VERSION_MINER_TX_MAX_OUTS            11
 #define HF_VERSION_CHANGE_MINER_DUST_HANDLING   5
+
 #define HF_VERSION_STOP_COUNTERFEIT_TOKENS      6
+
+#define HF_VERSION_ALLOW_TX_VERSION_2           7
+#define HF_VERSION_MINER_DUST_HANDLE_DIGIT      7
+
+constexpr uint8_t MIN_SUPPORTED_TX_VERSION = 1;
+constexpr uint8_t MAX_SUPPORTED_TX_VERSION = 2;
+
+//Safex related constants
+constexpr uint64_t SAFEX_COMMAND_PROTOCOL_VERSION                   = 1;
+
+//Safex token stake constants
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                      = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD               = 500000;
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN               = 10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET                 = 10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_STAGENET                = 100; //blocks
+constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD                         = 1000; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_FAKECHAIN    = SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN*3; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_TESTNET      = SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET*1; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_STAGENET     = SAFEX_DEFAULT_INTERVAL_PERIOD_STAGENET*10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD              = SAFEX_DEFAULT_INTERVAL_PERIOD*10; //blocks
+
+//Safex network fee constants
+constexpr uint64_t SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE             = 5;
+
+//Safex create account token lock constants
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE              = 1000*SAFEX_TOKEN;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN = 1;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET   = 10;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_STAGENET  = 300;
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD           = 1500;// TBD
+
+//Safex account constants
+constexpr uint64_t SAFEX_ACCOUNT_USERNAME_MAX_SIZE                  = 32;
+constexpr uint64_t SAFEX_ACCOUNT_DATA_MAX_SIZE                      = 2048;
+
+//Safex offer constants
+constexpr uint64_t SAFEX_OFFER_NAME_MAX_SIZE                        = 80;
+constexpr uint64_t SAFEX_OFFER_DATA_MAX_SIZE                        = 2048;
+constexpr uint64_t SAFEX_OFFER_MINIMUM_PRICE                        = SAFEX_CASH_COIN/10000; // 0.0001 SFX
+
+//Safex price peg constants
+constexpr uint64_t SAFEX_PRICE_PEG_NAME_MAX_SIZE                    = 60;
+constexpr uint64_t SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE                = 8;
+constexpr uint64_t SAFEX_PRICE_PEG_DATA_MAX_SIZE                    = 2048;
+
+//Safex feedback constants
+constexpr uint64_t SAFEX_FEEDBACK_MAX_RATING                        = 3;
+constexpr uint64_t SAFEX_FEEDBACK_DATA_MAX_SIZE                     = 2048;
 
 #define DEFAULT_MIX                             6 //default wallet mix for transactions
 
@@ -199,7 +248,6 @@ namespace config
                                             } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b10100028ff33b5dc7640ad6333405a875f9a92cd69e99fc15d208ea2eb990203d1348dc8301011d22a19d7aa99b11c1143fd40e200760de6caa90eab16bd12d0188d6db8537611103c23aed713351b8b88e15bb213983aa03f26aca95da4e77384654153d50a55fc78dcc65a751789b60e816e3710d448b05f56777e66aff4c6228472e6a41e122dc9ab470e5997573adea910e70c4c3a04e3957e33c099848f0fd2d12dc6b84eca3";
     uint32_t const GENESIS_NONCE = 10000;
-    //TODO: Set to other values when activating new hard fork
     uint64_t const HARDFORK_V4_INIT_DIFF = 330000000;
     uint64_t const HARDFORK_V4_START_HEIGHT = 330000;
 
@@ -274,8 +322,8 @@ namespace config
       } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002d4372ec2272690ccd59880807d1fa00f7bd2fa67f7abb350cafbdc24a4ba372c8301011a1ca7d7e74037e4d000a0fc2cc61389ac7d8b0a6b600c62e77374477c4c414d1103a83b4a507df5b0dc5af701078828a1372d77761339a28a7ebb1ff450622f7456d1083f35430eba3353a9e42514480a0cbccbda5ee6abb2d856f8a9aae056a92a6ece1020496a36a4b68341e3b401653139683f8dc27d76ff9eb9c26c2528c26a";
     uint32_t const GENESIS_NONCE = 10003;
-    uint64_t const HARDFORK_V4_INIT_DIFF = 6000;
-    uint64_t const HARDFORK_V4_START_HEIGHT = 308450;
+    uint64_t const HARDFORK_V4_INIT_DIFF = 1;
+    uint64_t const HARDFORK_V4_START_HEIGHT = 1260;
   }
 
   namespace stagenet
@@ -292,9 +340,8 @@ namespace config
       } };
     std::string const GENESIS_TX = "013c01ff00018080a8ec85afd1b1010002cd3249adde7fce93280c3a87db72648b7e47eeb08a5e6ff8e926f86e4aa9ffa283010126cb71e5ddd6461fea5d5b00644c5fb9711a2951e1345ba95c648b00ca08e23d1103ab3e85348739c5348f5dd7a61de6e1d30c0a81389ba9ce533da1e65df03f6a71f2df17d26217fb61bd2e8bc65197bf535904d9f5d75e531712f7fd3e255c5ad5308d1ee2cc4166b8effafd2f75d9c8483bb264ed7539cbc2921c580b40b1218b";
     uint32_t const GENESIS_NONCE = 10002;
-    //TODO: Set to other values when activating new hard fork
-    uint64_t const HARDFORK_V4_INIT_DIFF = 100;
-    uint64_t const HARDFORK_V4_START_HEIGHT = 241847;
+    uint64_t const HARDFORK_V4_INIT_DIFF = 1000;
+    uint64_t const HARDFORK_V4_START_HEIGHT = 87200;
   }
 }
 

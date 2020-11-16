@@ -55,6 +55,7 @@ using namespace epee;
 #include "blockchain_db/blockchain_db.h"
 #include "ringct/rctSigs.h"
 #include "version.h"
+#include "safex/command.h"
 
 #ifdef SAFEX_PROTOBUF_RPC
   #include "protobuf/cryptonote_to_protobuf.h"
@@ -167,7 +168,9 @@ namespace cryptonote
   core::core(i_cryptonote_protocol* pprotocol):
               m_mempool(m_blockchain_storage),
               m_blockchain_storage(m_mempool),
-              m_miner(this, &m_blockchain_storage),
+              m_miner(this, [this](const cryptonote::block &b, uint64_t height, unsigned int threads, crypto::hash &hash) {
+		return cryptonote::get_block_longhash(&m_blockchain_storage, b, hash, height, threads);
+	      }),
               m_miner_address(boost::value_initialized<account_public_address>()),
               m_starter_message_showed(false),
               m_target_blockchain_height(0),
@@ -287,7 +290,7 @@ namespace cryptonote
 
     auto data_dir = boost::filesystem::path(m_config_folder);
 
-    if (m_nettype == MAINNET)
+    if (m_nettype != FAKECHAIN)
     {
       cryptonote::checkpoints checkpoints;
       if (!checkpoints.init_default_checkpoints(m_nettype))
@@ -323,7 +326,44 @@ namespace cryptonote
   {
     return m_blockchain_storage.get_current_blockchain_height();
   }
-  //-----------------------------------------------------------------------------------------------
+
+  bool core::get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const
+  {
+    return m_blockchain_storage.get_safex_accounts(safex_accounts);
+  };
+
+  bool core::get_table_sizes( std::vector<uint64_t> &table_sizes) const
+  {
+      return m_blockchain_storage.get_table_sizes(table_sizes);
+  }
+    //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_offer_height( crypto::hash &offer_id, uint64_t &height) const
+  {
+      return m_blockchain_storage.get_safex_offer_height(offer_id, height);
+  }
+  bool core::get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const
+  {
+      return m_blockchain_storage.get_safex_offers(safex_offers);
+  }
+
+  bool core::get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const
+  {
+    return m_blockchain_storage.get_safex_feedbacks(safex_feedbacks,offer_id);
+  }
+
+  bool core::get_safex_price_pegs(std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency) const
+  {
+    return m_blockchain_storage.get_safex_price_pegs(safex_price_pegs, currency);
+  }
+
+  bool core::get_safex_price_peg( const crypto::hash& price_peg_id, safex::safex_price_peg& sfx_price_peg) const
+  {
+    return m_blockchain_storage.get_safex_price_peg(price_peg_id,sfx_price_peg);
+
+  }
+
+
+    //-----------------------------------------------------------------------------------------------
   void core::get_blockchain_top(uint64_t& height, crypto::hash& top_id) const
   {
     top_id = m_blockchain_storage.get_tail_id(height);
@@ -421,7 +461,7 @@ namespace cryptonote
     // folder might not be a directory, etc, etc
     catch (...) { }
 
-    std::unique_ptr<BlockchainDB> db(new_db(db_type));
+    std::unique_ptr<BlockchainDB> db(new_db(db_type, m_nettype));
     if (db == NULL)
     {
       LOG_ERROR("Attempted to use non-existent database type");
@@ -637,14 +677,6 @@ namespace cryptonote
     }
     bad_semantics_txes_lock.unlock();
 
-    if (tx.version == 0 || tx.version > HF_VERSION_MAX_SUPPORTED_TX_VERSION)
-    {
-      // HF_VERSION_MAX_SUPPORTED_TX_VERSION is the latest transaction version
-      // we know in the current protocol version
-      tvc.m_verifivation_failed = true;
-      return false;
-    }
-
     return true;
   }
   //-----------------------------------------------------------------------------------------------
@@ -775,6 +807,17 @@ namespace cryptonote
     return true;
   }
 
+  bool check_advanced_tx_semantic(const transaction& tx)
+  {
+    //todo atana implement for various usecases
+
+    //todo atana implement check for token unlock interest validity
+
+
+    return true;
+  }
+
+
   //-----------------------------------------------------------------------------------------------
   bool core::check_tx_semantic(const transaction& tx, bool keeped_by_block) const
   {
@@ -798,18 +841,11 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
+
+    const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
 
     if(!check_money_overflow(tx))
     {
-        const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
         bool known_problem = false;
 
         if(version < HF_VERSION_STOP_COUNTERFEIT_TOKENS) {
@@ -832,13 +868,13 @@ namespace cryptonote
         }
     }
 
-    if (tx.version == 1)
+    if (tx.version >= MIN_SUPPORTED_TX_VERSION && tx.version <= m_blockchain_storage.get_maximum_tx_version_supported(version))
     {
       uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+      get_inputs_cash_amount(tx, amount_in);
+      uint64_t amount_out = get_outs_cash_amount(tx);
 
-      if(amount_in <= amount_out)
+      if (amount_in <= amount_out)
       {
         MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
@@ -848,13 +884,17 @@ namespace cryptonote
       get_inputs_token_amount(tx, tokens_in);
       uint64_t tokens_out = get_outs_token_amount(tx);
 
-      if(tokens_in < tokens_out)
+      if (tokens_in < tokens_out)
       {
         MERROR_VER("tx with wrong token amounts: ins " << tokens_in << ", outs " << tokens_out << ", rejected for tx id= " << get_transaction_hash(tx));
         return false;
       }
     }
-    // for version > 1, ringct signatures check verifies amounts match
+    else
+    {
+      MERROR_VER("Unsuported transaction version");
+      return false;
+    }
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -881,35 +921,13 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version >= 2)
+    //check tx version 2 semantics
+    if (!check_advanced_tx_semantic(tx))
     {
-      const rct::rctSig &rv = tx.rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          return false;
-        case rct::RCTTypeSimple:
-        case rct::RCTTypeSimpleBulletproof:
-          if (!rct::verRctSimple(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        case rct::RCTTypeFull:
-        case rct::RCTTypeFullBulletproof:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          return false;
-      }
+      MERROR_VER("Advanced transaction is not valid");
+      return false;
     }
+
 
     return true;
   }
@@ -956,14 +974,14 @@ namespace cryptonote
         [this, &emission_amount, &total_fee_amount](uint64_t, const crypto::hash& hash, const block& b){
       std::list<transaction> txs;
       std::list<crypto::hash> missed_txs;
-      uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
-      this->get_transactions(b.tx_hashes, txs, missed_txs);      
+      uint64_t coinbase_amount = get_outs_cash_amount(b.miner_tx);
+      this->get_transactions(b.tx_hashes, txs, missed_txs);
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
       {
         tx_fee_amount += get_tx_fee(tx);
       }
-      
+
       emission_amount += coinbase_amount - tx_fee_amount;
       total_fee_amount += tx_fee_amount;
       return true;
@@ -996,12 +1014,122 @@ namespace cryptonote
     return total_migrated_tokens_amount;
   }
   //-----------------------------------------------------------------------------------------------
+  int64_t core::get_staked_tokens(const uint64_t start_offset, const size_t count)
+  {
+    int64_t total_staked_tokens_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_staked_tokens_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_staked_tokens_amount += get_token_staked_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_staked_tokens_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_staked_tokens() const
+  {
+    return this->m_blockchain_storage.get_current_staked_token_sum();
+  }
+
+  uint64_t core::get_locked_tokens_for_interval(const uint64_t& interval) const
+  {
+    return this->m_blockchain_storage.get_staked_token_sum_for_interval(interval);
+  }
+
+  uint64_t core::get_current_interval() const {
+    return safex::calculate_interval_for_height(this->get_current_blockchain_height(), m_nettype);
+  }
+
+
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_collected_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_collected_network_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_distributed_network_fee(const uint64_t start_offset, const size_t count) const
+  {
+    uint64_t total_network_fee_amount = 0;
+    if (count)
+    {
+      const uint64_t end = start_offset + count - 1;
+      m_blockchain_storage.for_blocks_range(start_offset, end,
+                                            [this, &total_network_fee_amount](uint64_t, const crypto::hash& hash, const block& b) {
+                                              std::list<transaction> txs;
+                                              std::list<crypto::hash> missed_txs;
+                                              this->get_transactions(b.tx_hashes, txs, missed_txs);
+                                              for(const auto& tx: txs)
+                                              {
+                                                total_network_fee_amount += get_network_distributed_fee_amount(tx);
+                                              }
+
+                                              return true;
+                                            });
+    }
+
+    return total_network_fee_amount;
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_network_fee_for_interval(const uint64_t& interval) const
+  {
+    return static_cast<uint64_t>(this->m_blockchain_storage.get_network_fee_sum_for_interval(interval));
+  }
+
+  //-----------------------------------------------------------------------------------------------
+  bool core::get_safex_account_info(const std::string& username, safex::safex_account& account) const
+  {
+    std::vector<uint8_t> accdata;
+    if (!this->m_blockchain_storage.get_safex_account_data(username, accdata)) {
+      MERROR_VER("Unable to get safex account data for username " << username);
+      return false;
+    }
+    crypto::public_key pkey;
+    if (!this->m_blockchain_storage.get_safex_account_public_key(username, pkey)) {
+      MERROR_VER("Unable to get safex account pkey for username " << username);
+      return false;
+    }
+
+    account = safex::safex_account{username, pkey, accdata};
+    return true;
+  }
+
+
+  //-----------------------------------------------------------------------------------------------
   bool core::check_tx_inputs_keyimages_diff(const transaction& tx) const
   {
     std::unordered_set<crypto::key_image> ki;
     for(const auto& in: tx.vin)
     {
-      if (cryptonote::is_valid_transaction_input_type(in)) {
+      if (cryptonote::is_valid_transaction_input_type(in, tx.version)) {
         const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
         if(!ki.insert(k_image).second)
           return false;
@@ -1017,6 +1145,7 @@ namespace cryptonote
     const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
     if (version >= HF_VERSION_TBD)
     {
+        //TODO: GRKI Check if this should be added in the next hardfork
       for(const auto& in: tx.vin)
       {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
@@ -1038,7 +1167,17 @@ namespace cryptonote
         // invalid key_image
         if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
           return false;
-      } else if ((in.type() == typeid(const txin_token_migration))) {
+      } else if (in.type() == typeid(const txin_to_script)) {
+
+        const txin_to_script &txin = boost::get<const txin_to_script>(in);
+        if (safex::is_safex_key_image_verification_needed(txin.command_type)){
+          const crypto::key_image &k_image = *boost::apply_visitor(key_image_visitor(), in);
+          // invalid key_image
+          if (!(rct::scalarmultKey(rct::ki2rct(k_image), rct::curveOrder()) == rct::identity()))
+            return false;
+        }
+      }
+      else if (in.type() == typeid(const txin_token_migration)) {
         // todo igor: check if this is necessary
       } else {
         CHECK_AND_ASSERT_MES(false, false, "wrong variant type: " << in.type().name() << ", expected " << typeid(txin_to_key).name() << ", " << typeid(txin_token_to_key).name() <<
@@ -1079,8 +1218,8 @@ namespace cryptonote
       return true;
     }
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, version);
+    uint8_t hf_version = m_blockchain_storage.get_current_hard_fork_version();
+    return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block, relayed, do_not_relay, hf_version);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::relay_txpool_transactions()
@@ -1202,7 +1341,12 @@ namespace cryptonote
       m_miner.resume();
       return false;
     }
-    prepare_handle_incoming_blocks(blocks);
+    if (!prepare_handle_incoming_blocks(blocks))
+    {
+        MERROR("Block found, but failed to prepare to add");
+        m_miner.resume();
+        return false;
+    }
     m_blockchain_storage.add_new_block(b, bvc);
     cleanup_handle_incoming_blocks(true);
     //anyway - update miner template
@@ -1256,7 +1400,11 @@ namespace cryptonote
   bool core::prepare_handle_incoming_blocks(const std::list<block_complete_entry> &blocks)
   {
     m_incoming_tx_lock.lock();
-    m_blockchain_storage.prepare_handle_incoming_blocks(blocks);
+    if (!m_blockchain_storage.prepare_handle_incoming_blocks(blocks))
+    {
+        cleanup_handle_incoming_blocks(false);
+        return false;
+    }
     return true;
   }
 
@@ -1367,7 +1515,7 @@ namespace cryptonote
   bool core::get_pool_transaction(const crypto::hash &id, cryptonote::blobdata& tx) const
   {
     return m_mempool.get_transaction(id, tx);
-  }  
+  }
   //-----------------------------------------------------------------------------------------------
   bool core::pool_has_tx(const crypto::hash &id) const
   {
@@ -1645,4 +1793,10 @@ namespace cryptonote
   {
     raise(SIGTERM);
   }
+
+  std::map<uint64_t, uint64_t> core::get_interest_map(uint64_t begin_interval, uint64_t end_interval)
+  {
+    return m_blockchain_storage.get_interest_map(begin_interval, end_interval);
+  }
+
 }

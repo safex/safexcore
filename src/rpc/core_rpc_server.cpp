@@ -54,6 +54,7 @@ using namespace epee;
 #include "core_rpc_server_error_codes.h"
 #include "p2p/net_node.h"
 #include "version.h"
+#include "safex/command.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
 #define SAFEX_DEFAULT_LOG_CATEGORY "daemon.rpc"
@@ -154,6 +155,89 @@ namespace cryptonote
 #define CHECK_CORE_READY() do { if(!check_core_ready()){res.status =  CORE_RPC_STATUS_BUSY;return true;} } while(0)
 
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_safex_accounts(const COMMAND_RPC_GET_SAFEX_ACCOUNTS::request& req, COMMAND_RPC_GET_SAFEX_ACCOUNTS::response& res)
+  {
+    PERF_TIMER(on_get_safex_accounts);
+    bool r;
+    if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_ACCOUNTS>(invoke_http_mode::JON, "/get_safex_accounts", req, res, r))
+        return r;
+
+    std::vector<std::pair<std::string, std::string>> accounts;
+    bool result  = m_core.get_safex_accounts(accounts);
+
+    for(auto acc: accounts) {
+        COMMAND_RPC_GET_SAFEX_ACCOUNTS::entry ent{acc.first, acc.second};
+        res.accounts.push_back(ent);
+    }
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_offers(const COMMAND_RPC_GET_SAFEX_OFFERS::request& req, COMMAND_RPC_GET_SAFEX_OFFERS::response& res)
+    {
+        PERF_TIMER(on_get_safex_offers);
+        bool r;
+        if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_OFFERS>(invoke_http_mode::JON, "/get_safex_offers", req, res, r))
+            return r;
+
+        std::vector<safex::safex_offer> offers;
+        bool result  = m_core.get_safex_offers(offers);
+
+        for(auto offer: offers) {
+              uint64_t offer_height;
+              result = m_core.get_safex_offer_height(offer.offer_id, offer_height);
+              if(!result)
+                  continue;
+              std::string offer_id_str = epee::string_tools::pod_to_hex(offer.offer_id);
+              std::string price_peg_id_str = epee::string_tools::pod_to_hex(offer.price_peg_id);
+              COMMAND_RPC_GET_SAFEX_OFFERS::entry ent{offer.title, offer.quantity, offer.price, offer.min_sfx_price, offer.description,
+                                                      offer.active, offer.price_peg_used, offer.shipping, offer_id_str, price_peg_id_str, offer.seller,
+                                                      offer.seller_address, offer_height};
+              res.offers.push_back(ent);
+        }
+        res.status = CORE_RPC_STATUS_OK;
+        return true;
+    }
+    //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_price_pegs(const COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request& req, COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response& res)
+    {
+      PERF_TIMER(on_get_safex_price_pegs);
+      bool r;
+      if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_PRICE_PEGS>(invoke_http_mode::JON, "/get_safex_price_pegs", req, res, r))
+        return r;
+
+      std::vector<safex::safex_price_peg> price_pegs;
+      bool result  = m_core.get_safex_price_pegs(price_pegs,req.currency);
+
+      for(auto price_peg: price_pegs) {
+          std::string price_peg_id_str = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          COMMAND_RPC_GET_SAFEX_PRICE_PEGS::entry ent{price_peg.title,price_peg_id_str,price_peg.creator,price_peg.description,price_peg.currency,price_peg.rate};
+          res.price_pegs.push_back(ent);
+      }
+      res.status = CORE_RPC_STATUS_OK;
+      return true;
+    }
+    //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_ratings(const COMMAND_RPC_GET_SAFEX_RATINGS::request& req, COMMAND_RPC_GET_SAFEX_RATINGS::response& res)
+    {
+      PERF_TIMER(on_get_safex_ratings);
+      bool r;
+      if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_RATINGS>(invoke_http_mode::JON, "/get_safex_ratings", req, res, r))
+        return r;
+
+      std::vector<safex::safex_feedback> feedbacks;
+      bool result  = m_core.get_safex_feedbacks(feedbacks, req.offer_id);
+
+      for(auto feedback: feedbacks) {
+        COMMAND_RPC_GET_SAFEX_RATINGS::entry ent{feedback.stars_given,feedback.comment};
+        res.ratings.push_back(ent);
+      }
+      res.offer_id = feedbacks.at(0).offer_id;
+      res.status = CORE_RPC_STATUS_OK;
+      return true;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_height(const COMMAND_RPC_GET_HEIGHT::request& req, COMMAND_RPC_GET_HEIGHT::response& res)
   {
     PERF_TIMER(on_get_height);
@@ -799,8 +883,21 @@ namespace cryptonote
         add_reason(res.reason, "overspend");
       if ((res.fee_too_low = tvc.m_fee_too_low))
         add_reason(res.reason, "fee too low");
-      if ((res.not_rct = tvc.m_not_rct))
-        add_reason(res.reason, "tx is not ringct");
+      if ((res.non_supported_version = tvc.m_non_supported_version))
+        add_reason(res.reason, "tx version is not supported");
+      if ((res.safex_verification_failed = tvc.m_safex_verification_failed))
+        add_reason(res.reason, "verification of safex logic has failed");
+      if ((res.safex_invalid_command = tvc.m_safex_invalid_command))
+        add_reason(res.reason, "invalid safex command");
+      if ((res.safex_invalid_command_params = tvc.m_safex_invalid_command_params))
+        add_reason(res.reason, "invalid safex command parameters");
+      if ((res.safex_invalid_input = tvc.m_safex_invalid_input))
+        add_reason(res.reason, "invalid safex script inputs");
+      if ((res.safex_command_execution_failed = tvc.m_safex_command_execution_failed))
+        add_reason(res.reason, "safex command execution failed");
+
+
+
       const std::string punctuation = res.reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {
@@ -870,8 +967,6 @@ namespace cryptonote
           add_reason(res.reason, "overspend");
         if ((res.fee_too_low = tvc.m_fee_too_low))
           add_reason(res.reason, "fee too low");
-        if ((res.not_rct = tvc.m_not_rct))
-          add_reason(res.reason, "tx is not ringct");
         const std::string punctuation = res.reason.empty() ? "" : ": ";
         if (tvc.m_verifivation_failed)
         {
@@ -2303,6 +2398,406 @@ namespace cryptonote
     }
 
     res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+
+  bool core_rpc_server::on_decode_safex_output(const COMMAND_RPC_DECODE_SAFEX_OUTPUT::request& req, COMMAND_RPC_DECODE_SAFEX_OUTPUT::response& res, epee::json_rpc::error& error_resp)
+  {
+      PERF_TIMER(on_decode_safex_output);
+
+      res.parsed_fields.clear();
+      COMMAND_RPC_DECODE_SAFEX_OUTPUT::parsed_field p;
+
+      tx_out_type output_type = tx_out_type(req.output_type);
+
+      res.status = CORE_RPC_STATUS_OK;
+
+      if(output_type == tx_out_type::out_safex_account)
+      {
+
+          safex::create_account_data account{};
+          const cryptonote::blobdata accblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(accblob, account))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string username(account.username.begin(), account.username.end());
+          std::string data(account.account_data.begin(), account.account_data.end());
+          std::string pkey_str = epee::string_tools::pod_to_hex(account.pkey);
+
+          p.field="username";
+          p.value=username;
+          res.parsed_fields.push_back(p);
+          p.field="account_data";
+          p.value=data;
+          res.parsed_fields.push_back(p);
+          p.field="pkey";
+          p.value=pkey_str;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_account_update)
+      {
+
+          safex::edit_account_data account{};
+          const cryptonote::blobdata accblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(accblob, account))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string username(account.username.begin(), account.username.end());
+          std::string data(account.account_data.begin(), account.account_data.end());
+
+          p.field="username";
+          p.value=username;
+          res.parsed_fields.push_back(p);
+          p.field="account_data";
+          p.value=data;
+          res.parsed_fields.push_back(p);
+
+      } else if (output_type == tx_out_type::out_safex_offer)
+      {
+
+          safex::create_offer_data offer{};
+          const cryptonote::blobdata offerblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(offerblob, offer))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string seller(offer.seller.begin(), offer.seller.end());
+          std::string title(offer.title.begin(), offer.title.end());
+          std::string description(offer.description.begin(), offer.description.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(offer.offer_id);
+          std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
+          std::string quantity = std::to_string(offer.quantity);
+          std::string price = std::to_string(offer.price);
+          std::string min_sfx_price = std::to_string(offer.min_sfx_price);
+          std::string active = epee::string_tools::pod_to_hex(offer.active);
+          std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
+          std::string seller_address = epee::string_tools::pod_to_hex(offer.seller_address);
+          std::string seller_private_view_key = epee::string_tools::pod_to_hex(offer.seller_private_view_key);
+
+          p.field="seller";
+          p.value=seller;
+          res.parsed_fields.push_back(p);
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="min_sfx_price";
+          p.value=min_sfx_price;
+          res.parsed_fields.push_back(p);
+          p.field="active";
+          p.value=active;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_used";
+          p.value=price_peg_used;
+          res.parsed_fields.push_back(p);
+          p.field="seller_address";
+          p.value=seller_address;
+          res.parsed_fields.push_back(p);
+          p.field="seller_private_view_key";
+          p.value=seller_private_view_key;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_offer_update)
+      {
+
+          safex::edit_offer_data offer{};
+          const cryptonote::blobdata offerblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(offerblob, offer))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string seller(offer.seller.begin(), offer.seller.end());
+          std::string title(offer.title.begin(), offer.title.end());
+          std::string description(offer.description.begin(), offer.description.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(offer.offer_id);
+          std::string price_peg_id = epee::string_tools::pod_to_hex(offer.price_peg_id);
+          std::string quantity = std::to_string(offer.quantity);
+          std::string price = std::to_string(offer.price);
+          std::string min_sfx_price = std::to_string(offer.min_sfx_price);
+          std::string active = epee::string_tools::pod_to_hex(offer.active);
+          std::string price_peg_used = epee::string_tools::pod_to_hex(offer.price_peg_used);
+
+          p.field="seller";
+          p.value=seller;
+          res.parsed_fields.push_back(p);
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="min_sfx_price";
+          p.value=min_sfx_price;
+          res.parsed_fields.push_back(p);
+          p.field="active";
+          p.value=active;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_used";
+          p.value=price_peg_used;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_purchase)
+      {
+
+          safex::create_purchase_data purchase{};
+          const cryptonote::blobdata purchaseblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(purchaseblob, purchase))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string offer_id = epee::string_tools::pod_to_hex(purchase.offer_id);
+          std::string quantity = std::to_string(purchase.quantity);
+          std::string price = std::to_string(purchase.price);
+          std::string shipping = epee::string_tools::pod_to_hex(purchase.shipping);
+
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+          p.field="price";
+          p.value=price;
+          res.parsed_fields.push_back(p);
+          p.field="shipping";
+          p.value=shipping;
+          res.parsed_fields.push_back(p);
+          p.field="quantity";
+          p.value=quantity;
+          res.parsed_fields.push_back(p);
+
+
+      } else if(output_type == tx_out_type::out_safex_feedback_token)
+      {
+
+          safex::create_feedback_token_data feedback_token{};
+          const cryptonote::blobdata feedback_tokenblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(feedback_tokenblob, feedback_token))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string offer_id = epee::string_tools::pod_to_hex(feedback_token.offer_id);
+
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_feedback)
+      {
+
+          safex::create_feedback_data feedback{};
+          const cryptonote::blobdata feedbackblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(feedbackblob, feedback))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string comment(feedback.comment.begin(), feedback.comment.end());
+          std::string offer_id = epee::string_tools::pod_to_hex(feedback.offer_id);
+          std::string stars_given = std::to_string(feedback.stars_given);
+
+          p.field="comment";
+          p.value=comment;
+          res.parsed_fields.push_back(p);
+          p.field="stars_given";
+          p.value=stars_given;
+          res.parsed_fields.push_back(p);
+          p.field="offer_id";
+          p.value=offer_id;
+          res.parsed_fields.push_back(p);
+
+      } else if(output_type == tx_out_type::out_safex_price_peg)
+      {
+
+          safex::create_price_peg_data price_peg{};
+          const cryptonote::blobdata price_pegblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(price_pegblob, price_peg))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string title(price_peg.title.begin(), price_peg.title.end());
+          std::string price_peg_id = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          std::string creator(price_peg.creator.begin(), price_peg.creator.end());
+          std::string description(price_peg.description.begin(), price_peg.description.end());
+          std::string currency(price_peg.currency.begin(), price_peg.currency.end());
+          std::string rate = std::to_string(price_peg.rate);
+
+          p.field="title";
+          p.value=title;
+          res.parsed_fields.push_back(p);
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="creator";
+          p.value=creator;
+          res.parsed_fields.push_back(p);
+          p.field="description";
+          p.value=description;
+          res.parsed_fields.push_back(p);
+          p.field="currency";
+          p.value=currency;
+          res.parsed_fields.push_back(p);
+          p.field="rate";
+          p.value=rate;
+          res.parsed_fields.push_back(p);
+
+
+      } else if(output_type == tx_out_type::out_safex_price_peg_update)
+      {
+
+          safex::update_price_peg_data price_peg{};
+          const cryptonote::blobdata price_pegblob(std::begin(req.data), std::end(req.data));
+          if (!cryptonote::parse_and_validate_from_blob(price_pegblob, price_peg))
+          {
+              res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+              return false;
+          }
+
+          std::string price_peg_id = epee::string_tools::pod_to_hex(price_peg.price_peg_id);
+          std::string rate = std::to_string(price_peg.rate);
+
+          p.field="price_peg_id";
+          p.value=price_peg_id;
+          res.parsed_fields.push_back(p);
+          p.field="rate";
+          p.value=rate;
+          res.parsed_fields.push_back(p);
+
+      } else
+      {
+          res.status = CORE_RPC_STATUS_SAFEX_INVALID_TYPE;
+          return false;
+      }
+
+      return true;
+  }
+
+  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
+  {
+    if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{0, m_core.get_staked_tokens()});
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{req.interval, m_core.get_locked_tokens_for_interval(req.interval)});
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_TOKEN_STAKED::result_t{i, m_core.get_locked_tokens_for_interval(i)});
+          }
+        }
+        else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res)
+  {
+     if (req.interval == 0) {
+      // @todo: Implement here to return last interval value.
+      res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{m_core.get_current_interval(), m_core.get_network_fee_for_interval(m_core.get_current_interval())});
+      res.status = "OK";
+    }
+    else {
+      if(req.end == 0) {
+        res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{req.interval, m_core.get_network_fee_for_interval(req.interval)});
+        res.status = "OK";
+      }
+      else {
+        if( req.end >= req.interval) {
+          for(uint64_t i = req.interval; i < req.end; ++i) {
+            res.pairs.push_back(COMMAND_RPC_NETWORK_FEE::result_t{i, m_core.get_network_fee_for_interval(i)});
+            res.status = "OK";
+          }
+        }
+        else {
+          res.status = "FAILED";
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool core_rpc_server::on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res) 
+  {
+    if(req.begin_interval > req.end_interval){
+      res.status = "There are no good interval values provided.";
+      return false;
+    }
+    else {
+      std::map<uint64_t, uint64_t> interests = m_core.get_interest_map(req.begin_interval, req.end_interval);
+      
+      for(auto interest : interests)
+      {
+         res.interest_per_interval.push_back({interest.first, interest.second});
+      }
+      res.status = "OK";
+    }
+
+    return true;
+  }
+
+  bool core_rpc_server::on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res)
+  {
+
+    safex::safex_account account;
+    if (!m_core.get_safex_account_info(req.username, account)) {
+      res.status = CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST;
+      return true;
+    }
+
+    res.pkey = epee::string_tools::pod_to_hex(account.pkey);
+
+    res.account_data = std::string(std::begin(account.account_data), std::end(account.account_data));
+    res.status = CORE_RPC_STATUS_OK;
+
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
