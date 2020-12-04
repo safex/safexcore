@@ -1230,6 +1230,11 @@ simple_wallet::simple_wallet()
                            tr("If no arguments are given, show all offers that you can give feedback\n"
                               "If arguments are given, give feedback for purchased offer with <offer_id> with <star_rating> and <comment>"));
 
+  m_cmd_binder.set_handler("safex_feedback_given",
+                           boost::bind(&simple_wallet::safex_feedback_given, this, _1),
+                           tr("safex_feedback_given \n"),
+                           tr("List feedbacks that are given by the user"));
+
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
                            tr("donate_safex_fee [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <cash_amount> [<payment_id>]"),

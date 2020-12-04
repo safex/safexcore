@@ -414,6 +414,29 @@ public:
     std::string getCurrency() const {return currency;};
 };
 
+struct SafexFeedback {
+public:
+    SafexFeedback(){}
+    SafexFeedback(const std::string &_title, const std::string& _offer_id, const uint64_t& _rating, const std::string& _comment):
+          title(_title),
+          offer_id(_offer_id),
+          rating(_rating),
+          comment(_comment){}
+
+private:
+    std::string title;
+    std::string offer_id;
+    uint64_t rating;
+    std::string comment;
+
+public:
+
+    std::string getTitle() const {return title;};
+    std::string getOffer_id() const {return offer_id;};
+    uint64_t getRating() const {return rating;};
+    std::string getComment() const {return comment;};
+};
+
 /**
  * @brief AddressBookRow - provides functions to manage address book
  */
@@ -768,6 +791,16 @@ struct Wallet
     * \param interest_per_output - Vector of pairs staked token amount and collected fee
     */
     virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
+
+    /*!
+    * \brief getMyFeedbacksToGive - Returns offer ID and offer title that feedback is not given
+    */
+    virtual std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() = 0;
+
+    /*!
+    * \brief getMyFeedbacksGiven - Returns feedbacks that are given
+    */
+    virtual std::vector<SafexFeedback> getMyFeedbacksGiven() = 0;
 
    /*!
     * \brief getRestoreHeight - get wallet creation height

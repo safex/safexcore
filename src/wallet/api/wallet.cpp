@@ -1632,6 +1632,46 @@ uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& i
     return m_wallet->get_current_interest(interest_per_output);
 }
 
+std::vector<std::pair<std::string, std::string>> WalletImpl::getMyFeedbacksToGive(){
+
+    std::vector<std::pair<std::string, std::string>> feedback_tokens;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &offer_id: m_wallet->get_my_safex_feedbacks_to_give()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [offer_id](const safex::safex_offer &sfx_offer) {
+            return offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedback_tokens.emplace_back(epee::string_tools::pod_to_hex(offer_id),it->title);
+        }
+    }
+
+    return feedback_tokens;
+}
+
+std::vector<SafexFeedback> WalletImpl::getMyFeedbacksGiven(){
+
+    std::vector<SafexFeedback> feedbacks;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &feedback: m_wallet->get_my_safex_feedbacks_given()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [feedback](const safex::safex_offer &sfx_offer) {
+            return feedback.offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedbacks.emplace_back(it->title, epee::string_tools::pod_to_hex(feedback.offer_id), feedback.stars_given, feedback.comment);
+        }
+    }
+
+    return feedbacks;
+}
+
 
 PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
                                                            PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand){

@@ -781,6 +781,8 @@ namespace tools
 
       a & m_safex_feedback_tokens;
 
+      a & m_safex_given_feedbacks;
+
       a & m_safex_price_pegs;
 
     }
@@ -1098,6 +1100,7 @@ namespace tools
     bool update_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::create_purchase_data& purchase);
     bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
+    bool add_safex_feedback_given(const safex::create_feedback_data& feedback_given);
     bool remove_safex_feedback_token(const crypto::hash& offer_id);
     bool add_safex_price_peg(const safex::safex_price_peg& price_peg);
     bool update_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& rate);
@@ -1110,6 +1113,7 @@ namespace tools
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
     std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
+    std::vector<safex::safex_feedback> get_my_safex_feedbacks_given();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
     std::vector<safex::safex_price_peg> get_safex_price_pegs(const std::string& currency = "");
     std::vector<safex::safex_price_peg> get_my_safex_price_pegs();
@@ -1291,6 +1295,8 @@ namespace tools
     std::vector<safex::safex_offer> m_safex_offers;
 
     std::vector<crypto::hash> m_safex_feedback_tokens;
+
+    std::vector<safex::safex_feedback> m_safex_given_feedbacks;
 
     std::vector<safex::safex_price_peg> m_safex_price_pegs;
   };
