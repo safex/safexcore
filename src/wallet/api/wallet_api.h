@@ -414,6 +414,29 @@ public:
     std::string getCurrency() const {return currency;};
 };
 
+struct SafexFeedback {
+public:
+    SafexFeedback(){}
+    SafexFeedback(const std::string &_title, const std::string& _offer_id, const uint64_t& _rating, const std::string& _comment):
+          title(_title),
+          offer_id(_offer_id),
+          rating(_rating),
+          comment(_comment){}
+
+private:
+    std::string title;
+    std::string offer_id;
+    uint64_t rating;
+    std::string comment;
+
+public:
+
+    std::string getTitle() const {return title;};
+    std::string getOffer_id() const {return offer_id;};
+    uint64_t getRating() const {return rating;};
+    std::string getComment() const {return comment;};
+};
+
 /**
  * @brief AddressBookRow - provides functions to manage address book
  */
