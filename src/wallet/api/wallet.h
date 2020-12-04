@@ -154,6 +154,10 @@ public:
 
     uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) override;
 
+
+    std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() override;
+    std::vector<SafexFeedback> getMyFeedbacksGiven() override;
+
     PendingTransaction * createAdvancedTransaction(const std::string &dst_addr, const std::string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
                                                    PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand) override;
 

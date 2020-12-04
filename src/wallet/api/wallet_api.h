@@ -792,6 +792,16 @@ struct Wallet
     */
     virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
 
+    /*!
+    * \brief getMyFeedbacksToGive - Returns offer ID and offer title that feedback is not given
+    */
+    virtual std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() = 0;
+
+    /*!
+    * \brief getMyFeedbacksGiven - Returns feedbacks that are given
+    */
+    virtual std::vector<SafexFeedback> getMyFeedbacksGiven() = 0;
+
    /*!
     * \brief getRestoreHeight - get wallet creation height
     *
