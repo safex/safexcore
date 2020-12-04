@@ -2606,6 +2606,7 @@ bool wallet::clear()
   m_subaddresses.clear();
   m_subaddress_labels.clear();
   m_safex_feedback_tokens.clear();
+  m_safex_given_feedbacks.clear();
   m_safex_offers.clear();
   m_safex_price_pegs.clear();
   return true;

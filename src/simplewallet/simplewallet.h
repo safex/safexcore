@@ -258,6 +258,7 @@ namespace cryptonote
     void print_safex_accounts();
     void print_my_safex_offers();
     void print_not_given_feedbacks();
+    void print_given_feedbacks();
     void print_my_safex_price_pegs();
     void print_my_safex_offer(safex::safex_offer& offer, std::vector<safex::safex_price_peg>& price_pegs);
     void print_safex_offer(safex::safex_offer& offer);
@@ -282,6 +283,8 @@ namespace cryptonote
     bool safex_purchase(const std::vector<std::string>& args);
 
     bool safex_feedback(const std::vector<std::string>& args);
+
+    bool safex_feedback_given(const std::vector<std::string>& args);
 
     bool safex_price_peg(const std::vector<std::string> &args);
     /****************************************************************************************************************/

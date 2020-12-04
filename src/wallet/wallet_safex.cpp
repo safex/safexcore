@@ -596,6 +596,14 @@ namespace tools
       return true;
     }
 
+    bool wallet::add_safex_feedback_given(const safex::create_feedback_data& feedback_given){
+
+        m_safex_given_feedbacks.emplace_back(feedback_given.stars_given, std::string(feedback_given.comment.begin(),feedback_given.comment.end()), feedback_given.offer_id);
+
+        return true;
+
+    }
+
     bool wallet::add_safex_price_peg(const safex::safex_price_peg& price_peg){
 
         m_safex_price_pegs.push_back(price_peg);
@@ -630,6 +638,11 @@ namespace tools
     std::vector<crypto::hash> wallet::get_my_safex_feedbacks_to_give()
     {
       return m_safex_feedback_tokens;
+    }
+
+    std::vector<safex::safex_feedback> wallet::get_my_safex_feedbacks_given()
+    {
+        return m_safex_given_feedbacks;
     }
 
   safex::safex_offer wallet::get_my_safex_offer(crypto::hash& offer_id)
@@ -693,6 +706,7 @@ namespace tools
           cryptonote::parse_and_validate_from_blob(offblob, feedback);
           std::string comment{feedback.comment.begin(),feedback.comment.end()};
           remove_safex_feedback_token(feedback.offer_id);
+          add_safex_feedback_given(feedback);
 
       } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
           safex::create_price_peg_data price_peg;
