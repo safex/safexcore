@@ -129,7 +129,7 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
     expected_bob_balance = 0;
     expected_network_fee = calculate_safex_network_fee(safex_bob_purchase_from_alice.price, FAKECHAIN, safex::command_t::simple_purchase);
 
-    expected_alice_balance += MK_TOKENS(10000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
+    expected_alice_balance += MK_TOKENS(25000)*AIRDROP_TOKEN_TO_CASH_REWARD_RATE;
     expected_alice_balance -= 7*TESTS_DEFAULT_FEE;
 
     expected_alice_balance_before_purchase = expected_alice_balance;
@@ -145,9 +145,9 @@ gen_simple_chain_split_safex::gen_simple_chain_split_safex()
     expected_bob_balance -= 1*TESTS_DEFAULT_FEE;
     expected_bob_balance -= safex_bob_purchase_from_alice.price;
 
-    expected_staked_tokens = MK_TOKENS(10000);
+    expected_staked_tokens = MK_TOKENS(25000);
 
-    expected_alice_token_balance = MK_TOKENS(10000);
+    expected_alice_token_balance = MK_TOKENS(25000);
 
 
     expected_data_fields_intialized = true;
@@ -182,7 +182,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   MAKE_NEXT_BLOCK(events, blk_2, blk_1, first_miner_account);                                 //  2
   MAKE_NEXT_BLOCK(events, blk_3, blk_2, first_miner_account);                                 //  3
   REWIND_BLOCKS(events, blk_3r, blk_3, first_miner_account);                                  //  63
-  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, alice_account, MK_TOKENS(10000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0])); // 64
+  MAKE_TX_MIGRATION_LIST_START(events, txlist_0, first_miner_account, alice_account, MK_TOKENS(25000), blk_3, get_hash_from_string(bitcoin_tx_hashes_str[0])); // 64
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, first_miner_account, txlist_0);              // 65
   MAKE_NEXT_BLOCK(events, blk_5, blk_4, first_miner_account);                                 // 66
   MAKE_TX_MIGRATION_LIST_START(events, txlist_0r, first_miner_account, bob_account, MK_TOKENS(20000), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[1])); // 67
@@ -303,7 +303,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
   // Stake tokens
 
   REWIND_BLOCKS(events, blk_59r, blk_59, first_miner_account);                                //  923
-  MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_7, alice_account, MK_TOKENS(10000), blk_59); // 924
+  MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_7, alice_account, MK_TOKENS(25000), blk_59); // 924
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_60, blk_59r, first_miner_account, txlist_7);            //  925
   DO_CALLBACK(events, "check_split_stake_token_1");                              //  926
   //  //split again and check back switching
@@ -336,7 +336,7 @@ bool gen_simple_chain_split_safex::generate(std::vector<test_event_entry> &event
 
   MAKE_NEXT_BLOCK(events, blk_71b, blk_71, first_miner_account);
   REWIND_BLOCKS(events, blk_71r, blk_71b, first_miner_account);                                //  1053
-  MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_9, alice_account, MK_TOKENS(10000), blk_71b); // 1054
+  MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_9, alice_account, MK_TOKENS(25000), blk_71b); // 1054
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_72, blk_71r, first_miner_account, txlist_9);            //  1055
   DO_CALLBACK(events, "check_split_unstake_token_1");                              //  1056
   //  //split again and check back switching

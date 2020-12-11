@@ -178,7 +178,7 @@ constexpr uint8_t MAX_SUPPORTED_TX_VERSION = 2;
 constexpr uint64_t SAFEX_COMMAND_PROTOCOL_VERSION                   = 1;
 
 //Safex token stake constants
-constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                      = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                      = 25000 * SAFEX_TOKEN;
 constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD               = 500000;
 constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN               = 10; //blocks
 constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET                 = 10; //blocks
@@ -187,7 +187,7 @@ constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD                         = 1000;
 constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_FAKECHAIN    = SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN*3; //blocks
 constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_TESTNET      = SAFEX_DEFAULT_INTERVAL_PERIOD_TESTNET*1; //blocks
 constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD_STAGENET     = SAFEX_DEFAULT_INTERVAL_PERIOD_STAGENET*10; //blocks
-constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD              = SAFEX_DEFAULT_INTERVAL_PERIOD*10; //blocks
+constexpr uint64_t SAFEX_DEFAULT_MINUMUM_TOKEN_STAKE_PERIOD              = SAFEX_DEFAULT_INTERVAL_PERIOD*8; //blocks
 
 //Safex network fee constants
 constexpr uint64_t SAFEX_DEFAULT_NETWORK_FEE_PERCENTAGE             = 5;
@@ -197,7 +197,7 @@ constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE              = 1000*SAFEX
 constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_FAKECHAIN = 1;
 constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_TESTNET   = 10;
 constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD_STAGENET  = 300;
-constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD           = 1500;// TBD
+constexpr uint64_t SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_PERIOD           = 22000;// 30 days
 
 //Safex account constants
 constexpr uint64_t SAFEX_ACCOUNT_USERNAME_MAX_SIZE                  = 32;
