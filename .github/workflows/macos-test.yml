@@ -16,7 +16,15 @@ jobs:
     - name: update brew
       run:  brew tap jmuncaster/homebrew-header-only
     - name: install packages
-      run:  brew install autogen autoconf automake binutils coreutils cmake boost ldns expat xz doxygen hidapi graphviz libpgm libunwind-headers unbound zmq czmq jmuncaster/header-only/cppzmq zeromq libsodium miniupnpc openssl pkg-config protobuf readline
+      run:  brew install autogen autoconf automake binutils coreutils cmake ldns expat xz doxygen hidapi graphviz libpgm libunwind-headers unbound zmq czmq jmuncaster/header-only/cppzmq zeromq libsodium miniupnpc openssl pkg-config protobuf readline
+    - name: install boost
+      run:  |
+          curl -OL https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz
+          tar -xf boost_1_72_0.tar.gz
+          cd boost_1_72_0
+          ./bootstrap.sh
+          ./b2 headers
+          sudo ./b2 cxxflags=-fPIC cflags=-fPIC -a link=static threading=multi threadapi=pthread install
     - name: install protobuf
       run: |
         cd external
