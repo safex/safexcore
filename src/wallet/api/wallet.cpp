@@ -214,6 +214,127 @@ struct WalletCallbackImpl : public tools::i_wallet_callback
       }
     }
 
+    virtual void on_advanced_output_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, const cryptonote::txout_to_script &txout, const cryptonote::subaddress_index& subaddr_index) {
+
+        std::string tx_hash = epee::string_tools::pod_to_hex(txid);
+
+        if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account)) {
+            safex::create_account_data account;
+            const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(accblob, account);
+            std::string accusername(begin(account.username), end(account.username));
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Output of type account, username: ") << accusername << " received, " <<
+                         tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_account_update)) {
+            safex::edit_account_data account;
+            const cryptonote::blobdata accblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(accblob, account);
+            std::string accusername(begin(account.username), end(account.username));
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << accusername << " received, " <<
+                         tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer)){
+            safex::create_offer_data offer;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, offer);
+            safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,offer.description,offer.offer_id,
+                                         std::string{offer.seller.begin(),offer.seller.end()},offer.active,offer.seller_address,offer.price_peg_used,offer.price_peg_id,offer.min_sfx_price};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
+                tr("Offer title: ") << sfx_offer.title << " received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_offer_update)){
+            safex::edit_offer_data offer;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, offer);
+            safex::safex_offer sfx_offer{std::string{offer.title.begin(),offer.title.end()},offer.quantity,offer.price,
+                                         offer.description,offer.offer_id,std::string{offer.seller.begin(),offer.seller.end()}};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Updated for account, username: ") << sfx_offer.seller << ", " <<
+                tr(" Offer title: ") << sfx_offer.title << " update received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_purchase)){
+            safex::create_purchase_data purchase_data;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, purchase_data);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Purchased offer: ") << purchase_data.offer_id << " received, " <<
+                tr("Quantity purchased: ") << purchase_data.quantity << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback_token)){
+            safex::create_feedback_token_data feedback_token;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, feedback_token);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Feedback token received for offer: ") << feedback_token.offer_id << " received, " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_feedback)){
+            safex::create_feedback_data feedback;
+            const cryptonote::blobdata offblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(offblob, feedback);
+            std::string comment{feedback.comment.begin(),feedback.comment.end()};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Feedback sent received for offer: ") << feedback.offer_id << " received, " <<
+                tr("Stars given: ") << feedback.stars_given << ", " <<
+                tr("Comment given: ") << comment << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
+            safex::create_price_peg_data price_peg;
+            const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+            std::string creator{price_peg.creator.begin(),price_peg.creator.end()};
+            std::string title{price_peg.title.begin(),price_peg.title.end()};
+            std::string currency{price_peg.currency.begin(),price_peg.currency.end()};
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Price peg creation for account: ") << creator << " received, " <<
+                tr("Price peg ID: ") << price_peg.price_peg_id << ", " <<
+                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
+                tr("Price peg currency: ") << currency << ", " <<
+                tr("idx ") << subaddr_index);
+
+        } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg_update)){
+            safex::update_price_peg_data price_peg;
+            const cryptonote::blobdata pricepeggblob(std::begin(txout.data), std::end(txout.data));
+            cryptonote::parse_and_validate_from_blob(pricepeggblob, price_peg);
+            LOG_PRINT_L3(__FUNCTION__ <<
+                tr("Height ") << height << ", " <<
+                tr("txid ") << txid << ", " <<
+                tr("Price peg update for price peg ID: ") << price_peg.price_peg_id << ", " <<
+                tr("Price peg rate: ") << print_money(price_peg.rate) << ", " <<
+                tr("idx ") << subaddr_index);
+        }
+        // do not signal on advanced tx if wallet is not syncronized completely
+        if (m_listener && m_wallet->synchronized())
+        {
+            m_listener->advancedReceived(tx_hash, static_cast<uint8_t>(txout.output_type));
+            m_listener->updated();
+        }
+    }
+
     virtual void on_skip_transaction(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx)
     {
         // TODO;
@@ -626,6 +747,7 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
         }
 
         m_recoveringFromSeed= true; //Slow sync wallet
+        m_password = password;
 
     }
     catch (const std::exception& e) {
@@ -694,6 +816,7 @@ bool WalletImpl::recover(const std::string &path, const std::string &password, c
     try {
         m_wallet->set_seed_language(old_language);
         m_wallet->generate(path, password, recovery_key, true, false);
+        m_password = password;
 
     } catch (const std::exception &e) {
         m_status = Status_Critical;
@@ -911,6 +1034,16 @@ uint64_t WalletImpl::tokenBalance(uint32_t accountIndex) const
 uint64_t WalletImpl::unlockedTokenBalance(uint32_t accountIndex) const
 {
   return m_wallet->unlocked_token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::stakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->staked_token_balance(accountIndex);
+}
+
+uint64_t WalletImpl::unlockedStakedTokenBalance(uint32_t accountIndex) const
+{
+    return m_wallet->unlocked_staked_token_balance(accountIndex);
 }
 
 uint64_t WalletImpl::blockChainHeight() const
@@ -1251,13 +1384,15 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                 cryptonote::tx_destination_entry de;
 
                 if (tx_type == TransactionType::TokenTransaction) {
-                    if (!tools::is_whole_coin_amount(*value_amount)) {
+                    if (!tools::is_whole_token_amount(*value_amount)) {
                         THROW_WALLET_EXCEPTION(tools::error::not_whole_token_amount, *value_amount);
                     }
                     de.token_amount = *value_amount;
                     de.token_transaction = true;
+                    de.output_type = cryptonote::tx_out_type::out_token;
                 } else {
                     de.amount = *value_amount;
+                    de.output_type = cryptonote::tx_out_type::out_cash;
                 }
 
                 de.addr = info.address;
@@ -1295,7 +1430,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
             m_errorString = (boost::format(tr("failed to get random outputs to mix: %s")) % e.what()).str();
             m_status = Status_Error;
 
-        } catch (const tools::error::not_enough_unlocked_money& e) {
+        } catch (const tools::error::not_enough_unlocked_cash& e) {
             m_status = Status_Error;
             std::ostringstream writer;
 
@@ -1304,7 +1439,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                       print_money(e.tx_amount());
             m_errorString = writer.str();
 
-        } catch (const tools::error::not_enough_money& e) {
+        } catch (const tools::error::not_enough_cash& e) {
             m_status = Status_Error;
             std::ostringstream writer;
 
@@ -1372,6 +1507,686 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
     return transaction;
 }
 
+
+bool WalletImpl::createSafexAccount(const std::string& username, const std::vector<uint8_t>& description){
+
+  if(m_wallet->safex_account_exists(username)) {
+    return false;
+  }
+
+  if (m_wallet->generate_safex_account(username, description)) {
+    m_wallet->store_safex(m_password);
+    return true;
+  } else {
+    return false;
+  }
+
+    return true;
+}
+
+std::vector<SafexAccount> WalletImpl::getSafexAccounts() {
+
+  std::vector<SafexAccount> sfx_accounts;
+
+  for (auto& acc: m_wallet->get_safex_accounts()) {
+    safex::safex_account_keys keys = AUTO_VAL_INIT(keys);
+    std::string data{acc.account_data.begin(),acc.account_data.end()};
+    m_wallet->get_safex_account_keys(acc.username, keys);
+    std::string pubKey = epee::string_tools::pod_to_hex(keys.m_public_key);
+    std::string secKey = epee::string_tools::pod_to_hex(keys.m_secret_key);
+    uint8_t acc_status = m_wallet->get_safex_account_status(acc);
+
+    sfx_accounts.emplace_back(acc.username,data,pubKey,secKey,acc_status);
+  }
+
+  return sfx_accounts;
+}
+
+SafexAccount WalletImpl::getSafexAccount(const std::string& username){
+
+  safex::safex_account sfx_account;
+  safex::safex_account_keys keys = AUTO_VAL_INIT(keys);
+
+  auto res = m_wallet->get_safex_account(username,sfx_account);
+  if(!res)
+    return SafexAccount{};
+
+  std::string data{sfx_account.account_data.begin(),sfx_account.account_data.end()};
+  m_wallet->get_safex_account_keys(username, keys);
+  std::string pubKey = epee::string_tools::pod_to_hex(keys.m_public_key);
+  std::string secKey = epee::string_tools::pod_to_hex(keys.m_secret_key);
+  uint8_t acc_status = m_wallet->get_safex_account_status(sfx_account);
+
+  return SafexAccount{sfx_account.username,data,pubKey,secKey,acc_status};
+
+}
+
+bool WalletImpl::recoverSafexAccount(const std::string& username, const std::string& private_key){
+
+  crypto::secret_key skey{};
+  epee::string_tools::hex_to_pod(private_key, skey);
+
+  if (m_wallet->recover_safex_account(username, skey)) {
+    m_wallet->store_safex(m_password);
+    return true;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool WalletImpl::removeSafexAccount(const std::string& username){
+
+  if (m_wallet->remove_safex_account(username)) {
+    m_wallet->store_safex(m_password);
+    return true;
+  }
+
+  return false;
+}
+
+std::vector<SafexOffer> WalletImpl::getMySafexOffers(){
+
+    auto price_pegs = m_wallet->get_safex_price_pegs("");
+
+
+    std::vector<SafexOffer> offers;
+    for(auto &offer: m_wallet->get_my_safex_offers()){
+        auto price_peg_id = offer.price_peg_id;
+        std::string currency = "SFX";
+
+        auto it = std::find_if(price_pegs.begin(), price_pegs.end(), [price_peg_id](const safex::safex_price_peg &sfx_price_peg) { return price_peg_id == sfx_price_peg.price_peg_id; });
+        std::string offerID = epee::string_tools::pod_to_hex(offer.offer_id);
+        std::string pricePegID = epee::string_tools::pod_to_hex(offer.price_peg_id);
+        if(it!=price_pegs.end())
+            currency = it->currency;
+
+        offers.emplace_back(offer.title,offer.quantity,offer.price,offer.min_sfx_price, std::string{offer.description.begin(),offer.description.end()},
+                            offer.active, offer.price_peg_used, offerID, offer.seller, pricePegID,  currency);
+    }
+
+    return offers;
+}
+
+std::vector<SafexOffer> WalletImpl::listSafexOffers(bool active){
+    std::vector<SafexOffer> offers;
+    std::string currency = "SFX";
+
+    for (auto &offer: m_wallet->get_safex_offers())
+        if(!active || offer.active){
+            uint64_t sfx_price;
+            bool res = m_wallet->calculate_sfx_price(offer,sfx_price);
+            if(!res)
+                continue;
+            std::string offerID = epee::string_tools::pod_to_hex(offer.offer_id);
+            std::string pricePegID = epee::string_tools::pod_to_hex(offer.price_peg_id);
+
+            offers.emplace_back(offer.title,offer.quantity,sfx_price,offer.min_sfx_price, std::string{offer.description.begin(),offer.description.end()},
+                                offer.active, offer.price_peg_used, offerID, offer.seller, pricePegID,  currency);
+        }
+    return offers;
+}
+
+uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output){
+
+    return m_wallet->get_current_interest(interest_per_output);
+}
+
+std::vector<std::pair<std::string, std::string>> WalletImpl::getMyFeedbacksToGive(){
+
+    std::vector<std::pair<std::string, std::string>> feedback_tokens;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &offer_id: m_wallet->get_my_safex_feedbacks_to_give()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [offer_id](const safex::safex_offer &sfx_offer) {
+            return offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedback_tokens.emplace_back(epee::string_tools::pod_to_hex(offer_id),it->title);
+        }
+    }
+
+    return feedback_tokens;
+}
+
+std::vector<SafexFeedback> WalletImpl::getMyFeedbacksGiven(){
+
+    std::vector<SafexFeedback> feedbacks;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &feedback: m_wallet->get_my_safex_feedbacks_given()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [feedback](const safex::safex_offer &sfx_offer) {
+            return feedback.offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedbacks.emplace_back(it->title, epee::string_tools::pod_to_hex(feedback.offer_id), feedback.stars_given, feedback.comment);
+        }
+    }
+
+    return feedbacks;
+}
+
+
+PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_addr, const string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                           PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand){
+
+  clearStatus();
+  // Pause refresh thread while creating transaction
+  pauseRefresh();
+
+
+  cryptonote::address_parse_info info;
+
+  size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
+
+  uint32_t adjusted_priority = m_wallet->adjust_priority(static_cast<uint32_t>(priority));
+
+  PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
+
+  do {
+
+    std::vector<uint8_t> extra;
+    // if dst_addr is not an integrated address, parse payment_id
+    if (!info.has_payment_id && !payment_id.empty()) {
+      // copy-pasted from simplewallet.cpp:2212
+      crypto::hash payment_id_long;
+      bool r = tools::wallet::parse_long_payment_id(payment_id, payment_id_long);
+      if (r) {
+        std::string extra_nonce;
+        cryptonote::set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id_long);
+        r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
+      } else {
+        r = tools::wallet::parse_short_payment_id(payment_id, info.payment_id);
+        if (r) {
+          std::string extra_nonce;
+          set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+          r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
+        }
+      }
+
+      if (!r) {
+        m_status = Status_Error;
+        m_errorString = tr("payment id has invalid format, expected 16 or 64 character hex string: ") + payment_id;
+        break;
+      }
+    }
+    else if (info.has_payment_id) {
+      std::string extra_nonce;
+      set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+      bool r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
+      if (!r) {
+        m_status = Status_Error;
+        m_errorString = tr("Failed to add short payment id: ") + epee::string_tools::pod_to_hex(info.payment_id);
+        break;
+      }
+    }
+
+
+    //std::vector<tools::wallet::pending_tx> ptx_vector;
+
+    try {
+
+      vector<cryptonote::tx_destination_entry> dsts;
+      cryptonote::tx_destination_entry de;
+      safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
+      uint64_t unlock_block = 0;
+      safex::command_t command = safex::command_t::nop;
+
+      std::string destination_addr = m_wallet->get_subaddress_as_str({subaddr_account, 0});
+      if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), destination_addr)) {
+        m_status = Status_Error;
+        m_errorString = tr("Failed to parse address");
+        break;
+      }
+
+
+      if(advancedCommnand.m_transaction_type == TransactionType::CreateAccountTransaction) {
+
+        Safex::CreateAccountCommand sfxAccount = static_cast<Safex::CreateAccountCommand &>(advancedCommnand);
+
+        if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        };
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+        cryptonote::tx_destination_entry de_account = create_safex_account_destination(info.address, my_safex_account.username, my_safex_account.pkey, my_safex_account.account_data);
+        dsts.push_back(de_account);
+
+        //lock tokens for account creation
+        cryptonote::tx_destination_entry token_create_fee = AUTO_VAL_INIT(token_create_fee);
+        token_create_fee.addr = info.address;
+        token_create_fee.is_subaddress = info.is_subaddress;
+        token_create_fee.token_amount = SAFEX_CREATE_ACCOUNT_TOKEN_LOCK_FEE;
+        token_create_fee.output_type = tx_out_type::out_token;
+        dsts.push_back(token_create_fee);
+
+        uint64_t bc_height = m_wallet->get_blockchain_current_height();
+        unlock_block = bc_height + safex::get_safex_minumum_account_create_token_lock_period(m_wallet->nettype());
+        command = safex::command_t::create_account;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {
+
+        Safex::EditAccountCommand sfxAccount = static_cast<Safex::EditAccountCommand &>(advancedCommnand);
+
+        if (!m_wallet->get_safex_account(sfxAccount.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        };
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+
+        std::vector<uint8_t> new_accdata(sfxAccount.m_data.begin(), sfxAccount.m_data.end());
+
+        cryptonote::tx_destination_entry de_account_update = edit_safex_account_destination(info.address, my_safex_account.username, new_accdata);
+        dsts.push_back(de_account_update);
+
+        command = safex::command_t::edit_account;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::CreateOfferTransaction) {
+
+        Safex::CreateOfferCommand sfxOffer = static_cast<Safex::CreateOfferCommand &>(advancedCommnand);
+        if (!m_wallet->get_safex_account(sfxOffer.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        }
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+
+        safex::safex_offer sfx_offer{sfxOffer.m_offer_title, sfxOffer.m_quantity, sfxOffer.m_price,
+                                     sfxOffer.m_description, my_safex_account.username,
+                                     m_wallet->get_account().get_keys().m_view_secret_key,
+                                     m_wallet->get_account().get_keys().m_account_address};
+
+        if (sfxOffer.m_price_peg_used) {
+          crypto::hash price_peg_id;
+          if(!epee::string_tools::hex_to_pod(sfxOffer.m_price_peg_id, price_peg_id)){
+            m_status = Status_Error;
+            m_errorString = tr("Bad price peg ID given");
+            break;
+          }
+          sfx_offer.set_price_peg(price_peg_id, sfxOffer.m_price, sfxOffer.m_min_sfx_price);
+        }
+
+        if (sfxOffer.m_min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE) {
+            m_status = Status_Error;
+            m_errorString = tr("Wrong minimum SFX price");
+            break;
+        }
+
+        cryptonote::tx_destination_entry de_offer = create_safex_offer_destination(info.address, sfx_offer);
+        dsts.push_back(de_offer);
+
+        command = safex::command_t::create_offer;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::EditOfferTransaction) {
+
+        Safex::EditOfferCommand sfxOffer = static_cast<Safex::EditOfferCommand &>(advancedCommnand);
+        if (!m_wallet->get_safex_account(sfxOffer.m_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown safex account username");
+          break;
+        };
+        if (!crypto::check_key(my_safex_account.pkey)) {
+          m_status = Status_Error;
+          m_errorString = tr("Invalid account public key");
+          break;
+        }
+
+        crypto::hash offer_id_hash;
+        if(!epee::string_tools::hex_to_pod(sfxOffer.m_offer_id, offer_id_hash)){
+          m_status = Status_Error;
+          m_errorString = tr("Bad offer ID given");
+          break;
+        }
+
+        std::vector<uint8_t> new_offerdata(sfxOffer.m_description.begin(), sfxOffer.m_description.end());
+
+        safex::safex_offer sfx_offer{sfxOffer.m_offer_title, sfxOffer.m_quantity, sfxOffer.m_price,
+                                     new_offerdata, offer_id_hash, my_safex_account.username, sfxOffer.m_active,
+                                     m_wallet->get_account().get_keys().m_account_address,
+                                     m_wallet->get_account().get_keys().m_view_secret_key};
+
+        if (sfxOffer.m_price_peg_used) {
+          crypto::hash price_peg_id;
+          if(!epee::string_tools::hex_to_pod(sfxOffer.m_price_peg_id, price_peg_id)){
+            m_status = Status_Error;
+            m_errorString = tr("Bad price peg ID given");
+            break;
+          }
+          sfx_offer.set_price_peg(price_peg_id, sfxOffer.m_price, sfxOffer.m_min_sfx_price);
+        }
+
+        if (sfxOffer.m_min_sfx_price < SAFEX_OFFER_MINIMUM_PRICE) {
+            m_status = Status_Error;
+            m_errorString = tr("Wrong minimum SFX price");
+            break;
+        }
+
+        cryptonote::tx_destination_entry de_offer_update = edit_safex_offer_destination(info.address, sfx_offer);
+        dsts.push_back(de_offer_update);
+
+        command = safex::command_t::edit_offer;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::StakeTokenTransaction) {
+
+        Safex::StakeTokenCommand stakeToken = static_cast<Safex::StakeTokenCommand &>(advancedCommnand);
+        if (!tools::is_whole_token_amount(*value_amount))
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Token amount must be whole number.");
+          break;
+        }
+
+        uint64_t minimum_tokens = safex::get_minimum_token_stake_amount(m_wallet->nettype());
+
+        if (*value_amount < minimum_tokens)
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Token amount must be at least ") + print_money(minimum_tokens);
+          break;
+        }
+
+        de.addr = info.address;
+        de.is_subaddress = info.is_subaddress;
+        de.token_amount = *value_amount;
+        de.script_output = true;
+        de.output_type = tx_out_type::out_staked_token;
+        dsts.push_back(de);
+
+        command = safex::command_t::token_stake;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::UnstakeTokenTransaction) {
+
+        Safex::UnstakeTokenCommand stakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
+        if (!tools::is_whole_token_amount(*value_amount))
+        {
+          m_status = Status_Error;
+          m_errorString = tr("Token amount must be whole number.");
+          break;
+        }
+
+        de.addr = info.address;
+        de.is_subaddress = info.is_subaddress;
+        de.token_amount = *value_amount;
+        de.script_output = true;
+        de.output_type = tx_out_type::out_token;
+        fake_outs_count = 0;
+        dsts.push_back(de);
+
+        command = safex::command_t::token_unstake;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::CreatePricePegTransaction) {
+
+        Safex::CreatePricePegCommand createPricePeg = static_cast<Safex::CreatePricePegCommand &>(advancedCommnand);
+
+        const std::string &sfx_username = createPricePeg.m_creator;
+        if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown Safex account username");
+          break;
+        }
+
+        if(createPricePeg.m_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
+          m_status = Status_Error;
+          m_errorString = tr("Currency must be equal or less than ") + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE) + tr(" characters!");
+          break;
+        }
+
+        uint64_t rate = createPricePeg.m_rate*COIN;
+        safex::safex_price_peg sfx_price_peg{createPricePeg.m_title,sfx_username,createPricePeg.m_currency,createPricePeg.m_description, rate};
+
+        cryptonote::tx_destination_entry de_price_peg = create_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg);
+
+        command = safex::command_t::create_price_peg;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::UpdatePricePegTransaction) {
+
+        Safex::UpdatePricePegCommand updatePricePeg = static_cast<Safex::UpdatePricePegCommand &>(advancedCommnand);
+        crypto::hash price_peg_id;
+
+        if(!epee::string_tools::hex_to_pod(updatePricePeg.m_price_peg_id, price_peg_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Failed to parse price peg id");
+          break;
+        }
+
+        const std::string &sfx_username = updatePricePeg.m_creator;
+        if (!m_wallet->get_safex_account(sfx_username, my_safex_account)) {
+          m_status = Status_Error;
+          m_errorString = tr("Unknown Safex account username");
+          break;
+        }
+
+        if(updatePricePeg.m_currency.length() > SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE){
+          m_status = Status_Error;
+          m_errorString = tr("Currency must be equal or less than ") + std::to_string(SAFEX_PRICE_PEG_CURRENCY_MAX_SIZE) + tr(" characters!");
+          break;
+        }
+
+        uint64_t rate = updatePricePeg.m_rate*COIN;
+        std::vector<uint8_t> description_arg{updatePricePeg.m_description.begin(),updatePricePeg.m_description.end()};
+
+        safex::safex_price_peg sfx_price_peg{updatePricePeg.m_title,sfx_username,updatePricePeg.m_currency,description_arg,price_peg_id,rate};
+
+        cryptonote::tx_destination_entry de_price_peg_update = update_safex_price_peg_destination(info.address, sfx_price_peg);
+        dsts.push_back(de_price_peg_update);
+
+        command = safex::command_t::update_price_peg;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::PurchaseTransaction) {
+
+        Safex::PurchaseCommand safexPurchase = static_cast<Safex::PurchaseCommand &>(advancedCommnand);
+
+        crypto::hash purchase_offer_id{};
+        std::vector<safex::safex_offer> offers = m_wallet->get_safex_offers();
+        std::vector<safex::safex_offer>::iterator offer_to_purchase;
+
+        uint64_t safex_network_fee = 0;
+
+        if(!epee::string_tools::hex_to_pod(safexPurchase.m_offer_id, purchase_offer_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Bad offer ID given");
+          break;
+        }
+
+        offer_to_purchase = std::find_if(offers.begin(), offers.end(), [purchase_offer_id](safex::safex_offer offer){
+            return offer.offer_id == purchase_offer_id;});
+
+        if(offer_to_purchase==offers.end()) {
+          m_status = Status_Error;
+          m_errorString = tr("There is no offer with given id!!");
+          break;
+        }
+
+        uint64_t sfx_price;
+        bool res = m_wallet->calculate_sfx_price(*offer_to_purchase, sfx_price);
+        if(!res) {
+            m_status = Status_Error;
+            m_errorString = tr("Error calculating SFX price for purchase!!");
+            break;
+        }
+
+        uint64_t total_sfx_to_pay = safexPurchase.m_quantity_to_purchase*sfx_price;
+
+        safex_network_fee = calculate_safex_network_fee(total_sfx_to_pay, m_wallet->nettype(), safex::command_t::simple_purchase);
+
+        de.amount = total_sfx_to_pay - safex_network_fee;
+        de.output_type = tx_out_type::out_cash;
+
+        cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
+        //Purchase
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id, offer_to_purchase->get_hash(), safexPurchase.m_quantity_to_purchase, total_sfx_to_pay};
+        blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
+        de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
+        dsts.push_back(de_purchase);
+
+        //Feedback token
+        safex::safex_feedback_token safex_feedback_token_output_data;
+        safex_feedback_token_output_data.offer_id = purchase_offer_id;
+        cryptonote::tx_destination_entry de_feedback_token = AUTO_VAL_INIT(de_feedback_token);
+        de_feedback_token = create_safex_feedback_token_destination(info.address, safex_feedback_token_output_data);
+        dsts.push_back(de_feedback_token);
+
+        de.addr = offer_to_purchase->seller_address;
+
+        dsts.push_back(de);
+
+        cryptonote::tx_destination_entry de_net_fee = AUTO_VAL_INIT(de_net_fee);
+
+        de_net_fee.addr = info.address;
+        de_net_fee.is_subaddress = info.is_subaddress;
+        de_net_fee.amount = safex_network_fee;
+        de_net_fee.script_output = true;
+        de_net_fee.output_type = tx_out_type::out_network_fee;
+
+        dsts.push_back(de_net_fee);
+
+        command = safex::command_t::simple_purchase;
+      }
+      else if(advancedCommnand.m_transaction_type == TransactionType::FeedbackTransaction) {
+
+        Safex::FeedbackCommand safexFeedback = static_cast<Safex::FeedbackCommand &>(advancedCommnand);
+
+        crypto::hash feedback_offer_id{};
+
+        if(!epee::string_tools::hex_to_pod(safexFeedback.m_offer_id, feedback_offer_id)){
+          m_status = Status_Error;
+          m_errorString = tr("Bad offer ID given");
+          break;
+        }
+
+
+        if(safexFeedback.m_stars_given > 3){
+          m_status = Status_Error;
+          m_errorString = tr("Feedback rating can be from 0 to 3");
+          break;
+        }
+
+        safex::safex_feedback sfx_feedback{(uint8_t)safexFeedback.m_stars_given,safexFeedback.m_comment,feedback_offer_id};
+
+        tx_destination_entry de_feedback = create_safex_feedback_destination(info.address, sfx_feedback);
+        dsts.push_back(de_feedback);
+
+        command = safex::command_t::create_feedback;
+      }
+
+      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+
+    } catch (const tools::error::daemon_busy&) {
+      // TODO: make it translatable with "tr"?
+      m_errorString = tr("daemon is busy. Please try again later.");
+      m_status = Status_Error;
+    } catch (const tools::error::no_connection_to_daemon&) {
+      m_errorString = tr("no connection to daemon. Please make sure daemon is running.");
+      m_status = Status_Error;
+    } catch (const tools::error::wallet_rpc_error& e) {
+      m_errorString = tr("RPC error: ") +  e.to_string();
+      m_status = Status_Error;
+    } catch (const tools::error::not_whole_token_amount &e) {
+      m_errorString = (boost::format(tr("failed to send token decimal amount: %s")) % e.what()).str();
+      m_status = Status_Error;
+    } catch (const tools::error::get_random_outs_error &e) {
+      m_errorString = (boost::format(tr("failed to get random outputs to mix: %s")) % e.what()).str();
+      m_status = Status_Error;
+
+    } catch (const tools::error::not_enough_unlocked_cash& e) {
+      m_status = Status_Error;
+      std::ostringstream writer;
+
+      writer << boost::format(tr("not enough money to transfer, available only %s, sent amount %s")) %
+                print_money(e.available()) %
+                print_money(e.tx_amount());
+      m_errorString = writer.str();
+
+    } catch (const tools::error::not_enough_cash& e) {
+      m_status = Status_Error;
+      std::ostringstream writer;
+
+      writer << boost::format(tr("not enough money to transfer, overall balance only %s, sent amount %s")) %
+                print_money(e.available()) %
+                print_money(e.tx_amount());
+      m_errorString = writer.str();
+
+    } catch (const tools::error::tx_not_possible& e) {
+      m_status = Status_Error;
+      std::ostringstream writer;
+
+      writer << boost::format(tr("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
+                print_money(e.available()) %
+                print_money(e.tx_amount() + e.fee())  %
+                print_money(e.tx_amount()) %
+                print_money(e.fee());
+      m_errorString = writer.str();
+
+    } catch (const tools::error::not_enough_outs_to_mix& e) {
+      std::ostringstream writer;
+      writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+      for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
+        writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
+      }
+      writer << "\n" << tr("Please sweep unmixable outputs.");
+      m_errorString = writer.str();
+      m_status = Status_Error;
+    } catch (const tools::error::tx_not_constructed&) {
+      m_errorString = tr("transaction was not constructed");
+      m_status = Status_Error;
+    } catch (const tools::error::tx_rejected& e) {
+      std::ostringstream writer;
+      writer << (boost::format(tr("transaction %s was rejected by daemon with status: ")) % get_transaction_hash(e.tx())) <<  e.status();
+      m_errorString = writer.str();
+      m_status = Status_Error;
+    } catch (const tools::error::tx_sum_overflow& e) {
+      m_errorString = e.what();
+      m_status = Status_Error;
+    } catch (const tools::error::zero_destination&) {
+      m_errorString =  tr("one of destinations is zero");
+      m_status = Status_Error;
+    } catch (const tools::error::tx_too_big& e) {
+      m_errorString =  tr("failed to find a suitable way to split transactions");
+      m_status = Status_Error;
+    } catch (const tools::error::transfer_error& e) {
+      m_errorString = string(tr("unknown transfer error: ")) + e.what();
+      m_status = Status_Error;
+    } catch (const tools::error::wallet_internal_error& e) {
+      m_errorString =  string(tr("internal error: ")) + e.what();
+      m_status = Status_Error;
+    } catch (const std::exception& e) {
+      m_errorString =  string(tr("unexpected error: ")) + e.what();
+      m_status = Status_Error;
+    } catch (...) {
+      m_errorString = tr("unknown error");
+      m_status = Status_Error;
+    }
+  } while (false);
+
+  transaction->m_status = m_status;
+  transaction->m_errorString = m_errorString;
+  // Resume refresh thread
+  startRefresh();
+  return transaction;
+
+};
+
 PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
 {
@@ -1399,7 +2214,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             m_errorString = tr("failed to get random outputs to mix");
             m_status = Status_Error;
 
-        } catch (const tools::error::not_enough_unlocked_money& e) {
+        } catch (const tools::error::not_enough_unlocked_cash& e) {
             m_status = Status_Error;
             std::ostringstream writer;
 
@@ -1408,7 +2223,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
                       print_money(e.tx_amount());
             m_errorString = writer.str();
 
-        } catch (const tools::error::not_enough_money& e) {
+        } catch (const tools::error::not_enough_cash& e) {
             m_status = Status_Error;
             std::ostringstream writer;
 

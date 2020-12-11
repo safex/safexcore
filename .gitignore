@@ -119,3 +119,6 @@ tests/data/wallet_9svHk1a.keys
 # Protobuf files
 src/cryptonote_core/protobuf/*.pb.cc
 src/cryptonote_core/protobuf/*.pb.h
+
+# QT creator files
+*.user

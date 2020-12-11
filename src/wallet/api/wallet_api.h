@@ -51,7 +51,17 @@ enum NetworkType : uint8_t {
 enum class TransactionType {
   CashTransaction = 0,
   TokenTransaction = 1,
-  MigrationTransaction = 2
+  MigrationTransaction = 2,
+  StakeTokenTransaction = 3,
+  UnstakeTokenTransaction = 4,
+  PurchaseTransaction = 5,
+  CreateAccountTransaction = 6,
+  EditAccountTransaction = 7,
+  CreateOfferTransaction = 8,
+  EditOfferTransaction = 9,
+  FeedbackTransaction = 10,
+  CreatePricePegTransaction = 11,
+  UpdatePricePegTransaction = 12
 };
 
 namespace Utils {
@@ -108,6 +118,145 @@ struct PendingTransaction
     virtual uint64_t txCount() const = 0;
     virtual std::vector<uint32_t> subaddrAccount() const = 0;
     virtual std::vector<std::set<uint32_t>> subaddrIndices() const = 0;
+};
+
+
+/**
+ * @brief Advanced Safex commands
+ */
+struct AdvancedCommand{
+    TransactionType m_transaction_type;
+};
+
+
+struct CreateAccountCommand : public AdvancedCommand
+{
+public:
+    CreateAccountCommand():AdvancedCommand{TransactionType::CreateAccountTransaction}{}
+    CreateAccountCommand(const std::string& _username):AdvancedCommand{TransactionType::CreateAccountTransaction},m_username{_username}{}
+
+    std::string m_username;
+};
+
+struct EditAccountCommand : public AdvancedCommand
+{
+public:
+    EditAccountCommand():AdvancedCommand{TransactionType::EditAccountTransaction}{}
+    EditAccountCommand(const std::string& _username, const std::string& _data):AdvancedCommand{TransactionType::EditAccountTransaction},m_username{_username},m_data{_data}{}
+
+    std::string m_username;
+    std::string m_data;
+};
+
+struct CreateOfferCommand : public AdvancedCommand
+{
+public:
+    CreateOfferCommand():AdvancedCommand{TransactionType::CreateOfferTransaction}{}
+    CreateOfferCommand(const std::string& _username, const std::string& _offer_title, const uint64_t _price, const uint64_t _quantity, const std::string& _descritpion, bool _price_peg_used = false, const std::string& _price_peg_id = "", const uint64_t _min_sfx_price = 0):AdvancedCommand{TransactionType::CreateOfferTransaction},
+                          m_username{_username},m_offer_title{_offer_title},m_price{_price},m_quantity{_quantity},m_description{_descritpion},m_price_peg_used{_price_peg_used}, m_price_peg_id{_price_peg_id}, m_min_sfx_price{_price}{
+      if(_price_peg_used)
+        m_min_sfx_price = _min_sfx_price;
+    }
+
+    std::string m_username = "";
+    std::string m_offer_title = "";
+    uint64_t m_price = 0;
+    uint64_t m_quantity = 0;
+    std::string m_description = "";
+    bool m_price_peg_used = false;
+    std::string m_price_peg_id = "";
+    uint64_t m_min_sfx_price = 0;
+};
+
+    struct EditOfferCommand : public AdvancedCommand
+    {
+    public:
+        EditOfferCommand():AdvancedCommand{TransactionType::EditOfferTransaction}{}
+        EditOfferCommand(const std::string& _offer_id, const std::string& _username, bool _active, const std::string& _offer_title, const uint64_t _price, const uint64_t _quantity, const std::string& _descritpion, bool _price_peg_used = false, const std::string& _price_peg_id = "", const uint64_t _min_sfx_price = 0):AdvancedCommand{TransactionType::EditOfferTransaction},
+                          m_offer_id{_offer_id},m_username{_username},m_active{_active},m_offer_title{_offer_title},m_price{_price},m_quantity{_quantity},m_description{_descritpion},m_price_peg_used{_price_peg_used}, m_price_peg_id{_price_peg_id}, m_min_sfx_price{_price}{
+          if(_price_peg_used)
+            m_min_sfx_price = _min_sfx_price;
+        }
+
+        std::string m_offer_id = "";
+        std::string m_username = "";
+        std::string m_offer_title = "";
+        uint64_t m_price = 0;
+        uint64_t m_quantity = 0;
+        std::string m_description = "";
+        bool m_price_peg_used = false;
+        std::string m_price_peg_id = "";
+        uint64_t m_min_sfx_price = 0;
+        bool m_active = true;
+    };
+
+struct StakeTokenCommand : public AdvancedCommand
+{
+public:
+    StakeTokenCommand():AdvancedCommand{TransactionType::StakeTokenTransaction}{}
+    StakeTokenCommand(const std::string& _address, const uint64_t _token_amount):AdvancedCommand{TransactionType::StakeTokenTransaction},m_token_amount{_token_amount},m_address{_address}{}
+
+        uint64_t m_token_amount;
+        std::string m_address;
+};
+
+struct UnstakeTokenCommand : public AdvancedCommand
+{
+public:
+    UnstakeTokenCommand():AdvancedCommand{TransactionType::UnstakeTokenTransaction}{}
+    UnstakeTokenCommand(const std::string& _address, const uint64_t _token_amount):AdvancedCommand{TransactionType::UnstakeTokenTransaction},m_token_amount{_token_amount},m_address{_address}{}
+
+    uint64_t m_token_amount;
+    std::string m_address;
+};
+
+    struct CreatePricePegCommand : public AdvancedCommand
+    {
+    public:
+        CreatePricePegCommand():AdvancedCommand{TransactionType::CreatePricePegTransaction}{}
+        CreatePricePegCommand(const std::string& _title, const std::string& _creator, const std::string& _description, const std::string& _currency, const double _rate):AdvancedCommand{TransactionType::CreatePricePegTransaction},
+                                  m_title{_title},m_creator{_creator},m_description{_description},m_currency{_currency},m_rate{_rate}{}
+
+        std::string m_title = "";
+        std::string m_creator = "";
+        std::string m_description = "";
+        std::string m_currency = "";
+        double m_rate = 0;
+    };
+
+struct UpdatePricePegCommand : public AdvancedCommand
+{
+public:
+    UpdatePricePegCommand():AdvancedCommand{TransactionType::UpdatePricePegTransaction}{}
+    UpdatePricePegCommand(const std::string& _price_peg_ig, const std::string& _title, const std::string& _creator, const std::string& _description, const std::string& _currency, const double _rate):AdvancedCommand{TransactionType::UpdatePricePegTransaction},
+                                 m_price_peg_id{_price_peg_ig},m_title{_title},m_creator{_creator},m_description{_description},m_currency{_currency},m_rate{_rate}{}
+    std::string m_price_peg_id = "";
+    std::string m_title = "";
+    std::string m_creator = "";
+    std::string m_description = "";
+    std::string m_currency = "";
+    double m_rate = 0;
+};
+
+struct PurchaseCommand : public AdvancedCommand
+{
+public:
+    PurchaseCommand():AdvancedCommand{TransactionType::PurchaseTransaction}{}
+    PurchaseCommand(const std::string& _offer_id, const uint64_t _quantity__to_purchase):AdvancedCommand{TransactionType::PurchaseTransaction},
+                                   m_offer_id{_offer_id},m_quantity_to_purchase{_quantity__to_purchase}{}
+    std::string m_offer_id = "";
+    uint64_t m_quantity_to_purchase = 0;
+};
+
+struct FeedbackCommand : public AdvancedCommand
+{
+public:
+    FeedbackCommand():AdvancedCommand{TransactionType::FeedbackTransaction}{}
+    FeedbackCommand(const std::string& _offer_id, const uint64_t _stars_given, const std::string& _comment):AdvancedCommand{TransactionType::FeedbackTransaction},
+                                                                                         m_offer_id{_offer_id},m_stars_given{_stars_given},m_comment{_comment}{}
+    std::string m_offer_id = "";
+    uint64_t m_stars_given = 0;
+    std::string m_comment = "";
 };
 
 /**
@@ -195,6 +344,97 @@ struct TransactionHistory
     virtual TransactionInfo * transaction(const std::string &id) const = 0;
     virtual std::vector<TransactionInfo*> getAll() const = 0;
     virtual void refresh() = 0;
+};
+
+struct SafexAccount {
+public:
+    SafexAccount(){}
+    SafexAccount(const std::string &usr, const std::string &_data, const std::string &_pub_key, const std::string &_sec_key, const uint8_t& _status):
+            username(usr),
+            data(_data),
+            pub_key(_pub_key),
+            sec_key(_sec_key),
+            status(_status) {}
+
+private:
+    std::string username;
+    std::string data;
+    std::string pub_key;
+    std::string sec_key;
+    uint8_t     status;
+public:
+    std::string getUsername() const {return username;}
+    std::string getData() const {return data;}
+    std::string getPubKey() const {return pub_key;}
+    std::string getSecKey() const {return sec_key;}
+    uint8_t getStatus() const {return status;}
+};
+
+struct SafexOffer {
+public:
+    SafexOffer(){}
+    SafexOffer(const std::string &_title, const  uint64_t _quantity, const  uint64_t _price, const uint64_t _min_sfx_price, const std::string& _description,
+               const bool _active, const bool _price_peg_used, const std::string& _offer_id, const std::string& _seller, const std::string& _price_peg_id, const std::string& _currency):
+        title(_title),
+        quantity(_quantity),
+        price(_price),
+        min_sfx_price(_min_sfx_price),
+        description(_description),
+        active(_active),
+        price_peg_used(_price_peg_used),
+        offer_id(_offer_id),
+        price_peg_id(_price_peg_id),
+        seller(_seller),
+        currency(_currency){}
+
+private:
+    std::string title;
+    uint64_t quantity;
+    uint64_t price;
+    uint64_t min_sfx_price;
+    std::string description;
+    bool active;
+    bool price_peg_used;
+    std::string offer_id;
+    std::string price_peg_id;
+    std::string seller;
+    std::string currency;
+public:
+
+    std::string getTitle() const {return title;};
+    uint64_t getQuantity() const {return quantity;};
+    uint64_t getPrice() const {return price;};
+    uint64_t getMin_sfx_price() const {return min_sfx_price;};
+    std::string getDescription() const {return description;};
+    bool getActive() const {return active;};
+    bool getPrice_peg_used() const {return price_peg_used;};
+    std::string getOffer_id() const {return offer_id;};
+    std::string getPrice_peg_id() const {return price_peg_id;};
+    std::string getSeller() const {return seller;};
+    std::string getCurrency() const {return currency;};
+};
+
+struct SafexFeedback {
+public:
+    SafexFeedback(){}
+    SafexFeedback(const std::string &_title, const std::string& _offer_id, const uint64_t& _rating, const std::string& _comment):
+          title(_title),
+          offer_id(_offer_id),
+          rating(_rating),
+          comment(_comment){}
+
+private:
+    std::string title;
+    std::string offer_id;
+    uint64_t rating;
+    std::string comment;
+
+public:
+
+    std::string getTitle() const {return title;};
+    std::string getOffer_id() const {return offer_id;};
+    uint64_t getRating() const {return rating;};
+    std::string getComment() const {return comment;};
 };
 
 /**
@@ -350,6 +590,13 @@ struct WalletListener
     virtual void unconfirmedTokensReceived(const std::string &txId, uint64_t token_amount) = 0;
 
     /**
+    * @brief advancedReceived - called when advanced outputs are received
+    * @param txId          - transaction id
+    * @param output_type  - type of advanced output
+    */
+    virtual void advancedReceived(const std::string &txId, const uint8_t output_type) = 0;
+
+    /**
      * @brief newBlock      - called when new block received
      * @param height        - block height
      */
@@ -489,6 +736,72 @@ struct Wallet
     */
     virtual void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) = 0;
 
+    /*!
+    * \brief createSafexAccount - Generates keys and creates safex account inside the wallet
+    *
+    * \param username - Username of the safex account
+    * \param description - Description of the safex account
+    */
+    virtual bool createSafexAccount(const std::string& username, const std::vector<uint8_t>& description) = 0;
+
+    /*!
+    * \brief getSafexAccounts - Returns all Safex accounts in the wallet
+    *
+    */
+    virtual std::vector<SafexAccount> getSafexAccounts() = 0;
+
+    /*!
+    * \brief getSafexAccount - Returns requested safex account data
+    *
+    * \param username - Username of the specific safex account
+    */
+    virtual SafexAccount getSafexAccount(const std::string& username) = 0;
+
+    /*!
+    * \brief recoverSafexAccount - Generates safex account that was created before
+    *
+    * \param username - Username of the specific safex account
+    * \param private_key - Private key of the safex account
+    */
+    virtual bool recoverSafexAccount(const std::string& username, const std::string& private_key) = 0;
+
+    /*!
+    * \brief removeSafexAccount - Removes safex account from the wallet file
+    *
+    * \param username - Username of the specific safex account
+    */
+    virtual bool removeSafexAccount(const std::string& username) = 0;
+
+    /*!
+    * \brief getMySafexOffers - Returns all Safex offers created by safex accounts from whis wallet
+    *
+    */
+    virtual std::vector<SafexOffer> getMySafexOffers() = 0;
+
+    /*!
+    * \brief listSafexOffers - Returns all Safex offers currently in the blockchain
+    *
+    * \param active - True if you want to return only offers that can be purchased
+    */
+    virtual std::vector<SafexOffer> listSafexOffers(bool active) = 0;
+
+    /*!
+    * \brief getMyInterest - Returns total interest and also interest for each stake token output
+    *
+    * \param interest_per_output - Vector of pairs staked token amount and collected fee
+    */
+    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
+
+    /*!
+    * \brief getMyFeedbacksToGive - Returns offer ID and offer title that feedback is not given
+    */
+    virtual std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() = 0;
+
+    /*!
+    * \brief getMyFeedbacksGiven - Returns feedbacks that are given
+    */
+    virtual std::vector<SafexFeedback> getMyFeedbacksGiven() = 0;
+
    /*!
     * \brief getRestoreHeight - get wallet creation height
     *
@@ -543,6 +856,22 @@ struct Wallet
       uint64_t result = 0;
       for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
           result += unlockedTokenBalance(i);
+      return result;
+  }
+
+  virtual uint64_t stakedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t stakedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += stakedTokenBalance(i);
+      return result;
+  }
+
+  virtual uint64_t unlockedStakedTokenBalance(uint32_t accountIndex = 0) const = 0;
+  uint64_t unlockedStakedTokenBalanceAll() const {
+      uint64_t result = 0;
+      for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
+          result += unlockedStakedTokenBalance(i);
       return result;
   }
 
@@ -716,6 +1045,10 @@ struct Wallet
      */
 
     virtual PendingTransaction * createSweepUnmixableTransaction() = 0;
+
+
+    virtual PendingTransaction * createAdvancedTransaction(const std::string &dst_addr, const std::string &payment_id, optional<uint64_t> value_amount, uint32_t mixin_count,
+                                                           PendingTransaction::Priority priority, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, AdvancedCommand& advancedCommnand) = 0;
 
    /*!
     * \brief loadUnsignedTx  - creates transaction from unsigned tx file

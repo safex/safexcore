@@ -2004,4 +2004,121 @@ bool t_rpc_command_executor::sync_info()
     return true;
 }
 
+
+bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_TOKEN_STAKED::response res = AUTO_VAL_INIT(res);
+
+  req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_staked_tokens", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_locked_tokens(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  if (start == 0)
+    tools::success_msg_writer() << "Sum  of currently staked tokens: " << res.pairs[0].amount/SAFEX_TOKEN<<".00";
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of staked tokens: " << item.amount/SAFEX_TOKEN<<".00";
+    }
+  }
+
+  return false;
+}
+  
+bool t_rpc_command_executor::network_fee_on_interval(const uint64_t& start, const uint64_t& end)
+{
+  cryptonote::COMMAND_RPC_NETWORK_FEE::request req = AUTO_VAL_INIT(req);
+  cryptonote::COMMAND_RPC_NETWORK_FEE::response res = AUTO_VAL_INIT(res);
+
+   req.interval = start;
+  req.end = end;
+
+  std::string fail_msg;
+
+  if (m_is_rpc)
+  {
+    if (!m_rpc_client->rpc_request(req, res, "/get_network_fee", fail_msg.c_str()))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+  else
+  {
+    if (!m_rpc_server->on_get_network_fee(req, res))
+    {
+      tools::fail_msg_writer() << "Failed!";
+      return true;
+    }
+  }
+
+  if (start == 0)
+    tools::success_msg_writer() << "Current network fee amount: " << cryptonote::print_money(res.pairs[0].amount);
+  else {
+    for (auto &item : res.pairs) {
+      tools::success_msg_writer() << "Interval#: " << item.interval << " / Sum  of network fee: "
+                                  << cryptonote::print_money(item.amount);
+    }
+  }
+
+  return false;
+}
+
+
+  bool t_rpc_command_executor::safex_account_info(const std::string& safex_username)
+  {
+    cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::request req = AUTO_VAL_INIT(req);
+    cryptonote::COMMAND_RPC_SAFEX_ACCOUNT_INFO::response res = AUTO_VAL_INIT(res);
+
+    req.username = safex_username;
+
+    std::string fail_msg;
+
+    if (m_is_rpc)
+    {
+      if (!m_rpc_client->rpc_request(req, res, "/get_safex_account_info", fail_msg.c_str()))
+      {
+        tools::fail_msg_writer() << "Failed!";
+        return true;
+      }
+    }
+    else
+    {
+      if (!m_rpc_server->on_get_safex_account_info(req, res))
+      {
+        tools::fail_msg_writer() << "Failed to get account info!";
+        return false;
+      }
+    }
+
+    if(res.status == CORE_RPC_STATUS_SAFEX_ACCOUNT_DOESNT_EXIST){
+      tools::fail_msg_writer() << "Account with username " << safex_username << " does not exist";
+    }
+    else {
+      tools::success_msg_writer() << "Account: " << safex_username;
+      tools::success_msg_writer() << "Account public key: " << res.pkey;
+      tools::success_msg_writer() << "Account data: " << res.account_data;
+    }
+
+    return true;
+  }
+
 }// namespace daemonize

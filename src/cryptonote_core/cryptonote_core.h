@@ -50,6 +50,8 @@
 #include "warnings.h"
 #include "crypto/hash.h"
 
+#include "safex/safex_account.h"
+
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
 
@@ -749,7 +751,99 @@ namespace cryptonote
       * @return number of migrated tokens in the range of blocks
       */
      uint64_t get_migrated_tokens(const uint64_t start_offset, const size_t count);
+
+     /**
+      * @brief get the delta of staked and unstaked tokens in block range
+      *
+      * @return if >0, number of newly staked tokens, if <0, number of unstaked tokens in total for range of blocks
+      */
+     int64_t get_staked_tokens(const uint64_t start_offset, const size_t count);
+
+    uint64_t get_current_interval() const;
+
+     /**
+     * @brief get last known token locked sum
+     *
+     * @return amount of locked tokens
+     */
+     uint64_t get_staked_tokens() const;
+
+     /**
+     * @brief get last known token locked sum
+     * @param interval 
+     * 
+     * @return amount of locked tokens
+     */
+     uint64_t get_locked_tokens_for_interval(const uint64_t& interval) const;
+
+     /**
+     * @brief get the delta of network fee in block range
+     *
+     * @return if >0, number of newly collected netowork fee, if <0, amount of distributed network fee to tokenholders
+     */
+     uint64_t get_collected_network_fee(const uint64_t start_offset, const size_t count) const;
+
+
+     /**
+      * @brief get the delta of network fee in block range
+      *
+      * @return if >0, number of newly collected netowork fee, if <0, amount of distributed network fee to tokenholders
+      */
+     uint64_t get_distributed_network_fee(const uint64_t start_offset, const size_t count) const;
      
+     uint64_t get_network_fee_for_interval(const uint64_t& interval) const;
+
+     //-----------------------------------------------------------------------------------------------
+       /**
+      * @brief get safex account info
+      *
+      * @return structure with account info
+      */
+     bool get_safex_account_info(const std::string& username, safex::safex_account& account) const;
+
+       /**
+       * @brief gets pair of elements <username, safex_account_description>
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_accounts( std::vector<std::pair<std::string,std::string>> &safex_accounts) const;
+
+       bool get_table_sizes( std::vector<uint64_t> &table_sizes) const;
+
+       /**
+       * @brief gets height of the last time offer was edited(or created)
+       *
+       * @return True if we get the height from Blockchain
+       */
+       bool get_safex_offer_height( crypto::hash &offer_id, uint64_t& height) const;
+
+       /**
+       * @brief gets all offers inside the Blockchain
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_offers( std::vector<safex::safex_offer> &safex_offers) const;
+
+       /**
+       * @brief gets all price pegs inside the Blockchain for given currency
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_price_pegs( std::vector<safex::safex_price_peg> &safex_price_pegs, const std::string& currency = "") const;
+
+       /**
+       * @brief gets price peg inside the Blockchain for given ID
+       *
+       * @return True if we get the elements from Blockchain
+       */
+       bool get_safex_price_peg( const crypto::hash& price_peg_id, safex::safex_price_peg& sfx_price_peg) const;
+       /**
+      * @brief gets feedbacks for given offer_id
+      *
+      * @return True if we get the elements from Blockchain
+      */
+       bool get_safex_feedbacks( std::vector<safex::safex_feedback> &safex_feedbacks, const crypto::hash& offer_id) const;
+
      /**
       * @brief get the network type we're on
       *
@@ -784,6 +878,7 @@ namespace cryptonote
       * @return whether the core is running offline
       */
      bool offline() const { return m_offline; }
+     std::map<uint64_t, uint64_t> get_interest_map(uint64_t begin_interval, uint64_t end_interval);
 
    private:
 

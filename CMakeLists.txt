@@ -205,7 +205,6 @@ enable_testing()
 
 option(BUILD_DOCUMENTATION "Build the Doxygen documentation." ON)
 option(BUILD_TESTS "Build tests." OFF)
-option(BUILD_WIN_WALLET_WRAPPER "Build wrapper DLL around wallet API" OFF)
 
 # Check whether we're on a 32-bit or 64-bit system
 if(CMAKE_SIZEOF_VOID_P EQUAL "8")
@@ -366,6 +365,9 @@ add_definitions("-DBLOCKCHAIN_DB=${BLOCKCHAIN_DB}")
 if (APPLE)
   set(DEFAULT_STACK_TRACE OFF)
   set(LIBUNWIND_LIBRARIES "")
+elseif (DEPENDS AND NOT LINUX)
+  set(DEFAULT_STACK_TRACE OFF)
+  set(LIBUNWIND_LIBRARIES "")
 elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT MINGW)
   set(DEFAULT_STACK_TRACE ON)
   set(STACK_TRACE_LIB "easylogging++") # for diag output only
@@ -404,6 +406,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "(SunOS|Solaris)")
 endif ()
 
 if (APPLE AND NOT IOS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -fvisibility=default -std=c++11")
   if (NOT OpenSSL_DIR)
       EXECUTE_PROCESS(COMMAND brew --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
@@ -478,7 +481,9 @@ if(MSVC)
   include_directories(SYSTEM src/platform/msc)
 else()
   include(TestCXXAcceptsFlag)
-  set(ARCH native CACHE STRING "CPU to build for: -march value or 'default' to not pass -march at all")
+  if(NOT DEPENDS)
+  	set(ARCH native CACHE STRING "CPU to build for: -march value or 'default' to not pass -march at all")
+  endif()
   message(STATUS "Building on ${CMAKE_SYSTEM_PROCESSOR} for ${ARCH}")
   if(ARCH STREQUAL "default")
     set(ARCH_FLAG "")
@@ -791,13 +796,19 @@ find_package(Boost 1.58 QUIET REQUIRED COMPONENTS system filesystem thread date_
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_LIB_SUFFIXES})
 if(NOT Boost_FOUND)
-  die("Could not find Boost libraries, please make sure you have installed Boost or libboost-all-dev (1.58) or the equivalent")
+  die("Could not find Boost libraries, please make sure you have installed Boost or libboost-all-dev (>=1.58) or the equivalent")
 elseif(Boost_FOUND)
   message(STATUS "Found Boost Version: ${Boost_VERSION}")
-  if (Boost_VERSION VERSION_LESS 106200 AND NOT (OPENSSL_VERSION VERSION_LESS 1.1))
-      message(FATAL_ERROR "Boost older than 1.62 is too old to link with OpenSSL 1.1 or newer. "
+  if (Boost_VERSION VERSION_LESS 10 AND Boost_VERSION VERSION_LESS 1.62.0 AND NOT (OPENSSL_VERSION VERSION_LESS 1.1))
+    set(BOOST_BEFORE_1_62 true)
+  endif()
+  if (NOT Boost_VERSION VERSION_LESS 10 AND Boost_VERSION VERSION_LESS 106200 AND NOT (OPENSSL_VERSION VERSION_LESS 1.1))
+    set(BOOST_BEFORE_1_62 true)
+  endif()
+  if (BOOST_BEFORE_1_62)
+      message(FATAL_ERROR "Boost ${Boost_VERSION} (older than 1.62) is too old to link with OpenSSL ${OPENSSL_VERSION} (1.1 or newer) found at ${OPENSSL_INCLUDE_DIR} and ${OPENSSL_LIBRARIES}. "
                           "Update Boost or install OpenSSL 1.0 and set path to it when running cmake: "
-                          "cmake -DOPENSSL_ROOT_DIR='/usr/include/openssl-1.0;/usr/lib/openssl-1.0'")
+                          "cmake -DOPENSSL_ROOT_DIR='/usr/include/openssl-1.0'")
   endif()
 endif()
 
@@ -806,7 +817,11 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 if(MINGW)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wa,-mbig-obj")
   set(EXTRA_LIBRARIES mswsock;ws2_32;iphlpapi;crypt32;bcrypt)
-  set(ICU_LIBRARIES ${Boost_LOCALE_LIBRARY} icuio icuin icuuc icudt icutu iconv)
+  if(DEPENDS)
+    set(ICU_LIBRARIES icuio icui18n icuuc icudata icutu iconv)
+  else()
+    set(ICU_LIBRARIES icuio icuin icuuc icudt icutu iconv)
+  endif()
 elseif(APPLE OR OPENBSD OR ANDROID)
   set(EXTRA_LIBRARIES "")
 elseif(FREEBSD)
@@ -816,15 +831,21 @@ elseif(DRAGONFLY)
   set(EXTRA_LIBRARIES execinfo ${COMPAT})
 elseif(CMAKE_SYSTEM_NAME MATCHES "(SunOS|Solaris)")
   set(EXTRA_LIBRARIES socket nsl resolv)
-elseif(NOT MSVC)
+elseif(NOT MSVC AND NOT DEPENDS)
   find_library(RT rt)
   set(EXTRA_LIBRARIES ${RT})
 endif()
 
 list(APPEND EXTRA_LIBRARIES ${CMAKE_DL_LIBS})
 
+if (APPLE)
+    if(DEPENDS)
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit")
+    endif()
+endif()
+
 option(USE_READLINE "Build with GNU readline support." ON)
-if(USE_READLINE)
+if(USE_READLINE AND NOT DEPENDS)
   find_package(Readline)
   if(READLINE_FOUND AND GNU_READLINE_FOUND)
     add_definitions(-DHAVE_READLINE)
@@ -834,6 +855,14 @@ if(USE_READLINE)
   else()
     message(STATUS "Could not find GNU readline library so building without readline support")
   endif()
+elseif(USE_READLINE AND DEPENDS AND NOT MINGW)
+  find_path(Readline_INCLUDE_PATH readline/readline.h)
+  find_library(Readline_LIBRARY readline)
+  find_library(Terminfo_LIBRARY tinfo)
+  set(Readline_LIBRARY "${Readline_LIBRARY};${Terminfo_LIBRARY}")
+  set(GNU_READLINE_LIBRARY ${Readline_LIBRARY})
+  add_definitions(-DHAVE_READLINE)
+  set(EPEE_READLINE epee_readline)
 endif()
 
 if(ANDROID)
@@ -903,9 +932,6 @@ option(BUILD_SAFEX_PROTOBUF_RPC "Build PROTOBUF RPC endpoints." OFF)
 
 # when ON - it will build safex-advanced-wallet-cli
 option(BUILD_ADVANCED_WALLET "Build Advanced CLI Wallet." OFF)
-
-#when ON - it will build safex-wallet-rpc
-option(BUILD_WALLET_RPC "Build cli rpc wallet server." OFF)
 
 #when ON - it will build multisignature tool
 #not yet supported for safex

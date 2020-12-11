@@ -155,7 +155,9 @@ int main(int argc, char* argv[])
   tx_memory_pool m_mempool(*core_storage);
   core_storage = new Blockchain(m_mempool);
 
-  BlockchainDB* db = new_db(db_type);
+  cryptonote::network_type nettype  =  opt_testnet ? cryptonote::TESTNET : opt_stagenet ? cryptonote::STAGENET : cryptonote::MAINNET;
+
+  BlockchainDB* db = new_db(db_type, nettype);
   if (db == NULL)
   {
     LOG_ERROR("Attempted to use non-existent database type: " << db_type);
@@ -177,7 +179,7 @@ int main(int argc, char* argv[])
     LOG_PRINT_L0("Error opening database: " << e.what());
     return 1;
   }
-  r = core_storage->init(db, opt_testnet ? cryptonote::TESTNET : opt_stagenet ? cryptonote::STAGENET : cryptonote::MAINNET);
+  r = core_storage->init(db, nettype);
 
   CHECK_AND_ASSERT_MES(r, 1, "Failed to initialize source blockchain storage");
   LOG_PRINT_L0("Source blockchain storage initialized OK");

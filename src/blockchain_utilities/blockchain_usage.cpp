@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
   std::unique_ptr<Blockchain> core_storage;
   tx_memory_pool m_mempool(*core_storage);
   core_storage.reset(new Blockchain(m_mempool));
-  BlockchainDB* db = new_db(db_type);
+  BlockchainDB* db = new_db(db_type, net_type);
   if (db == NULL)
   {
     LOG_ERROR("Attempted to use non-existent database type: " << db_type);

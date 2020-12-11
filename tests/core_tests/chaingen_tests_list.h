@@ -37,14 +37,21 @@
 #include "chain_split_1.h"
 #include "chain_switch_1.h"
 #include "double_spend.h"
+#include "double_spend_token.h"
+#include "double_advanced_tx.h"
 #include "integer_overflow.h"
 #include "ring_signature_1.h"
 #include "tx_validation.h"
 #include "v2_tests.h"
-#include "rct.h"
-#include "multisig.h"
 #include "chain_migration.h"
 #include "token_transactions.h"
+#include "token_stake.h"
+#include "network_fee.h"
+#include "safex_account.h"
+#include "safex_offer.h"
+#include "safex_purchase.h"
+#include "safex_price_peg.h"
+#include "chain_split_safex.h"
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/

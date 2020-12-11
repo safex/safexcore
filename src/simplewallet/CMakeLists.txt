@@ -29,7 +29,7 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 set(simplewallet_sources
-  simplewallet.cpp)
+  simplewallet.cpp simplewallet_safex.cpp simplewallet_common.cpp)
 
 set(simplewallet_headers)
 
@@ -56,6 +56,7 @@ target_link_libraries(simplewallet
     ${Boost_CHRONO_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_LOCALE_LIBRARY}
     ${ICU_LIBRARIES}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
