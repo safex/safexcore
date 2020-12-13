@@ -7,9 +7,9 @@ Network has performed hard fork 6 with Fix for token overflow issue, Wallet fix 
 
 Build | Test 
 ------|------
-![](https://github.com/VanGrx/safexcore/workflows/Ubuntu%2018.04%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Ubuntu%2018.04%20Test/badge.svg?branch=master)
-![](https://github.com/VanGrx/safexcore/workflows/Mac%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Mac%20Test/badge.svg?branch=master)
-![](https://github.com/VanGrx/safexcore/workflows/Windows%20Build/badge.svg?branch=master) | ![](https://github.com/VanGrx/safexcore/workflows/Windows%20Test/badge.svg?branch=master)
+![](https://github.com/safex/safexcore/workflows/Ubuntu%2018.04%20Build/badge.svg?branch=master) | ![](https://github.com/safex/safexcore/workflows/Ubuntu%2018.04%20Test/badge.svg?branch=master)
+![](https://github.com/safex/safexcore/workflows/Mac%20Build/badge.svg?branch=master) | ![](https://github.com/safex/safexcore/workflows/Mac%20Test/badge.svg?branch=master)
+![](https://github.com/safex/safexcore/workflows/Windows%20Build/badge.svg?branch=master) | 
 
 ## Build Instructions
 

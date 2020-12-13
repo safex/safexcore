@@ -14,14 +14,26 @@ jobs:
     - name: submodules-init
       uses: snickerbockers/submodules-init@v4
     - name: remove zmq
-      run:  sudo apt remove --purge --auto-remove libzmq5 libnorm1 libboost* cmake*
+      run:  sudo apt-get remove --purge --auto-remove libzmq5 libnorm1 libboost* cmake* build-essential*
     - name: remove boost
       run: sudo rm -rf /usr/local/share/boost
     - name: cleanup
       run:  sudo apt-get clean; sudo apt-get autoclean
     - name: install zmq
-      run:  sudo apt install libnorm1=1.5r6+dfsg1-6 libzmq5=4.2.5-1ubuntu0.2
+      run:  sudo apt-get install libnorm1=1.5r6+dfsg1-6 libzmq5=4.2.5-1ubuntu0.2
     - name: install dependecies
-      run:  sudo apt install build-essential cmake pkg-config libboost-all-dev=1.65.1.0ubuntu1 libssl-dev libsodium23=1.0.16-2 libsodium-dev=1.0.16-2 libpgm-dev=5.2.122~dfsg-2 libzmq3-dev=4.2.5-1ubuntu0.2 libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev libprotobuf-dev libnorm-dev=1.5r6+dfsg1-6 libpcsclite1
+      run:  sudo apt-get install build-essential=12.4ubuntu1 cmake=3.10.2-1ubuntu2.18.04.1 pkg-config=0.29.1-0ubuntu2 libboost-all-dev=1.65.1.0ubuntu1 libssl-dev libsodium23=1.0.16-2 libsodium-dev=1.0.16-2 libpgm-dev=5.2.122~dfsg-2 libzmq3-dev=4.2.5-1ubuntu0.2 libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev libnorm-dev=1.5r6+dfsg1-6 libpcsclite1
+    - name: Build protobuf library
+      run: |
+            git clone https://github.com/protocolbuffers/protobuf.git
+            cd protobuf
+            git submodule update --init --recursive
+            ./autogen.sh
+            ./configure
+            make
+            sudo make install
+            sudo ldconfig
+    - name: proto_ver
+      run:  protoc --version
     - name: build
-      run:  make dist-static-proto
+      run:  make release-static
