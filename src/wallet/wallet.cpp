@@ -131,8 +131,7 @@ void do_prepare_file_names(const std::string& file_path, std::string& keys_file,
   if(string_tools::get_extension(keys_file) == "keys")
   {//provided keys file name
     wallet_file = string_tools::cut_off_extension(wallet_file);
-    safex_keys_file = string_tools::cut_off_extension(wallet_file);
-    safex_keys_file += ".safex_account_keys";
+    safex_keys_file = wallet_file + ".safex_account_keys";
   }else
   {//provided wallet file name
     keys_file += ".keys";
@@ -3678,8 +3677,12 @@ void wallet::store()
 //----------------------------------------------------------------------------------------------------
 void wallet::store_safex(const epee::wipeable_string &password)
 {
-        bool r = store_safex_keys(m_safex_keys_file, password);
+        std::string new_safex_keys_file = m_safex_keys_file + ".new";
+        bool r = store_safex_keys(new_safex_keys_file, password);
         THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
+        // here we have "*.new" file, we need to rename it to be without ".new"
+        std::error_code e = tools::replace_file(new_safex_keys_file, m_safex_keys_file);
+        THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_safex_keys_file, e);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet::store_to(const std::string &path, const epee::wipeable_string &password)
@@ -3736,7 +3739,6 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
   cache_file_data.cache_data = cipher;
 
   const std::string new_file = same_file ? m_wallet_file + ".new" : path;
-  const std::string new_safex_keys_file = same_file ? m_safex_keys_file + ".new" : path;
   const std::string old_file = m_wallet_file;
   const std::string old_keys_file = m_keys_file;
   const std::string old_safex_keys_file = m_safex_keys_file;
