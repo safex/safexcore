@@ -1053,19 +1053,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
           if (tx_scan_info[i].received)
           {
-            if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg_update)){
-              outs.push_back(i);
-              num_vouts_received++;
-              continue;
-            }
-
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
