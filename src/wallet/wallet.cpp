@@ -2980,8 +2980,8 @@ bool wallet::load_keys(const std::string& keys_file_name, const epee::wipeable_s
   return true;
 }
 
-bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
-{
+bool wallet::read_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password, std::vector<std::pair<std::string, crypto::secret_key>>& safex_accounts){
+
     rapidjson::Document json;
     wallet::keys_file_data safex_keys_file_data;
     std::string buf;
@@ -3008,12 +3008,29 @@ bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee
             if (username != nullptr && secret_key != nullptr) {
                 crypto::secret_key skey{};
                 memcpy(skey.data,secret_key,sizeof(skey.data));
-                recover_safex_account(username,skey);
+                safex_accounts.push_back(std::make_pair(username, skey));
             }
         }
         return true;
     }
     return false;
+
+}
+
+
+bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
+{
+
+     std::vector<std::pair<std::string, crypto::secret_key>> safex_accounts;
+
+     bool r = read_safex_keys(safex_keys_file_name, password, safex_accounts);
+     CHECK_AND_ASSERT_MES(r, false, "failed to read wallet safex account keys file " << safex_keys_file_name);
+
+     for(auto it: safex_accounts){
+         recover_safex_account(it.first,it.second);
+     }
+
+     return true;
 }
 
 /*!
@@ -3666,7 +3683,33 @@ void wallet::store_safex(const epee::wipeable_string &password)
 {
         std::string new_safex_keys_file = m_safex_keys_file + ".new";
         bool r = store_safex_keys(new_safex_keys_file, password);
-        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, new_safex_keys_file);
+
+        //Check if save is done well
+        std::vector<std::pair<std::string, crypto::secret_key>> safex_accounts;
+
+        r = read_safex_keys(new_safex_keys_file, password, safex_accounts);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, new_safex_keys_file);
+
+        for(auto acc: m_safex_accounts){
+            auto safex_keys = find_if(m_safex_accounts_keys.begin(), m_safex_accounts_keys.end(), [&acc](const safex::safex_account_keys& it){
+                return it.get_public_key() == acc.pkey;
+            });
+            THROW_WALLET_EXCEPTION_IF(safex_keys == m_safex_accounts_keys.end(), error::file_save_error, new_safex_keys_file);
+
+            auto written_key = find_if(safex_accounts.begin(), safex_accounts.end(), [&acc](const std::pair<std::string, crypto::secret_key>& it){
+                return it.first == acc.username;
+            });
+            THROW_WALLET_EXCEPTION_IF(written_key == safex_accounts.end(), error::file_save_error, new_safex_keys_file);
+
+            if(written_key->first != acc.username || written_key->second != safex_keys->get_secret_key()){
+                THROW_WALLET_EXCEPTION_IF(true, error::file_save_error, new_safex_keys_file);
+
+            }
+
+        }
+
+
         // here we have "*.new" file, we need to rename it to be without ".new"
         std::error_code e = tools::replace_file(new_safex_keys_file, m_safex_keys_file);
         THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_safex_keys_file, e);
