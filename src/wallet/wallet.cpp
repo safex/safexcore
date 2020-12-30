@@ -6095,6 +6095,10 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       std::unordered_set<uint64_t> seen_indices;
       // request more for rct in base recent (locked) coinbases are picked, since they're locked for longer
       size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE : 0);
+
+      if(out_type == tx_out_type::out_token && value_amount == 1000000*SAFEX_TOKEN)
+        requested_outputs_count += 40;
+
       size_t start = req.outputs.size();
 
       const bool output_is_pre_fork = td.m_block_height < segregation_fork_height;
@@ -6340,6 +6344,9 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       outs.back().reserve(fake_outputs_count + 1);
       const uint64_t value_amount = td.is_rct() ? 0 : (td.m_token_transfer ? td.token_amount(): td.amount());
       const rct::key mask = td.is_rct() ? rct::commit(value_amount, td.m_mask) : rct::zeroCommit(value_amount);
+
+      if(out_type == tx_out_type::out_token && value_amount == 1000000*SAFEX_TOKEN)
+        requested_outputs_count += 40;
 
       uint64_t num_outs = 0;
       //const uint64_t amount = td.is_rct() ? 0 : td.amount();
