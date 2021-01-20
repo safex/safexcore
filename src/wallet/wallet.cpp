@@ -131,8 +131,7 @@ void do_prepare_file_names(const std::string& file_path, std::string& keys_file,
   if(string_tools::get_extension(keys_file) == "keys")
   {//provided keys file name
     wallet_file = string_tools::cut_off_extension(wallet_file);
-    safex_keys_file = string_tools::cut_off_extension(wallet_file);
-    safex_keys_file += ".safex_account_keys";
+    safex_keys_file = wallet_file + ".safex_account_keys";
   }else
   {//provided wallet file name
     keys_file += ".keys";
@@ -1054,19 +1053,6 @@ void wallet::process_new_transaction(const crypto::hash &txid, const cryptonote:
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
           if (tx_scan_info[i].received)
           {
-            if ((tx_scan_info[i].output_type == tx_out_type::out_safex_account)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_account_update)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_offer_update)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_purchase)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_feedback)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg)
-                    || (tx_scan_info[i].output_type == tx_out_type::out_safex_price_peg_update)){
-              outs.push_back(i);
-              num_vouts_received++;
-              continue;
-            }
-
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys, derivation, additional_derivations);
             scan_output(tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, tx_tokens_got_in_outs, outs);
           }
@@ -2994,8 +2980,8 @@ bool wallet::load_keys(const std::string& keys_file_name, const epee::wipeable_s
   return true;
 }
 
-bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
-{
+bool wallet::read_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password, std::vector<std::pair<std::string, crypto::secret_key>>& safex_accounts){
+
     rapidjson::Document json;
     wallet::keys_file_data safex_keys_file_data;
     std::string buf;
@@ -3022,12 +3008,29 @@ bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee
             if (username != nullptr && secret_key != nullptr) {
                 crypto::secret_key skey{};
                 memcpy(skey.data,secret_key,sizeof(skey.data));
-                recover_safex_account(username,skey);
+                safex_accounts.push_back(std::make_pair(username, skey));
             }
         }
         return true;
     }
     return false;
+
+}
+
+
+bool wallet::load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password)
+{
+
+     std::vector<std::pair<std::string, crypto::secret_key>> safex_accounts;
+
+     bool r = read_safex_keys(safex_keys_file_name, password, safex_accounts);
+     CHECK_AND_ASSERT_MES(r, false, "failed to read wallet safex account keys file " << safex_keys_file_name);
+
+     for(auto it: safex_accounts){
+         recover_safex_account(it.first,it.second);
+     }
+
+     return true;
 }
 
 /*!
@@ -3678,8 +3681,38 @@ void wallet::store()
 //----------------------------------------------------------------------------------------------------
 void wallet::store_safex(const epee::wipeable_string &password)
 {
-        bool r = store_safex_keys(m_safex_keys_file, password);
-        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_safex_keys_file);
+        std::string new_safex_keys_file = m_safex_keys_file + ".new";
+        bool r = store_safex_keys(new_safex_keys_file, password);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, new_safex_keys_file);
+
+        //Check if save is done well
+        std::vector<std::pair<std::string, crypto::secret_key>> safex_accounts;
+
+        r = read_safex_keys(new_safex_keys_file, password, safex_accounts);
+        THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, new_safex_keys_file);
+
+        for(auto acc: m_safex_accounts){
+            auto safex_keys = find_if(m_safex_accounts_keys.begin(), m_safex_accounts_keys.end(), [&acc](const safex::safex_account_keys& it){
+                return it.get_public_key() == acc.pkey;
+            });
+            THROW_WALLET_EXCEPTION_IF(safex_keys == m_safex_accounts_keys.end(), error::file_save_error, new_safex_keys_file);
+
+            auto written_key = find_if(safex_accounts.begin(), safex_accounts.end(), [&acc](const std::pair<std::string, crypto::secret_key>& it){
+                return it.first == acc.username;
+            });
+            THROW_WALLET_EXCEPTION_IF(written_key == safex_accounts.end(), error::file_save_error, new_safex_keys_file);
+
+            if(written_key->first != acc.username || written_key->second != safex_keys->get_secret_key()){
+                THROW_WALLET_EXCEPTION_IF(true, error::file_save_error, new_safex_keys_file);
+
+            }
+
+        }
+
+
+        // here we have "*.new" file, we need to rename it to be without ".new"
+        std::error_code e = tools::replace_file(new_safex_keys_file, m_safex_keys_file);
+        THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_safex_keys_file, e);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet::store_to(const std::string &path, const epee::wipeable_string &password)
@@ -3736,7 +3769,6 @@ void wallet::store_to(const std::string &path, const epee::wipeable_string &pass
   cache_file_data.cache_data = cipher;
 
   const std::string new_file = same_file ? m_wallet_file + ".new" : path;
-  const std::string new_safex_keys_file = same_file ? m_safex_keys_file + ".new" : path;
   const std::string old_file = m_wallet_file;
   const std::string old_keys_file = m_keys_file;
   const std::string old_safex_keys_file = m_safex_keys_file;
@@ -6063,6 +6095,10 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       std::unordered_set<uint64_t> seen_indices;
       // request more for rct in base recent (locked) coinbases are picked, since they're locked for longer
       size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE : 0);
+
+      if(out_type == tx_out_type::out_token && value_amount == 1000000*SAFEX_TOKEN)
+        requested_outputs_count += 40;
+
       size_t start = req.outputs.size();
 
       const bool output_is_pre_fork = td.m_block_height < segregation_fork_height;
@@ -6308,6 +6344,9 @@ void wallet::get_outs(std::vector<std::vector<tools::wallet::get_outs_entry>> &o
       outs.back().reserve(fake_outputs_count + 1);
       const uint64_t value_amount = td.is_rct() ? 0 : (td.m_token_transfer ? td.token_amount(): td.amount());
       const rct::key mask = td.is_rct() ? rct::commit(value_amount, td.m_mask) : rct::zeroCommit(value_amount);
+
+      if(out_type == tx_out_type::out_token && value_amount == 1000000*SAFEX_TOKEN)
+        requested_outputs_count += 40;
 
       uint64_t num_outs = 0;
       //const uint64_t amount = td.is_rct() ? 0 : td.amount();

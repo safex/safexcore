@@ -1514,6 +1514,12 @@ bool WalletImpl::createSafexAccount(const std::string& username, const std::vect
     return false;
   }
 
+  for(auto ch: username){
+      if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
+          return false;
+      }
+  }
+
   if (m_wallet->generate_safex_account(username, description)) {
     m_wallet->store_safex(m_password);
     return true;
@@ -1771,7 +1777,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         token_create_fee.output_type = tx_out_type::out_token;
         dsts.push_back(token_create_fee);
 
-        uint64_t bc_height = m_wallet->get_blockchain_current_height();
         command = safex::command_t::create_account;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {
@@ -1926,7 +1931,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         de.addr = info.address;
         de.is_subaddress = info.is_subaddress;
         de.token_amount = *value_amount;
-        de.script_output = true;
+        de.script_output = false;
         de.output_type = tx_out_type::out_token;
         fake_outs_count = 0;
         dsts.push_back(de);

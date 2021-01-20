@@ -1136,7 +1136,9 @@ simple_wallet::simple_wallet()
                            tr("Show the unspent staked token outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("rescan_bc",
                            boost::bind(&simple_wallet::rescan_blockchain, this, _1),
-                           tr("Rescan the blockchain from scratch."));
+                           tr("rescan_bc [<block_height>]"),
+                           tr("Rescan the blockchain from scratch.\n"
+                           "Adding <block_height> rescans from given block height."));
   m_cmd_binder.set_handler("set_tx_note",
                            boost::bind(&simple_wallet::set_tx_note, this, _1),
                            tr("set_tx_note <txid> [free text note]"),
@@ -5162,9 +5164,15 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, crypt
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::rescan_blockchain(const std::vector<std::string> &args_)
 {
-  if (!args_.empty())
-    if (args_[0] == "hard")
-      m_wallet->set_refresh_from_block_height(0);
+    if (!args_.empty()){
+        uint64_t start_height = 0;
+        if(!epee::string_tools::get_xtype_from_string(start_height, args_[0]))
+        {
+            fail_msg_writer() << tr("Invalid height");
+            return true;
+        }
+        m_wallet->set_refresh_from_block_height(start_height);
+    }
   return refresh_main(0, true);
 }
 //----------------------------------------------------------------------------------------------------

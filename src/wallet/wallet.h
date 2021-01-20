@@ -1136,6 +1136,7 @@ namespace tools
      */
     bool load_keys(const std::string& keys_file_name, const epee::wipeable_string& password);
     bool load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password);
+    bool read_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password, std::vector<std::pair<std::string, crypto::secret_key>>& safex_accounts);
     void process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen);
     void process_new_blockchain_entry(const cryptonote::block& b, const cryptonote::block_complete_entry& bche, const crypto::hash& bl_id, uint64_t height, const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices &o_indices);
     void detach_blockchain(uint64_t height);
