@@ -1080,7 +1080,7 @@ namespace tools
 
     std::map<uint64_t, uint64_t> get_interest_map(const uint64_t start_interval, const uint64_t end_interval);
     uint64_t get_interest_for_transfer(const transfer_details& td);
-    uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
+    uint64_t get_current_interest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output);
 
     bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
     bool remove_safex_account(const std::string &username);

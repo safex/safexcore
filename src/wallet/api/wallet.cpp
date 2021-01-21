@@ -1633,7 +1633,7 @@ std::vector<SafexOffer> WalletImpl::listSafexOffers(bool active){
     return offers;
 }
 
-uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output){
+uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output){
 
     return m_wallet->get_current_interest(interest_per_output);
 }

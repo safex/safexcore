@@ -2501,10 +2501,12 @@ struct COMMAND_RPC_GET_AVAILABLE_INTEREST
   struct per_output {
     uint64_t amount;
     uint64_t interest;
+    uint64_t block_height;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(amount)
       KV_SERIALIZE(interest)
+      KV_SERIALIZE(block_height)
     END_KV_SERIALIZE_MAP()
   };
 
