@@ -788,9 +788,9 @@ struct Wallet
     /*!
     * \brief getMyInterest - Returns total interest and also interest for each stake token output
     *
-    * \param interest_per_output - Vector of pairs staked token amount and collected fee
+    * \param interest_per_output - Vector of pairs staked token amount and pair collected fee - block height
     */
-    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
+    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output) = 0;
 
     /*!
     * \brief getMyFeedbacksToGive - Returns offer ID and offer title that feedback is not given

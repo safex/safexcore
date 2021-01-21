@@ -138,7 +138,7 @@ namespace tools
   }
 
 //-----------------------------------------------------------------------------------------------------------------
-  uint64_t wallet::get_current_interest(std::vector<std::pair<uint64_t, uint64_t>> &interest_per_output)
+  uint64_t wallet::get_current_interest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> &interest_per_output)
   {
     uint64_t my_interest = 0;
     for (auto &transfer : m_transfers)
@@ -150,10 +150,7 @@ namespace tools
       uint64_t interest = get_interest_for_transfer(transfer);
       my_interest += interest;
 
-      if (interest > 0)
-      {
-        interest_per_output.push_back({transfer.token_amount(), interest});
-      }
+      interest_per_output.push_back({transfer.token_amount(), {interest, transfer.m_block_height}});
     }
 
     return my_interest;

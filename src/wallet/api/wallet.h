@@ -152,7 +152,7 @@ public:
     std::vector<SafexOffer> getMySafexOffers() override;
     std::vector<SafexOffer> listSafexOffers(bool active) override;
 
-    uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) override;
+    uint64_t getMyInterest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output) override;
 
 
     std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() override;
