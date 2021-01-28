@@ -186,6 +186,8 @@ namespace cryptonote
         bool result  = m_core.get_safex_offers(offers);
 
         for(auto offer: offers) {
+              if(offer.seller != req.seller && req.seller != "")
+                continue;
               uint64_t offer_height;
               result = m_core.get_safex_offer_height(offer.offer_id, offer_height);
               if(!result)

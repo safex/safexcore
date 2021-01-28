@@ -120,7 +120,9 @@ namespace cryptonote
     {
         struct request_t
         {
+            std::string seller = "";
             BEGIN_KV_SERIALIZE_MAP()
+              KV_SERIALIZE(seller);
             END_KV_SERIALIZE_MAP()
         };
         typedef epee::misc_utils::struct_init<request_t> request;
