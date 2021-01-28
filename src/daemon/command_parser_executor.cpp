@@ -30,6 +30,7 @@
 
 #include "common/dns_utils.h"
 #include "version.h"
+#include "net/parse.h"
 #include "daemon/command_parser_executor.h"
 
 #undef SAFEX_DEFAULT_LOG_CATEGORY
@@ -512,7 +513,6 @@ bool t_command_parser_executor::show_bans(const std::vector<std::string>& args)
 bool t_command_parser_executor::ban(const std::vector<std::string>& args)
 {
   if (args.size() != 1 && args.size() != 2) return false;
-  std::string ip = args[0];
   time_t seconds = P2P_IP_BLOCKTIME;
   if (args.size() > 1)
   {
@@ -529,7 +529,45 @@ bool t_command_parser_executor::ban(const std::vector<std::string>& args)
       return false;
     }
   }
-  return m_executor.ban(ip, seconds);
+  if (boost::starts_with(args[0], "@"))
+  {
+    const std::string ban_list = args[0].substr(1);
+
+    try
+    {
+      const boost::filesystem::path ban_list_path(ban_list);
+      boost::system::error_code ec;
+      if (!boost::filesystem::exists(ban_list_path, ec))
+      {
+        std::cout << "Can't find ban list file " + ban_list + " - " + ec.message() << std::endl;
+        return true;
+      }
+
+      bool ret = true;
+      std::ifstream ifs(ban_list_path.string());
+      for (std::string line; std::getline(ifs, line); )
+      {
+        const expect<epee::net_utils::network_address> parsed_addr = net::get_network_address(line, 0);
+        if (!parsed_addr)
+        {
+          std::cout << "Invalid IP address: " << line << " - " << parsed_addr.error() << std::endl;
+          continue;
+        }
+        ret &= m_executor.ban(parsed_addr->host_str(), seconds);
+      }
+      return ret;
+    }
+    catch (const std::exception &e)
+    {
+      std::cout << "Error loading ban list: " << e.what() << std::endl;
+      return false;
+    }
+  }
+  else
+  {
+    const std::string ip = args[0];
+    return m_executor.ban(ip, seconds);
+  }
 }
 
 bool t_command_parser_executor::unban(const std::vector<std::string>& args)

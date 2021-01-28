@@ -47,6 +47,7 @@ set(unit_tests_sources
   epee_boosted_tcp_server.cpp
   epee_levin_protocol_handler_async.cpp
   epee_utils.cpp
+  expect.cpp
   fee.cpp
   get_xtype_from_string.cpp
   hashchain.cpp
@@ -96,6 +97,7 @@ target_link_libraries(unit_tests
     blockchain_db
     safex_core
     rpc
+    net
     wallet
     p2p
     version
