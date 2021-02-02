@@ -105,7 +105,6 @@ void wipeable_string::grow(size_t sz, size_t reserved)
   }
   buffer.reserve(reserved);
   buffer.resize(sz);
-  memcpy(buffer.data(), tmp.get(), old_sz * sizeof(char));
   if (old_sz > 0)
   {
     memcpy(buffer.data(), tmp.get(), old_sz * sizeof(char));
