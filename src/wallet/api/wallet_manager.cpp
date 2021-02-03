@@ -61,7 +61,8 @@ Wallet *WalletManagerImpl::createWallet(const std::string &path, const std::stri
 Wallet *WalletManagerImpl::openWallet(const std::string &path, const std::string &password, NetworkType nettype)
 {
     WalletImpl * wallet = new WalletImpl(nettype);
-    wallet->open(path, password);
+    if(!wallet->open(path, password))
+      return nullptr;
     //Refresh addressBook
     wallet->addressBook()->refresh(); 
     return wallet;

@@ -649,7 +649,12 @@ std::pair<std::unique_ptr<wallet>, password_container> wallet::make_from_file(
   auto wallet = make_basic(vm, opts, password_prompter);
   if (wallet)
   {
-    wallet->load(wallet_file, pwd->password());
+      try {
+        wallet->load(wallet_file, pwd->password());
+      } catch (...) {
+        std::cout << "Error loading wallet. Due to possible corruption, please remove wallet file and recreate it." << std::endl;
+        return {nullptr, password_container{}};
+      }
   }
   return {std::move(wallet), std::move(*pwd)};
 }
