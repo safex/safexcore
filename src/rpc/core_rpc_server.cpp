@@ -62,6 +62,8 @@ using namespace epee;
 #define MAX_RESTRICTED_FAKE_OUTS_COUNT 40
 #define MAX_RESTRICTED_GLOBAL_FAKE_OUTS_COUNT 5000
 
+#define OUTPUT_HISTOGRAM_RECENT_CUTOFF_RESTRICTION (3 * 86400) // 3 days max, the wallet requests 1.8 days
+
 namespace
 {
   void add_reason(std::string &reasons, const char *reason)
@@ -184,6 +186,8 @@ namespace cryptonote
         bool result  = m_core.get_safex_offers(offers);
 
         for(auto offer: offers) {
+              if(offer.seller != req.seller && req.seller != "")
+                continue;
               uint64_t offer_height;
               result = m_core.get_safex_offer_height(offer.offer_id, offer_height);
               if(!result)
@@ -1927,6 +1931,13 @@ namespace cryptonote
     bool r;
     if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_OUTPUT_HISTOGRAM>(invoke_http_mode::JON_RPC, "get_output_histogram", req, res, r))
       return r;
+
+    const bool restricted = m_restricted;
+    if (restricted && req.recent_cutoff > 0 && req.recent_cutoff < (uint64_t)time(NULL) - OUTPUT_HISTOGRAM_RECENT_CUTOFF_RESTRICTION)
+    {
+      res.status = "Recent cutoff is too old";
+      return true;
+    }
 
     cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
     

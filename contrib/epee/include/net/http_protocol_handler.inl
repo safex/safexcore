@@ -572,6 +572,7 @@ namespace net_utils
 		m_psnd_hndlr->do_send((void*)response_data.data(), response_data.size());
 		if ((response.m_body.size() && (query_info.m_http_method != http::http_method_head)) || (query_info.m_http_method == http::http_method_options))
 			m_psnd_hndlr->do_send((void*)response.m_body.data(), response.m_body.size());
+		m_psnd_hndlr->send_done();
 		return res;
 	}
 	//-----------------------------------------------------------------------------------

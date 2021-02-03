@@ -1,4 +1,4 @@
-# Copyright (c) 2018, The Safex Project
+# Copyright (c) 2021, The Safex Project
 #
 # All rights reserved.
 #
@@ -26,30 +26,12 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+# Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
-cmake_minimum_required (VERSION 2.6)
-project (safex CXX)
+set(net_sources parse.cpp error.cpp)
+set(net_headers parse.h error.h)
 
-file(GLOB P2P *)
-source_group(p2p FILES ${P2P})
+safex_add_library(net ${net_sources} ${net_headers})
+target_link_libraries(net common epee ${ZMQ_LIB} ${Boost_ASIO_LIBRARY})
 
-#add_library(p2p ${P2P})
-
-#safex_private_headers(p2p ${P2P})
-safex_add_library(p2p ${P2P})
-target_link_libraries(p2p
-  PUBLIC
-    epee
-    net
-    version
-    cryptonote_core
-    ${UPNP_LIBRARIES}
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${Boost_SERIALIZATION_LIBRARY}
-  PRIVATE
-    ${EXTRA_LIBRARIES})
