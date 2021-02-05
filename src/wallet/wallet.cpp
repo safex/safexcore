@@ -12286,7 +12286,7 @@ uint64_t wallet::get_segregation_fork_height() const
   {
     //todo Setup this for Safex
     static const std::vector<std::string> dns_urls = {
-        "segheights.safex.org",
+//        "segheights.safex.org",
     };
 
     const uint64_t current_height = get_blockchain_current_height();
