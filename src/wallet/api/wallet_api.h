@@ -204,10 +204,11 @@ struct UnstakeTokenCommand : public AdvancedCommand
 {
 public:
     UnstakeTokenCommand():AdvancedCommand{TransactionType::UnstakeTokenTransaction}{}
-    UnstakeTokenCommand(const std::string& _address, const uint64_t _token_amount):AdvancedCommand{TransactionType::UnstakeTokenTransaction},m_token_amount{_token_amount},m_address{_address}{}
+    UnstakeTokenCommand(const std::string& _address, const uint64_t _token_amount, const uint64_t _height = 0):AdvancedCommand{TransactionType::UnstakeTokenTransaction},m_token_amount{_token_amount},m_address{_address},m_height{_height}{}
 
     uint64_t m_token_amount;
     std::string m_address;
+    uint64_t m_height;
 };
 
     struct CreatePricePegCommand : public AdvancedCommand
