@@ -727,7 +727,7 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{});
+    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{}, const uint64_t staked_token_height = 0);
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -945,6 +945,8 @@ namespace tools
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const;
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const crypto::hash& out_id, const cryptonote::tx_out_type out_type) const;
     size_t pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const crypto::hash& out_id,  const cryptonote::tx_out_type out_type) const;
+    size_t pop_selected_stake_token_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount, const uint64_t staked_token_height) const;
+
 
     void set_tx_note(const crypto::hash &txid, const std::string &note);
     std::string get_tx_note(const crypto::hash &txid) const;

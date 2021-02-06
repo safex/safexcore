@@ -4573,16 +4573,58 @@ size_t wallet::pop_ideal_value(std::vector<size_t> &unused_indices, const std::v
   return pop_ideal_value_from(m_transfers, unused_indices, selected_transfers, out_type, cash_amount, token_amount);
 }
 //----------------------------------------------------------------------------------------------------
-  size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const
+size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const
+{
+  const std::string acc_username_str(acc_username.begin(), acc_username.end());
+  return pop_advanced_output_from(m_transfers, selected_transfers,  acc_username_str, out_type);
+}
+
+size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const crypto::hash& out_id, const cryptonote::tx_out_type out_type) const
+{
+    return pop_advanced_output_from(m_transfers, selected_transfers,  out_id, out_type);
+}
+
+
+size_t wallet::pop_selected_stake_token_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount, const uint64_t staked_token_height) const
+{
+
+  std::vector<size_t> candidates;
+  uint64_t oldest_output = get_blockchain_current_height();
+  for (size_t n = 0; n < unused_indices.size(); ++n)
   {
-    const std::string acc_username_str(acc_username.begin(), acc_username.end());
-    return pop_advanced_output_from(m_transfers, selected_transfers,  acc_username_str, out_type);
+    const transfer_details &candidate = m_transfers[unused_indices[n]];
+    if ((candidate.get_out_type() != out_type) || (candidate.token_amount() != token_amount) || (candidate.amount() != cash_amount)) continue;
+
+    //in case of staked token outputs with the same amount, select the oldest one
+    if (candidate.get_out_type() == tx_out_type::out_staked_token)
+    {
+
+      if (staked_token_height == 0 && candidate.m_block_height < oldest_output)
+      {
+        candidates.clear();
+        oldest_output = candidate.m_block_height;
+        candidates.push_back(n);
+      }
+      else if (staked_token_height == candidate.m_block_height)
+        {
+          candidates.clear();
+          oldest_output = candidate.m_block_height;
+          candidates.push_back(n);
+          break;
+        }
+    }
   }
 
-  size_t wallet::pop_advanced_output(const std::vector<size_t>& selected_transfers, const crypto::hash& out_id, const cryptonote::tx_out_type out_type) const
-  {
-      return pop_advanced_output_from(m_transfers, selected_transfers,  out_id, out_type);
-  }
+
+  THROW_WALLET_EXCEPTION_IF(candidates.empty(), error::no_matching_available_outputs);
+
+  size_t idx;
+  idx = crypto::rand<size_t>() % candidates.size();
+
+  return pop_index(unused_indices, candidates[idx]);
+
+}
+
 //----------------------------------------------------------------------------------------------------
 // Select random input sources for transaction.
 // returns:
@@ -8738,7 +8780,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_migration(
 
 std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts,
         const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t> &extra,
-        uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc)
+        uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc, const uint64_t staked_token_height)
   {
     //ensure device is let in NONE mode in any case
     hw::device &hwdev = m_account.get_device();
@@ -9189,7 +9231,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
         std::vector<size_t> indices;
 
         if (dsts[0].output_type == tx_out_type::out_staked_token)
-          idx = pop_ideal_value(indices, tx.selected_transfers, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount);
+          idx = pop_selected_stake_token_value(indices, tx.selected_transfers, dsts[0].output_type, dsts[0].amount, dsts[0].token_amount, staked_token_height);
         else
           idx = pop_best_value(indices, tx.selected_transfers, true, dsts[0].output_type);
 
@@ -9294,7 +9336,7 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
       {
         if (needed_staked_tokens > 0)
         {
-          idx = pop_ideal_value(*unused_staked_token_transfers_indices, tx.selected_transfers, tx_out_type::out_staked_token, 0, needed_staked_tokens);
+          idx = pop_selected_stake_token_value(*unused_staked_token_transfers_indices, tx.selected_transfers, tx_out_type::out_staked_token, 0, needed_staked_tokens, staked_token_height);
         }
         else if (needed_tokens > 0)
         {
