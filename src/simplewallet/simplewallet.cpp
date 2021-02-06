@@ -1217,8 +1217,8 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("unstake_token",
                            boost::bind(&simple_wallet::unstake_token, this, _1),
-                           tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<payment_id>]"),
-                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, and subaddress index"));
+                           tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<staked_tokens_height>] [<payment_id>]"),
+                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set block height of tokens You want to unstake, payment_id, priority, and subaddress index"));
 
   m_cmd_binder.set_handler("safex_purchase",
                            boost::bind(&simple_wallet::safex_purchase, this, _1),
