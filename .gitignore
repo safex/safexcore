@@ -122,3 +122,7 @@ src/cryptonote_core/protobuf/*.pb.h
 
 # QT creator files
 *.user
+
+
+# KDev files
+*.kdev4

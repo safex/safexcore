@@ -173,16 +173,21 @@ namespace cryptonote
         }
       }
 
-      if (!r)
+      if (!r && command_type != CommandType::TransferUnstakeToken)
       {
         fail_msg_writer() << tr("payment id has invalid format, expected 16 or 64 character hex string: ") << payment_id_str;
         return true;
       }
-      payment_id_seen = true;
+      if(r)
+        payment_id_seen = true;
+      else
+        local_args.push_back(payment_id_str);
     }
     uint64_t safex_network_fee = 0;
     
     vector<cryptonote::tx_destination_entry> dsts;
+
+    uint64_t staked_token_height = 0;
 
     safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
     if (command_type == CommandType::TransferCreateAccount || command_type == CommandType::TransferEditAccount) {
@@ -548,8 +553,6 @@ namespace cryptonote
     else
     {
 
-      for (size_t i = 0; i < local_args.size(); i += 2)
-      {
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
@@ -557,10 +560,10 @@ namespace cryptonote
         {
           //use my own address as destination
           std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
-          local_args.insert(local_args.begin() + i, destination_addr);
+          local_args.insert(local_args.begin(), destination_addr);
         }
 
-        if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[i], oa_prompter))
+        if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[0], oa_prompter))
         {
           fail_msg_writer() << tr("failed to parse address");
           return true;
@@ -572,7 +575,7 @@ namespace cryptonote
         {
           if (payment_id_seen)
           {
-            fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[i];
+            fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[0];
             return true;
           }
 
@@ -589,10 +592,10 @@ namespace cryptonote
 
         uint64_t value_amount = 0;
 
-        bool ok = cryptonote::parse_amount(value_amount, local_args[i + 1]);
+        bool ok = cryptonote::parse_amount(value_amount, local_args[1]);
         if (!ok || 0 == value_amount)
         {
-          fail_msg_writer() << tr("amount is wrong: ") << local_args[i] << ' ' << local_args[i + 1] <<
+          fail_msg_writer() << tr("amount is wrong: ") << local_args[1] << ' ' << local_args[1] <<
                             ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
           return true;
         }
@@ -602,7 +605,7 @@ namespace cryptonote
         {
           if (!tools::is_whole_token_amount(value_amount))
           {
-            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[0] << ' ' << local_args[1];
             return true;
           }
 
@@ -620,9 +623,18 @@ namespace cryptonote
         {
           if (!tools::is_whole_token_amount(value_amount))
           {
-            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[0] << ' ' << local_args[1];
             return true;
           }
+
+            if(local_args.size() > 2){
+              if (!epee::string_tools::get_xtype_from_string(staked_token_height, local_args[2])){
+                fail_msg_writer() << tr("Bad staked tokens height given!!!");
+                return true;
+            }
+          }
+
+
           de.token_amount = value_amount;
           de.script_output = false;
           de.output_type = tx_out_type::out_token;
@@ -635,7 +647,6 @@ namespace cryptonote
           // Allow to collect outputs for regular SFX transaction.
 
         dsts.push_back(de);
-      }
     }
 
     // If its demo purchase, make special destination_entry for network fee.
@@ -720,7 +731,7 @@ namespace cryptonote
 
 
       
-      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
+      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account, staked_token_height);
 
       
 

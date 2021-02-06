@@ -1693,6 +1693,8 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
   uint32_t adjusted_priority = m_wallet->adjust_priority(static_cast<uint32_t>(priority));
 
+  uint64_t staked_token_height = 0;
+
   PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
   do {
@@ -1920,13 +1922,15 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::UnstakeTokenTransaction) {
 
-        Safex::UnstakeTokenCommand stakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
+        Safex::UnstakeTokenCommand unstakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
         if (!tools::is_whole_token_amount(*value_amount))
         {
           m_status = Status_Error;
           m_errorString = tr("Token amount must be whole number.");
           break;
         }
+
+        staked_token_height = unstakeToken.m_height;
 
         de.addr = info.address;
         de.is_subaddress = info.is_subaddress;
@@ -2094,7 +2098,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         command = safex::command_t::create_feedback;
       }
 
-      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account, staked_token_height);
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?
