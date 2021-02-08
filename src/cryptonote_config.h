@@ -178,6 +178,9 @@ constexpr uint8_t MAX_SUPPORTED_TX_VERSION = 2;
 constexpr uint64_t SAFEX_COMMAND_PROTOCOL_VERSION                   = 1;
 
 //Safex token stake constants
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_FAKECHAIN            = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_TESTNET              = 10000 * SAFEX_TOKEN;
+constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_STAGENET             = 10000 * SAFEX_TOKEN;
 constexpr uint64_t SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT                      = 25000 * SAFEX_TOKEN;
 constexpr uint64_t SAFEX_DEFAULT_TOKEN_STAKE_EXPIRY_PERIOD               = 500000;
 constexpr uint64_t SAFEX_DEFAULT_INTERVAL_PERIOD_FAKECHAIN               = 10; //blocks

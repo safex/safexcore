@@ -279,9 +279,13 @@ namespace safex
   {
 
     switch (nettype) {
+      case cryptonote::network_type::FAKECHAIN:
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_FAKECHAIN;
       case cryptonote::network_type::TESTNET:
-        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT;
-
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_TESTNET;
+      case cryptonote::network_type::STAGENET:
+        return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT_STAGENET;
+      case cryptonote::network_type::MAINNET:
       default: 
         return SAFEX_MINIMUM_TOKEN_STAKE_AMOUNT;
     }
