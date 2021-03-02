@@ -1125,7 +1125,7 @@ struct Wallet
      * \brief getReserveProof - Generates a proof that proves the reserve of unspent funds
      *                          Parameters `account_index` and `amount` are ignored when `all` is true
      */
-    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const = 0;
+    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message, const bool token) const = 0;
     virtual bool checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent, uint64_t& token_total, uint64_t& token_spent) const = 0;
 
     /*
