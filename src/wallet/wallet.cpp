@@ -10345,12 +10345,25 @@ std::string wallet::get_spend_proof(const crypto::hash &txid, const std::string 
 
   for(size_t i = 0; i < tx.vin.size(); ++i)
   {
-    const txin_to_key* const in_key = boost::get<txin_to_key>(std::addressof(tx.vin[i]));
-    if (in_key == nullptr)
-      continue;
+    if (std::addressof(tx.vin[i]) == nullptr)
+        continue;
+    auto curr_vin = tx.vin[i];
+    auto k_image_opt = boost::apply_visitor(key_image_visitor(), curr_vin);
+    if (!k_image_opt)
+        continue;
+    const crypto::key_image &k_image = *k_image_opt;
+    auto k_offset_opt = boost::apply_visitor(key_offset_visitor(), curr_vin);
+    if (!k_offset_opt)
+        continue;
+    const std::vector<uint64_t> &k_offset = *k_offset_opt;
+    auto k_amount_opt = boost::apply_visitor(amount_visitor(), curr_vin);
+    if (!k_amount_opt)
+        continue;
+    const uint64_t &amount = *k_amount_opt;
+
 
     // check if the key image belongs to us
-    const auto found = m_key_images.find(in_key->k_image);
+    const auto found = m_key_images.find(k_image);
     if(found == m_key_images.end())
     {
       THROW_WALLET_EXCEPTION_IF(i > 0, error::wallet_internal_error, "subset of key images belong to us, very weird!");
@@ -10359,27 +10372,36 @@ std::string wallet::get_spend_proof(const crypto::hash &txid, const std::string 
 
     // derive the real output keypair
     const transfer_details& in_td = m_transfers[found->second];
-    const txout_to_key* const in_tx_out_pkey = boost::get<txout_to_key>(std::addressof(in_td.m_tx.vout[in_td.m_internal_output_index].target));
-    THROW_WALLET_EXCEPTION_IF(in_tx_out_pkey == nullptr, error::wallet_internal_error, "Output is not txout_to_key");
+    
+    auto k_pkey_opt = boost::apply_visitor(destination_public_key_visitor(), in_td.m_tx.vout[in_td.m_internal_output_index].target);
+    if (!k_pkey_opt)
+        continue;
+    const crypto::public_key &in_tx_out_pkey = *k_pkey_opt;
+    
     const crypto::public_key in_tx_pub_key = get_tx_pub_key_from_extra(in_td.m_tx, in_td.m_pk_index);
     const std::vector<crypto::public_key> in_additionakl_tx_pub_keys = get_additional_tx_pub_keys_from_extra(in_td.m_tx);
     keypair in_ephemeral;
     crypto::key_image in_img;
-    THROW_WALLET_EXCEPTION_IF(!generate_key_image_helper(m_account.get_keys(), m_subaddresses, in_tx_out_pkey->key, in_tx_pub_key, in_additionakl_tx_pub_keys, in_td.m_internal_output_index, in_ephemeral, in_img, m_account.get_device()),
+    THROW_WALLET_EXCEPTION_IF(!generate_key_image_helper(m_account.get_keys(), m_subaddresses, in_tx_out_pkey, in_tx_pub_key, in_additionakl_tx_pub_keys, in_td.m_internal_output_index, in_ephemeral, in_img, m_account.get_device()),
       error::wallet_internal_error, "failed to generate key image");
-    THROW_WALLET_EXCEPTION_IF(in_key->k_image != in_img, error::wallet_internal_error, "key image mismatch");
+    THROW_WALLET_EXCEPTION_IF(k_image != in_img, error::wallet_internal_error, "key image mismatch");
 
     // get output pubkeys in the ring
-    const std::vector<uint64_t> absolute_offsets = cryptonote::relative_output_offsets_to_absolute(in_key->key_offsets);
-    const size_t ring_size = in_key->key_offsets.size();
+    const std::vector<uint64_t> absolute_offsets = cryptonote::relative_output_offsets_to_absolute(k_offset);
+    const size_t ring_size = k_offset.size();
     THROW_WALLET_EXCEPTION_IF(absolute_offsets.size() != ring_size, error::wallet_internal_error, "absolute offsets size is wrong");
     COMMAND_RPC_GET_OUTPUTS_BIN::request req = AUTO_VAL_INIT(req);
     req.outputs.resize(ring_size);
     for (size_t j = 0; j < ring_size; ++j)
     {
-      req.outputs[j].amount = in_key->amount;
+      req.outputs[j].amount = amount;
       req.outputs[j].index = absolute_offsets[j];
     }
+
+    const cryptonote::tx_out_type &out_type = get_tx_out_type(in_td.m_tx.vout[in_td.m_internal_output_index].target);
+    if(out_type != tx_out_type::out_cash && out_type != tx_out_type::out_token)
+        continue;
+    req.out_type = out_type;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res = AUTO_VAL_INIT(res);
     bool r;
     {
@@ -10412,9 +10434,10 @@ std::string wallet::get_spend_proof(const crypto::hash &txid, const std::string 
 
     // generate ring sig for this input
     signatures.push_back(std::vector<crypto::signature>());
+    THROW_WALLET_EXCEPTION_IF(signatures.size() == 0, error::wallet_internal_error, "subset of key images belong to us, very weird!");
     std::vector<crypto::signature>& sigs = signatures.back();
-    sigs.resize(in_key->key_offsets.size());
-    crypto::generate_ring_signature(sig_prefix_hash, in_key->k_image, p_output_keys, in_ephemeral.sec, sec_index, sigs.data());
+    sigs.resize(k_offset.size());
+    crypto::generate_ring_signature(sig_prefix_hash, k_image, p_output_keys, in_ephemeral.sec, sec_index, sigs.data());
   }
 
   std::string sig_str = "SpendProofV1";
@@ -10459,9 +10482,17 @@ bool wallet::check_spend_proof(const crypto::hash &txid, const std::string &mess
   size_t num_sigs = 0;
   for(size_t i = 0; i < tx.vin.size(); ++i)
   {
-    const txin_to_key* const in_key = boost::get<txin_to_key>(std::addressof(tx.vin[i]));
-    if (in_key != nullptr)
-      num_sigs += in_key->key_offsets.size();
+    if (std::addressof(tx.vin[i]) == nullptr)
+        continue;
+
+    auto curr_vin = tx.vin[i];
+
+    auto k_offset_opt = boost::apply_visitor(key_offset_visitor(), curr_vin);
+    if (!k_offset_opt)
+            continue;
+    const std::vector<uint64_t> &k_offset = *k_offset_opt;
+
+    num_sigs += k_offset.size();
   }
   std::vector<std::vector<crypto::signature>> signatures = { std::vector<crypto::signature>(1) };
   const size_t sig_len = tools::base58::encode(std::string((const char *)&signatures[0][0], sizeof(crypto::signature))).size();
@@ -10473,12 +10504,25 @@ bool wallet::check_spend_proof(const crypto::hash &txid, const std::string &mess
   size_t offset = header_len;
   for(size_t i = 0; i < tx.vin.size(); ++i)
   {
-    const txin_to_key* const in_key = boost::get<txin_to_key>(std::addressof(tx.vin[i]));
-    if (in_key == nullptr)
-      continue;
+    if (std::addressof(tx.vin[i]) == nullptr)
+        continue;
+    auto curr_vin = tx.vin[i];
+    auto k_image_opt = boost::apply_visitor(key_image_visitor(), curr_vin);
+    if (!k_image_opt)
+        continue;
+    const crypto::key_image &k_image = *k_image_opt;
+    auto k_offset_opt = boost::apply_visitor(key_offset_visitor(), curr_vin);
+    if (!k_offset_opt)
+        continue;
+    const std::vector<uint64_t> &k_offset = *k_offset_opt;
+    auto k_amount_opt = boost::apply_visitor(amount_visitor(), curr_vin);
+    if (!k_amount_opt)
+        continue;
+    const uint64_t &amount = *k_amount_opt;
+
     signatures.resize(signatures.size() + 1);
-    signatures.back().resize(in_key->key_offsets.size());
-    for (size_t j = 0; j < in_key->key_offsets.size(); ++j)
+    signatures.back().resize(k_offset.size());
+    for (size_t j = 0; j < k_offset.size(); ++j)
     {
       std::string sig_decoded;
       THROW_WALLET_EXCEPTION_IF(!tools::base58::decode(sig_str.substr(offset, sig_len), sig_decoded), error::wallet_internal_error, "Signature decoding error");
@@ -10497,19 +10541,38 @@ bool wallet::check_spend_proof(const crypto::hash &txid, const std::string &mess
   std::vector<std::vector<crypto::signature>>::const_iterator sig_iter = signatures.cbegin();
   for(size_t i = 0; i < tx.vin.size(); ++i)
   {
-    const txin_to_key* const in_key = boost::get<txin_to_key>(std::addressof(tx.vin[i]));
-    if (in_key == nullptr)
-      continue;
+    if (std::addressof(tx.vin[i]) == nullptr)
+        continue;
+    auto curr_vin = tx.vin[i];
+    auto k_image_opt = boost::apply_visitor(key_image_visitor(), curr_vin);
+    if (!k_image_opt)
+        continue;
+    const crypto::key_image &k_image = *k_image_opt;
+    auto k_offset_opt = boost::apply_visitor(key_offset_visitor(), curr_vin);
+    if (!k_offset_opt)
+        continue;
+    const std::vector<uint64_t> &k_offset = *k_offset_opt;
+    auto k_amount_opt = boost::apply_visitor(amount_visitor(), curr_vin);
+    if (!k_amount_opt)
+        continue;
+    const uint64_t &amount = *k_amount_opt;
 
     // get output pubkeys in the ring
     COMMAND_RPC_GET_OUTPUTS_BIN::request req = AUTO_VAL_INIT(req);
-    const std::vector<uint64_t> absolute_offsets = cryptonote::relative_output_offsets_to_absolute(in_key->key_offsets);
+    const std::vector<uint64_t> absolute_offsets = cryptonote::relative_output_offsets_to_absolute(k_offset);
     req.outputs.resize(absolute_offsets.size());
     for (size_t j = 0; j < absolute_offsets.size(); ++j)
     {
-      req.outputs[j].amount = in_key->amount;
+      req.outputs[j].amount = amount;
       req.outputs[j].index = absolute_offsets[j];
     }
+    
+    auto out_type = boost::apply_visitor(tx_output_type_visitor(), curr_vin);
+    
+    if(out_type != tx_out_type::out_cash && out_type != tx_out_type::out_token)
+        continue;
+    
+    req.out_type = out_type;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res = AUTO_VAL_INIT(res);
     bool r;
     {
@@ -10529,7 +10592,7 @@ bool wallet::check_spend_proof(const crypto::hash &txid, const std::string &mess
       p_output_keys.push_back(&out.key);
 
     // check this ring
-    if (!crypto::check_ring_signature(sig_prefix_hash, in_key->k_image, p_output_keys, sig_iter->data()))
+    if (!crypto::check_ring_signature(sig_prefix_hash, k_image, p_output_keys, sig_iter->data()))
       return false;
     ++sig_iter;
   }

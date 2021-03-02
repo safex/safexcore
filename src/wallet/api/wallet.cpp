@@ -2549,7 +2549,7 @@ bool WalletImpl::checkSpendProof(const std::string &txid_str, const std::string 
     }
 }
 
-std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const {
+std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message, const bool token) const {
     try
     {
         m_status = Status_Ok;
@@ -2558,7 +2558,7 @@ std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64
         {
             account_minreserve = std::make_pair(account_index, amount);
         }
-        return m_wallet->get_reserve_proof(account_minreserve, message);
+        return m_wallet->get_reserve_proof(account_minreserve, message, token);
     }
     catch (const std::exception &e)
     {

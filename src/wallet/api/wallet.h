@@ -183,7 +183,7 @@ public:
     virtual bool checkTxProof(const std::string &txid, const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &received_cash, uint64_t &received_token, bool &in_pool, uint64_t &confirmations) override;
     virtual std::string getSpendProof(const std::string &txid, const std::string &message) const override;
     virtual bool checkSpendProof(const std::string &txid, const std::string &message, const std::string &signature, bool &good) const override;
-    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const override;
+    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message, const bool token) const override;
     virtual bool checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent, uint64_t& token_total, uint64_t& token_spent) const override;
     virtual std::string signMessage(const std::string &message) override;
     virtual bool verifySignedMessage(const std::string &message, const std::string &address, const std::string &signature) const override;
