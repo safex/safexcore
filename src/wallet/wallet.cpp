@@ -10372,13 +10372,17 @@ std::string wallet::get_spend_proof(const crypto::hash &txid, const std::string 
 
     // derive the real output keypair
     const transfer_details& in_td = m_transfers[found->second];
-    const txout_to_key* const in_tx_out_pkey = boost::get<txout_to_key>(std::addressof(in_td.m_tx.vout[in_td.m_internal_output_index].target));
-    THROW_WALLET_EXCEPTION_IF(in_tx_out_pkey == nullptr, error::wallet_internal_error, "Output is not txout_to_key");
+    
+    auto k_pkey_opt = boost::apply_visitor(destination_public_key_visitor(), in_td.m_tx.vout[in_td.m_internal_output_index].target);
+    if (!k_pkey_opt)
+        continue;
+    const crypto::public_key &in_tx_out_pkey = *k_pkey_opt;
+    
     const crypto::public_key in_tx_pub_key = get_tx_pub_key_from_extra(in_td.m_tx, in_td.m_pk_index);
     const std::vector<crypto::public_key> in_additionakl_tx_pub_keys = get_additional_tx_pub_keys_from_extra(in_td.m_tx);
     keypair in_ephemeral;
     crypto::key_image in_img;
-    THROW_WALLET_EXCEPTION_IF(!generate_key_image_helper(m_account.get_keys(), m_subaddresses, in_tx_out_pkey->key, in_tx_pub_key, in_additionakl_tx_pub_keys, in_td.m_internal_output_index, in_ephemeral, in_img, m_account.get_device()),
+    THROW_WALLET_EXCEPTION_IF(!generate_key_image_helper(m_account.get_keys(), m_subaddresses, in_tx_out_pkey, in_tx_pub_key, in_additionakl_tx_pub_keys, in_td.m_internal_output_index, in_ephemeral, in_img, m_account.get_device()),
       error::wallet_internal_error, "failed to generate key image");
     THROW_WALLET_EXCEPTION_IF(k_image != in_img, error::wallet_internal_error, "key image mismatch");
 
@@ -10393,6 +10397,11 @@ std::string wallet::get_spend_proof(const crypto::hash &txid, const std::string 
       req.outputs[j].amount = amount;
       req.outputs[j].index = absolute_offsets[j];
     }
+
+    const cryptonote::tx_out_type &out_type = get_tx_out_type(in_td.m_tx.vout[in_td.m_internal_output_index].target);
+    if(out_type != tx_out_type::out_cash && out_type != tx_out_type::out_token)
+        continue;
+    req.out_type = out_type;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res = AUTO_VAL_INIT(res);
     bool r;
     {
@@ -10557,6 +10566,13 @@ bool wallet::check_spend_proof(const crypto::hash &txid, const std::string &mess
       req.outputs[j].amount = amount;
       req.outputs[j].index = absolute_offsets[j];
     }
+    
+    auto out_type = boost::apply_visitor(tx_output_type_visitor(), curr_vin);
+    
+    if(out_type != tx_out_type::out_cash && out_type != tx_out_type::out_token)
+        continue;
+    
+    req.out_type = out_type;
     COMMAND_RPC_GET_OUTPUTS_BIN::response res = AUTO_VAL_INIT(res);
     bool r;
     {
