@@ -2353,7 +2353,7 @@ namespace cryptonote
       bool unlocked;
       uint64_t recent_cutoff;
       uint64_t out_type_as_int;
-      tx_out_type out_type;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts);
