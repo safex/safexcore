@@ -2349,6 +2349,16 @@ namespace cryptonote
     PERF_TIMER(on_get_output_distribution);
     try
     {
+      cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
+        
+      if(req.out_type == cryptonote::tx_out_type::out_invalid) {
+        output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
+      }
+      else {
+        output_type = req.out_type;
+      }
+        
+        
       for (uint64_t amount: req.amounts)
       {
         static struct D
@@ -2369,7 +2379,7 @@ namespace cryptonote
 
         std::vector<uint64_t> distribution;
         uint64_t start_height, base;
-        if (!m_core.get_output_distribution(amount, req.out_type, req.from_height, start_height, distribution, base))
+        if (!m_core.get_output_distribution(amount, output_type, req.from_height, start_height, distribution, base))
         {
           error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
           error_resp.message = "Failed to get rct distribution";

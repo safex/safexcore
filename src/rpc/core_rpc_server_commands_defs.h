@@ -2673,13 +2673,15 @@ namespace cryptonote
       uint64_t from_height;
       uint64_t to_height;
       bool cumulative;
-      tx_out_type out_type;
-
+      uint64_t out_type_as_int;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
+      
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts)
         KV_SERIALIZE_OPT(from_height, (uint64_t)0)
         KV_SERIALIZE_OPT(to_height, (uint64_t)0)
         KV_SERIALIZE_OPT(cumulative, false)
+        KV_SERIALIZE_OPT(out_type_as_int, (uint64_t)0)
         KV_SERIALIZE_VAL_POD_AS_BLOB(out_type)
       END_KV_SERIALIZE_MAP()
     };
