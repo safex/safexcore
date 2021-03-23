@@ -559,8 +559,18 @@ namespace cryptonote
       }
     }
 
+    cryptonote::tx_out_type output_type = cryptonote::tx_out_type::out_invalid;
+    
+    if(req.out_type == cryptonote::tx_out_type::out_invalid) {
+        output_type = static_cast<cryptonote::tx_out_type>(req.out_type_as_int);
+    }
+    else {
+        output_type = req.out_type;
+    }
+    
     cryptonote::COMMAND_RPC_GET_OUTPUTS_BIN::request req_bin;
     req_bin.outputs = req.outputs;
+    req_bin.out_type = output_type;
     cryptonote::COMMAND_RPC_GET_OUTPUTS_BIN::response res_bin;
     if(!m_core.get_outs(req_bin, res_bin))
     {

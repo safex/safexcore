@@ -1095,9 +1095,13 @@ namespace cryptonote
     struct request_t
     {
       std::vector<get_outputs_out> outputs;
+      uint64_t out_type_as_int;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(outputs)
+        KV_SERIALIZE_OPT(out_type_as_int, (uint64_t)0)
+        KV_SERIALIZE_VAL_POD_AS_BLOB(out_type)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
