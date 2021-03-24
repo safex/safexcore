@@ -2025,7 +2025,7 @@ bool t_rpc_command_executor::token_locked_on_interval(const uint64_t& start, con
   }
   else
   {
-    if (!m_rpc_server->on_get_locked_tokens(req, res))
+    if (!m_rpc_server->on_get_staked_tokens(req, res))
     {
       tools::fail_msg_writer() << "Failed!";
       return true;

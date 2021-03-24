@@ -2744,7 +2744,7 @@ namespace cryptonote
       return true;
   }
 
-  bool core_rpc_server::on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
+  bool core_rpc_server::on_get_staked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res)
   {
     if (req.interval == 0) {
       // @todo: Implement here to return last interval value.
