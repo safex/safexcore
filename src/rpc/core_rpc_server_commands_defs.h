@@ -175,6 +175,66 @@ namespace cryptonote
         typedef epee::misc_utils::struct_init<response_t> response;
     };
 
+
+    struct COMMAND_RPC_GET_SAFEX_OFFERS_JSON
+    {
+        struct request_t
+        {
+            std::string seller = "";
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(seller);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string title;
+            uint64_t quantity;
+            uint64_t price;
+            uint64_t min_sfx_price;
+            std::vector<uint8_t> description;
+            bool active;
+            bool price_peg_used;
+            std::vector<uint8_t> shipping;
+            std::string offer_id;
+            std::string price_peg_id;
+            std::string seller;
+            std::string seller_address;
+            uint64_t height;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(title)
+            KV_SERIALIZE(quantity)
+            KV_SERIALIZE(price)
+            KV_SERIALIZE(min_sfx_price)
+            KV_SERIALIZE(description)
+            KV_SERIALIZE(active)
+            KV_SERIALIZE(price_peg_used)
+            KV_SERIALIZE(shipping)
+            KV_SERIALIZE(offer_id)
+            KV_SERIALIZE(price_peg_id)
+            KV_SERIALIZE(seller)
+            KV_SERIALIZE(seller_address)
+            KV_SERIALIZE(height)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> offers;
+            std::string status;
+            bool untrusted;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(offers)
+            KV_SERIALIZE(status)
+            KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
     struct COMMAND_RPC_GET_SAFEX_PRICE_PEGS
     {
         struct request_t

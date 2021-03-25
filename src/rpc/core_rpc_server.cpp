@@ -203,6 +203,38 @@ namespace cryptonote
         return true;
     }
     //------------------------------------------------------------------------------------------------------------------------------
+    bool core_rpc_server::on_get_safex_offers_json(const COMMAND_RPC_GET_SAFEX_OFFERS_JSON::request& req, COMMAND_RPC_GET_SAFEX_OFFERS_JSON::response& res)
+    {
+        PERF_TIMER(on_get_safex_offers);
+        bool r;
+        if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_SAFEX_OFFERS_JSON>(invoke_http_mode::JON, "/get_safex_offers_json", req, res, r))
+            return r;
+
+        std::vector<safex::safex_offer> offers;
+        bool result  = m_core.get_safex_offers(offers);
+
+        for(auto offer: offers) {
+            if(offer.seller != req.seller && req.seller != "")
+                continue;
+            uint64_t offer_height;
+            result = m_core.get_safex_offer_height(offer.offer_id, offer_height);
+            if(!result)
+                continue;
+            std::string offer_id_str = epee::string_tools::pod_to_hex(offer.offer_id);
+            std::string price_peg_id_str = epee::string_tools::pod_to_hex(offer.price_peg_id);
+
+            std::string seller_address = cryptonote::get_account_address_as_str(m_nettype, false, offer.seller_address);
+
+            COMMAND_RPC_GET_SAFEX_OFFERS_JSON::entry ent{offer.title, offer.quantity, offer.price, offer.min_sfx_price, offer.description,
+                                                    offer.active, offer.price_peg_used, offer.shipping, offer_id_str, price_peg_id_str, offer.seller,
+                                                    seller_address, offer_height};
+            res.offers.push_back(ent);
+        }
+        res.status = CORE_RPC_STATUS_OK;
+        return true;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------
     bool core_rpc_server::on_get_safex_price_pegs(const COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request& req, COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response& res)
     {
       PERF_TIMER(on_get_safex_price_pegs);

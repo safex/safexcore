@@ -124,6 +124,7 @@ namespace cryptonote
       MAP_URI_AUTO_JON2("/get_safex_account_info", on_get_safex_account_info, COMMAND_RPC_SAFEX_ACCOUNT_INFO)
       MAP_URI_AUTO_JON2("/get_safex_accounts", on_get_safex_accounts, COMMAND_RPC_GET_SAFEX_ACCOUNTS)
       MAP_URI_AUTO_JON2("/get_safex_offers", on_get_safex_offers, COMMAND_RPC_GET_SAFEX_OFFERS)
+      MAP_URI_AUTO_JON2("/get_safex_offers_json", on_get_safex_offers_json, COMMAND_RPC_GET_SAFEX_OFFERS_JSON)
       MAP_URI_AUTO_JON2("/get_safex_ratings", on_get_safex_ratings, COMMAND_RPC_GET_SAFEX_RATINGS)
       MAP_URI_AUTO_JON2("/get_safex_price_pegs", on_get_safex_price_pegs, COMMAND_RPC_GET_SAFEX_PRICE_PEGS)
       MAP_URI_AUTO_JON2("/get_limit", on_get_limit, COMMAND_RPC_GET_LIMIT)
@@ -181,6 +182,8 @@ namespace cryptonote
     bool on_get_safex_offers(const COMMAND_RPC_GET_SAFEX_OFFERS::request& req, COMMAND_RPC_GET_SAFEX_OFFERS::response& res);
     bool on_get_safex_ratings(const COMMAND_RPC_GET_SAFEX_RATINGS::request& req, COMMAND_RPC_GET_SAFEX_RATINGS::response& res);
     bool on_get_safex_price_pegs(const COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request& req, COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response& res);
+
+    bool on_get_safex_offers_json(const COMMAND_RPC_GET_SAFEX_OFFERS_JSON::request& req, COMMAND_RPC_GET_SAFEX_OFFERS_JSON::response& res);
 
     bool on_get_output_histogram_protobuf(const COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::response& res);
     bool on_send_proto_raw_tx(const COMMAND_RPC_PROTO_SEND_RAW_TX::request& req, COMMAND_RPC_PROTO_SEND_RAW_TX::response& res);
