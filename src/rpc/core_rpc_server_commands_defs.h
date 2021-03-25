@@ -2934,6 +2934,7 @@ namespace cryptonote
       uint64_t end;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(interval)
+        KV_SERIALIZE(end)
       END_KV_SERIALIZE_MAP()
     };
 
