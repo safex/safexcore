@@ -139,8 +139,7 @@ namespace tools
         MAP_JON_RPC_WE("get_available_interest", on_available_interest, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST)
         MAP_JON_RPC_WE("stake_token", on_stake_token, wallet_rpc::COMMAND_RPC_STAKE_TOKEN)
         MAP_JON_RPC_WE("unstake_token", on_unstake_token, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN)
-        MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
-        MAP_JON_RPC_WE("make_demo_purchase", on_make_demo_purchase, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE)
+//         MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
 
       END_JSON_RPC_MAP()
     END_URI_MAP2()
@@ -149,8 +148,7 @@ namespace tools
       bool on_available_interest(const wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::request& req, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::response& res, epee::json_rpc::error& er);
       bool on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er);
       bool on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er);
-      bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);
-      bool on_make_demo_purchase(const wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::request& req, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::response& res, epee::json_rpc::error& er);
+//       bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);
 
       bool on_refresh(const wallet_rpc::COMMAND_RPC_REFRESH::request& req, wallet_rpc::COMMAND_RPC_REFRESH::response& res, epee::json_rpc::error& er);
       bool on_getbalance(const wallet_rpc::COMMAND_RPC_GET_BALANCE::request& req, wallet_rpc::COMMAND_RPC_GET_BALANCE::response& res, epee::json_rpc::error& er);
@@ -241,6 +239,5 @@ namespace tools
       bool m_trusted_daemon;
       const boost::program_options::variables_map *m_vm;
 
-      std::map<std::string, std::string> simple_trade_ids;
   };
 }
