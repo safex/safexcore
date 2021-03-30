@@ -131,9 +131,6 @@ namespace tools
         MAP_JON_RPC_WE("get_languages",      on_get_languages,      wallet_rpc::COMMAND_RPC_GET_LANGUAGES)
         MAP_JON_RPC_WE("create_wallet",      on_create_wallet,      wallet_rpc::COMMAND_RPC_CREATE_WALLET)
         MAP_JON_RPC_WE("open_wallet",        on_open_wallet,        wallet_rpc::COMMAND_RPC_OPEN_WALLET)
-        MAP_JON_RPC_WE("migrate_view_only",  on_migrate_view_only,  wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY)
-        MAP_JON_RPC_WE("sign_migration",     on_sign_migration,     wallet_rpc::COMMAND_RPC_SIGN_MIGRATION)
-        MAP_JON_RPC_WE("submit_migration",   on_submit_migration,   wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION)
         MAP_JON_RPC_WE("is_multisig",        on_is_multisig,        wallet_rpc::COMMAND_RPC_IS_MULTISIG)
 
         MAP_JON_RPC_WE("get_available_interest", on_available_interest, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST)
@@ -212,10 +209,10 @@ namespace tools
       bool on_open_wallet(const wallet_rpc::COMMAND_RPC_OPEN_WALLET::request& req, wallet_rpc::COMMAND_RPC_OPEN_WALLET::response& res, epee::json_rpc::error& er);
       bool on_is_multisig(const wallet_rpc::COMMAND_RPC_IS_MULTISIG::request& req, wallet_rpc::COMMAND_RPC_IS_MULTISIG::response& res, epee::json_rpc::error& er);
 
-      // migration rpc
-      bool on_migrate_view_only(const wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request& req, wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response& res, epee::json_rpc::error& er);
-      bool on_sign_migration(const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res, epee::json_rpc::error &er);
-      bool on_submit_migration(const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res, epee::json_rpc::error &er);
+      // migration rpc. Not needed anymore
+//       bool on_migrate_view_only(const wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request& req, wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response& res, epee::json_rpc::error& er);
+//       bool on_sign_migration(const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res, epee::json_rpc::error &er);
+//       bool on_submit_migration(const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res, epee::json_rpc::error &er);
       //json rpc v2
       bool on_query_key(const wallet_rpc::COMMAND_RPC_QUERY_KEY::request& req, wallet_rpc::COMMAND_RPC_QUERY_KEY::response& res, epee::json_rpc::error& er);
 

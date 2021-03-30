@@ -2165,72 +2165,72 @@ namespace wallet_rpc
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
-struct COMMAND_RPC_MIGRATE_VIEW_ONLY
-{
-    struct request_t {
-        uint64_t amount;
-        std::string address;
-        std::string bitcoin_hash;
-        std::string unsigned_transaction_filename;
-        std::string filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(amount)
-            KV_SERIALIZE(address)
-            KV_SERIALIZE(bitcoin_hash)
-            KV_SERIALIZE(unsigned_transaction_filename)
-            KV_SERIALIZE(filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<request_t> request;
-
-    struct response_t {
-        std::string filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<response_t> response;
-};
-
-struct COMMAND_RPC_SIGN_MIGRATION
-{
-    struct request_t {
-        std::string unsigned_filename;
-        std::string signed_filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(unsigned_filename)
-            KV_SERIALIZE(signed_filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<request_t> request;
-
-    struct response_t {
-        std::string signed_filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(signed_filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<response_t> response;
-};
-
-struct COMMAND_RPC_SUBMIT_MIGRATION
-{
-    struct request_t {
-        std::string signed_filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(signed_filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<request_t> request;
-
-    struct response_t {
-        std::string signed_filename;
-        BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(signed_filename)
-        END_KV_SERIALIZE_MAP()
-    };
-    typedef epee::misc_utils::struct_init<response_t> response;
-};
+// struct COMMAND_RPC_MIGRATE_VIEW_ONLY
+// {
+//     struct request_t {
+//         uint64_t amount;
+//         std::string address;
+//         std::string bitcoin_hash;
+//         std::string unsigned_transaction_filename;
+//         std::string filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(amount)
+//             KV_SERIALIZE(address)
+//             KV_SERIALIZE(bitcoin_hash)
+//             KV_SERIALIZE(unsigned_transaction_filename)
+//             KV_SERIALIZE(filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<request_t> request;
+// 
+//     struct response_t {
+//         std::string filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<response_t> response;
+// };
+// 
+// struct COMMAND_RPC_SIGN_MIGRATION
+// {
+//     struct request_t {
+//         std::string unsigned_filename;
+//         std::string signed_filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(unsigned_filename)
+//             KV_SERIALIZE(signed_filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<request_t> request;
+// 
+//     struct response_t {
+//         std::string signed_filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(signed_filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<response_t> response;
+// };
+// 
+// struct COMMAND_RPC_SUBMIT_MIGRATION
+// {
+//     struct request_t {
+//         std::string signed_filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(signed_filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<request_t> request;
+// 
+//     struct response_t {
+//         std::string signed_filename;
+//         BEGIN_KV_SERIALIZE_MAP()
+//             KV_SERIALIZE(signed_filename)
+//         END_KV_SERIALIZE_MAP()
+//     };
+//     typedef epee::misc_utils::struct_init<response_t> response;
+// };
 
 struct COMMAND_RPC_REFRESH
 {
