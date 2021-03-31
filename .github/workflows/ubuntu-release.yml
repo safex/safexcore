@@ -25,9 +25,7 @@ jobs:
       run:  sudo apt-get install build-essential=12.4ubuntu1 cmake=3.10.2-1ubuntu2.18.04.1 pkg-config=0.29.1-0ubuntu2 libboost-all-dev=1.65.1.0ubuntu1 libssl-dev libsodium23=1.0.16-2 libsodium-dev=1.0.16-2 libpgm-dev=5.2.122~dfsg-2 libzmq3-dev=4.2.5-1ubuntu0.2 libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev libnorm-dev=1.5r6+dfsg1-6 libpcsclite1
     - name: Build protobuf library
       run: |
-            git clone https://github.com/protocolbuffers/protobuf.git
-            cd protobuf
-            git submodule update --init --recursive
+            cd external/protobuf
             ./autogen.sh
             ./configure
             make
