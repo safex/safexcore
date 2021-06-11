@@ -42,8 +42,8 @@ libwallet-build:
                          		-DSTATIC=ON \
                          		-DProtobuf_USE_STATIC_LIBS=OFF \
                          		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
-                         		-DARCH="x86-64" -D \
-                         		-DBUILD_64=ON -D \
+                         		-DARCH="x86-64" \
+                         		-DBUILD_64=ON \
                          		-DCMAKE_BUILD_TYPE=release \
                          		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
@@ -57,8 +57,8 @@ libwallet-build-windows:
                          		-DSTATIC=ON \
                          		-DProtobuf_USE_STATIC_LIBS=OFF \
                          		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
-                         		-DARCH="x86-64" -D \
-                         		-DBUILD_64=ON -D \
+                         		-DARCH="x86-64" \
+                         		-DBUILD_64=ON \
                          		-DCMAKE_BUILD_TYPE=release \
                          		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
