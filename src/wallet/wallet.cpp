@@ -8828,12 +8828,14 @@ std::vector<wallet::pending_tx> wallet::create_transactions_advanced(safex::comm
           THROW_WALLET_EXCEPTION_IF(original_output_index > dsts.size(), error::wallet_internal_error,
                                     std::string("original_output_index too large: ") + std::to_string(original_output_index) + " > " + std::to_string(dsts.size()));
           if (original_output_index == dsts.size())
+          {
             dsts.emplace_back(0, addr, is_subaddress, output_type, output_data);
-            THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
-            THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_token_amount(amount), error::wallet_internal_error,
-                    "Token amount must be whole number.");
-            dsts[original_output_index].token_amount += token_amount;
-            dsts[original_output_index].amount += amount;
+          }
+          THROW_WALLET_EXCEPTION_IF(memcmp(&dsts[original_output_index].addr, &addr, sizeof(addr)), error::wallet_internal_error, "Mismatched destination address");
+          THROW_WALLET_EXCEPTION_IF((output_type == cryptonote::tx_out_type::out_token) && !tools::is_whole_token_amount(amount), error::wallet_internal_error,
+                "Token amount must be whole number.");
+          dsts[original_output_index].token_amount += token_amount;
+          dsts[original_output_index].amount += amount;
         }
       }
     };
