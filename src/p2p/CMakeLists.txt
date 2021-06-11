@@ -41,6 +41,7 @@ safex_add_library(p2p ${P2P})
 target_link_libraries(p2p
   PUBLIC
     epee
+    net
     version
     cryptonote_core
     ${UPNP_LIBRARIES}

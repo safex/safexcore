@@ -27,18 +27,19 @@ namespace safex
   {
 
     public:
-      safex_purchase(): quantity{}, price{}, shipping{}, offer_id{0}{
+      safex_purchase(): quantity{}, price{}, shipping{}, offer_id{0}, offer_hash{}{
 
       }
 
-      safex_purchase(const uint64_t _quantity, const uint64_t _price, crypto::hash &_id, bool _shipping):quantity{_quantity},price{_price},
-                                                                                            offer_id{_id},shipping{_shipping}
+      safex_purchase(const uint64_t _quantity, const uint64_t _price, crypto::hash &_id, crypto::hash _offer_hash, bool _shipping):quantity{_quantity},price{_price},
+                                                                                            offer_id{_id}, offer_hash{_offer_hash}, shipping{_shipping}
       {
       }
 
 
     BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(offer_id)
+        KV_SERIALIZE(offer_hash)
         KV_SERIALIZE(quantity)
         KV_SERIALIZE(price)
         KV_SERIALIZE(shipping)
@@ -46,6 +47,7 @@ namespace safex
 
       BEGIN_SERIALIZE_OBJECT()
         FIELD(offer_id)
+        FIELD(offer_hash)
         FIELD(quantity)
         FIELD(price)
         FIELD(shipping)
@@ -55,12 +57,14 @@ namespace safex
       inline void serialize(t_archive &a, const unsigned int /*ver*/)
       {
         a & offer_id;
+        a & offer_hash;
         a & quantity;
         a & price;
         a & shipping;
       }
 
       crypto::hash offer_id;
+      crypto::hash offer_hash;
       uint64_t quantity;
       uint64_t price;
       bool shipping;

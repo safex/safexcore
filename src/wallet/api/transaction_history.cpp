@@ -93,6 +93,40 @@ std::vector<TransactionInfo *> TransactionHistoryImpl::getAll() const
     return m_history;
 }
 
+
+TransactionType getTransactionType(const cryptonote::tx_out_type& out_type){
+
+  switch (out_type) {
+    case cryptonote::tx_out_type::out_cash:
+      return TransactionType::CashTransaction;
+    case cryptonote::tx_out_type::out_token:
+      return TransactionType::TokenTransaction;
+    case cryptonote::tx_out_type::out_staked_token:
+      return TransactionType::StakeTokenTransaction;
+    case cryptonote::tx_out_type::out_safex_account:
+      return TransactionType::CreateAccountTransaction;
+    case cryptonote::tx_out_type::out_safex_account_update:
+      return TransactionType::EditAccountTransaction;
+    case cryptonote::tx_out_type::out_safex_offer:
+      return TransactionType::CreateOfferTransaction;
+    case cryptonote::tx_out_type::out_safex_offer_update:
+      return TransactionType::EditOfferTransaction;
+    case cryptonote::tx_out_type::out_safex_purchase:
+      return TransactionType::PurchaseTransaction;
+    case cryptonote::tx_out_type::out_safex_feedback_token:
+    case cryptonote::tx_out_type::out_safex_feedback:
+      return TransactionType::FeedbackTransaction;
+    case cryptonote::tx_out_type::out_safex_price_peg:
+      return TransactionType::CreatePricePegTransaction;
+    case cryptonote::tx_out_type::out_safex_price_peg_update:
+      return TransactionType::UpdatePricePegTransaction;
+    default:
+      return TransactionType::CashTransaction;
+    }
+
+}
+
+
 void TransactionHistoryImpl::refresh()
 {
     // multithreaded access:
@@ -138,6 +172,7 @@ void TransactionHistoryImpl::refresh()
         ti->m_timestamp = pd.m_timestamp;
         ti->m_confirmations = (wallet_height > pd.m_block_height) ? wallet_height - pd.m_block_height : 0;
         ti->m_unlock_time = pd.m_unlock_time;
+        ti->m_transaction_type = getTransactionType(pd.m_output_type);
         m_history.push_back(ti);
 
     }
@@ -186,6 +221,7 @@ void TransactionHistoryImpl::refresh()
         for (const auto &d: pd.m_dests) {
             ti->m_transfers.push_back({d.amount, d.token_amount, get_account_address_as_str(m_wallet->m_wallet->nettype(), d.is_subaddress, d.addr)});
         }
+        ti->m_transaction_type = getTransactionType(pd.m_output_type);
         m_history.push_back(ti);
     }
 
@@ -216,6 +252,7 @@ void TransactionHistoryImpl::refresh()
         ti->m_label = pd.m_subaddr_indices.size() == 1 ? m_wallet->m_wallet->get_subaddress_label({pd.m_subaddr_account, *pd.m_subaddr_indices.begin()}) : "";
         ti->m_timestamp = pd.m_timestamp;
         ti->m_confirmations = 0;
+        ti->m_transaction_type = getTransactionType(pd.m_output_type);
         m_history.push_back(ti);
     }
     
@@ -241,6 +278,7 @@ void TransactionHistoryImpl::refresh()
         ti->m_label     = m_wallet->m_wallet->get_subaddress_label(pd.m_subaddr_index);
         ti->m_timestamp = pd.m_timestamp;
         ti->m_confirmations = 0;
+        ti->m_transaction_type = getTransactionType(pd.m_output_type);
         m_history.push_back(ti);
         
         LOG_PRINT_L1(__FUNCTION__ << ": Unconfirmed payment found " << pd.m_amount);

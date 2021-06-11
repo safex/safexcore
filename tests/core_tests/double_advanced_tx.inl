@@ -98,7 +98,7 @@ bool gen_double_advanced_tx_base<concrete_test>::check_double_advanced_tx(crypto
   CHECK_NOT_EQ(invalid_index_value, m_invalid_block_index);
 
   std::list<cryptonote::block> block_list;
-  bool r = c.get_blocks(0, 18 + 5 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, block_list);
+  bool r = c.get_blocks(0, 18 + 7 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, block_list);
   CHECK_TEST_CONDITION(r);
   CHECK_TEST_CONDITION(m_last_valid_block == block_list.back());
 
@@ -131,7 +131,7 @@ bool gen_double_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate(std
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
   //create purchase
   MAKE_TX_CREATE_SAFEX_PURCHASE_LIST_START(events, txlist_3, alice_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address,  blk_1r);
@@ -158,7 +158,7 @@ bool gen_edit_offer_purchase_tx_in_the_same_block<txs_keeped_by_block>::generate
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, txs_keeped_by_block);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
 //  safex_offer_alice.price += MK_COINS(10);
 //  safex_offer_alice.min_sfx_price += MK_COINS(10);
@@ -192,7 +192,7 @@ bool gen_purchase_edit_offer_tx_in_the_same_block<txs_keeped_by_block>::generate
   SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, true);
 
 
-  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, false};
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, safex_offer_alice.price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
 
   safex_offer_alice.description[0] = 'N';
 
@@ -202,6 +202,44 @@ bool gen_purchase_edit_offer_tx_in_the_same_block<txs_keeped_by_block>::generate
 
   //edit offer that is being purchased
   MAKE_EDIT_SAFEX_OFFER_TX_LIST(events, txlist_3, alice_account, safex_account_alice.pkey, safex_offer_alice, m_safex_account1_keys.get_keys(), blk_1r);
+
+
+  DO_CALLBACK(events, "mark_invalid_block");
+  MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_1r, miner_account, txlist_3);
+
+  DO_CALLBACK(events, "check_double_advanced_tx");
+
+  return true;
+}
+
+
+template<bool txs_keeped_by_block>
+bool gen_purchase_update_price_peg_tx_in_the_same_block<txs_keeped_by_block>::generate(std::vector<test_event_entry>& events) const
+{
+  INIT_DOUBLE_ADVANCED_TX_WITH_PRICE_PEG_TEST();
+
+  DO_CALLBACK(events, "mark_last_valid_block");
+  SET_EVENT_VISITOR_SETT(events, event_visitor_settings::set_txs_keeped_by_block, true);
+
+  std::string rate_str = cryptonote::print_money(safex_price_peg_alice.rate);
+  double rate = stod(rate_str);
+
+  std::string price_str = cryptonote::print_money(safex_offer_alice.price);
+  double price = stod(price_str);
+  uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
+
+
+  auto safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_alice.offer_id, safex_offer_alice.get_hash(), false};
+
+  safex_price_peg_alice.rate *= 2;
+
+  //update price peg that is used in offer that is purchased
+  MAKE_TX_UPDATE_SAFEX_PRICE_PEG_LIST_START(events, txlist_3, alice_account,  safex_account_alice.pkey, safex_price_peg_alice, m_safex_account1_keys.get_keys(), blk_1r);
+
+  //create purchase
+  MAKE_CREATE_SAFEX_PURCHASE_TX_LIST(events, txlist_3, bob_account, safex_alice_purchase_from_bob, alice_account.get_keys().m_account_address, blk_1r);
+
+
 
 
   DO_CALLBACK(events, "mark_invalid_block");

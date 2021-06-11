@@ -130,7 +130,7 @@ namespace
         m_safex_offer[0] =  safex::safex_offer("Apple", 10, 10*SAFEX_CASH_COIN,"This is an apple",  m_safex_account1.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
         m_safex_offer[1] =  safex::safex_offer("Barbie", 30, 50*SAFEX_CASH_COIN,"This is a Barbie", m_safex_account2.username,m_users_acc[0].get_keys().m_view_secret_key,m_users_acc[0].get_keys().m_account_address);
 
-        m_safex_purchase = safex::safex_purchase{1, m_safex_offer[0].price, m_safex_offer[0].offer_id, true};
+        m_safex_purchase = safex::safex_purchase{1, m_safex_offer[0].price, m_safex_offer[0].offer_id, m_safex_offer[0].get_hash(), true};
 
         m_safex_feedback = safex::safex_feedback{3,"Eating it all day", m_safex_offer[0].offer_id};
 
@@ -375,8 +375,9 @@ namespace
   {
 
     crypto::hash offer_id;
+    crypto::hash offer_hash;
 
-    safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, false);
+    safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, offer_hash, false);
 
     safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -533,8 +534,9 @@ namespace
           txinput.command_type = safex::command_t::simple_purchase;
 
           crypto::hash offer_id{};
+          crypto::hash offer_hash{};
 
-          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, false);
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, offer_id, offer_hash, false);
 
           safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -571,7 +573,7 @@ namespace
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::simple_purchase;
 
-          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, this->m_edited_safex_offer.offer_id, false);
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, 100, this->m_edited_safex_offer.offer_id, this->m_edited_safex_offer.get_hash(), false);
 
           safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -608,7 +610,7 @@ namespace
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::simple_purchase;
 
-          safex::safex_purchase sfx_purchase = safex::safex_purchase(this->m_safex_offer[0].quantity + 1, 100, this->m_safex_offer[0].offer_id, false);
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(this->m_safex_offer[0].quantity + 1, 100, this->m_safex_offer[0].offer_id, this->m_safex_offer[0].get_hash(), false);
 
           safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -645,7 +647,7 @@ namespace
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::simple_purchase;
 
-          safex::safex_purchase sfx_purchase = safex::safex_purchase(0, 100, this->m_safex_offer[0].offer_id, false);
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(0, 100, this->m_safex_offer[0].offer_id, this->m_safex_offer[0].get_hash(), false);
 
           safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -682,7 +684,7 @@ namespace
           cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
           txinput.command_type = safex::command_t::simple_purchase;
 
-          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, this->m_safex_offer[0].price-1, this->m_safex_offer[0].offer_id, false);
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, this->m_safex_offer[0].price-1, this->m_safex_offer[0].offer_id, this->m_safex_offer[0].get_hash(), false);
 
           safex::create_purchase_data purchase_data{sfx_purchase};
 
@@ -695,6 +697,43 @@ namespace
 
           safex::execution_status status = command2->validate(*(this->m_db), txinput);
           ASSERT_EQ(status, safex::execution_status::error_purchase_not_enough_funds);
+
+          std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
+          FAIL() << "Should throw exception with Safex purchase given not enough funds";
+
+        }
+        catch (safex::command_exception &exception)
+        {
+
+        }
+        catch (std::exception &exception)
+        {
+          FAIL() << "Exception happened " << exception.what();
+        }
+        catch (...)
+        {
+          FAIL() << "Unexpected exception";
+        }
+
+        // Safex purchase wrong offer hash
+        try
+        {
+          cryptonote::txin_to_script txinput = AUTO_VAL_INIT(txinput);
+          txinput.command_type = safex::command_t::simple_purchase;
+
+          safex::safex_purchase sfx_purchase = safex::safex_purchase(1, this->m_safex_offer[0].price, this->m_safex_offer[0].offer_id, this->m_safex_offer[1].get_hash(), false);
+
+          safex::create_purchase_data purchase_data{sfx_purchase};
+
+          safex::simple_purchase command1{SAFEX_COMMAND_PROTOCOL_VERSION , purchase_data};
+
+
+          safex::safex_command_serializer::serialize_safex_object(command1, txinput.script);
+
+          std::unique_ptr<safex::command> command2 = safex::safex_command_serializer::parse_safex_object(txinput.script, safex::command_t::simple_purchase);
+
+          safex::execution_status status = command2->validate(*(this->m_db), txinput);
+          ASSERT_EQ(status, safex::execution_status::error_purchase_wrong_hash);
 
           std::unique_ptr<safex::execution_result> result{command2->execute(*(this->m_db), txinput)};
           FAIL() << "Should throw exception with Safex purchase given not enough funds";

@@ -91,34 +91,34 @@ bool gen_token_lock_001::generate(std::vector<test_event_entry> &events)
 
     MAKE_NEXT_BLOCK(events, blk_1, blk_0, miner);
     MAKE_NEXT_BLOCK(events, blk_2, blk_1, miner);
-
-    REWIND_BLOCKS(events, blk_2r, blk_2, miner);
-    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(20000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    REWIND_BLOCKS(events, blk_2rr, blk_2, miner);
+    REWIND_BLOCKS(events, blk_2r, blk_2rr, miner);
+    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(30000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(30000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_4, blk_3, miner);
 
     //lock some tokens
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(80000), blk_4);
-    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(20000), blk_4);
+    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(25000), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_1);
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
-    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(15000), blk_6);
+    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(25000), blk_6);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_6r, blk_6, miner, txlist_2);
 
     REWIND_BLOCKS(events, blk_7, blk_6r, miner);
 
     MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_3, alice, MK_TOKENS(80000), blk_7);
-    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_3, daniel, MK_TOKENS(10000), blk_7);
+    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_3, daniel, MK_TOKENS(25000), blk_7);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7r, blk_7, miner, txlist_3);
 
     REWIND_BLOCKS(events, blk_8, blk_7r, miner);
 
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_4, alice, MK_TOKENS(25000), blk_8);
-    MAKE_TOKEN_UNLOCK_TX_LIST(events, txlist_4, bob, MK_TOKENS(20000), blk_8);
-    MAKE_TOKEN_UNLOCK_TX_LIST(events, txlist_4, daniel, MK_TOKENS(10000), blk_8);
+    MAKE_TOKEN_UNLOCK_TX_LIST(events, txlist_4, bob, MK_TOKENS(25000), blk_8);
+    MAKE_TOKEN_UNLOCK_TX_LIST(events, txlist_4, daniel, MK_TOKENS(25000), blk_8);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_9, blk_8, miner, txlist_4);
 
     DO_CALLBACK(events, "verify_token_lock");

@@ -87,12 +87,27 @@ RUN git clone https://github.com/jedisct1/libsodium.git -b ${SODIUM_VERSION} \
     && make check \
     && make install
 
+# Protobuf
+ARG PROTOBUF_VERSION=v3.7.1
+ARG PROTOBUF_HASH=6973c3a5041636c1d8dc5f7f6c8c1f3c15bc63d6
+RUN set -ex \
+    && git clone https://github.com/protocolbuffers/protobuf -b ${PROTOBUF_VERSION} \
+    && cd protobuf \
+    && test `git rev-parse HEAD` = ${PROTOBUF_HASH} || exit 1 \
+    && git submodule update --init --recursive \
+    && ./autogen.sh \
+    && ./configure --enable-static --disable-shared \
+    && make \
+    && make install \
+    && ldconfig
+
+
 WORKDIR /src
 COPY . .
 
 ARG NPROC
 RUN rm -rf build && \
-    if [ -z "$NPROC" ];then make -j$(nproc) debug-all;else make -j$NPROC debug-all;fi
+    if [ -z "$NPROC" ];then make -j$(nproc) release-static;else make -j$NPROC release-static;fi
 
 # runtime stage
 FROM ubuntu:18.04
@@ -112,7 +127,7 @@ VOLUME /root/.safex
 # safex-wallet-cli
 VOLUME /wallet
 
-EXPOSE 18080
-EXPOSE 18081
+EXPOSE 17401
+EXPOSE 17402
 
-ENTRYPOINT ["safexd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
+ENTRYPOINT ["safexd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=17402", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=17402", "--non-interactive", "--confirm-external-bind"]

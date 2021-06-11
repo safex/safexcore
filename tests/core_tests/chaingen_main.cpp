@@ -188,6 +188,8 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_edit_offer_purchase_tx_in_the_same_block<true>);
     GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<false>);
     GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<true>);
+    GENERATE_AND_PLAY(gen_purchase_update_price_peg_tx_in_the_same_block<false>);
+    GENERATE_AND_PLAY(gen_purchase_update_price_peg_tx_in_the_same_block<true>);
 
 
     GENERATE_AND_PLAY(gen_uint_cash_overflow_1);
@@ -234,7 +236,8 @@ int main(int argc, char* argv[])
       GENERATE_AND_PLAY(gen_edit_offer_purchase_tx_in_the_same_block<true>);
       GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<false>);
       GENERATE_AND_PLAY(gen_purchase_edit_offer_tx_in_the_same_block<true>);
-
+      GENERATE_AND_PLAY(gen_purchase_update_price_peg_tx_in_the_same_block<false>);
+      GENERATE_AND_PLAY(gen_purchase_update_price_peg_tx_in_the_same_block<true>);
 
 
 #endif

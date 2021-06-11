@@ -204,10 +204,11 @@ struct UnstakeTokenCommand : public AdvancedCommand
 {
 public:
     UnstakeTokenCommand():AdvancedCommand{TransactionType::UnstakeTokenTransaction}{}
-    UnstakeTokenCommand(const std::string& _address, const uint64_t _token_amount):AdvancedCommand{TransactionType::UnstakeTokenTransaction},m_token_amount{_token_amount},m_address{_address}{}
+    UnstakeTokenCommand(const std::string& _address, const uint64_t _token_amount, const uint64_t _height = 0):AdvancedCommand{TransactionType::UnstakeTokenTransaction},m_token_amount{_token_amount},m_address{_address},m_height{_height}{}
 
     uint64_t m_token_amount;
     std::string m_address;
+    uint64_t m_height;
 };
 
     struct CreatePricePegCommand : public AdvancedCommand
@@ -412,6 +413,29 @@ public:
     std::string getPrice_peg_id() const {return price_peg_id;};
     std::string getSeller() const {return seller;};
     std::string getCurrency() const {return currency;};
+};
+
+struct SafexFeedback {
+public:
+    SafexFeedback(){}
+    SafexFeedback(const std::string &_title, const std::string& _offer_id, const uint64_t& _rating, const std::string& _comment):
+          title(_title),
+          offer_id(_offer_id),
+          rating(_rating),
+          comment(_comment){}
+
+private:
+    std::string title;
+    std::string offer_id;
+    uint64_t rating;
+    std::string comment;
+
+public:
+
+    std::string getTitle() const {return title;};
+    std::string getOffer_id() const {return offer_id;};
+    uint64_t getRating() const {return rating;};
+    std::string getComment() const {return comment;};
 };
 
 /**
@@ -765,9 +789,19 @@ struct Wallet
     /*!
     * \brief getMyInterest - Returns total interest and also interest for each stake token output
     *
-    * \param interest_per_output - Vector of pairs staked token amount and collected fee
+    * \param interest_per_output - Vector of pairs staked token amount and pair collected fee - block height
     */
-    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output) = 0;
+    virtual uint64_t getMyInterest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output) = 0;
+
+    /*!
+    * \brief getMyFeedbacksToGive - Returns offer ID and offer title that feedback is not given
+    */
+    virtual std::vector<std::pair<std::string, std::string>> getMyFeedbacksToGive() = 0;
+
+    /*!
+    * \brief getMyFeedbacksGiven - Returns feedbacks that are given
+    */
+    virtual std::vector<SafexFeedback> getMyFeedbacksGiven() = 0;
 
    /*!
     * \brief getRestoreHeight - get wallet creation height
@@ -1091,7 +1125,7 @@ struct Wallet
      * \brief getReserveProof - Generates a proof that proves the reserve of unspent funds
      *                          Parameters `account_index` and `amount` are ignored when `all` is true
      */
-    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const = 0;
+    virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message, const bool token) const = 0;
     virtual bool checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent, uint64_t& token_total, uint64_t& token_spent) const = 0;
 
     /*

@@ -727,7 +727,7 @@ namespace tools
                                                                        std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority,
                                                                        const std::vector<uint8_t> &extra, bool trusted_daemon);
     std::vector<wallet::pending_tx> create_transactions_migration(std::vector<cryptonote::tx_destination_entry> dsts, crypto::hash bitcoin_transaction_hash, uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, bool trusted_daemon, bool mark_as_spent=false);
-    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{});
+    std::vector<wallet::pending_tx> create_transactions_advanced(safex::command_t command_type, std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, bool trusted_daemon, const safex::safex_account &sfx_acc = safex::safex_account{}, const uint64_t staked_token_height = 0);
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon, cryptonote::tx_out_type out_type);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet::transfer_container& incoming_transfers) const;
@@ -780,6 +780,8 @@ namespace tools
       a & m_safex_offers;
 
       a & m_safex_feedback_tokens;
+
+      a & m_safex_given_feedbacks;
 
       a & m_safex_price_pegs;
 
@@ -943,6 +945,8 @@ namespace tools
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const std::vector<uint8_t> &acc_username, const cryptonote::tx_out_type out_type) const;
     size_t pop_advanced_output(const std::vector<size_t>& selected_transfers, const crypto::hash& out_id, const cryptonote::tx_out_type out_type) const;
     size_t pop_advanced_output_from(const transfer_container &transfers, const std::vector<size_t>& selected_transfers, const crypto::hash& out_id,  const cryptonote::tx_out_type out_type) const;
+    size_t pop_selected_stake_token_value(std::vector<size_t> &unused_indices, const std::vector<size_t>& selected_transfers, const cryptonote::tx_out_type out_type, const uint64_t cash_amount, const uint64_t token_amount, const uint64_t staked_token_height) const;
+
 
     void set_tx_note(const crypto::hash &txid, const std::string &note);
     std::string get_tx_note(const crypto::hash &txid) const;
@@ -1078,7 +1082,7 @@ namespace tools
 
     std::map<uint64_t, uint64_t> get_interest_map(const uint64_t start_interval, const uint64_t end_interval);
     uint64_t get_interest_for_transfer(const transfer_details& td);
-    uint64_t get_current_interest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output);
+    uint64_t get_current_interest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output);
 
     bool generate_safex_account(const std::string &username, const std::vector<uint8_t> &account_data);
     bool remove_safex_account(const std::string &username);
@@ -1098,6 +1102,7 @@ namespace tools
     bool update_safex_offer(const safex::safex_offer& offer);
     bool update_safex_offer(const safex::create_purchase_data& purchase);
     bool add_safex_feedback_token(const safex::create_feedback_token_data& feedback_token);
+    bool add_safex_feedback_given(const safex::create_feedback_data& feedback_given);
     bool remove_safex_feedback_token(const crypto::hash& offer_id);
     bool add_safex_price_peg(const safex::safex_price_peg& price_peg);
     bool update_safex_price_peg(const crypto::hash &price_peg_id, const uint64_t& rate);
@@ -1110,6 +1115,7 @@ namespace tools
     std::vector<safex::safex_feedback> get_safex_ratings(const crypto::hash& offer_id);
     std::vector<safex::safex_offer> get_my_safex_offers();
     std::vector<crypto::hash> get_my_safex_feedbacks_to_give();
+    std::vector<safex::safex_feedback> get_my_safex_feedbacks_given();
     safex::safex_offer get_my_safex_offer(crypto::hash& offer_id);
     std::vector<safex::safex_price_peg> get_safex_price_pegs(const std::string& currency = "");
     std::vector<safex::safex_price_peg> get_my_safex_price_pegs();
@@ -1132,6 +1138,7 @@ namespace tools
      */
     bool load_keys(const std::string& keys_file_name, const epee::wipeable_string& password);
     bool load_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password);
+    bool read_safex_keys(const std::string& safex_keys_file_name, const epee::wipeable_string& password, std::vector<std::pair<std::string, crypto::secret_key>>& safex_accounts);
     void process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen);
     void process_new_blockchain_entry(const cryptonote::block& b, const cryptonote::block_complete_entry& bche, const crypto::hash& bl_id, uint64_t height, const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices &o_indices);
     void detach_blockchain(uint64_t height);
@@ -1283,12 +1290,16 @@ namespace tools
     bool m_ring_history_saved;
     std::unique_ptr<ringdb> m_ringdb;
 
+    bool problematic_output(crypto::public_key key);
+
     std::vector<safex::safex_account> m_safex_accounts;
     std::vector<safex::safex_account_keys> m_safex_accounts_keys;
 
     std::vector<safex::safex_offer> m_safex_offers;
 
     std::vector<crypto::hash> m_safex_feedback_tokens;
+
+    std::vector<safex::safex_feedback> m_safex_given_feedbacks;
 
     std::vector<safex::safex_price_peg> m_safex_price_pegs;
   };

@@ -138,7 +138,7 @@ namespace tools
   }
 
 //-----------------------------------------------------------------------------------------------------------------
-  uint64_t wallet::get_current_interest(std::vector<std::pair<uint64_t, uint64_t>> &interest_per_output)
+  uint64_t wallet::get_current_interest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> &interest_per_output)
   {
     uint64_t my_interest = 0;
     for (auto &transfer : m_transfers)
@@ -150,10 +150,7 @@ namespace tools
       uint64_t interest = get_interest_for_transfer(transfer);
       my_interest += interest;
 
-      if (interest > 0)
-      {
-        interest_per_output.push_back({transfer.token_amount(), interest});
-      }
+      interest_per_output.push_back({transfer.token_amount(), {interest, transfer.m_block_height}});
     }
 
     return my_interest;
@@ -351,7 +348,17 @@ namespace tools
 
   std::vector<safex::safex_account> wallet::get_safex_accounts()
   {
-    return std::vector<safex::safex_account>(m_safex_accounts.begin(), m_safex_accounts.end());
+
+      for (const auto& td: m_transfers)
+      {
+          if(td.m_output_type == tx_out_type::out_safex_account || td.m_output_type == tx_out_type::out_safex_account_update)
+          {
+              const txout_to_script &txout = boost::get<txout_to_script>(td.m_tx.vout[td.m_internal_output_index].target);
+              process_advanced_output(txout, td.m_output_type);
+          }
+      }
+
+      return m_safex_accounts;
   }
   //-----------------------------------------------------------------------------------------------------------------
   uint8_t wallet::get_safex_account_status(const safex::safex_account& sfx_account) const {
@@ -596,6 +603,14 @@ namespace tools
       return true;
     }
 
+    bool wallet::add_safex_feedback_given(const safex::create_feedback_data& feedback_given){
+
+        m_safex_given_feedbacks.emplace_back(feedback_given.stars_given, std::string(feedback_given.comment.begin(),feedback_given.comment.end()), feedback_given.offer_id);
+
+        return true;
+
+    }
+
     bool wallet::add_safex_price_peg(const safex::safex_price_peg& price_peg){
 
         m_safex_price_pegs.push_back(price_peg);
@@ -619,17 +634,69 @@ namespace tools
 
   std::vector<safex::safex_offer> wallet::get_my_safex_offers()
   {
+        m_safex_offers.clear();
+
+        for (const auto& td: m_transfers)
+        {
+            if(td.m_output_type == tx_out_type::out_safex_offer || td.m_output_type == tx_out_type::out_safex_offer_update
+                    || td.m_output_type == tx_out_type::out_safex_purchase)
+            {
+                const txout_to_script &txout = boost::get<txout_to_script>(td.m_tx.vout[td.m_internal_output_index].target);
+                process_advanced_output(txout, td.m_output_type);
+            }
+        }
+
         return m_safex_offers;
   }
 
     std::vector<safex::safex_price_peg> wallet::get_my_safex_price_pegs()
     {
-      return m_safex_price_pegs;
+        m_safex_price_pegs.clear();
+
+        for (const auto& td: m_transfers)
+        {
+            if(td.m_output_type == tx_out_type::out_safex_price_peg || td.m_output_type == tx_out_type::out_safex_price_peg_update)
+            {
+                const txout_to_script &txout = boost::get<txout_to_script>(td.m_tx.vout[td.m_internal_output_index].target);
+                process_advanced_output(txout, td.m_output_type);
+            }
+        }
+
+        return m_safex_price_pegs;
     }
 
     std::vector<crypto::hash> wallet::get_my_safex_feedbacks_to_give()
     {
-      return m_safex_feedback_tokens;
+        m_safex_feedback_tokens.clear();
+        m_safex_given_feedbacks.clear();
+
+        for (const auto& td: m_transfers)
+        {
+            if(td.m_output_type == tx_out_type::out_safex_feedback_token || td.m_output_type == tx_out_type::out_safex_feedback)
+            {
+                const txout_to_script &txout = boost::get<txout_to_script>(td.m_tx.vout[td.m_internal_output_index].target);
+                process_advanced_output(txout, td.m_output_type);
+            }
+        }
+
+        return m_safex_feedback_tokens;
+    }
+
+    std::vector<safex::safex_feedback> wallet::get_my_safex_feedbacks_given()
+    {
+        m_safex_feedback_tokens.clear();
+        m_safex_given_feedbacks.clear();
+
+        for (const auto& td: m_transfers)
+        {
+            if(td.m_output_type == tx_out_type::out_safex_feedback_token || td.m_output_type == tx_out_type::out_safex_feedback)
+            {
+                const txout_to_script &txout = boost::get<txout_to_script>(td.m_tx.vout[td.m_internal_output_index].target);
+                process_advanced_output(txout, td.m_output_type);
+            }
+        }
+
+        return m_safex_given_feedbacks;
     }
 
   safex::safex_offer wallet::get_my_safex_offer(crypto::hash& offer_id)
@@ -693,6 +760,7 @@ namespace tools
           cryptonote::parse_and_validate_from_blob(offblob, feedback);
           std::string comment{feedback.comment.begin(),feedback.comment.end()};
           remove_safex_feedback_token(feedback.offer_id);
+          add_safex_feedback_given(feedback);
 
       } else if (txout.output_type == static_cast<uint8_t>(tx_out_type::out_safex_price_peg)){
           safex::create_price_peg_data price_peg;

@@ -131,26 +131,21 @@ namespace tools
         MAP_JON_RPC_WE("get_languages",      on_get_languages,      wallet_rpc::COMMAND_RPC_GET_LANGUAGES)
         MAP_JON_RPC_WE("create_wallet",      on_create_wallet,      wallet_rpc::COMMAND_RPC_CREATE_WALLET)
         MAP_JON_RPC_WE("open_wallet",        on_open_wallet,        wallet_rpc::COMMAND_RPC_OPEN_WALLET)
-        MAP_JON_RPC_WE("migrate_view_only",  on_migrate_view_only,  wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY)
-        MAP_JON_RPC_WE("sign_migration",     on_sign_migration,     wallet_rpc::COMMAND_RPC_SIGN_MIGRATION)
-        MAP_JON_RPC_WE("submit_migration",   on_submit_migration,   wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION)
         MAP_JON_RPC_WE("is_multisig",        on_is_multisig,        wallet_rpc::COMMAND_RPC_IS_MULTISIG)
 
         MAP_JON_RPC_WE("get_available_interest", on_available_interest, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST)
-        MAP_JON_RPC_WE("stake_token", on_stake_token, wallet_rpc::COMMAND_RPC_STAKE_TOKEN)
-        MAP_JON_RPC_WE("unstake_token", on_unstake_token, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN)
-        MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
-        MAP_JON_RPC_WE("make_demo_purchase", on_make_demo_purchase, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE)
+//         MAP_JON_RPC_WE("stake_token", on_stake_token, wallet_rpc::COMMAND_RPC_STAKE_TOKEN)
+//         MAP_JON_RPC_WE("unstake_token", on_unstake_token, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN)
+//         MAP_JON_RPC_WE("donate_safex_fee", on_donate_safex_fee, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE)
 
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
       //json_rpc
       bool on_available_interest(const wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::request& req, wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::response& res, epee::json_rpc::error& er);
-      bool on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er);
-      bool on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er);
-      bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);
-      bool on_make_demo_purchase(const wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::request& req, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::response& res, epee::json_rpc::error& er);
+//       bool on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er);
+//       bool on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er);
+//       bool on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er);
 
       bool on_refresh(const wallet_rpc::COMMAND_RPC_REFRESH::request& req, wallet_rpc::COMMAND_RPC_REFRESH::response& res, epee::json_rpc::error& er);
       bool on_getbalance(const wallet_rpc::COMMAND_RPC_GET_BALANCE::request& req, wallet_rpc::COMMAND_RPC_GET_BALANCE::response& res, epee::json_rpc::error& er);
@@ -214,10 +209,10 @@ namespace tools
       bool on_open_wallet(const wallet_rpc::COMMAND_RPC_OPEN_WALLET::request& req, wallet_rpc::COMMAND_RPC_OPEN_WALLET::response& res, epee::json_rpc::error& er);
       bool on_is_multisig(const wallet_rpc::COMMAND_RPC_IS_MULTISIG::request& req, wallet_rpc::COMMAND_RPC_IS_MULTISIG::response& res, epee::json_rpc::error& er);
 
-      // migration rpc
-      bool on_migrate_view_only(const wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request& req, wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response& res, epee::json_rpc::error& er);
-      bool on_sign_migration(const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res, epee::json_rpc::error &er);
-      bool on_submit_migration(const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res, epee::json_rpc::error &er);
+      // migration rpc. Not needed anymore
+//       bool on_migrate_view_only(const wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request& req, wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response& res, epee::json_rpc::error& er);
+//       bool on_sign_migration(const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res, epee::json_rpc::error &er);
+//       bool on_submit_migration(const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req, tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res, epee::json_rpc::error &er);
       //json rpc v2
       bool on_query_key(const wallet_rpc::COMMAND_RPC_QUERY_KEY::request& req, wallet_rpc::COMMAND_RPC_QUERY_KEY::response& res, epee::json_rpc::error& er);
 
@@ -241,6 +236,5 @@ namespace tools
       bool m_trusted_daemon;
       const boost::program_options::variables_map *m_vm;
 
-      std::map<std::string, std::string> simple_trade_ids;
   };
 }

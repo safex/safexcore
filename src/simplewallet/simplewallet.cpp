@@ -1136,7 +1136,9 @@ simple_wallet::simple_wallet()
                            tr("Show the unspent staked token outputs of a specified address within an optional amount range."));
   m_cmd_binder.set_handler("rescan_bc",
                            boost::bind(&simple_wallet::rescan_blockchain, this, _1),
-                           tr("Rescan the blockchain from scratch."));
+                           tr("rescan_bc [<block_height>]"),
+                           tr("Rescan the blockchain from scratch.\n"
+                           "Adding <block_height> rescans from given block height."));
   m_cmd_binder.set_handler("set_tx_note",
                            boost::bind(&simple_wallet::set_tx_note, this, _1),
                            tr("set_tx_note <txid> [free text note]"),
@@ -1215,8 +1217,8 @@ simple_wallet::simple_wallet()
 
   m_cmd_binder.set_handler("unstake_token",
                            boost::bind(&simple_wallet::unstake_token, this, _1),
-                           tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<payment_id>]"),
-                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set payment_id, priority, and subaddress index"));
+                           tr("unstake_token [index=<N1>] [<priority>] <address> <token_amount> [<staked_tokens_height>] [<payment_id>]"),
+                           tr("Unstake <token_amount> with <address> as staked tokens holder, optionally set block height of tokens You want to unstake, payment_id, priority, and subaddress index"));
 
   m_cmd_binder.set_handler("safex_purchase",
                            boost::bind(&simple_wallet::safex_purchase, this, _1),
@@ -1229,6 +1231,11 @@ simple_wallet::simple_wallet()
                               "safex_feedback [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] <offer_id> <star_rating> <comment>\n"),
                            tr("If no arguments are given, show all offers that you can give feedback\n"
                               "If arguments are given, give feedback for purchased offer with <offer_id> with <star_rating> and <comment>"));
+
+  m_cmd_binder.set_handler("safex_feedback_given",
+                           boost::bind(&simple_wallet::safex_feedback_given, this, _1),
+                           tr("safex_feedback_given \n"),
+                           tr("List feedbacks that are given by the user"));
 
   m_cmd_binder.set_handler("donate_safex_fee",
                            boost::bind(&simple_wallet::donate_safex_fee, this, _1),
@@ -5157,9 +5164,15 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_, crypt
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::rescan_blockchain(const std::vector<std::string> &args_)
 {
-  if (!args_.empty())
-    if (args_[0] == "hard")
-      m_wallet->set_refresh_from_block_height(0);
+    if (!args_.empty()){
+        uint64_t start_height = 0;
+        if(!epee::string_tools::get_xtype_from_string(start_height, args_[0]))
+        {
+            fail_msg_writer() << tr("Invalid height");
+            return true;
+        }
+        m_wallet->set_refresh_from_block_height(start_height);
+    }
   return refresh_main(0, true);
 }
 //----------------------------------------------------------------------------------------------------

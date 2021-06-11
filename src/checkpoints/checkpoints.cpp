@@ -172,7 +172,8 @@ namespace cryptonote
 
     if (nettype == STAGENET)
     {
-      ADD_CHECKPOINT(1, "fb37e7df933669b58e3d946fd555c3dd3b830156b15ba25a6d8bc300c4ada10a");
+      ADD_CHECKPOINT(1,     "fb37e7df933669b58e3d946fd555c3dd3b830156b15ba25a6d8bc300c4ada10a");
+      ADD_CHECKPOINT(90000, "8252181f588b5760fbc5dee91eaeaf304878ae385413aa0eef600cd8210019e9");
       return true;
     }
 
@@ -196,8 +197,8 @@ namespace cryptonote
     ADD_CHECKPOINT(91450, "440675c9a39905dcf04ca2565ad4b7a85961ad68db0baf2e98581bac82241b8d");
     ADD_CHECKPOINT(91999, "f36603a42f4fb29088a53cb7e56232c684b0387f67d911cdd1ddee5335ba57d3");
     ADD_CHECKPOINT(92350, "2af3b3ace2be3e5d9bb28d9cbacf4ed448fc21aadcdb7885a474b61eb72e279e");
-    ADD_CHECKPOINT(353978, "d4944b4c303e97a842d6e2297a219da012e0d0276554d4cce61024878a15abf2");
-
+    ADD_CHECKPOINT(353978,"d4944b4c303e97a842d6e2297a219da012e0d0276554d4cce61024878a15abf2");
+    ADD_CHECKPOINT(360000,"65e35f34983c046f64dcae11bc683fb361cac84991ddfc5c8307461ea5777171");
 
 
 
@@ -247,15 +248,15 @@ namespace cryptonote
 
     //todo setup safexpulse infrastructure
     static const std::vector<std::string> dns_urls = {
-            ""
+
     };
 
     static const std::vector<std::string> testnet_dns_urls = {
-            ""
+
     };
 
     static const std::vector<std::string> stagenet_dns_urls = {
-            ""
+
     };
 
     if (!tools::dns_utils::load_txt_records_from_dns(records, nettype == TESTNET ? testnet_dns_urls : nettype == STAGENET ? stagenet_dns_urls : dns_urls))

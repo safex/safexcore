@@ -121,7 +121,7 @@ gen_safex_purchase_001::gen_safex_purchase_001()
 
   uint64_t pegged_price = (price*rate)*SAFEX_CASH_COIN;
 
-  safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_bob.offer_id, false};
+  safex_alice_purchase_from_bob = safex::safex_purchase{1, pegged_price, safex_offer_bob.offer_id, safex_offer_bob.get_hash(), false};
 
 
   safex_alice_feedback = safex::safex_feedback{3,"Perfect for my concert next week.",safex_offer_bob.offer_id};

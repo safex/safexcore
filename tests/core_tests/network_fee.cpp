@@ -92,21 +92,21 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     MAKE_NEXT_BLOCK(events, blk_2, blk_1r, miner);
 
     REWIND_BLOCKS(events, blk_2r, blk_2, miner);
-    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[0]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(40000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[1]));
-    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(10000), blk_2, get_hash_from_string(bitcoin_tx_hashes_str[2]));
+    MAKE_TX_MIGRATION_LIST_START(events, txlist_0, miner, alice, MK_TOKENS(200000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[0]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, bob, MK_TOKENS(40000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[1]));
+    MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, daniel, MK_TOKENS(25000), blk_2r, get_hash_from_string(bitcoin_tx_hashes_str[2]));
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner, txlist_0);
     REWIND_BLOCKS(events, blk_4, blk_3, miner);
 
     //lock some tokens
     MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_1, alice, MK_TOKENS(80000), blk_4);
-    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(20000), blk_4);
+    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, bob, MK_TOKENS(25000), blk_4);
     MAKE_MIGRATION_TX_LIST(events, txlist_0, miner, alice, MK_TOKENS(15000), blk_4, get_hash_from_string(bitcoin_tx_hashes_str[3]));
-    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, daniel, MK_TOKENS(10000), blk_4);
+    MAKE_TOKEN_LOCK_TX_LIST(events, txlist_1, daniel, MK_TOKENS(25000), blk_4);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_5, blk_4, miner, txlist_1);
     REWIND_BLOCKS(events, blk_6, blk_5, miner);
 
-    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(15000), blk_6);
+    MAKE_TX_TOKEN_LOCK_LIST_START(events, txlist_2, alice, MK_TOKENS(25000), blk_6);
     MAKE_DONATE_FEE_TX_LIST(events, txlist_2, miner, MK_COINS(4), blk_6);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_7, blk_6, miner, txlist_2);
 
@@ -122,11 +122,11 @@ bool gen_network_fee_001::generate(std::vector<test_event_entry> &events)
     REWIND_BLOCKS(events, blk_12, blk_11, miner);
 
 
-    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_5, alice, MK_TOKENS(15000), blk_12);
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_5, alice, MK_TOKENS(25000), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_13, blk_12, miner, txlist_5);
 
 
-    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_6, bob, MK_TOKENS(20000), blk_12);
+    MAKE_TX_TOKEN_UNLOCK_LIST_START(events, txlist_6, bob, MK_TOKENS(25000), blk_12);
     MAKE_NEXT_BLOCK_TX_LIST(events, blk_14, blk_13, miner, txlist_6);
 
     DO_CALLBACK(events, "verify_network_fee");

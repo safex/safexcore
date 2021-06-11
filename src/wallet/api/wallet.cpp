@@ -1514,6 +1514,12 @@ bool WalletImpl::createSafexAccount(const std::string& username, const std::vect
     return false;
   }
 
+  for(auto ch: username){
+      if (!(std::islower(ch) || std::isdigit(ch)) && ch!='_' && ch!='-') {
+          return false;
+      }
+  }
+
   if (m_wallet->generate_safex_account(username, description)) {
     m_wallet->store_safex(m_password);
     return true;
@@ -1627,9 +1633,49 @@ std::vector<SafexOffer> WalletImpl::listSafexOffers(bool active){
     return offers;
 }
 
-uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, uint64_t>>& interest_per_output){
+uint64_t WalletImpl::getMyInterest(std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>& interest_per_output){
 
     return m_wallet->get_current_interest(interest_per_output);
+}
+
+std::vector<std::pair<std::string, std::string>> WalletImpl::getMyFeedbacksToGive(){
+
+    std::vector<std::pair<std::string, std::string>> feedback_tokens;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &offer_id: m_wallet->get_my_safex_feedbacks_to_give()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [offer_id](const safex::safex_offer &sfx_offer) {
+            return offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedback_tokens.emplace_back(epee::string_tools::pod_to_hex(offer_id),it->title);
+        }
+    }
+
+    return feedback_tokens;
+}
+
+std::vector<SafexFeedback> WalletImpl::getMyFeedbacksGiven(){
+
+    std::vector<SafexFeedback> feedbacks;
+
+    auto offers = m_wallet->get_safex_offers();
+
+    for (auto &feedback: m_wallet->get_my_safex_feedbacks_given()) {
+
+        auto it = std::find_if(offers.begin(), offers.end(), [feedback](const safex::safex_offer &sfx_offer) {
+            return feedback.offer_id == sfx_offer.offer_id;
+        });
+
+        if (it != offers.end()) {
+            feedbacks.emplace_back(it->title, epee::string_tools::pod_to_hex(feedback.offer_id), feedback.stars_given, feedback.comment);
+        }
+    }
+
+    return feedbacks;
 }
 
 
@@ -1646,6 +1692,8 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
   size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
 
   uint32_t adjusted_priority = m_wallet->adjust_priority(static_cast<uint32_t>(priority));
+
+  uint64_t staked_token_height = 0;
 
   PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
@@ -1731,8 +1779,6 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         token_create_fee.output_type = tx_out_type::out_token;
         dsts.push_back(token_create_fee);
 
-        uint64_t bc_height = m_wallet->get_blockchain_current_height();
-        unlock_block = bc_height + safex::get_safex_minumum_account_create_token_lock_period(m_wallet->nettype());
         command = safex::command_t::create_account;
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::EditAccountTransaction) {
@@ -1876,7 +1922,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
       }
       else if(advancedCommnand.m_transaction_type == TransactionType::UnstakeTokenTransaction) {
 
-        Safex::UnstakeTokenCommand stakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
+        Safex::UnstakeTokenCommand unstakeToken = static_cast<Safex::UnstakeTokenCommand &>(advancedCommnand);
         if (!tools::is_whole_token_amount(*value_amount))
         {
           m_status = Status_Error;
@@ -1884,10 +1930,12 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
           break;
         }
 
+        staked_token_height = unstakeToken.m_height;
+
         de.addr = info.address;
         de.is_subaddress = info.is_subaddress;
         de.token_amount = *value_amount;
-        de.script_output = true;
+        de.script_output = false;
         de.output_type = tx_out_type::out_token;
         fake_outs_count = 0;
         dsts.push_back(de);
@@ -1995,7 +2043,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
 
         cryptonote::tx_destination_entry de_purchase = AUTO_VAL_INIT(de_purchase);
         //Purchase
-        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,safexPurchase.m_quantity_to_purchase,total_sfx_to_pay};
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id, offer_to_purchase->get_hash(), safexPurchase.m_quantity_to_purchase, total_sfx_to_pay};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
         de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
         dsts.push_back(de_purchase);
@@ -2050,7 +2098,7 @@ PendingTransaction * WalletImpl::createAdvancedTransaction(const string &dst_add
         command = safex::command_t::create_feedback;
       }
 
-      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account);
+      transaction->m_pending_tx = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, subaddr_account, subaddr_indices, m_trustedDaemon, my_safex_account, staked_token_height);
 
     } catch (const tools::error::daemon_busy&) {
       // TODO: make it translatable with "tr"?
@@ -2501,7 +2549,7 @@ bool WalletImpl::checkSpendProof(const std::string &txid_str, const std::string 
     }
 }
 
-std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const {
+std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message, const bool token) const {
     try
     {
         m_status = Status_Ok;
@@ -2510,7 +2558,7 @@ std::string WalletImpl::getReserveProof(bool all, uint32_t account_index, uint64
         {
             account_minreserve = std::make_pair(account_index, amount);
         }
-        return m_wallet->get_reserve_proof(account_minreserve, message);
+        return m_wallet->get_reserve_proof(account_minreserve, message, token);
     }
     catch (const std::exception &e)
     {

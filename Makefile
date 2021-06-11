@@ -42,8 +42,8 @@ libwallet-build:
                          		-DSTATIC=ON \
                          		-DProtobuf_USE_STATIC_LIBS=OFF \
                          		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
-                         		-DARCH="x86-64" -D \
-                         		-DBUILD_64=ON -D \
+                         		-DARCH="x86-64" \
+                         		-DBUILD_64=ON \
                          		-DCMAKE_BUILD_TYPE=release \
                          		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
@@ -57,8 +57,8 @@ libwallet-build-windows:
                          		-DSTATIC=ON \
                          		-DProtobuf_USE_STATIC_LIBS=OFF \
                          		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
-                         		-DARCH="x86-64" -D \
-                         		-DBUILD_64=ON -D \
+                         		-DARCH="x86-64" \
+                         		-DBUILD_64=ON \
                          		-DCMAKE_BUILD_TYPE=release \
                          		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
                          		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
@@ -91,7 +91,7 @@ debug-static-all:
 
 cmake-release:
 	mkdir -p build/release
-	cd build/release && cmake -D CMAKE_BUILD_TYPE=Release ../..
+	cd build/release && cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_WALLET_RPC=ON  ../..
 
 release: cmake-release
 	cd build/release && $(MAKE)
@@ -100,9 +100,13 @@ release-test:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE) && $(MAKE) test
 
+release-test-win64-github:
+	mkdir -p build/release
+	cd build/release && cmake -G "MSYS Makefiles" -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -D ARCH="x86-64"  -D BUILD_64=ON -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE) && $(MAKE) test
+
 release-all:
 	mkdir -p build/release
-	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -D BUILD_WALLET_RPC=ON  ../.. && $(MAKE)
 
 release-static:
 	mkdir -p build/release
@@ -154,6 +158,10 @@ release-static-linux-i686:
 release-static-win64:
 	mkdir -p build/release
 	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=c:/msys64 ../.. && $(MAKE)
+
+release-static-win64-proto-github:
+	mkdir -p build/release
+	cd build/release && cmake -G "MSYS Makefiles" -D Protobuf_USE_STATIC_LIBS=ON -D BUILD_SAFEX_PROTOBUF_RPC=ON -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release -D BUILD_TAG="win-x64" -D CMAKE_TOOLCHAIN_FILE=../../cmake/64-bit-toolchain.cmake -D MSYS2_FOLDER=D:/a/_temp/msys/msys64 ../.. && $(MAKE)
 
 release-static-win32:
 	mkdir -p build/release

@@ -3,9 +3,13 @@
 
 ## Releases
 
-Network has performed hard fork 3 with change of difficulty calculation and numerous bug fixes. Current hard fork ready release of Ubuntu safexd node binary and source code is available [here](https://github.com/safex/safexcore/releases). Current release branch with latest hotfixes is [v0.1.2](https://github.com/safex/safexcore/tree/release-v0.1.2).
+Network has performed hard fork 6 with Fix for token overflow issue, Wallet fix and other bug fixes. Current hard fork ready release of Ubuntu, Windows and Mac safexd node binaries and source code is available [here](https://github.com/safex/safexcore/releases).
 
-
+Build | Test 
+------|------
+![](https://github.com/safex/safexcore/workflows/Ubuntu%2018.04%20Build/badge.svg?branch=master) | ![](https://github.com/safex/safexcore/workflows/Ubuntu%2018.04%20Test/badge.svg?branch=master)
+![](https://github.com/safex/safexcore/workflows/Mac%20Build/badge.svg?branch=master) | ![](https://github.com/safex/safexcore/workflows/Mac%20Test/badge.svg?branch=master)
+![](https://github.com/safex/safexcore/workflows/Windows%20Build/badge.svg?branch=master) | 
 
 ## Build Instructions
 
@@ -65,7 +69,10 @@ $ sudo apt update && sudo apt install build-essential cmake pkg-config \
     libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev \
     libgtest-dev doxygen graphviz libpcsclite-dev libprotobuf-dev
 ```
-
+Clone the git repository with recursive
+```
+$ git clone --recursive https://github.com/safex/safexcore.git
+```
 To build a debug version run:
 ```
 make -j <Your number of cores> debug-all > build.log
@@ -87,10 +94,10 @@ to use all cores.
         docker build --build-arg NPROC=1 -t safex . > docker_build.log
 
         # either run in foreground
-        docker run -it -v /monero/chain:/root/.bitmonero -v /monero/wallet:/wallet -p 18080:18080 safex
+        docker run -it -v /safex/chain:/root/.safex -v /safex/wallet:/wallet -p 18080:18080 safex
 
         # or in background
-        docker run -it -d -v /monero/chain:/root/.bitmonero -v /monero/wallet:/wallet -p 18080:18080 safex
+        docker run -it -d -v /safex/chain:/root/.safex -v /safex/wallet:/wallet -p 18080:18080 safex
 
 
 ## Testing

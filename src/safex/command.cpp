@@ -218,6 +218,9 @@ namespace safex
     if(sfx_price * cmd->quantity > cmd->price)
         return execution_status::error_purchase_not_enough_funds;
 
+    if(sfx_offer.get_hash() != cmd->get_offerhash())
+        return execution_status::error_purchase_wrong_hash;
+
     return execution_status::ok;
   };
 

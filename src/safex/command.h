@@ -57,6 +57,7 @@ namespace safex
     error_purchase_not_enough_funds = 23,
     error_purchase_offer_not_active = 24,
     error_purchase_quantity_zero = 25,
+    error_purchase_wrong_hash = 26,
     // Safex offer
     error_offer_price_too_big = 30,
     error_offer_price_too_small = 31,
@@ -126,17 +127,19 @@ namespace safex
 
       simple_purchase_result(){}
 
-      simple_purchase_result(const crypto::hash &_offer_id, uint64_t _quantity, uint64_t _price, bool _shipping) :
-                                                                                                offer_id(_offer_id),quantity{_quantity},
+      simple_purchase_result(const crypto::hash &_offer_id, const crypto::hash &_offer_hash, uint64_t _quantity, uint64_t _price, bool _shipping) :
+                                                                                                offer_id(_offer_id),offer_hash{_offer_hash}, quantity{_quantity},
                                                                                                 price{_price},shipping{_shipping}{}
 
       crypto::hash offer_id{}; //unique id of the offer
+      crypto::hash offer_hash{};
       uint64_t quantity{};
       uint64_t price;
       bool shipping{};
 
       BEGIN_SERIALIZE_OBJECT()
           FIELD(offer_id)
+          FIELD(offer_hash)
           FIELD(quantity)
           FIELD(price)
           FIELD(shipping)
@@ -447,20 +450,22 @@ struct create_price_peg_result : public execution_result
     struct create_purchase_data : public command_data
     {
         crypto::hash offer_id{}; //unique id of the offer
+        crypto::hash offer_hash{};
         uint64_t quantity{};
         uint64_t price;
         bool shipping{};
 
         create_purchase_data() {}
-        create_purchase_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id},quantity{purchase.quantity},price{purchase.price},
+        create_purchase_data(const safex::safex_purchase& purchase): offer_id{purchase.offer_id},offer_hash{purchase.offer_hash},quantity{purchase.quantity},price{purchase.price},
                                                                      shipping{purchase.shipping}
         {
         }
-        create_purchase_data(const crypto::hash &_offer_id, const uint64_t &_quantity, const uint64_t &_price):
-                offer_id{_offer_id},quantity{_quantity},price{_price}{}
+        create_purchase_data(const crypto::hash &_offer_id, const crypto::hash &_offer_hash, const uint64_t &_quantity, const uint64_t &_price):
+                offer_id{_offer_id},offer_hash{_offer_hash},quantity{_quantity},price{_price}{}
 
         BEGIN_SERIALIZE_OBJECT()
             FIELD(offer_id)
+            FIELD(offer_hash)
             FIELD(quantity)
             FIELD(price)
             FIELD(shipping)
@@ -766,12 +771,13 @@ struct create_price_peg_result : public execution_result
        * @param _simple_purchase_price Simple purschase cash amount
       * */
       simple_purchase(const uint32_t _version, const safex::create_purchase_data &sfx_purchase) : command(_version, command_t::simple_purchase),
-                                                                                                  offer_id(sfx_purchase.offer_id),quantity{sfx_purchase.quantity},
+                                                                                                  offer_id(sfx_purchase.offer_id),offer_hash{sfx_purchase.offer_hash},quantity{sfx_purchase.quantity},
                                                                                                   price{sfx_purchase.price},shipping{sfx_purchase.shipping}{}
 
       simple_purchase() : command(0, command_t::simple_purchase) {}
 
       crypto::hash get_offerid(){ return offer_id; }
+      crypto::hash get_offerhash(){ return offer_hash; }
       uint64_t get_quantity(){ return quantity; }
       uint64_t get_price(){ return price; }
       bool get_shipping() { return shipping; }
@@ -783,6 +789,7 @@ struct create_price_peg_result : public execution_result
         FIELDS(*static_cast<command *>(this))
         CHECK_COMMAND_TYPE(this->get_command_type(),  command_t::simple_purchase);
         FIELD(offer_id)
+        FIELD(offer_hash)
         FIELD(quantity)
         FIELD(price)
         FIELD(shipping)
@@ -791,6 +798,7 @@ struct create_price_peg_result : public execution_result
     private:
 
       crypto::hash offer_id{}; //unique id of the offer
+      crypto::hash offer_hash{};
       uint64_t quantity{};
       uint64_t price{};
       bool shipping{};

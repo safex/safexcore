@@ -173,16 +173,21 @@ namespace cryptonote
         }
       }
 
-      if (!r)
+      if (!r && command_type != CommandType::TransferUnstakeToken)
       {
         fail_msg_writer() << tr("payment id has invalid format, expected 16 or 64 character hex string: ") << payment_id_str;
         return true;
       }
-      payment_id_seen = true;
+      if(r)
+        payment_id_seen = true;
+      else
+        local_args.push_back(payment_id_str);
     }
     uint64_t safex_network_fee = 0;
     
     vector<cryptonote::tx_destination_entry> dsts;
+
+    uint64_t staked_token_height = 0;
 
     safex::safex_account my_safex_account = AUTO_VAL_INIT(my_safex_account);
     if (command_type == CommandType::TransferCreateAccount || command_type == CommandType::TransferEditAccount) {
@@ -419,7 +424,7 @@ namespace cryptonote
             return true;
         }
         //Purchase
-        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id,quantity_to_purchase,total_sfx_to_pay};
+        safex::create_purchase_data safex_purchase_output_data{purchase_offer_id, offer_to_purchase->get_hash(), quantity_to_purchase, total_sfx_to_pay};
         blobdata blobdata = cryptonote::t_serializable_object_to_blob(safex_purchase_output_data);
         de_purchase = tx_destination_entry{0, offer_to_purchase->seller_address, false, tx_out_type::out_safex_purchase, blobdata};
         dsts.push_back(de_purchase);
@@ -548,8 +553,6 @@ namespace cryptonote
     else
     {
 
-      for (size_t i = 0; i < local_args.size(); i += 2)
-      {
         cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
         cryptonote::tx_destination_entry de = AUTO_VAL_INIT(de);
 
@@ -557,10 +560,10 @@ namespace cryptonote
         {
           //use my own address as destination
           std::string destination_addr = m_wallet->get_subaddress_as_str({m_current_subaddress_account, 0});
-          local_args.insert(local_args.begin() + i, destination_addr);
+          local_args.insert(local_args.begin(), destination_addr);
         }
 
-        if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[i], oa_prompter))
+        if (!cryptonote::get_account_address_from_str_or_url(info, m_wallet->nettype(), local_args[0], oa_prompter))
         {
           fail_msg_writer() << tr("failed to parse address");
           return true;
@@ -572,7 +575,7 @@ namespace cryptonote
         {
           if (payment_id_seen)
           {
-            fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[i];
+            fail_msg_writer() << tr("a single transaction cannot use more than one payment id: ") << local_args[0];
             return true;
           }
 
@@ -589,10 +592,10 @@ namespace cryptonote
 
         uint64_t value_amount = 0;
 
-        bool ok = cryptonote::parse_amount(value_amount, local_args[i + 1]);
+        bool ok = cryptonote::parse_amount(value_amount, local_args[1]);
         if (!ok || 0 == value_amount)
         {
-          fail_msg_writer() << tr("amount is wrong: ") << local_args[i] << ' ' << local_args[i + 1] <<
+          fail_msg_writer() << tr("amount is wrong: ") << local_args[1] << ' ' << local_args[1] <<
                             ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
           return true;
         }
@@ -602,7 +605,7 @@ namespace cryptonote
         {
           if (!tools::is_whole_token_amount(value_amount))
           {
-            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[0] << ' ' << local_args[1];
             return true;
           }
 
@@ -620,9 +623,18 @@ namespace cryptonote
         {
           if (!tools::is_whole_token_amount(value_amount))
           {
-            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[i] << ' ' << local_args[i + 1];
+            fail_msg_writer() << tr("token amount must be whole number. ") << local_args[0] << ' ' << local_args[1];
             return true;
           }
+
+            if(local_args.size() > 2){
+              if (!epee::string_tools::get_xtype_from_string(staked_token_height, local_args[2])){
+                fail_msg_writer() << tr("Bad staked tokens height given!!!");
+                return true;
+            }
+          }
+
+
           de.token_amount = value_amount;
           de.script_output = false;
           de.output_type = tx_out_type::out_token;
@@ -635,7 +647,6 @@ namespace cryptonote
           // Allow to collect outputs for regular SFX transaction.
 
         dsts.push_back(de);
-      }
     }
 
     // If its demo purchase, make special destination_entry for network fee.
@@ -720,7 +731,7 @@ namespace cryptonote
 
 
       
-      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account);
+      ptx_vector = m_wallet->create_transactions_advanced(command, dsts, fake_outs_count, unlock_block, priority, extra, m_current_subaddress_account, subaddr_indices, m_trusted_daemon, my_safex_account, staked_token_height);
 
       
 
@@ -988,6 +999,15 @@ namespace cryptonote
         return create_command(CommandType::TransferFeedback, args);
     }
 
+
+    bool simple_wallet::safex_feedback_given(const std::vector<std::string>& args) {
+
+        LOCK_IDLE_SCOPE();
+        print_given_feedbacks();
+
+        return true;
+    }
+
   bool simple_wallet::list_offers(const std::vector<std::string>& args) {
 
 
@@ -1075,6 +1095,32 @@ namespace cryptonote
         }
       }
       success_msg_writer() << boost::format("#%|=101|#")  % std::string(101,'#');
+    }
+
+
+    void simple_wallet::print_given_feedbacks(){
+
+        auto offers = m_wallet->get_safex_offers();
+
+        success_msg_writer() << tr(std::string(88,'#').c_str()) <<  tr(" Safex feedbacks given: ") << tr(std::string(88,'#').c_str());
+
+        success_msg_writer() << boost::format("#%|=20|#%|=80|#%|=15|#%|=80|#")  % tr("Offer title") % tr("Offer ID") % tr("Given rating") % tr("Given comment");
+        success_msg_writer() << boost::format("#%|=198|#")  % std::string(198,'#');
+        bool first = false;
+        for (auto &feedback: m_wallet->get_my_safex_feedbacks_given()) {
+
+            auto it = std::find_if(offers.begin(), offers.end(), [feedback](const safex::safex_offer &sfx_offer) {
+                return feedback.offer_id == sfx_offer.offer_id;
+            });
+
+            if (first)
+                success_msg_writer() << boost::format("#%|=20|#%|=80|#%|=15|#%|=80|#") % std::string(20, '-') % std::string(80, '-') % std::string(15, '-') % std::string(80, '-');
+            if (it != offers.end()) {
+                first = true;
+                success_msg_writer() << boost::format("#%|=20|#%|=80|#%|=15|#%|=80|#") % it->title % feedback.offer_id % (uint64_t)feedback.stars_given % feedback.comment;
+            }
+        }
+        success_msg_writer() << boost::format("#%|=198|#")  % std::string(198,'#');
     }
 
     bool simple_wallet::list_ratings(const std::vector<std::string>& args) {
@@ -1168,14 +1214,14 @@ namespace cryptonote
 
   bool simple_wallet::get_my_interest(const std::vector<std::string>& args)
   {
-    std::vector<std::pair<uint64_t, uint64_t>> interest_per_output;
+    std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> interest_per_output;
     uint64_t collected_interest = m_wallet->get_current_interest(interest_per_output);
     
     success_msg_writer() << tr("Collected interest so far is: ") << print_money(collected_interest);
-    success_msg_writer() << boost::format("%30s %20s") % tr("Output amount") % tr("Available interest");
+    success_msg_writer() << boost::format("%30s %20s %20s") % tr("Output amount") % tr("Available interest") % tr("Block height");
     for(auto& pair : interest_per_output)
     {
-      success_msg_writer() << boost::format("%30s %20s") % print_money(pair.first) % print_money(pair.second);
+      success_msg_writer() << boost::format("%30s %20s %20s") % print_money(pair.first) % print_money(pair.second.first) % pair.second.second;
     }
     return true;
   }
