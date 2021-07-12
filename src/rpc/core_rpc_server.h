@@ -91,8 +91,8 @@ namespace cryptonote
       MAP_URI_AUTO_BIN2("/get_random_outs.bin", on_get_random_outs, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS)
       MAP_URI_AUTO_BIN2("/getrandom_outs.bin", on_get_random_outs, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS)      
       MAP_URI_AUTO_BIN2("/get_outs.bin", on_get_outs_bin, COMMAND_RPC_GET_OUTPUTS_BIN)
-      MAP_URI_AUTO_BIN2("/get_random_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
-      MAP_URI_AUTO_BIN2("/getrandom_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
+//       MAP_URI_AUTO_BIN2("/get_random_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
+//       MAP_URI_AUTO_BIN2("/getrandom_rctouts.bin", on_get_random_rct_outs, COMMAND_RPC_GET_RANDOM_RCT_OUTPUTS)
       MAP_URI_AUTO_JON2("/get_transactions", on_get_transactions, COMMAND_RPC_GET_TRANSACTIONS)
       MAP_URI_AUTO_PROTOBUF_RES("/proto/get_transactions", on_get_transactions_protobuf, COMMAND_RPC_GET_TRANSACTIONS_PROTOBUF)
       MAP_URI_AUTO_PROTOBUF_RES("/proto/get_blocks", on_get_blocks_protobuf, COMMAND_RPC_GET_BLOCKS_PROTOBUF)
@@ -118,12 +118,13 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/stop_daemon", on_stop_daemon, COMMAND_RPC_STOP_DAEMON, !m_restricted)
       MAP_URI_AUTO_JON2("/get_info", on_get_info, COMMAND_RPC_GET_INFO)
       MAP_URI_AUTO_JON2("/getinfo", on_get_info, COMMAND_RPC_GET_INFO)
-      MAP_URI_AUTO_JON2("/get_staked_tokens", on_get_locked_tokens, COMMAND_RPC_TOKEN_STAKED)
+      MAP_URI_AUTO_JON2("/get_staked_tokens", on_get_staked_tokens, COMMAND_RPC_TOKEN_STAKED)
       MAP_URI_AUTO_JON2("/get_interest_map", on_get_interest_map, COMMAND_RPC_GET_INTEREST_MAP)
       MAP_URI_AUTO_JON2("/get_network_fee", on_get_network_fee, COMMAND_RPC_NETWORK_FEE)
       MAP_URI_AUTO_JON2("/get_safex_account_info", on_get_safex_account_info, COMMAND_RPC_SAFEX_ACCOUNT_INFO)
       MAP_URI_AUTO_JON2("/get_safex_accounts", on_get_safex_accounts, COMMAND_RPC_GET_SAFEX_ACCOUNTS)
       MAP_URI_AUTO_JON2("/get_safex_offers", on_get_safex_offers, COMMAND_RPC_GET_SAFEX_OFFERS)
+      MAP_URI_AUTO_JON2("/get_safex_offers_json", on_get_safex_offers_json, COMMAND_RPC_GET_SAFEX_OFFERS_JSON)
       MAP_URI_AUTO_JON2("/get_safex_ratings", on_get_safex_ratings, COMMAND_RPC_GET_SAFEX_RATINGS)
       MAP_URI_AUTO_JON2("/get_safex_price_pegs", on_get_safex_price_pegs, COMMAND_RPC_GET_SAFEX_PRICE_PEGS)
       MAP_URI_AUTO_JON2("/get_limit", on_get_limit, COMMAND_RPC_GET_LIMIT)
@@ -175,12 +176,14 @@ namespace cryptonote
 
     bool on_get_safex_account_info(const COMMAND_RPC_SAFEX_ACCOUNT_INFO::request &req, COMMAND_RPC_SAFEX_ACCOUNT_INFO::response &res);
     bool on_get_interest_map(const COMMAND_RPC_GET_INTEREST_MAP::request& req, COMMAND_RPC_GET_INTEREST_MAP::response& res);
-    bool on_get_locked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res);
+    bool on_get_staked_tokens(const COMMAND_RPC_TOKEN_STAKED::request& req, COMMAND_RPC_TOKEN_STAKED::response& res);
     bool on_get_network_fee(const COMMAND_RPC_NETWORK_FEE::request& req, COMMAND_RPC_NETWORK_FEE::response& res);
     bool on_get_safex_accounts(const COMMAND_RPC_GET_SAFEX_ACCOUNTS::request& req, COMMAND_RPC_GET_SAFEX_ACCOUNTS::response& res);
     bool on_get_safex_offers(const COMMAND_RPC_GET_SAFEX_OFFERS::request& req, COMMAND_RPC_GET_SAFEX_OFFERS::response& res);
     bool on_get_safex_ratings(const COMMAND_RPC_GET_SAFEX_RATINGS::request& req, COMMAND_RPC_GET_SAFEX_RATINGS::response& res);
     bool on_get_safex_price_pegs(const COMMAND_RPC_GET_SAFEX_PRICE_PEGS::request& req, COMMAND_RPC_GET_SAFEX_PRICE_PEGS::response& res);
+
+    bool on_get_safex_offers_json(const COMMAND_RPC_GET_SAFEX_OFFERS_JSON::request& req, COMMAND_RPC_GET_SAFEX_OFFERS_JSON::response& res);
 
     bool on_get_output_histogram_protobuf(const COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::request& req, COMMAND_RPC_GET_OUTPUT_HISTOGRAM_PROTOBUF::response& res);
     bool on_send_proto_raw_tx(const COMMAND_RPC_PROTO_SEND_RAW_TX::request& req, COMMAND_RPC_PROTO_SEND_RAW_TX::response& res);

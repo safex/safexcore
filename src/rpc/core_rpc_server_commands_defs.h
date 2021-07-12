@@ -175,6 +175,66 @@ namespace cryptonote
         typedef epee::misc_utils::struct_init<response_t> response;
     };
 
+
+    struct COMMAND_RPC_GET_SAFEX_OFFERS_JSON
+    {
+        struct request_t
+        {
+            std::string seller = "";
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(seller);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+        struct entry
+        {
+            std::string title;
+            uint64_t quantity;
+            uint64_t price;
+            uint64_t min_sfx_price;
+            std::vector<uint8_t> description;
+            bool active;
+            bool price_peg_used;
+            std::vector<uint8_t> shipping;
+            std::string offer_id;
+            std::string price_peg_id;
+            std::string seller;
+            std::string seller_address;
+            uint64_t height;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(title)
+            KV_SERIALIZE(quantity)
+            KV_SERIALIZE(price)
+            KV_SERIALIZE(min_sfx_price)
+            KV_SERIALIZE(description)
+            KV_SERIALIZE(active)
+            KV_SERIALIZE(price_peg_used)
+            KV_SERIALIZE(shipping)
+            KV_SERIALIZE(offer_id)
+            KV_SERIALIZE(price_peg_id)
+            KV_SERIALIZE(seller)
+            KV_SERIALIZE(seller_address)
+            KV_SERIALIZE(height)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct response_t
+        {
+            std::vector<entry> offers;
+            std::string status;
+            bool untrusted;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(offers)
+            KV_SERIALIZE(status)
+            KV_SERIALIZE(untrusted);
+            END_KV_SERIALIZE_MAP()
+        };
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
     struct COMMAND_RPC_GET_SAFEX_PRICE_PEGS
     {
         struct request_t
@@ -1095,9 +1155,13 @@ namespace cryptonote
     struct request_t
     {
       std::vector<get_outputs_out> outputs;
+      uint64_t out_type_as_int;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(outputs)
+        KV_SERIALIZE_OPT(out_type_as_int, (uint64_t)0)
+        KV_SERIALIZE_VAL_POD_AS_BLOB(out_type)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
@@ -2353,7 +2417,7 @@ namespace cryptonote
       bool unlocked;
       uint64_t recent_cutoff;
       uint64_t out_type_as_int;
-      tx_out_type out_type;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts);
@@ -2673,13 +2737,15 @@ namespace cryptonote
       uint64_t from_height;
       uint64_t to_height;
       bool cumulative;
-      tx_out_type out_type;
-
+      uint64_t out_type_as_int;
+      tx_out_type out_type = cryptonote::tx_out_type::out_invalid;
+      
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(amounts)
         KV_SERIALIZE_OPT(from_height, (uint64_t)0)
         KV_SERIALIZE_OPT(to_height, (uint64_t)0)
         KV_SERIALIZE_OPT(cumulative, false)
+        KV_SERIALIZE_OPT(out_type_as_int, (uint64_t)0)
         KV_SERIALIZE_VAL_POD_AS_BLOB(out_type)
       END_KV_SERIALIZE_MAP()
     };
@@ -2834,6 +2900,7 @@ namespace cryptonote
       uint64_t end;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(interval)
+        KV_SERIALIZE(end)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -2867,6 +2934,7 @@ namespace cryptonote
       uint64_t end;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(interval)
+        KV_SERIALIZE(end)
       END_KV_SERIALIZE_MAP()
     };
 

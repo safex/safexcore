@@ -2878,250 +2878,252 @@ bool wallet_rpc_server::on_is_multisig(const wallet_rpc::COMMAND_RPC_IS_MULTISIG
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------
-bool wallet_rpc_server::on_migrate_view_only(
-    const tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request &req,
-    tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response &res,
-    epee::json_rpc::error &er)
-{
-    if (!m_wallet) return not_open(er);
+ 
+// bool wallet_rpc_server::on_migrate_view_only(
+//     const tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::request &req,
+//     tools::wallet_rpc::COMMAND_RPC_MIGRATE_VIEW_ONLY::response &res,
+//     epee::json_rpc::error &er)
+// {
+//     if (!m_wallet) return not_open(er);
 
-    if (!m_wallet->watch_only()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in regular mode. Only view mode.";
-        return false;
-    }
+//     if (!m_wallet->watch_only()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in regular mode. Only view mode.";
+//         return false;
+//     }
 
-    if (m_wallet->restricted()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
+//     if (m_wallet->restricted()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in restricted mode.";
+//         return false;
+//     }
 
-    cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
-    cryptonote::tx_destination_entry token_destination = AUTO_VAL_INIT(token_destination);
-    if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), req.address)) {
-        er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
-        er.message = "Invalid address: " + req.address;
-        return false;
-    }
-    token_destination.addr = info.address;
-    token_destination.is_subaddress = info.is_subaddress;
-    token_destination.token_transaction = true;
-    token_destination.token_amount = req.amount * SAFEX_CASH_COIN;
-    token_destination.output_type = cryptonote::tx_out_type::out_token;
+//     cryptonote::address_parse_info info = AUTO_VAL_INIT(info);
+//     cryptonote::tx_destination_entry token_destination = AUTO_VAL_INIT(token_destination);
+//     if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), req.address)) {
+//         er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
+//         er.message = "Invalid address: " + req.address;
+//         return false;
+//     }
+//     token_destination.addr = info.address;
+//     token_destination.is_subaddress = info.is_subaddress;
+//     token_destination.token_transaction = true;
+//     token_destination.token_amount = req.amount * SAFEX_CASH_COIN;
+//     token_destination.output_type = cryptonote::tx_out_type::out_token;
 
-    //parse bitcoin transaction hash
-    cryptonote::blobdata expected_bitcoin_hash_data;
-    if (!epee::string_tools::parse_hexstr_to_binbuff(req.bitcoin_hash, expected_bitcoin_hash_data) ||
-            expected_bitcoin_hash_data.size() != sizeof(crypto::hash)) {
-        er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
-        er.message = "Invalid address: " + req.address;
-        return false;
-    }
-    const crypto::hash bitcoin_burn_transaction = *reinterpret_cast<const crypto::hash *>(expected_bitcoin_hash_data.data());
+//     //parse bitcoin transaction hash
+//     cryptonote::blobdata expected_bitcoin_hash_data;
+//     if (!epee::string_tools::parse_hexstr_to_binbuff(req.bitcoin_hash, expected_bitcoin_hash_data) ||
+//             expected_bitcoin_hash_data.size() != sizeof(crypto::hash)) {
+//         er.code = WALLET_RPC_ERROR_CODE_WRONG_ADDRESS;
+//         er.message = "Invalid address: " + req.address;
+//         return false;
+//     }
+//     const crypto::hash bitcoin_burn_transaction = *reinterpret_cast<const crypto::hash *>(expected_bitcoin_hash_data.data());
 
-    //airdrop reward calculation
-    cryptonote::tx_destination_entry airdrop_destination = AUTO_VAL_INIT(airdrop_destination);
-    airdrop_destination.addr = info.address;
-    airdrop_destination.is_subaddress = info.is_subaddress;
-    airdrop_destination.token_transaction = false;
-    airdrop_destination.amount = cryptonote::get_airdrop_cash(token_destination.token_amount);
-    airdrop_destination.output_type = cryptonote::tx_out_type::out_cash;
+//     //airdrop reward calculation
+//     cryptonote::tx_destination_entry airdrop_destination = AUTO_VAL_INIT(airdrop_destination);
+//     airdrop_destination.addr = info.address;
+//     airdrop_destination.is_subaddress = info.is_subaddress;
+//     airdrop_destination.token_transaction = false;
+//     airdrop_destination.amount = cryptonote::get_airdrop_cash(token_destination.token_amount);
+//     airdrop_destination.output_type = cryptonote::tx_out_type::out_cash;
 
-    std::vector<cryptonote::tx_destination_entry> dsts;
-    dsts.push_back(token_destination);
-    dsts.push_back(airdrop_destination);
+//     std::vector<cryptonote::tx_destination_entry> dsts;
+//     dsts.push_back(token_destination);
+//     dsts.push_back(airdrop_destination);
 
 
-    //for migration transaction, extra nonce is so far not used
-    std::vector<uint8_t> extra;
+//     //for migration transaction, extra nonce is so far not used
+//     std::vector<uint8_t> extra;
 
-    cryptonote::add_bitcoin_hash_to_extra(extra, bitcoin_burn_transaction);
+//     cryptonote::add_bitcoin_hash_to_extra(extra, bitcoin_burn_transaction);
 
-    try {
-        // figure out what tx will be necessary
-        std::vector<tools::wallet::pending_tx> ptx_vector;
-        std::string err;
+//     try {
+//         // figure out what tx will be necessary
+//         std::vector<tools::wallet::pending_tx> ptx_vector;
+//         std::string err;
 
-        ptx_vector = m_wallet->create_transactions_migration(
-                         dsts, bitcoin_burn_transaction, 0 /* unlock_time */, 0 /* priority, 0 == default */,
-                         extra, m_trusted_daemon, true);
+//         ptx_vector = m_wallet->create_transactions_migration(
+//                          dsts, bitcoin_burn_transaction, 0 /* unlock_time */, 0 /* priority, 0 == default */,
+//                          extra, m_trusted_daemon, true);
 
-        if (ptx_vector.empty()) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
-            er.message = "No outputs found, or daemon is not ready";
-            return false;
-        }
+//         if (ptx_vector.empty()) {
+//             er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
+//             er.message = "No outputs found, or daemon is not ready";
+//             return false;
+//         }
 
-        // ugly hack... used bitcoin_hash noy saved in sources
-        for (auto &ptx : ptx_vector) {
-            cryptonote::add_bitcoin_hash_to_extra(ptx.construction_data.extra, bitcoin_burn_transaction);
-        }
+//         // ugly hack... used bitcoin_hash noy saved in sources
+//         for (auto &ptx : ptx_vector) {
+//             cryptonote::add_bitcoin_hash_to_extra(ptx.construction_data.extra, bitcoin_burn_transaction);
+//         }
 
-        std::string path = req.filename;
-        bool is_saved = m_wallet->save_tx(ptx_vector, path);
+//         std::string path = req.filename;
+//         bool is_saved = m_wallet->save_tx(ptx_vector, path);
 
-        if (!is_saved) {
-            er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
-            er.message = "Could not save to file";
-            return false;
-        } else {
-            res.filename = req.filename;
-        }
-    }
-    catch (...) {
-        er.code = WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR;
-    }
-    return true;
-}
+//         if (!is_saved) {
+//             er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
+//             er.message = "Could not save to file";
+//             return false;
+//         } else {
+//             res.filename = req.filename;
+//         }
+//     }
+//     catch (...) {
+//         er.code = WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR;
+//     }
+//     return true;
+// }
 
-bool wallet_rpc_server::on_sign_migration(
-    const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req,
-    tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res,
-    epee::json_rpc::error &er)
-{
-    if (!m_wallet) return not_open(er);
+// bool wallet_rpc_server::on_sign_migration(
+//     const tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::request &req,
+//     tools::wallet_rpc::COMMAND_RPC_SIGN_MIGRATION::response &res,
+//     epee::json_rpc::error &er)
+// {
+//     if (!m_wallet) return not_open(er);
 
-    if (m_wallet->watch_only()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in view only mode. Must be able to sign transactions.";
-        return false;
-    }
+//     if (m_wallet->watch_only()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in view only mode. Must be able to sign transactions.";
+//         return false;
+//     }
 
-    if (m_wallet->restricted()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
+//     if (m_wallet->restricted()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in restricted mode.";
+//         return false;
+//     }
 
-    if (m_wallet->key_on_device()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
-    if (m_wallet->multisig()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "This is a multisig wallet, it can only sign with sign_multisig";
-        return false;
-    }
+//     if (m_wallet->key_on_device()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in restricted mode.";
+//         return false;
+//     }
+//     if (m_wallet->multisig()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "This is a multisig wallet, it can only sign with sign_multisig";
+//         return false;
+//     }
 
-    std::vector<tools::wallet::pending_tx> ptx;
-    try {
-        bool success = m_wallet->sign_tx(
-                           req.unsigned_filename, req.signed_filename,
-        ptx, [&](const tools::wallet::unsigned_tx_set &tx) {
-            return true;
-        }, false);
+//     std::vector<tools::wallet::pending_tx> ptx;
+//     try {
+//         bool success = m_wallet->sign_tx(
+//                            req.unsigned_filename, req.signed_filename,
+//         ptx, [&](const tools::wallet::unsigned_tx_set &tx) {
+//             return true;
+//         }, false);
 
-        if (!success) {
-            er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
-            er.message = "Failed to sign transaction";
-            return false;
-        }
-    }
-    catch (const std::exception &e) {
-        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
-        er.message = std::string("Failed to sign transaction: ") + e.what();
-        return false;
-    }
-    res.signed_filename = req.signed_filename;
-    return true;
-}
+//         if (!success) {
+//             er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_SAVE_FILE;
+//             er.message = "Failed to sign transaction";
+//             return false;
+//         }
+//     }
+//     catch (const std::exception &e) {
+//         er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+//         er.message = std::string("Failed to sign transaction: ") + e.what();
+//         return false;
+//     }
+//     res.signed_filename = req.signed_filename;
+//     return true;
+// }
 
-bool wallet_rpc_server::on_submit_migration(
-    const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req,
-    tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res,
-    epee::json_rpc::error &er)
-{
-    if (m_wallet->key_on_device())
-    {
-        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
-        er.message = "Command not supported by HW wallet";
-        return false;
-    }
+// bool wallet_rpc_server::on_submit_migration(
+//     const tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::request &req,
+//     tools::wallet_rpc::COMMAND_RPC_SUBMIT_MIGRATION::response &res,
+//     epee::json_rpc::error &er)
+// {
+//     if (m_wallet->key_on_device())
+//     {
+//         er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+//         er.message = "Command not supported by HW wallet";
+//         return false;
+//     }
 
-    try
-    {
-        std::vector<tools::wallet::pending_tx> pending_transactions;
-        bool is_loading_successful = m_wallet->load_tx(req.signed_filename, pending_transactions,
-        [&](const tools::wallet::signed_tx_set &tx) {
-            return true;
-        });
-        if (!is_loading_successful)
-        {
-            er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_LOAD_SIGNED_TX;
-            er.message = "Could not load signed transaction";
-            return false;
-        }
+//     try
+//     {
+//         std::vector<tools::wallet::pending_tx> pending_transactions;
+//         bool is_loading_successful = m_wallet->load_tx(req.signed_filename, pending_transactions,
+//         [&](const tools::wallet::signed_tx_set &tx) {
+//             return true;
+//         });
+//         if (!is_loading_successful)
+//         {
+//             er.code = WALLET_RPC_ERROR_CODE_COULD_NOT_LOAD_SIGNED_TX;
+//             er.message = "Could not load signed transaction";
+//             return false;
+//         }
 
-        m_wallet->commit_tx(pending_transactions);
-        res.signed_filename = req.signed_filename;
-    }
-    catch (const std::exception& e)
-    {
-        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
-        er.message = std::string("Could not submit transaction: ") + e.what();
-        return false;
-    }
+//         m_wallet->commit_tx(pending_transactions);
+//         res.signed_filename = req.signed_filename;
+//     }
+//     catch (const std::exception& e)
+//     {
+//         er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+//         er.message = std::string("Could not submit transaction: ") + e.what();
+//         return false;
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-bool wallet_rpc_server::on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er) 
-{
-    std::vector<cryptonote::tx_destination_entry> dsts;
-    std::vector<uint8_t> extra;
 
-    LOG_PRINT_L3("on_transfer starts");
-    if (!m_wallet) return not_open(er);
-    if (m_wallet->restricted()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
-
-    // validate the transfer requested and populate dsts & extra
-    if (!validate_transfer_advanced(req.destinations, req.payment_id, dsts, extra, true, er, safex::command_t::token_stake)) {
-        return false;
-    }
-
-    try {
-        uint64_t mixin;
-        if (req.ring_size != 0) {
-            mixin = m_wallet->adjust_mixin(req.ring_size - 1);
-        } else {
-            mixin = m_wallet->adjust_mixin(req.mixin);
-
-        }
-
-        uint32_t priority = m_wallet->adjust_priority(req.priority);
-        std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_stake, 
-                    dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
-
-        if (ptx_vector.empty()) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
-            er.message = "No transaction created";
-            return false;
-        }
-
-        // reject proposed transactions if there are more than one.  see on_transfer_split below.
-        if (ptx_vector.size() != 1) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_TOO_LARGE;
-            er.message = "Transaction would be too large.  try /transfer_split.";
-            return false;
-        }
-
-        return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
-                             req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
-                             res.tx_metadata, er, true);
-    }
-    catch (const std::exception &e) {
-        handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
-        return false;
-    }
-    return true;
-}
-
+// bool wallet_rpc_server::on_stake_token(const wallet_rpc::COMMAND_RPC_STAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_STAKE_TOKEN::response& res, epee::json_rpc::error& er) 
+// {
+//     std::vector<cryptonote::tx_destination_entry> dsts;
+//     std::vector<uint8_t> extra;
+// 
+//     LOG_PRINT_L3("on_transfer starts");
+//     if (!m_wallet) return not_open(er);
+//     if (m_wallet->restricted()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in restricted mode.";
+//         return false;
+//     }
+// 
+//     validate the transfer requested and populate dsts & extra
+//     if (!validate_transfer_advanced(req.destinations, req.payment_id, dsts, extra, true, er, safex::command_t::token_stake)) {
+//         return false;
+//     }
+// 
+//     try {
+//         uint64_t mixin;
+//         if (req.ring_size != 0) {
+//             mixin = m_wallet->adjust_mixin(req.ring_size - 1);
+//         } else {
+//             mixin = m_wallet->adjust_mixin(req.mixin);
+// 
+//         }
+// 
+//         uint32_t priority = m_wallet->adjust_priority(req.priority);
+//         std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_stake, 
+//                     dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
+// 
+//         if (ptx_vector.empty()) {
+//             er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
+//             er.message = "No transaction created";
+//             return false;
+//         }
+// 
+//         reject proposed transactions if there are more than one.  see on_transfer_split below.
+//         if (ptx_vector.size() != 1) {
+//             er.code = WALLET_RPC_ERROR_CODE_TX_TOO_LARGE;
+//             er.message = "Transaction would be too large.  try /transfer_split.";
+//             return false;
+//         }
+// 
+//         return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
+//                              req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
+//                              res.tx_metadata, er, true);
+//     }
+//     catch (const std::exception &e) {
+//         handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
+//         return false;
+//     }
+//     return true;
+// }
+/*
 bool wallet_rpc_server::on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::request& req, wallet_rpc::COMMAND_RPC_DONATE_SAFEX_FEE::response& res, epee::json_rpc::error& er)
 {
     std::vector<cryptonote::tx_destination_entry> dsts;
@@ -3176,124 +3178,62 @@ bool wallet_rpc_server::on_donate_safex_fee(const wallet_rpc::COMMAND_RPC_DONATE
     }
     return true;
 }
+*/
 
-bool wallet_rpc_server::on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er)
-{
-    std::vector<cryptonote::tx_destination_entry> dsts;
-    std::vector<uint8_t> extra;
-
-    LOG_PRINT_L3("on_transfer starts");
-    if (!m_wallet) return not_open(er);
-    if (m_wallet->restricted()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
-
-    // validate the transfer requested and populate dsts & extra
-    if (!validate_transfer_advanced(req.destinations, req.payment_id, dsts, extra, true, er, safex::command_t::token_unstake)) {
-        return false;
-    }
-
-    try {
-        uint64_t mixin;
-        if (req.ring_size != 0) {
-            mixin = m_wallet->adjust_mixin(req.ring_size - 1);
-        } else {
-            mixin = m_wallet->adjust_mixin(req.mixin);
-
-        }
-
-        uint32_t priority = m_wallet->adjust_priority(req.priority);
-        std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_unstake, 
-                    dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
-
-        if (ptx_vector.empty()) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
-            er.message = "No transaction created";
-            return false;
-        }
-
-        // reject proposed transactions if there are more than one.  see on_transfer_split below.
-        if (ptx_vector.size() != 1) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_TOO_LARGE;
-            er.message = "Transaction would be too large.  try /transfer_split.";
-            return false;
-        }
-
-        return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
-                             req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
-                             res.tx_metadata, er, true);
-    }
-    catch (const std::exception &e) {
-        handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
-        return false;
-    }
-    return true;
-}
-
-bool wallet_rpc_server::on_make_demo_purchase(const wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::request& req, wallet_rpc::COMMAND_RPC_DEMO_PURCHASE::response& res, epee::json_rpc::error& er) 
-{
-    std::vector<cryptonote::tx_destination_entry> dsts;
-    std::vector<uint8_t> extra;
-
-    LOG_PRINT_L3("on_transfer starts");
-    if (!m_wallet) return not_open(er);
-    if (m_wallet->restricted()) {
-        er.code = WALLET_RPC_ERROR_CODE_DENIED;
-        er.message = "Command unavailable in restricted mode.";
-        return false;
-    }
-
-    // validate the transfer requested and populate dsts & extra
-    if (!validate_transfer_advanced(req.destinations, req.payment_id, dsts, extra, true, er, safex::command_t::simple_purchase)) {
-        return false;
-    }
-
-    if(simple_trade_ids.find(req.offer_id) == simple_trade_ids.end()){
-        er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
-        er.message = "There is no offer with given offer id!!!";
-        return false;
-    } else {
-        res.purchased_offer_id = req.offer_id;
-    }
-
-    try {
-        uint64_t mixin;
-        if (req.ring_size != 0) {
-            mixin = m_wallet->adjust_mixin(req.ring_size - 1);
-        } else {
-            mixin = m_wallet->adjust_mixin(req.mixin);
-
-        }
-
-        uint32_t priority = m_wallet->adjust_priority(req.priority);
-        std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::simple_purchase, 
-                    dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
-
-        if (ptx_vector.empty()) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
-            er.message = "No transaction created";
-            return false;
-        }
-
-        // reject proposed transactions if there are more than one.  see on_transfer_split below.
-        if (ptx_vector.size() != 1) {
-            er.code = WALLET_RPC_ERROR_CODE_TX_TOO_LARGE;
-            er.message = "Transaction would be too large.  try /transfer_split.";
-            return false;
-        }
-
-        return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
-                             req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
-                             res.tx_metadata, er, true);
-    }
-    catch (const std::exception &e) {
-        handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
-        return false;
-    }
-    return true;
-}
+// bool wallet_rpc_server::on_unstake_token(const wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::request& req, wallet_rpc::COMMAND_RPC_UNSTAKE_TOKEN::response& res, epee::json_rpc::error& er)
+// {
+//     std::vector<cryptonote::tx_destination_entry> dsts;
+//     std::vector<uint8_t> extra;
+// 
+//     LOG_PRINT_L3("on_transfer starts");
+//     if (!m_wallet) return not_open(er);
+//     if (m_wallet->restricted()) {
+//         er.code = WALLET_RPC_ERROR_CODE_DENIED;
+//         er.message = "Command unavailable in restricted mode.";
+//         return false;
+//     }
+// 
+//     validate the transfer requested and populate dsts & extra
+//     if (!validate_transfer_advanced(req.destinations, req.payment_id, dsts, extra, true, er, safex::command_t::token_unstake)) {
+//         return false;
+//     }
+// 
+//     try {
+//         uint64_t mixin;
+//         if (req.ring_size != 0) {
+//             mixin = m_wallet->adjust_mixin(req.ring_size - 1);
+//         } else {
+//             mixin = m_wallet->adjust_mixin(req.mixin);
+// 
+//         }
+// 
+//         uint32_t priority = m_wallet->adjust_priority(req.priority);
+//         std::vector<wallet::pending_tx> ptx_vector = m_wallet->create_transactions_advanced(safex::command_t::token_unstake, 
+//                     dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices, m_trusted_daemon);
+// 
+//         if (ptx_vector.empty()) {
+//             er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
+//             er.message = "No transaction created";
+//             return false;
+//         }
+// 
+//         reject proposed transactions if there are more than one.  see on_transfer_split below.
+//         if (ptx_vector.size() != 1) {
+//             er.code = WALLET_RPC_ERROR_CODE_TX_TOO_LARGE;
+//             er.message = "Transaction would be too large.  try /transfer_split.";
+//             return false;
+//         }
+// 
+//         return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.token_amount, res.fee, res.multisig_txset,
+//                              req.do_not_relay, res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata,
+//                              res.tx_metadata, er, true);
+//     }
+//     catch (const std::exception &e) {
+//         handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR);
+//         return false;
+//     }
+//     return true;
+// }
 
 bool wallet_rpc_server::on_available_interest(const wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::request& req, 
                                  wallet_rpc::COMMAND_RPC_GET_AVAILABLE_INTEREST::response& res, 
