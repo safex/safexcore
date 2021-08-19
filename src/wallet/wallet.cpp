@@ -11316,17 +11316,18 @@ uint64_t wallet::get_daemon_blockchain_target_height(string &err)
 uint64_t wallet::get_approximate_blockchain_height() const
 {
   // time of v2 fork
-  const time_t fork_time = m_nettype == TESTNET ? 1448285909 : m_nettype == STAGENET ? (time_t)-1/*TODO*/ : 1458748658;
-  // v2 fork block
-  const uint64_t fork_block = m_nettype == TESTNET ? 624634 : m_nettype == STAGENET ? (uint64_t)-1/*TODO*/ : 1009827;
+  const time_t fork_time = m_nettype == TESTNET ? 1535926791 : m_nettype == STAGENET ? 1563291113 : 1535926791;
   // avg seconds per block
   const int seconds_per_block = DIFFICULTY_TARGET;
   // Calculated blockchain height
-  uint64_t approx_blockchain_height = fork_block + (time(NULL) - fork_time)/seconds_per_block;
-  // testnet got some huge rollbacks, so the estimation is way off
-  static const uint64_t approximate_testnet_rolled_back_blocks = 148540;
-  if (m_nettype == TESTNET && approx_blockchain_height > approximate_testnet_rolled_back_blocks)
-    approx_blockchain_height -= approximate_testnet_rolled_back_blocks;
+  uint64_t approx_blockchain_height = (time(NULL) - fork_time)/seconds_per_block;
+
+  //Testnet don't have stable miners so we put 100.000
+  if (m_nettype == TESTNET)
+      approx_blockchain_height = 100000;
+  //Stagenet wasn't active for 400 days total(a couple of hard resets)
+  if(m_nettype == STAGENET)
+      approx_blockchain_height -= (400*60*60*24)/seconds_per_block;
   LOG_PRINT_L2("Calculated blockchain height: " << approx_blockchain_height);
   return approx_blockchain_height;
 }
