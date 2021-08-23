@@ -1451,6 +1451,18 @@ namespace cryptonote
     bool validate_miner_transaction(const block& b, size_t cumulative_block_size, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t hf_version);
 
     /**
+     * @brief validates a miner (coinbase) transaction outputs
+     *
+     * This function makes sure that the miner transaction outputs are
+     * only txout_to_key type
+     *
+     * @param miner_tx the miner transaction to be validated
+     *
+     * @return false if anything is found wrong with the miner transaction outputs, otherwise true
+     */
+    bool are_miner_tx_outputs_valid(const transaction& miner_tx) const;
+
+    /**
      * @brief reverts the blockchain to its previous state following a failed switch
      *
      * If Blockchain fails to switch to an alternate chain when it means

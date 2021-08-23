@@ -1508,6 +1508,12 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
   LOG_PRINT_L3("Blockchain::" << __func__);
   //validate reward
   uint64_t money_in_use = 0;
+
+  if(!are_miner_tx_outputs_valid(b.miner_tx)){
+      MERROR_VER("miner tx output has output that is not txout_to_key");
+      return false;
+  }
+
   for (auto& o: b.miner_tx.vout)
     money_in_use += o.amount;
   partial_block_reward = false;
@@ -1554,6 +1560,31 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     base_reward = money_in_use - fee;
   }
   return true;
+}
+//------------------------------------------------------------------
+bool Blockchain::are_miner_tx_outputs_valid(const transaction& miner_tx) const
+{
+
+    std::vector<std::string> problematic_txs = {"0d3772e79491a02b6c08d0536d17f5f224170e8d78c2ea338265eaccab266c64",
+                                                "f9c018cc6cdc7898b3e9ac09f9d2ff9afd594c96bc7bbce6f532707c7da7edb1",
+                                                "4ee9bcc7ae4dd0ee77340554173e37d7de51b14b3a3259c17279e3e1e532ad5b",
+                                                "434976fdd6a91f04b84383bc021c243e88fb6c89ed9ceee105604abcf8ac8020",
+                                                "9233ebddc017f049ce3918d4ba9a8dca3a5db0112a98583fed56136e24344bdb"};
+
+    for(auto& it: problematic_txs){
+        crypto::hash problematic_tx;
+        if (!epee::string_tools::hex_to_pod(it, problematic_tx))
+            return false;
+        if( problematic_tx == miner_tx.hash)
+            return true;
+    }
+
+    for (auto& o: miner_tx.vout){
+        if(o.target.type() != typeid(txout_to_key) ){
+            return false;
+        }
+    }
+    return true;
 }
 //------------------------------------------------------------------
 // get the block sizes of the last <count> blocks, and return by reference <sz>.

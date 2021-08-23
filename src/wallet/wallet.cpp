@@ -12464,6 +12464,19 @@ bool wallet::problematic_output(crypto::public_key key) {
         }
 
     }
+
+    for(const auto& it: config::ADDITIONAL_PROBLEMATIC_TOKEN_OUTPUTS) {
+        crypto::public_key problematic_key;
+
+        epee::string_tools::hex_to_pod(it, problematic_key);
+
+        if(problematic_key==key){
+            return true;
+        }
+
+    }
+
+
     return false;
 }
 
