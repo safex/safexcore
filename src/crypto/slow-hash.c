@@ -1042,6 +1042,8 @@ STATIC INLINE void aes_pseudo_round_xor(const uint8_t *in, uint8_t *out, const u
 	}
 }
 
+#ifdef FORCE_USE_HEAP
+
 STATIC INLINE void* aligned_malloc(size_t size, size_t align)
 {
     void *result;
@@ -1061,6 +1063,8 @@ STATIC INLINE void aligned_free(void *ptr)
     free(ptr);
 #endif
 }
+
+#endif
 
 void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed)
 {

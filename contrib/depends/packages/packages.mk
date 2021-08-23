@@ -1,4 +1,4 @@
-packages:=boost openssl zeromq cppzmq libiconv
+packages:=boost openssl zeromq cppzmq libiconv pcsc-lite
 
 native_packages := native_ccache
 
