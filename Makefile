@@ -66,6 +66,21 @@ libwallet-build-windows:
                          		-DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/x86_64-w64-mingw32/share/toolchain.cmake \
                          		../.. && $(MAKE) wallet_api VERBOSE=1
 
+libwallet-build-android:
+	cd contrib/depends && $(MAKE) HOST=aarch64-linux-android
+	mkdir -p build/libwallet-android
+	cd build/libwallet-android && cmake -DBUILD_SHARED_LIBS=OFF -DBUILD_GUI_DEPS=ON \
+                         		-DBUILD_TESTS=OFF -DSTATIC=ON -DBOOST_ROOT=${PWD}/boost \
+                         		-DSTATIC=ON \
+                         		-DProtobuf_USE_STATIC_LIBS=OFF \
+                         		-DBUILD_SAFEX_PROTOBUF_RPC=OFF \
+                         		-DBUILD_64=ON \
+                         		-DCMAKE_BUILD_TYPE=release \
+                         		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true \
+                         		-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${PWD}/deps \
+                         		-DCMAKE_TOOLCHAIN_FILE=$(CURDIR)/contrib/depends/aarch64-linux-android/share/toolchain.cmake \
+                         		../.. && $(MAKE) wallet_merged epee easylogging lmdb unbound VERBOSE=1
+
 depends:
 	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
 	cd build/$(target)/release && cmake -D STATIC=ON -D BUILD_SAFEX_PROTOBUF_RPC=OFF \
