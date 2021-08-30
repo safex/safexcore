@@ -1,4 +1,4 @@
-name: Ubuntu 18.04 Build
+name: Android Build
 
 on:
   push:
@@ -23,15 +23,5 @@ jobs:
       run:  sudo apt-get install libnorm1=1.5r6+dfsg1-6 libzmq5=4.2.5-1ubuntu0.2
     - name: install dependecies
       run:  sudo apt-get install build-essential=12.4ubuntu1 cmake pkg-config=0.29.1-0ubuntu2 libboost-all-dev=1.65.1.0ubuntu1 libssl-dev libsodium23=1.0.16-2 libsodium-dev=1.0.16-2 libpgm-dev=5.2.122~dfsg-2 libzmq3-dev=4.2.5-1ubuntu0.2 libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libpcsclite-dev libnorm-dev=1.5r6+dfsg1-6 libpcsclite1
-    - name: Build protobuf library
-      run: |
-            cd external/protobuf
-            ./autogen.sh
-            ./configure
-            make
-            sudo make install
-            sudo ldconfig
-    - name: proto_ver
-      run:  protoc --version
     - name: build
-      run:  make release-static
+      run:  export PATH="$PWD/contrib/depends/aarch64-linux-android/native/bin:$PATH" && make depends target=aarch64-linux-android
